@@ -17,13 +17,13 @@ namespace RentMate.Data
             base.OnModelCreating(modelBuilder);
 
             // Configure cascade delete / relationships if you want:
-            modelBuilder.Entity<User>()
+            modelBuilder.Entity<ApplicationUser>()
                 .HasMany(u => u.Items)
                 .WithOne(i => i.User)
                 .HasForeignKey(i => i.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<User>()
+            modelBuilder.Entity<ApplicationUser>()
                 .HasMany(u => u.RentalsAsRenter)
                 .WithOne(r => r.Renter)
                 .HasForeignKey(r => r.RenterId)

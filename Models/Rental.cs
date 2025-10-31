@@ -14,8 +14,8 @@ namespace RentMate.Models
         public Item? Item { get; set; }
 
         // FK to Renter (User)
-        public int? RenterId { get; set; }
-        public User? Renter { get; set; }
+        public string? RenterId { get; set; }
+        public ApplicationUser? Renter { get; set; }
 
         [DataType(DataType.Date)]
         public DateTime? StartDate { get; set; }
