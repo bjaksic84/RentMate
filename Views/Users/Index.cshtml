@@ -46,12 +46,12 @@
       </div>
 
       <div class="modal-body">
-        <div id="rolesList" class="mb-3"></div>
+        <div id="rolesCheckboxList" class="mb-3"></div>
 
-        <div class="input-group">
-          <input id="newRole" class="form-control" placeholder="Enter new role name..." />
-          <button class="btn btn-success" type="button" onclick="addRole()">Add</button>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-primary" type="button" onclick="saveRoles()">Save Changes</button>
         </div>
+
       </div>
 
       <div class="modal-footer">
@@ -64,7 +64,6 @@
 @section Scripts {
 <script>
 let currentUserId = null;
-let currentUserName = null;
 let modalInstance = null;
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -89,52 +88,48 @@ async function loadRolesForAllUsers() {
 
 async function openRoleModal(userId, userName) {
     currentUserId = userId;
-    currentUserName = userName;
     document.getElementById("roleModalLabel").innerText = `Manage Roles for ${userName}`;
-    document.getElementById("newRole").value = "";
-    await refreshRoles();
+    await loadCheckboxRoles();
     modalInstance.show();
 }
 
-async function refreshRoles() {
-    const res = await fetch(`/api/UsersApi/${currentUserId}/roles`);
-    const roles = await res.json();
+// ✅ Load all available roles and mark user's current ones
+async function loadCheckboxRoles() {
+    const [allRolesRes, userRolesRes] = await Promise.all([
+        fetch('/api/UsersApi/roles'),
+        fetch(`/api/UsersApi/${currentUserId}/roles`)
+    ]);
 
-    const rolesHtml = roles.map(role => `
-        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
-            <span>${role}</span>
-            <button class="btn btn-sm btn-outline-danger" onclick="removeRole('${role}')">Remove</button>
+    const allRoles = await allRolesRes.json();
+    const userRoles = await userRolesRes.json();
+
+    const container = document.getElementById("rolesCheckboxList");
+    container.innerHTML = allRoles.map(role => `
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="${role}" id="role-${role}" ${userRoles.includes(role) ? "checked" : ""}>
+            <label class="form-check-label" for="role-${role}">
+                ${role}
+            </label>
         </div>
     `).join("");
-
-    document.getElementById("rolesList").innerHTML = rolesHtml || "<p class='text-muted'>No roles assigned.</p>";
 }
 
-async function addRole() {
-    const role = document.getElementById("newRole").value.trim();
-    if (!role) return alert("Please enter a role name.");
+// ✅ Save roles: sends all checked roles to backend
+async function saveRoles() {
+    const selectedRoles = Array.from(document.querySelectorAll("#rolesCheckboxList input:checked"))
+        .map(cb => cb.value);
 
-    const res = await fetch(`/api/UsersApi/${currentUserId}/roles/${role}`, { method: "POST" });
+    const res = await fetch(`/api/UsersApi/${currentUserId}/roles/manage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(selectedRoles)
+    });
+
     if (res.ok) {
-        await refreshRoles();
-        await loadRolesForAllUsers();
-        document.getElementById("newRole").value = "";
-    } else {
-        const msg = await res.text();
-        alert("Error: " + msg);
-    }
-}
-
-async function removeRole(role) {
-    if (!confirm(`Remove role "${role}" from ${currentUserName}?`)) return;
-
-    const res = await fetch(`/api/UsersApi/${currentUserId}/roles/${role}`, { method: "DELETE" });
-    if (res.ok) {
-        await refreshRoles();
+        modalInstance.hide();
         await loadRolesForAllUsers();
     } else {
-        const msg = await res.text();
-        alert("Error: " + msg);
+        alert("Error saving roles");
     }
 }
 </script>

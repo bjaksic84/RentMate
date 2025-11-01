@@ -5,7 +5,7 @@
 <form asp-action="ManageRoles" method="post">
     <input type="hidden" asp-for="UserId" />
 
-    <table class="table">
+    <table class="table table-bordered">
         <thead>
             <tr>
                 <th>Vloga</th>
@@ -13,13 +13,13 @@
             </tr>
         </thead>
         <tbody>
-        @foreach (var role in Model.Roles)
+        @for (int i = 0; i < Model.Roles.Count; i++)
         {
             <tr>
-                <td>@role.RoleName</td>
+                <td>@Model.Roles[i].RoleName</td>
                 <td>
-                    <input type="checkbox" name="Roles[@Model.Roles.IndexOf(role)].IsSelected" value="true" @(role.IsSelected ? "checked" : "") />
-                    <input type="hidden" name="Roles[@Model.Roles.IndexOf(role)].RoleName" value="@role.RoleName" />
+                    <input asp-for="Roles[i].IsSelected" type="checkbox" class="form-check-input" />
+                    <input asp-for="Roles[i].RoleName" type="hidden" />
                 </td>
             </tr>
         }
@@ -29,4 +29,5 @@
     <button type="submit" class="btn btn-primary">Shrani</button>
     <a asp-action="Index" class="btn btn-secondary">Nazaj</a>
 </form>
+
 

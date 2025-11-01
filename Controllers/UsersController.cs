@@ -179,21 +179,22 @@ namespace RentMate.Controllers
             if (user == null) return NotFound();
 
             var userRoles = await _userManager.GetRolesAsync(user);
-            var allRoles = _roleManager.Roles.Select(r => r.Name).ToList();
+            var allRoles = _roleManager.Roles.ToList();
 
             var model = new ManageRolesViewModel
             {
-                UserId = id,
+                UserId = user.Id,
                 UserEmail = user.Email,
-                Roles = allRoles.Select(r => new RoleSelection
+                Roles = allRoles.Select(role => new RoleSelection
                 {
-                    RoleName = r,
-                    IsSelected = userRoles.Contains(r)
+                    RoleName = role.Name,
+                    IsSelected = userRoles.Contains(role.Name)
                 }).ToList()
             };
 
             return View(model);
         }
+
         [HttpPost]
         public async Task<IActionResult> ManageRoles(ManageRolesViewModel model)
         {
@@ -201,16 +202,23 @@ namespace RentMate.Controllers
             if (user == null) return NotFound();
 
             var userRoles = await _userManager.GetRolesAsync(user);
-            var selectedRoles = model.Roles.Where(r => r.IsSelected).Select(r => r.RoleName).ToList();
+            var selectedRoles = model.Roles
+                .Where(r => r.IsSelected)
+                .Select(r => r.RoleName)
+                .ToList();
 
-            var rolesToAdd = selectedRoles.Except(userRoles);
+            // Remove roles that are unchecked
             var rolesToRemove = userRoles.Except(selectedRoles);
-
-            await _userManager.AddToRolesAsync(user, rolesToAdd);
             await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
 
+            // Add newly checked roles
+            var rolesToAdd = selectedRoles.Except(userRoles);
+            await _userManager.AddToRolesAsync(user, rolesToAdd);
+
+            TempData["SuccessMessage"] = $"Vloge za {user.Email} so bile uspešno posodobljene.";
             return RedirectToAction(nameof(Index));
         }
+
 
 
     }

@@ -87,6 +87,28 @@ namespace RentMate.Controllers
 
             return Ok(result);
         }
+        [HttpPost("{userId}/roles/manage")]
+        public async Task<IActionResult> ManageUserRoles(string userId, [FromBody] List<string> roles)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return NotFound("User not found.");
+
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            var rolesToAdd = roles.Except(currentRoles);
+            var rolesToRemove = currentRoles.Except(roles);
+
+            await _userManager.AddToRolesAsync(user, rolesToAdd);
+            await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+
+            return Ok();
+        }
+        [HttpGet("roles")]
+        public IActionResult GetAllRoles()
+        {
+            var roles = _roleManager.Roles.Select(r => r.Name).ToList();
+            return Ok(roles);
+        }
     }
 }
 
