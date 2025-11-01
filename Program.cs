@@ -18,6 +18,12 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<RentMateContext>()
     .AddDefaultTokenProviders();
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.AccessDeniedPath = "/AccessDenied";
+    options.LoginPath = "/Identity/Account/Login"; // adjust if needed
+});
+
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();

@@ -1,47 +1,142 @@
 ﻿@model IEnumerable<RentMate.Models.ApplicationUser>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "User Management";
 }
 
-<h1>Index</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.UserName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Email)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.PasswordHash)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.UserName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PasswordHash)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+
+<div class="container mt-5">
+    <h2 class="mb-4 text-center">User Management</h2>
+
+    <table class="table table-bordered table-hover align-middle text-center">
+        <thead class="table-dark">
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Roles</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="usersTable">
+            @foreach (var user in Model)
+            {
+                <tr data-user-id="@user.Id">
+                    <td>@user.UserName</td>
+                    <td>@user.Email</td>
+                    <td class="user-roles text-muted">Loading...</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="openRoleModal('@user.Id', '@user.UserName')">
+                            Manage Roles
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="roleModalLabel">Manage Roles</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="rolesList" class="mb-3"></div>
+
+        <div class="input-group">
+          <input id="newRole" class="form-control" placeholder="Enter new role name..." />
+          <button class="btn btn-success" type="button" onclick="addRole()">Add</button>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script>
+let currentUserId = null;
+let currentUserName = null;
+let modalInstance = null;
+
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadRolesForAllUsers();
+    modalInstance = new bootstrap.Modal(document.getElementById('roleModal'));
+});
+
+async function loadRolesForAllUsers() {
+    document.querySelectorAll("#usersTable tr").forEach(async row => {
+        const userId = row.getAttribute("data-user-id");
+        const rolesCell = row.querySelector(".user-roles");
+
+        try {
+            const res = await fetch(`/api/UsersApi/${userId}/roles`);
+            const roles = await res.json();
+            rolesCell.innerHTML = roles.length ? roles.join(", ") : "<i>No roles</i>";
+        } catch {
+            rolesCell.innerText = "Error loading roles";
+        }
+    });
 }
-    </tbody>
-</table>
+
+async function openRoleModal(userId, userName) {
+    currentUserId = userId;
+    currentUserName = userName;
+    document.getElementById("roleModalLabel").innerText = `Manage Roles for ${userName}`;
+    document.getElementById("newRole").value = "";
+    await refreshRoles();
+    modalInstance.show();
+}
+
+async function refreshRoles() {
+    const res = await fetch(`/api/UsersApi/${currentUserId}/roles`);
+    const roles = await res.json();
+
+    const rolesHtml = roles.map(role => `
+        <div class="d-flex justify-content-between align-items-center border rounded p-2 mb-2">
+            <span>${role}</span>
+            <button class="btn btn-sm btn-outline-danger" onclick="removeRole('${role}')">Remove</button>
+        </div>
+    `).join("");
+
+    document.getElementById("rolesList").innerHTML = rolesHtml || "<p class='text-muted'>No roles assigned.</p>";
+}
+
+async function addRole() {
+    const role = document.getElementById("newRole").value.trim();
+    if (!role) return alert("Please enter a role name.");
+
+    const res = await fetch(`/api/UsersApi/${currentUserId}/roles/${role}`, { method: "POST" });
+    if (res.ok) {
+        await refreshRoles();
+        await loadRolesForAllUsers();
+        document.getElementById("newRole").value = "";
+    } else {
+        const msg = await res.text();
+        alert("Error: " + msg);
+    }
+}
+
+async function removeRole(role) {
+    if (!confirm(`Remove role "${role}" from ${currentUserName}?`)) return;
+
+    const res = await fetch(`/api/UsersApi/${currentUserId}/roles/${role}`, { method: "DELETE" });
+    if (res.ok) {
+        await refreshRoles();
+        await loadRolesForAllUsers();
+    } else {
+        const msg = await res.text();
+        alert("Error: " + msg);
+    }
+}
+</script>
+}
+

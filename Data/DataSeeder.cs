@@ -16,7 +16,7 @@ namespace RentMate.Data
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
                 // Define the roles you want in your app
-                string[] roleNames = { "Admin", "User" };
+                string[] roleNames = { "Admin", "User", "Moderator" };
 
                 // Create roles if they don’t exist
                 foreach (var roleName in roleNames)

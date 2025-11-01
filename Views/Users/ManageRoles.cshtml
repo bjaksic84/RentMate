@@ -1,0 +1,32 @@
+﻿@model RentMate.Models.ManageRolesViewModel
+
+<h2>Uredi vloge za @Model.UserEmail</h2>
+
+<form asp-action="ManageRoles" method="post">
+    <input type="hidden" asp-for="UserId" />
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Vloga</th>
+                <th>Dodeljena</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var role in Model.Roles)
+        {
+            <tr>
+                <td>@role.RoleName</td>
+                <td>
+                    <input type="checkbox" name="Roles[@Model.Roles.IndexOf(role)].IsSelected" value="true" @(role.IsSelected ? "checked" : "") />
+                    <input type="hidden" name="Roles[@Model.Roles.IndexOf(role)].RoleName" value="@role.RoleName" />
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-primary">Shrani</button>
+    <a asp-action="Index" class="btn btn-secondary">Nazaj</a>
+</form>
+

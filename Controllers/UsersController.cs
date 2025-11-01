@@ -8,17 +8,26 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace RentMate.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class UsersController : Controller
     {
-        private readonly RentMateContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public UsersController(RentMateContext context)
+        public UsersController(RentMateContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             _context = context;
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
+
+        private readonly RentMateContext _context;
+
+       
 
         // GET: Users
         public async Task<IActionResult> Index()
@@ -98,8 +107,18 @@ namespace RentMate.Controllers
             {
                 try
                 {
-                    _context.Update(user);
+                    var existingUser = await _context.Users.FindAsync(id);
+                    if (existingUser == null)
+                        return NotFound();
+
+                    // Update only editable fields
+                    existingUser.Email = user.Email;
+                    existingUser.FirstName = user.FirstName;
+                    existingUser.LastName = user.LastName;
+                    existingUser.City = user.City;
+
                     await _context.SaveChangesAsync();
+                    return RedirectToAction(nameof(Index));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -112,7 +131,7 @@ namespace RentMate.Controllers
                         throw;
                     }
                 }
-                return RedirectToAction(nameof(Index));
+                
             }
             return View(user);
         }
@@ -154,5 +173,45 @@ namespace RentMate.Controllers
         {
             return _context.Users.Any(e => e.Id == id);
         }
+        public async Task<IActionResult> ManageRoles(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var allRoles = _roleManager.Roles.Select(r => r.Name).ToList();
+
+            var model = new ManageRolesViewModel
+            {
+                UserId = id,
+                UserEmail = user.Email,
+                Roles = allRoles.Select(r => new RoleSelection
+                {
+                    RoleName = r,
+                    IsSelected = userRoles.Contains(r)
+                }).ToList()
+            };
+
+            return View(model);
+        }
+        [HttpPost]
+        public async Task<IActionResult> ManageRoles(ManageRolesViewModel model)
+        {
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null) return NotFound();
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            var selectedRoles = model.Roles.Where(r => r.IsSelected).Select(r => r.RoleName).ToList();
+
+            var rolesToAdd = selectedRoles.Except(userRoles);
+            var rolesToRemove = userRoles.Except(selectedRoles);
+
+            await _userManager.AddToRolesAsync(user, rolesToAdd);
+            await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
+
+            return RedirectToAction(nameof(Index));
+        }
+
+
     }
 }
