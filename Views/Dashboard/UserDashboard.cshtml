@@ -1,36 +1,94 @@
-﻿@page
-@model RentMate.Views.Dashboard.UserDashboardModel
+﻿@model RentMate.Models.DashboardViewModel
 @{
-    ViewData["Title"] = "User Dashboard";
+    ViewData["Title"] = "My Dashboard";
 }
 
 <div class="container mt-5">
-    <h2 class="text-center mb-4">Welcome to RentMate</h2>
+    <h2 class="text-center mb-4">My Dashboard</h2>
 
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm text-center p-4">
-                <h5>My Listings</h5>
-                <p>View and manage your listed items.</p>
-                <a asp-controller="Listings" asp-action="MyListings" class="btn btn-primary">Go</a>
+    <div class="row g-4">
+        <!-- My Items Section -->
+        <div class="col-12">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-3">My Items</h4>
+                @if (Model.Listings != null && Model.Listings.Any())
+                {
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Price</th>
+                                <th>Listed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Listings)
+                            {
+                                <tr>
+                                    <td>@item.Title</td>
+                                    <td>@item.Description</td>
+                                    <td>@item.Price</td>
+                                    <td>@(item.IsListed ? "Yes" : "No")</td>
+                                    <td>
+                                        <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Edit</a>
+                                        <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger">Delete</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p>You have not listed any items yet.</p>
+                }
             </div>
         </div>
 
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm text-center p-4">
-                <h5>Browse Listings</h5>
-                <p>Explore available items and services to rent.</p>
-                <a asp-controller="Listings" asp-action="Index" class="btn btn-success">Browse</a>
-            </div>
-        </div>
-
-        <div class="col-md-4 mb-3">
-            <div class="card shadow-sm text-center p-4">
-                <h5>My Rentals</h5>
-                <p>Track the items you’ve rented or reserved.</p>
-                <button class="btn btn-secondary" disabled>Coming Soon</button>
+        <!-- My Rentals Section -->
+        <div class="col-12 mt-4">
+            <div class="card shadow-sm p-4">
+                <h4 class="mb-3">My Rentals</h4>
+                @if (Model.Rentals != null && Model.Rentals.Any())
+                {
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Status</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var rental in Model.Rentals)
+                            {
+                                <tr>
+                                    <td>@rental.Item.Title</td>
+                                    <td>@rental.Status</td>
+                                    <td>@(rental.StartDate?.ToShortDateString() ?? "N/A")</td>
+                                    <td>@(rental.EndDate?.ToShortDateString() ?? "N/A")</td>
+                                    <td>
+                                        <a asp-controller="Rentals" asp-action="Edit" asp-route-id="@rental.Id" class="btn btn-sm btn-warning">Edit</a>
+                                        <a asp-controller="Rentals" asp-action="Delete" asp-route-id="@rental.Id" class="btn btn-sm btn-danger">Delete</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p>You have no rentals yet.</p>
+                }
             </div>
         </div>
     </div>
 </div>
+
+
+
 

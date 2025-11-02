@@ -49,11 +49,37 @@ namespace RentMate.Controllers
         }
 
 
-        [Authorize(Roles = "User,Admin")]
-        public IActionResult UserDashboard()
+        [Authorize]
+        public async Task<IActionResult> UserDashboard()
         {
-            return View();
+            var user = await _userManager.GetUserAsync(User);
+
+            if (user == null)
+                return RedirectToAction("Index", "Home");
+
+         
+
+            var userItems = await _context.Items
+                .Where(i => i.UserId == user.Id)
+                .ToListAsync();
+
+            var userRentals = await _context.Rentals
+                .Include(r => r.Item)
+                .Where(r => r.RenterId == user.Id)
+                .ToListAsync();
+
+            var viewModel = new DashboardViewModel
+            {
+                Listings = userItems,
+                Rentals = userRentals,
+                TotalListings = userItems.Count,
+                ActiveListings = userItems.Count(i => i.IsListed && !i.IsRented),
+                TotalRentals = userRentals.Count
+            };
+
+            return View(viewModel);
         }
+
     }
 }
 

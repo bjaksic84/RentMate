@@ -8,10 +8,12 @@ namespace RentMate.Models
         public int TotalListings { get; set; }
         public int ActiveListings { get; set; }
         public int TotalRentals { get; set; }
-
+        public int ActiveRentals { get; set; }
         public List<ApplicationUser>? Users { get; set; }
         public List<Item>? Listings { get; set; }
         public List<Rental>? Rentals { get; set; }
+        
+
     }
 }
 

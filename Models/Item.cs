@@ -20,5 +20,6 @@ namespace RentMate.Models
         public bool IsListed { get; set; }  // true = listed publicly for rent
         public bool IsRented { get; set; }  // true = currently being rented
         public ICollection<Rental>? Rentals { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
