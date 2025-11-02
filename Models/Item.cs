@@ -17,7 +17,8 @@ namespace RentMate.Models
         // Foreign key to owner
         public string? UserId { get; set; }
         public ApplicationUser? User { get; set; }
-
+        public bool IsListed { get; set; }  // true = listed publicly for rent
+        public bool IsRented { get; set; }  // true = currently being rented
         public ICollection<Rental>? Rentals { get; set; }
     }
 }

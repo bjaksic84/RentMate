@@ -1,0 +1,48 @@
+﻿@model RentMate.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Admin Dashboard</h2>
+    
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h6 class="text-muted">Total users</h6>
+                <h3>@Model?.TotalUsers</h3>
+                <p class="mb-0">Manage roles and user accounts</p>
+                <a asp-controller="Users" asp-action="Index" class="btn btn-sm btn-primary mt-2">Manage Users</a>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h6 class="text-muted">Total listings</h6>
+                <h3>@Model?.TotalListings</h3>
+                <p class="mb-0">All listings posted by users</p>
+                <a asp-controller="Listings" asp-action="Index" class="btn btn-sm btn-primary mt-2">View Listings</a>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h6 class="text-muted">Active listings</h6>
+                <h3>@Model?.ActiveListings</h3>
+                <p class="mb-0">Currently available</p>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card shadow-sm text-center p-3">
+                <h6 class="text-muted">Total rentals</h6>
+                <h3>@Model?.TotalRentals</h3>
+                <p class="mb-0">Completed / active rentals</p>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
