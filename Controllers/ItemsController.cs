@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
+using Microsoft.AspNetCore.Authorization;
 using RentMate.Models;
 
 namespace RentMate.Controllers
@@ -160,5 +161,19 @@ namespace RentMate.Controllers
         {
             return _context.Items.Any(e => e.Id == id);
         }
+        // ItemsController.cs
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> ToggleListing(int id)
+        {
+            var item = await _context.Items.FindAsync(id);
+            if (item == null) return NotFound();
+
+            item.IsListed = !item.IsListed;
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, isListed = item.IsListed });
+        }
+
     }
 }

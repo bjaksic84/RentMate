@@ -1,0 +1,35 @@
+@model IEnumerable<RentMate.Models.Rental>
+
+<h2>My Rentals</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Status</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var r in Model)
+    {
+        <tr>
+            <td>@r.Item?.Title</td>
+            <td>@r.Status</td>
+            <td>@r.StartDate?.ToShortDateString()</td>
+            <td>@r.EndDate?.ToShortDateString()</td>
+            <td>
+                @if (r.Status == RentMate.Models.RentalStatus.Active)
+                {
+                    <form asp-action="CompleteRental" method="post">
+                        <input type="hidden" name="rentalId" value="@r.Id" />
+                        <button type="submit" class="btn btn-success btn-sm">Complete</button>
+                    </form>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

@@ -1,170 +1,110 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
 
 namespace RentMate.Controllers
 {
+    [Authorize]
     public class RentalsController : Controller
     {
         private readonly RentMateContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public RentalsController(RentMateContext context)
+        public RentalsController(RentMateContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
-        // GET: Rentals
+        // 1️⃣  Public listings — all items available to rent
+        [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            var rentMateContext = _context.Rentals.Include(r => r.Item).Include(r => r.Renter);
-            return View(await rentMateContext.ToListAsync());
+            var available = await _context.Items
+                .Where(i => i.IsListed && !i.IsRented)
+                .ToListAsync();
+            return View(available);
         }
 
-        // GET: Rentals/Details/5
-        public async Task<IActionResult> Details(int? id)
+        // 2️⃣  Start a rental
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> RentItem(int itemId, DateTime startDate, DateTime endDate)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
 
+            var item = await _context.Items.FindAsync(itemId);
+            if (item == null || !item.IsListed || item.IsRented)
+                return NotFound("Item not available for rent.");
+
+            item.IsRented = true;
+
+            var rental = new Rental
+            {
+                ItemId = item.Id,
+                RenterId = user.Id,
+                StartDate = startDate,
+                EndDate = endDate,
+                Status = RentalStatus.Active
+            };
+
+            _context.Rentals.Add(rental);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = $"Successfully rented {item.Title}!";
+
+            return RedirectToAction("UserDashboard", "Dashboard");
+        }
+
+
+        // 3️⃣  End (complete) a rental
+        [HttpPost]
+        public async Task<IActionResult> CompleteRental(int rentalId)
+        {
             var rental = await _context.Rentals
                 .Include(r => r.Item)
-                .Include(r => r.Renter)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (rental == null)
-            {
-                return NotFound();
-            }
+                .FirstOrDefaultAsync(r => r.Id == rentalId);
 
-            return View(rental);
-        }
+            if (rental == null) return NotFound();
 
-        // GET: Rentals/Create
-        public IActionResult Create()
-        {
-            ViewData["ItemId"] = new SelectList(_context.Items, "Id", "Title");
-            ViewData["RenterId"] = new SelectList(_context.Users, "Id", "Email");
-            return View();
-        }
-
-        // POST: Rentals/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,ItemId,RenterId,StartDate,EndDate,Status")] Rental rental)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(rental);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["ItemId"] = new SelectList(_context.Items, "Id", "Title", rental.ItemId);
-            ViewData["RenterId"] = new SelectList(_context.Users, "Id", "Email", rental.RenterId);
-            return View(rental);
-        }
-
-        // GET: Rentals/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var rental = await _context.Rentals.FindAsync(id);
-            if (rental == null)
-            {
-                return NotFound();
-            }
-            ViewData["ItemId"] = new SelectList(_context.Items, "Id", "Title", rental.ItemId);
-            ViewData["RenterId"] = new SelectList(_context.Users, "Id", "Email", rental.RenterId);
-            return View(rental);
-        }
-
-        // POST: Rentals/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int? id, [Bind("Id,ItemId,RenterId,StartDate,EndDate,Status")] Rental rental)
-        {
-            if (id != rental.Id)
-            {
-                return NotFound();
-            }
-
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(rental);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!RentalExists(rental.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["ItemId"] = new SelectList(_context.Items, "Id", "Title", rental.ItemId);
-            ViewData["RenterId"] = new SelectList(_context.Users, "Id", "Email", rental.RenterId);
-            return View(rental);
-        }
-
-        // GET: Rentals/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var rental = await _context.Rentals
-                .Include(r => r.Item)
-                .Include(r => r.Renter)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (rental == null)
-            {
-                return NotFound();
-            }
-
-            return View(rental);
-        }
-
-        // POST: Rentals/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int? id)
-        {
-            var rental = await _context.Rentals.FindAsync(id);
-            if (rental != null)
-            {
-                _context.Rentals.Remove(rental);
-            }
+            rental.Status = RentalStatus.Completed;
+            rental.EndDate = DateTime.UtcNow;
+            rental.Item!.IsRented = false;
 
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction("MyRentals");
         }
 
-        private bool RentalExists(int? id)
+        // 4️⃣  Show the logged-in user’s rentals
+        public async Task<IActionResult> MyRentals()
         {
-            return _context.Rentals.Any(e => e.Id == id);
+            var user = await _userManager.GetUserAsync(User);
+            var rentals = await _context.Rentals
+                .Include(r => r.Item)
+                .Where(r => r.RenterId == user.Id)
+                .ToListAsync();
+            return View(rentals);
+        }
+
+        // 5️⃣  Toggle listing visibility (list / unlist)
+        [HttpPost]
+        public async Task<IActionResult> ToggleListing(int itemId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            var item = await _context.Items.FindAsync(itemId);
+
+            if (item == null || item.UserId != user.Id)
+                return Unauthorized();
+
+            item.IsListed = !item.IsListed;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index", "Dashboard");
         }
     }
 }
+
