@@ -10,5 +10,7 @@ public class ApplicationUser : IdentityUser
 
     public ICollection<Item>? Items { get; set; }
     public ICollection<Rental>? RentalsAsRenter { get; set; }
+    public ICollection<Rental>? RentalsAsOwner { get; set; } // ✅ NEW
 }
+
 

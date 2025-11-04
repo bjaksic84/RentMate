@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace RentMate.Controllers
@@ -24,11 +25,12 @@ namespace RentMate.Controllers
         {
             var user = await _userManager.GetUserAsync(User);
             if (user != null && await _userManager.IsInRoleAsync(user, "Admin"))
-                return RedirectToAction("AdminDashboard");
+                return RedirectToAction(nameof(AdminDashboard));
 
-            return RedirectToAction("UserDashboard");
+            return RedirectToAction(nameof(UserDashboard));
         }
 
+        // --- ADMIN DASHBOARD ---
         [Authorize(Roles = "Admin")]
         public IActionResult AdminDashboard()
         {
@@ -36,50 +38,70 @@ namespace RentMate.Controllers
             {
                 TotalUsers = _userManager.Users.Count(),
                 TotalListings = _context.Items.Count(),
-                ActiveListings = _context.Items.Count(i => i.IsListed), // or whatever property marks availability
+                ActiveListings = _context.Items.Count(i => i.IsListed),
                 TotalRentals = _context.Rentals.Count(),
+                ActiveRentals = _context.Rentals.Count(r => r.Status == RentalStatus.Active),
 
-                // optional lists for later display
                 Users = _userManager.Users.ToList(),
-                Listings = _context.Items.ToList(),
-                Rentals = _context.Rentals.ToList()
+                Listings = _context.Items
+                    .Include(i => i.User)
+                    .OrderByDescending(i => i.CreatedAt)
+                    .ToList(),
+                Rentals = _context.Rentals
+                    .Include(r => r.Item)
+                    .Include(r => r.Renter)
+                    .Include(r => r.Owner)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .ToList()
             };
 
             return View(viewModel);
         }
 
-
+        // --- USER DASHBOARD ---
         [Authorize]
         public async Task<IActionResult> UserDashboard()
         {
             var user = await _userManager.GetUserAsync(User);
-
             if (user == null)
                 return RedirectToAction("Index", "Home");
 
-         
-
+            // 1️⃣ Items owned by the user
             var userItems = await _context.Items
                 .Where(i => i.UserId == user.Id)
+                .OrderByDescending(i => i.CreatedAt)
                 .ToListAsync();
 
-            var userRentals = await _context.Rentals
+            // 2️⃣ Rentals where the user is the renter
+            var myRentals = await _context.Rentals
                 .Include(r => r.Item)
+                .Include(r => r.Owner)
                 .Where(r => r.RenterId == user.Id)
+                .OrderByDescending(r => r.StartDate)
                 .ToListAsync();
 
+            // 3️⃣ Rentals where the user is the owner
+            var ownerRentals = await _context.Rentals
+                .Include(r => r.Item)
+                .Include(r => r.Renter)
+                .Where(r => r.OwnerId == user.Id)
+                .OrderByDescending(r => r.StartDate)
+                .ToListAsync();
+
+            // Build model
             var viewModel = new DashboardViewModel
             {
                 Listings = userItems,
-                Rentals = userRentals,
+                MyRentals = myRentals,
+                OwnerRentals = ownerRentals,
                 TotalListings = userItems.Count,
                 ActiveListings = userItems.Count(i => i.IsListed && !i.IsRented),
-                TotalRentals = userRentals.Count
+                TotalRentals = myRentals.Count + ownerRentals.Count,
+                ActiveRentals = myRentals.Count(r => r.Status == RentalStatus.Active)
             };
 
             return View(viewModel);
         }
-
     }
 }
 

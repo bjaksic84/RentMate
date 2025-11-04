@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using Microsoft.AspNetCore.Authorization;
 using RentMate.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace RentMate.Controllers
 {
@@ -15,10 +16,14 @@ namespace RentMate.Controllers
     {
         private readonly RentMateContext _context;
 
-        public ItemsController(RentMateContext context)
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        public ItemsController(RentMateContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
+
 
         // GET: Items
         public async Task<IActionResult> Index()
@@ -58,17 +63,34 @@ namespace RentMate.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,Description,Price,UserId")] Item item)
+        [Authorize]
+        // POST: Items/Create
+
+        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category")] Item item)
         {
+            var user = await _userManager.GetUserAsync(User); // 🧠 we fetch the logged-in user
+
+            if (user == null)
+                return Unauthorized();
+
             if (ModelState.IsValid)
             {
+                item.UserId = user.Id;      // ✅ auto-assign ownership
+                item.IsListed = false;      // 🧩 new items start as unlisted
+                item.IsRented = false;      // ✅ default
+                item.CreatedAt = DateTime.UtcNow; // optional metadata
+
                 _context.Add(item);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+
+                TempData["SuccessMessage"] = $"Item '{item.Title}' created successfully!";
+                return RedirectToAction("UserDashboard", "Dashboard");
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", item.UserId);
+
             return View(item);
         }
+
+
 
         // GET: Items/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -166,14 +188,16 @@ namespace RentMate.Controllers
         [Authorize]
         public async Task<IActionResult> ToggleListing(int id)
         {
+            var user = await _userManager.GetUserAsync(User);
             var item = await _context.Items.FindAsync(id);
-            if (item == null) return NotFound();
+            if (item == null || item.UserId != user.Id) return Unauthorized();
 
             item.IsListed = !item.IsListed;
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, isListed = item.IsListed });
         }
+
 
     }
 }

@@ -19,6 +19,11 @@ namespace RentMate.Models
         public ApplicationUser? User { get; set; }
         public bool IsListed { get; set; }  // true = listed publicly for rent
         public bool IsRented { get; set; }  // true = currently being rented
+
+        // 🔹 Optional additions
+        public string? Location { get; set; }  // City or pickup location
+        public string? ImageUrl { get; set; }  // For future UI use
+        public string? Category { get; set; }  // e.g. "Tools", "Vehicles", etc.
         public ICollection<Rental>? Rentals { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

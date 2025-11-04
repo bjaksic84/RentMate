@@ -18,8 +18,8 @@
         <tr>
             <td>@r.Item?.Title</td>
             <td>@r.Status</td>
-            <td>@r.StartDate?.ToShortDateString()</td>
-            <td>@r.EndDate?.ToShortDateString()</td>
+            <td>@r.StartDate.ToShortDateString()</td>
+            <td>@r.EndDate.ToShortDateString()</td>
             <td>
                 @if (r.Status == RentMate.Models.RentalStatus.Active)
                 {
