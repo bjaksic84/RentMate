@@ -1,28 +1,236 @@
 ﻿@model IEnumerable<RentMate.Models.Item>
+@{
+    ViewData["Title"] = "Available Rentals";
+}
 
-<h2>Available Listings</h2>
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Available Items for Rent</h2>
 
-<div class="row">
-@foreach (var item in Model)
-{
-    <div class="col-md-4 mb-3">
-        <div class="card shadow-sm p-3">
-            <h5>@item.Title</h5>
-            <p>@item.Description</p>
-            <p><strong>Price:</strong> @item.Price €</p>
+    @if (TempData["InfoMessage"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            @TempData["InfoMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
-            @if (User.Identity!.IsAuthenticated)
-            {
-                <form asp-action="RentItem" method="post">
-                    <input type="hidden" name="itemId" value="@item.Id" />
-                    <button type="submit" class="btn btn-primary btn-sm">Rent</button>
-                </form>
-            }
-            else
-            {
-                <p class="text-muted">Login to rent</p>
-            }
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@item.Title</h5>
+                        <p class="card-text text-muted">@item.Description</p>
+                        <p><strong>Price:</strong> €@item.Price / day</p>
+                        <p><small class="text-muted">Owner: @item.User?.Email</small></p>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <button class="btn btn-primary w-100"
+                                data-bs-toggle="modal"
+                                data-bs-target="#rentalModal"
+                                data-itemid="@item.Id"
+                                data-title="@item.Title"
+                                data-price="@item.Price">
+                            Rent
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- RENTAL MODAL -->
+<div class="modal fade" id="rentalModal" tabindex="-1" aria-labelledby="rentalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-controller="Rentals" asp-action="RequestRental" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rentalModalLabel">Rent Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="itemId" id="modalItemId" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Item</label>
+                        <input type="text" class="form-control" id="modalItemTitle" readonly />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" name="startDate" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">End Date</label>
+                        <input type="date" class="form-control" name="endDate" required />
+                    </div>
+
+                    <div class="text-muted">
+                        <small>Price per day: <span id="modalItemPrice"></span> €</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success w-100">Request Rental</button>
+                </div>
+            </form>
         </div>
     </div>
-}
 </div>
+
+@section Scripts {
+    <script>
+        // --- Handle modal field population ---
+        const rentalModal = document.getElementById('rentalModal');
+        rentalModal.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const itemId = button.getAttribute('data-itemid');
+            const title = button.getAttribute('data-title');
+            const price = button.getAttribute('data-price');
+
+            document.getElementById('modalItemId').value = itemId;
+            document.getElementById('modalItemTitle').value = title;
+            document.getElementById('modalItemPrice').textContent = price;
+            document.getElementById('rentalModalLabel').textContent = `Rent: ${title}`;
+        });
+
+        // --- Handle AJAX rental submission ---
+        const rentalForm = rentalModal.querySelector('form');
+        rentalForm.addEventListener('submit', async e => {
+            e.preventDefault();
+
+            const formData = new FormData(rentalForm);
+            const itemId = formData.get("itemId");
+
+            try {
+                const response = await fetch(rentalForm.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const modal = bootstrap.Modal.getInstance(rentalModal);
+
+                if (response.ok) {
+                    modal.hide();
+                    markItemAsPending(itemId);
+                    showToast('✅ Rental request submitted successfully!', 'success');
+                } else {
+                    const errorText = await response.text();
+                    showToast(`❌ Rental request failed: ${errorText}`, 'danger');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('❌ Network error while submitting request.', 'danger');
+            }
+        });
+
+        // --- Mark card as pending visually ---
+        function markItemAsPending(itemId) {
+            const card = document.querySelector(`[data-itemid="${itemId}"]`)?.closest('.card');
+            if (card) {
+                card.classList.add('opacity-50');
+                const footer = card.querySelector('.card-footer');
+                footer.innerHTML = `
+                    <div class="text-center text-warning fw-bold">
+                        ⏳ Pending Approval
+                    </div>
+                `;
+            }
+        }
+
+        // --- Toast helper (Bootstrap 5) ---
+        function showToast(message, type = 'info') {
+            const toastContainerId = 'toastContainer';
+            let container = document.getElementById(toastContainerId);
+            if (!container) {
+                container = document.createElement('div');
+                container.id = toastContainerId;
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                document.body.appendChild(container);
+            }
+
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            container.appendChild(toastEl);
+
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        }
+    </script>
+}
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        // --- SignalR connection setup ---
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/rentmateHub")
+            .build();
+
+        connection.on("ItemListingChanged", (data) => {
+            console.log("Received real-time update:", data);
+            const { itemId, isListed, title, price, description } = data;
+
+            const existingCard = document.querySelector(`[data-itemid="${itemId}"]`)?.closest(".col");
+
+            if (isListed) {
+                // ✅ Item was listed — add it if it doesn't exist
+                if (!existingCard) {
+                    const container = document.querySelector(".row.row-cols-1");
+                    const newCard = document.createElement("div");
+                    newCard.className = "col";
+                    newCard.innerHTML = `
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">${title}</h5>
+                                <p class="card-text text-muted">${description ?? ""}</p>
+                                <p><strong>Price:</strong> €${price} / day</p>
+                            </div>
+                            <div class="card-footer bg-transparent border-top-0">
+                                <button class="btn btn-primary w-100"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#rentalModal"
+                                        data-itemid="${itemId}"
+                                        data-title="${title}"
+                                        data-price="${price}">
+                                    Rent
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.prepend(newCard);
+                    showToast(`🟢 ${title} is now available for rent!`, "success");
+                }
+            } else {
+                // ❌ Item was unlisted — remove it if visible
+                if (existingCard) {
+                    existingCard.classList.add("opacity-50");
+                    existingCard.style.transition = "opacity 0.4s";
+                    setTimeout(() => existingCard.remove(), 400);
+                    showToast(`🔕 ${title} was unlisted.`, "secondary");
+                }
+            }
+        });
+
+        connection.start().catch(err => console.error("SignalR connection failed:", err));
+    </script>
+}
+
+
+

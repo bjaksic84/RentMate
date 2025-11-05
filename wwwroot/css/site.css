@@ -20,3 +20,69 @@ html {
 body {
   margin-bottom: 60px;
 }
+/* ===============================
+   Custom UI Enhancements (RentMate)
+   =============================== */
+
+/* Flash highlight animation for updated rows */
+tr.flash {
+    animation: flashFade 0.8s ease-in-out;
+}
+@keyframes flashFade {
+    0% { background-color: #d1e7dd; }  /* Bootstrap success-light green */
+    100% { background-color: transparent; }
+}
+
+/* Slight opacity for disabled or pending cards */
+.card.opacity-50 {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.card.opacity-50:hover {
+    transform: scale(1.01);
+}
+
+/* Optional: Toast spacing consistency */
+.toast-container {
+    z-index: 1100; /* keeps it above modals */
+}
+/* --- Connection Indicator Styles --- */
+#connectionIndicator.online {
+    background-color: #28a745; /* Bootstrap success green */
+    color: white;
+}
+#connectionIndicator.offline {
+    background-color: #dc3545; /* Bootstrap danger red */
+    color: white;
+}
+/* --- Connection Indicator Animation --- */
+#connectionIndicator {
+    transition: background-color 0.4s ease, color 0.4s ease, transform 0.3s ease;
+    animation-duration: 0.4s;
+    animation-fill-mode: both;
+    opacity: 0;
+    transition: opacity 0.4s ease, background-color 0.4s ease, transform 0.3s ease;
+}
+
+#connectionIndicator.visible {
+    opacity: 1;
+}
+
+#connectionIndicator.flash {
+    animation-name: pulseFade;
+}
+
+@keyframes pulseFade {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+

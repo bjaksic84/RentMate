@@ -26,5 +26,6 @@ namespace RentMate.Models
         public string? Category { get; set; }  // e.g. "Tools", "Vehicles", etc.
         public ICollection<Rental>? Rentals { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

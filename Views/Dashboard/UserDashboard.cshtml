@@ -5,6 +5,21 @@
 
 <div class="container mt-5">
     <h2 class="text-center mb-4">My Dashboard</h2>
+        <!-- Message Alerts -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
 
     <div class="row g-4">
 
@@ -47,7 +62,7 @@
 
                 <hr />
 
-                @if (Model.Listings?.Any() ?? false)
+                @if (Model.ListingsOwned?.Any() ?? false)
                 {
                     <table class="table table-striped align-middle mt-3">
                         <thead>
@@ -59,7 +74,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var item in Model.Listings)
+                        @foreach (var item in Model.ListingsOwned)
                         {
                             <tr>
                                 <td>@item.Title</td>
@@ -93,7 +108,7 @@
 
                 @if (Model.OwnerRentals?.Any() ?? false)
                 {
-                    <table class="table table-bordered align-middle">
+                    <table class="table table-bordered align-middle" id="ownerRentalsTable">
                         <thead>
                             <tr>
                                 <th>Item</th>
@@ -168,10 +183,15 @@
                                 <label class="form-label">Select Item</label>
                                 <select class="form-select" name="itemId" required>
                                     <option value="">-- Select --</option>
-                                    @foreach (var item in Model.Listings.Where(i => i.IsListed && !i.IsRented))
+                                    @if (Model.ListingsOwned != null && Model.ListingsOwned.Any()) 
                                     {
-                                        <option value="@item.Id">@item.Title (@item.Price?.ToString("C")/day)</option>
+                                        @foreach (var item in Model.ListingsOwned?.Where(i => i.IsListed && !i.IsRented) ?? Enumerable.Empty<RentMate.Models.Item>())
+                                        {
+                                            <option value="@item.Id">@item.Title (@item.Price?.ToString("C")/day)</option>
+                                        }
+
                                     }
+                                    
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -193,7 +213,7 @@
 
                 @if (Model.MyRentals?.Any() ?? false)
                 {
-                    <table class="table table-bordered align-middle mt-3">
+                    <table class="table table-bordered align-middle mt-3" id="myRentalsTable">
                         <thead>
                             <tr>
                                 <th>Item</th>
@@ -248,29 +268,221 @@
     </div>
 </div>
 
-<script>
-async function toggleListing(itemId, button) {
-    try {
-        const res = await fetch(`/Items/ToggleListing/${itemId}`, { method: "POST" });
-        if (!res.ok) throw new Error("Failed to toggle listing");
-        const data = await res.json();
-        if (data.success) {
-            if (data.isListed) {
-                button.classList.remove("btn-success");
-                button.classList.add("btn-warning");
-                button.textContent = "Unlist";
-            } else {
-                button.classList.remove("btn-warning");
-                button.classList.add("btn-success");
-                button.textContent = "List";
+@section Scripts {
+    <script>
+        // --- Toast helper (shared from Rentals page) ---
+        function showToast(message, type = 'info') {
+            const toastContainerId = 'toastContainer';
+            let container = document.getElementById(toastContainerId);
+            if (!container) {
+                container = document.createElement('div');
+                container.id = toastContainerId;
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                document.body.appendChild(container);
+            }
+
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            container.appendChild(toastEl);
+
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        }
+        // --- SignalR: Listen for live rental requests ---
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/rentmateHub")
+            .build();
+
+        connection.on("RentalRequested", (data) => {
+            console.log("🔔 New rental request:", data);
+
+            showToast(`🔔 New rental request for your item "${data.itemTitle}" from ${data.renterEmail}`, "info");
+
+            // Optionally, add the new rental row dynamically:
+            const tableBody = document.querySelector("#ownerRentalsTable tbody");
+            if (tableBody) {
+                const newRow = document.createElement("tr");
+                newRow.innerHTML = `
+                    <td>${data.itemTitle}</td>
+                    <td>${data.renterEmail}</td>
+                    <td><span class="badge bg-warning">${data.status}</span></td>
+                    <td>${data.startDate}</td>
+                    <td>${data.endDate}</td>
+                    <td>
+                        <form action="/Rentals/ApproveRental" method="post" class="d-inline">
+                            <input type="hidden" name="rentalId" value="${data.rentalId}" />
+                            <button class="btn btn-sm btn-success">Approve</button>
+                        </form>
+                        <form action="/Rentals/CancelRental" method="post" class="d-inline">
+                            <input type="hidden" name="rentalId" value="${data.rentalId}" />
+                            <button class="btn btn-sm btn-danger">Reject</button>
+                        </form>
+                    </td>
+                `;
+                tableBody.prepend(newRow);
+                newRow.classList.add("flash");
+                setTimeout(() => newRow.classList.remove("flash"), 1000);
+            }
+        });
+
+        connection.start().catch(err => console.error("SignalR connection failed:", err));
+        const indicator = document.getElementById("connectionIndicator");
+        indicator.classList.add("visible");
+        function pulseIndicator() {
+            indicator.classList.add("flash");
+            setTimeout(() => indicator.classList.remove("flash"), 500);
+        }
+
+        connection.onreconnected(() => {
+            indicator.textContent = "Online";
+            indicator.classList.remove("bg-secondary", "bg-warning");
+            indicator.classList.add("bg-success");
+            pulseIndicator();
+            showToast("✅ Connected to live updates", "success");
+        });
+
+        connection.onreconnecting(() => {
+            indicator.textContent = "Reconnecting...";
+            indicator.classList.remove("bg-success", "bg-secondary");
+            indicator.classList.add("bg-warning");
+            pulseIndicator();
+        });
+
+        connection.onclose(() => {
+            indicator.textContent = "Offline";
+            indicator.classList.remove("bg-success", "bg-warning");
+            indicator.classList.add("bg-secondary");
+            pulseIndicator();
+        });
+
+        connection.start().then(() => {
+            indicator.textContent = "Online";
+            indicator.classList.remove("bg-secondary");
+            indicator.classList.add("bg-success");
+        }).catch(err => console.error("SignalR connection failed:", err));
+
+        connection.on("RentalStatusChanged", (data) => {
+            console.log("📦 Rental status update:", data);
+
+            showToast(data.message, "success");
+
+            // Update the renter's "My Rentals from Others" table
+            const table = document.querySelector("#myRentalsTable");
+            if (!table) return;
+
+            const row = [...table.querySelectorAll("tr")].find(r =>
+                r.innerHTML.includes(data.itemTitle)
+            );
+
+            if (row) {
+                row.classList.add("flash");
+                const statusCell = row.querySelector("td:nth-child(3)");
+                if (statusCell) statusCell.innerHTML = `<span class="badge bg-info">${data.newStatus}</span>`;
+                setTimeout(() => row.classList.remove("flash"), 1000);
+            }
+        });
+
+        // --- Handle action buttons (Approve / Reject / Complete) ---
+        document.querySelectorAll('form[action*="Rentals"]').forEach(form => {
+            form.addEventListener('submit', async e => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const action = form.getAttribute('action');
+                const row = form.closest('tr');
+
+                try {
+                    const response = await fetch(action, { method: 'POST', body: formData });
+                    if (response.ok) {
+                        if (action.includes('ApproveRental')) {
+                            updateRow(row, 'Active', 'primary', 'Rental approved.');
+                        } else if (action.includes('CancelRental')) {
+                            updateRow(row, 'Cancelled', 'secondary', 'Rental cancelled.');
+                        } else if (action.includes('CompleteRental')) {
+                            updateRow(row, 'Completed', 'success', 'Rental completed.');
+                        } else {
+                            showToast('Action performed successfully.', 'info');
+                        }
+                    } else {
+                        const err = await response.text();
+                        showToast('❌ Action failed: ' + err, 'danger');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('❌ Network error performing action.', 'danger');
+                }
+            });
+        });
+
+        // --- Update the table row visually ---
+        function updateRow(row, newStatus, color, toastMessage) {
+            const statusCell = row.querySelector('td:nth-child(3)');
+            const actionsCell = row.querySelector('td:last-child');
+
+            if (statusCell) {
+                statusCell.innerHTML = `<span class="badge bg-${color}">${newStatus}</span>`;
+            }
+            if (actionsCell) {
+                actionsCell.innerHTML = `<span class="text-muted">—</span>`;
+            }
+
+            row.classList.add('opacity-75');
+            showToast(`✅ ${toastMessage}`, color);
+        }
+
+        // --- Toggle listing stays same as before ---
+        async function toggleListing(itemId, button) {
+            try {
+                const res = await fetch(`/Items/ToggleListing/${itemId}`, { method: "POST" });
+                if (!res.ok) throw new Error("Failed to toggle listing");
+                const data = await res.json();
+
+                const row = button.closest("tr");
+                const listedCell = row.querySelector("td:nth-child(4)");
+
+                if (data.success) {
+                    if (data.isListed) {
+                        // ✅ Update button
+                        button.classList.remove("btn-success");
+                        button.classList.add("btn-warning");
+                        button.textContent = "Unlist";
+
+                        // ✅ Update cell
+                        if (listedCell) listedCell.textContent = "✅";
+
+                        // ✅ Show toast
+                        showToast("✅ Item listed successfully!", "success");
+                        row.classList.add("flash");
+                        setTimeout(() => row.classList.remove("flash"), 1000);
+
+                    } else {
+                        button.classList.remove("btn-warning");
+                        button.classList.add("btn-success");
+                        button.textContent = "List";
+
+                        if (listedCell) listedCell.textContent = "❌";
+
+                        showToast("🔕 Item unlisted.", "secondary");
+                    }
+                } else {
+                    showToast("❌ Could not update listing status.", "danger");
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("❌ Network error while updating listing.", "danger");
             }
         }
-    } catch (err) {
-        alert("Error updating listing status");
-        console.error(err);
-    }
+
+    </script>
 }
-</script>
+
 
 
 

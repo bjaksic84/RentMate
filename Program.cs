@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using RentMate.Data;
 using RentMate.Models;
+using RentMate.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
@@ -26,6 +27,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -89,6 +91,8 @@ app.MapRazorPages();
 
 app.MapControllers();
 app.MapDefaultControllerRoute();
+app.MapHub<RentMateHub>("/rentmateHub");
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;

@@ -9,6 +9,8 @@ using RentMate.Data;
 using Microsoft.AspNetCore.Authorization;
 using RentMate.Models;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
+using RentMate.Hubs;
 
 namespace RentMate.Controllers
 {
@@ -18,10 +20,12 @@ namespace RentMate.Controllers
 
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public ItemsController(RentMateContext context, UserManager<ApplicationUser> userManager)
+        private readonly IHubContext<RentMateHub> _hubContext;
+        public ItemsController(RentMateContext context, UserManager<ApplicationUser> userManager, IHubContext<RentMateHub> hubContext)
         {
             _context = context;
             _userManager = userManager;
+            _hubContext = hubContext;
         }
 
 
@@ -64,21 +68,20 @@ namespace RentMate.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        // POST: Items/Create
-
         public async Task<IActionResult> Create([Bind("Title,Description,Price,Category")] Item item)
         {
-            var user = await _userManager.GetUserAsync(User); // 🧠 we fetch the logged-in user
-
+            var user = await _userManager.GetUserAsync(User);
             if (user == null)
                 return Unauthorized();
 
             if (ModelState.IsValid)
             {
-                item.UserId = user.Id;      // ✅ auto-assign ownership
-                item.IsListed = false;      // 🧩 new items start as unlisted
-                item.IsRented = false;      // ✅ default
-                item.CreatedAt = DateTime.UtcNow; // optional metadata
+                // ✅ Assign ownership and safe defaults
+                item.UserId = user.Id;
+                item.IsListed = false;    // start unlisted
+                item.IsRented = false;    // not rented yet
+                item.CreatedAt = DateTime.UtcNow;
+                item.UpdatedAt = DateTime.UtcNow;
 
                 _context.Add(item);
                 await _context.SaveChangesAsync();
@@ -87,8 +90,10 @@ namespace RentMate.Controllers
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
-            return View(item);
+            TempData["ErrorMessage"] = "Failed to create item. Please try again.";
+            return RedirectToAction("UserDashboard", "Dashboard");
         }
+
 
 
 
@@ -194,7 +199,16 @@ namespace RentMate.Controllers
 
             item.IsListed = !item.IsListed;
             await _context.SaveChangesAsync();
-
+            // ✅ Broadcast real-time update
+            await _hubContext.Clients.All.SendAsync("ItemListingChanged", new
+            {
+                itemId = item.Id,
+                isListed = item.IsListed,
+                title = item.Title,
+                price = item.Price,
+                description = item.Description
+            });
+            
             return Json(new { success = true, isListed = item.IsListed });
         }
 

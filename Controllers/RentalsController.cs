@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
+using Microsoft.AspNetCore.SignalR;
+using RentMate.Hubs;
 
 namespace RentMate.Controllers
 {
@@ -13,11 +15,15 @@ namespace RentMate.Controllers
         private readonly RentMateContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public RentalsController(RentMateContext context, UserManager<ApplicationUser> userManager)
+        private readonly IHubContext<RentMateHub> _hubContext;
+
+        public RentalsController(RentMateContext context, UserManager<ApplicationUser> userManager, IHubContext<RentMateHub> hubContext)
         {
             _context = context;
             _userManager = userManager;
+            _hubContext = hubContext;
         }
+        
 
         // 🔹 Public listings: items available to rent
         [AllowAnonymous]
@@ -35,6 +41,7 @@ namespace RentMate.Controllers
         // 🔹 Step 1: Request a rental (Pending)
         [HttpPost]
         [Authorize]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> RequestRental(int itemId, DateTime startDate, DateTime endDate)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -45,10 +52,16 @@ namespace RentMate.Controllers
                 .FirstOrDefaultAsync(i => i.Id == itemId);
 
             if (item == null || !item.IsListed)
-                return NotFound("Item not available for rent.");
+            {
+                TempData["ErrorMessage"] = "Item not available for rent.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
             if (item.UserId == user.Id)
-                return BadRequest("You cannot rent your own item.");
+            {
+                TempData["ErrorMessage"] = "You cannot rent your own item.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
             // Prevent overlapping active rentals
             bool hasConflict = item.Rentals!.Any(r =>
@@ -57,7 +70,10 @@ namespace RentMate.Controllers
                 r.EndDate >= startDate);
 
             if (hasConflict)
-                return BadRequest("Item is already booked during this period.");
+            {
+                TempData["ErrorMessage"] = "Item is already booked during this period.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
             // Calculate total price
             int rentalDays = (endDate.Date - startDate.Date).Days;
@@ -77,27 +93,45 @@ namespace RentMate.Controllers
 
             _context.Rentals.Add(rental);
             await _context.SaveChangesAsync();
-
-            TempData["InfoMessage"] = "Rental request submitted. Awaiting owner approval.";
+            // ✅ Send real-time notification to the owner
+            await _hubContext.Clients.User(item.UserId!).SendAsync("RentalRequested", new
+            {
+                rentalId = rental.Id,
+                itemTitle = item.Title,
+                renterEmail = user.Email,
+                startDate = rental.StartDate.ToShortDateString(),
+                endDate = rental.EndDate.ToShortDateString(),
+                status = rental.Status.ToString()
+            });
+            TempData["SuccessMessage"] = "Rental request submitted. Awaiting owner approval.";
             return RedirectToAction("UserDashboard", "Dashboard");
-
         }
+
 
         // 🔹 Step 2: Owner approves rental
         [HttpPost]
         [Authorize]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveRental(int rentalId)
         {
             var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
             var rental = await _context.Rentals
                 .Include(r => r.Item)
                 .FirstOrDefaultAsync(r => r.Id == rentalId);
 
             if (rental == null || rental.Item == null)
-                return NotFound();
+            {
+                TempData["ErrorMessage"] = "Rental not found.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
             if (rental.OwnerId != user.Id)
-                return Forbid();
+            {
+                TempData["ErrorMessage"] = "You are not authorized to approve this rental.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
             rental.Status = RentalStatus.Active;
             rental.Item.IsRented = true;
@@ -105,24 +139,45 @@ namespace RentMate.Controllers
 
             await _context.SaveChangesAsync();
 
-            TempData["SuccessMessage"] = $"You approved rental for {rental.Item.Title}.";
-            return RedirectToAction(nameof(OwnerRentals));
+
+            // Notify renter that their request was approved
+            await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
+            {
+                rentalId = rental.Id,
+                newStatus = rental.Status.ToString(),
+                itemTitle = rental.Item.Title,
+                message = $"Your rental request for '{rental.Item.Title}' was approved!"
+            });
+
+            TempData["SuccessMessage"] = $"You approved rental for '{rental.Item.Title}'.";
+            return RedirectToAction("UserDashboard", "Dashboard");
         }
+
 
         // 🔹 Step 3a: Complete rental
         [HttpPost]
         [Authorize]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CompleteRental(int rentalId)
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
             var rental = await _context.Rentals
                 .Include(r => r.Item)
                 .FirstOrDefaultAsync(r => r.Id == rentalId);
 
-            if (rental == null) return NotFound();
+            if (rental == null)
+            {
+                TempData["ErrorMessage"] = "Rental not found.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
-            var user = await _userManager.GetUserAsync(User);
             if (rental.OwnerId != user.Id && rental.RenterId != user.Id)
-                return Forbid();
+            {
+                TempData["ErrorMessage"] = "You are not authorized to complete this rental.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
             rental.Status = RentalStatus.Completed;
             rental.Item!.IsRented = false;
@@ -130,34 +185,69 @@ namespace RentMate.Controllers
             rental.EndDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = "Rental completed successfully.";
-            return RedirectToAction(nameof(MyRentals));
+            // Notify renter that rental was completed
+            await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
+            {
+                rentalId = rental.Id,
+                newStatus = rental.Status.ToString(),
+                itemTitle = rental.Item.Title,
+                message = $"Rental for '{rental.Item.Title}' was marked as completed."
+            });
+            TempData["SuccessMessage"] = $"Rental for '{rental.Item.Title}' completed successfully.";
+            return RedirectToAction("UserDashboard", "Dashboard");
         }
+
 
         // 🔹 Step 3b: Cancel rental (either party)
         [HttpPost]
         [Authorize]
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelRental(int rentalId)
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
             var rental = await _context.Rentals
                 .Include(r => r.Item)
                 .FirstOrDefaultAsync(r => r.Id == rentalId);
 
-            if (rental == null) return NotFound();
+            if (rental == null)
+            {
+                TempData["ErrorMessage"] = "Rental not found.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
-            var user = await _userManager.GetUserAsync(User);
             if (rental.OwnerId != user.Id && rental.RenterId != user.Id)
-                return Forbid();
+            {
+                TempData["ErrorMessage"] = "You are not authorized to cancel this rental.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
+
+            if (rental.Status == RentalStatus.Completed)
+            {
+                TempData["ErrorMessage"] = "Completed rentals cannot be cancelled.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
 
             rental.Status = RentalStatus.Cancelled;
             rental.Item!.IsRented = false;
             rental.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-
-            TempData["InfoMessage"] = "Rental request was cancelled.";
-            return RedirectToAction(nameof(MyRentals));
+            // Notify renter that rental was cancelled
+            await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
+            {
+                rentalId = rental.Id,
+                newStatus = rental.Status.ToString(),
+                itemTitle = rental.Item.Title,
+                message = $"Rental for '{rental.Item.Title}' was cancelled."
+            });
+            TempData["SuccessMessage"] = "Rental cancelled successfully.";
+            return RedirectToAction("UserDashboard", "Dashboard");
         }
+
 
         // 🔹 My rentals (as renter)
         public async Task<IActionResult> MyRentals()

@@ -59,6 +59,7 @@ namespace RentMate.Controllers
         }
 
         // --- USER DASHBOARD ---
+        
         [Authorize]
         public async Task<IActionResult> UserDashboard()
         {
@@ -88,20 +89,31 @@ namespace RentMate.Controllers
                 .OrderByDescending(r => r.StartDate)
                 .ToListAsync();
 
-            // Build model
+            // 🧱 Build view model
             var viewModel = new DashboardViewModel
             {
-                Listings = userItems,
+                ListingsOwned = userItems,
                 MyRentals = myRentals,
                 OwnerRentals = ownerRentals,
+
+                // Counts
+                TotalListingsOwned = userItems.Count,
+                ActiveListingsOwned = userItems.Count(i => i.IsListed && !i.IsRented),
+
+                TotalRentalsAsRenter = myRentals.Count,
+                TotalRentalsAsOwner = ownerRentals.Count,
+
+                // (optional global summaries for display)
                 TotalListings = userItems.Count,
-                ActiveListings = userItems.Count(i => i.IsListed && !i.IsRented),
+                ActiveListings = userItems.Count(i => i.IsListed),
                 TotalRentals = myRentals.Count + ownerRentals.Count,
                 ActiveRentals = myRentals.Count(r => r.Status == RentalStatus.Active)
+                    + ownerRentals.Count(r => r.Status == RentalStatus.Active)
             };
 
             return View(viewModel);
         }
+
     }
 }
 

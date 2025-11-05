@@ -35,8 +35,12 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Users" asp-action="Index">Users</a>
                         </li>
+                        <div class="text-end mb-2">
+                            <span id="connectionIndicator" class="badge bg-secondary">Offline</span>
+                        </div>
+
                         @if (User.IsInRole("Admin"))
-{
+                        {
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Dashboard" asp-action="AdminDashboard">Admin Dashboard</a>
                         </li>
