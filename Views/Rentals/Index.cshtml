@@ -103,49 +103,56 @@
             document.getElementById('rentalModalLabel').textContent = `Rent: ${title}`;
         });
 
-        // --- Handle AJAX rental submission ---
-        const rentalForm = rentalModal.querySelector('form');
-        rentalForm.addEventListener('submit', async e => {
+        // --- Handle AJAX rental submission (with safe backdrop fade) ---
+        const rentalForm = rentalModal.querySelector("form");
+        rentalForm.addEventListener("submit", async (e) => {
             e.preventDefault();
 
             const formData = new FormData(rentalForm);
             const itemId = formData.get("itemId");
+            const modalInstance = bootstrap.Modal.getInstance(rentalModal);
 
             try {
                 const response = await fetch(rentalForm.action, {
-                    method: 'POST',
-                    body: formData
+                    method: "POST",
+                    body: formData,
                 });
 
-                const modal = bootstrap.Modal.getInstance(rentalModal);
-
                 if (response.ok) {
-                    modal.hide();
+                    // ✅ Hide the modal cleanly
+                    if (modalInstance) modalInstance.hide();
+
+                    // ✅ Manually remove the Bootstrap backdrop (sometimes sticks)
+                    document.querySelectorAll(".modal-backdrop").forEach((b) => {
+                        b.style.transition = "opacity 0.4s ease";
+                        b.style.opacity = "0";
+                        setTimeout(() => b.remove(), 400);
+                    });
+
+                    // ✅ Restore body scroll (Bootstrap sometimes keeps it disabled)
+                    document.body.classList.remove("modal-open");
+                    document.body.style.overflow = "auto";
+                    document.body.style.paddingRight = "0";
+
+                    // ✅ Visual feedback on the card
                     markItemAsPending(itemId);
-                    showToast('✅ Rental request submitted successfully!', 'success');
+
+                    // ✅ Show confirmation toast
+                    showToast("✅ Rental request submitted — awaiting approval.", "success");
+
+                    // ✅ Optional reset
+                    rentalForm.reset();
                 } else {
                     const errorText = await response.text();
-                    showToast(`❌ Rental request failed: ${errorText}`, 'danger');
+                    console.warn("Unexpected response:", errorText);
+                    showToast(`❌ Rental request failed: ${errorText}`, "danger");
                 }
             } catch (err) {
                 console.error(err);
-                showToast('❌ Network error while submitting request.', 'danger');
+                showToast("❌ Network error while submitting request.", "danger");
             }
         });
 
-        // --- Mark card as pending visually ---
-        function markItemAsPending(itemId) {
-            const card = document.querySelector(`[data-itemid="${itemId}"]`)?.closest('.card');
-            if (card) {
-                card.classList.add('opacity-50');
-                const footer = card.querySelector('.card-footer');
-                footer.innerHTML = `
-                    <div class="text-center text-warning fw-bold">
-                        ⏳ Pending Approval
-                    </div>
-                `;
-            }
-        }
 
         // --- Toast helper (Bootstrap 5) ---
         function showToast(message, type = 'info') {
@@ -173,14 +180,31 @@
             toast.show();
             toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
         }
+        // --- Mark card as pending visually ---
+        function markItemAsPending(itemId) {
+            const card = document.querySelector(`[data-itemid="${itemId}"]`)?.closest('.card');
+            if (card) {
+                // Dim the card
+                card.classList.add('opacity-50');
+                card.style.transition = 'opacity 0.4s ease';
+
+                // Replace footer with pending message
+                const footer = card.querySelector('.card-footer');
+                footer.innerHTML = `
+                    <div class="text-center text-warning fw-bold">
+                        ⏳ Pending Approval
+                    </div>
+                `;
+            }
+        }
+
     </script>
-}
-@section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    
     <script>
         // --- SignalR connection setup ---
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/rentmateHub")
+            .withUrl("/RentMateHub")
             .build();
 
         connection.on("ItemListingChanged", (data) => {
@@ -231,6 +255,7 @@
         connection.start().catch(err => console.error("SignalR connection failed:", err));
     </script>
 }
+
 
 
 

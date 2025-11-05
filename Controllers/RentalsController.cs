@@ -45,7 +45,8 @@ namespace RentMate.Controllers
         public async Task<IActionResult> RequestRental(int itemId, DateTime startDate, DateTime endDate)
         {
             var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
+            if (user == null)
+                return Unauthorized();
 
             var item = await _context.Items
                 .Include(i => i.Rentals)
@@ -53,17 +54,23 @@ namespace RentMate.Controllers
 
             if (item == null || !item.IsListed)
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return BadRequest("Item not available for rent.");
+
                 TempData["ErrorMessage"] = "Item not available for rent.";
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             if (item.UserId == user.Id)
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return BadRequest("You cannot rent your own item.");
+
                 TempData["ErrorMessage"] = "You cannot rent your own item.";
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
-            // Prevent overlapping active rentals
+            // Prevent overlapping rentals
             bool hasConflict = item.Rentals!.Any(r =>
                 (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
                 r.StartDate <= endDate &&
@@ -71,13 +78,15 @@ namespace RentMate.Controllers
 
             if (hasConflict)
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return BadRequest("Item is already booked during this period.");
+
                 TempData["ErrorMessage"] = "Item is already booked during this period.";
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             // Calculate total price
-            int rentalDays = (endDate.Date - startDate.Date).Days;
-            rentalDays = Math.Max(rentalDays, 1);
+            int rentalDays = Math.Max((endDate.Date - startDate.Date).Days, 1);
             decimal totalPrice = (item.Price ?? 0) * rentalDays;
 
             var rental = new Rental
@@ -93,6 +102,7 @@ namespace RentMate.Controllers
 
             _context.Rentals.Add(rental);
             await _context.SaveChangesAsync();
+
             // ✅ Send real-time notification to the owner
             await _hubContext.Clients.User(item.UserId!).SendAsync("RentalRequested", new
             {
@@ -103,6 +113,12 @@ namespace RentMate.Controllers
                 endDate = rental.EndDate.ToShortDateString(),
                 status = rental.Status.ToString()
             });
+
+            // ✅ If AJAX call — return JSON success
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true, message = "Rental request submitted successfully." });
+
+            // ✅ Otherwise — normal redirect (for dashboard form)
             TempData["SuccessMessage"] = "Rental request submitted. Awaiting owner approval.";
             return RedirectToAction("UserDashboard", "Dashboard");
         }
@@ -111,7 +127,7 @@ namespace RentMate.Controllers
         // 🔹 Step 2: Owner approves rental
         [HttpPost]
         [Authorize]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> ApproveRental(int rentalId)
         {
             var user = await _userManager.GetUserAsync(User);

@@ -270,37 +270,11 @@
 
 @section Scripts {
     <script>
-        // --- Toast helper (shared from Rentals page) ---
-        function showToast(message, type = 'info') {
-            const toastContainerId = 'toastContainer';
-            let container = document.getElementById(toastContainerId);
-            if (!container) {
-                container = document.createElement('div');
-                container.id = toastContainerId;
-                container.className = 'toast-container position-fixed top-0 end-0 p-3';
-                document.body.appendChild(container);
-            }
-
-            const toastEl = document.createElement('div');
-            toastEl.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
-            toastEl.setAttribute('role', 'alert');
-            toastEl.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">${message}</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-            container.appendChild(toastEl);
-
-            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-            toast.show();
-            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-        }
-        // --- SignalR: Listen for live rental requests ---
+         // --- SignalR: Listen for live rental requests ---
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/rentmateHub")
+            .withUrl("/RentMateHub")
             .build();
-
+        
         connection.on("RentalRequested", (data) => {
             console.log("🔔 New rental request:", data);
 
@@ -330,10 +304,40 @@
                 tableBody.prepend(newRow);
                 newRow.classList.add("flash");
                 setTimeout(() => newRow.classList.remove("flash"), 1000);
+                bindRentalActionHandlers();
             }
         });
 
-        connection.start().catch(err => console.error("SignalR connection failed:", err));
+
+        // --- Toast helper (shared from Rentals page) ---
+        function showToast(message, type = 'info') {
+            const toastContainerId = 'toastContainer';
+            let container = document.getElementById(toastContainerId);
+            if (!container) {
+                container = document.createElement('div');
+                container.id = toastContainerId;
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                document.body.appendChild(container);
+            }
+
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            container.appendChild(toastEl);
+
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        }
+       
+
+        
         const indicator = document.getElementById("connectionIndicator");
         indicator.classList.add("visible");
         function pulseIndicator() {
@@ -367,6 +371,7 @@
             indicator.textContent = "Online";
             indicator.classList.remove("bg-secondary");
             indicator.classList.add("bg-success");
+            bindRentalActionHandlers();
         }).catch(err => console.error("SignalR connection failed:", err));
 
         connection.on("RentalStatusChanged", (data) => {
@@ -391,35 +396,40 @@
         });
 
         // --- Handle action buttons (Approve / Reject / Complete) ---
-        document.querySelectorAll('form[action*="Rentals"]').forEach(form => {
-            form.addEventListener('submit', async e => {
-                e.preventDefault();
-                const formData = new FormData(form);
-                const action = form.getAttribute('action');
-                const row = form.closest('tr');
+        function bindRentalActionHandlers() {
+            document.querySelectorAll('form[action*="Rentals"]').forEach(form => {
+                // Skip if already bound
+                if (form.dataset.bound === "true") return;
+                form.dataset.bound = "true";
 
-                try {
-                    const response = await fetch(action, { method: 'POST', body: formData });
-                    if (response.ok) {
-                        if (action.includes('ApproveRental')) {
-                            updateRow(row, 'Active', 'primary', 'Rental approved.');
-                        } else if (action.includes('CancelRental')) {
-                            updateRow(row, 'Cancelled', 'secondary', 'Rental cancelled.');
-                        } else if (action.includes('CompleteRental')) {
-                            updateRow(row, 'Completed', 'success', 'Rental completed.');
+                form.addEventListener('submit', async e => {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+                    const action = form.getAttribute('action');
+                    const row = form.closest('tr');
+
+                    try {
+                        const response = await fetch(action, { method: 'POST', body: formData });
+                        if (response.ok) {
+                            if (action.includes('ApproveRental')) {
+                                updateRow(row, 'Active', 'primary', 'Rental approved.');
+                            } else if (action.includes('CancelRental')) {
+                                updateRow(row, 'Cancelled', 'secondary', 'Rental cancelled.');
+                            } else if (action.includes('CompleteRental')) {
+                                updateRow(row, 'Completed', 'success', 'Rental completed.');
+                            }
                         } else {
-                            showToast('Action performed successfully.', 'info');
+                            const err = await response.text();
+                            showToast('❌ Action failed: ' + err, 'danger');
                         }
-                    } else {
-                        const err = await response.text();
-                        showToast('❌ Action failed: ' + err, 'danger');
+                    } catch (err) {
+                        console.error(err);
+                        showToast('❌ Network error performing action.', 'danger');
                     }
-                } catch (err) {
-                    console.error(err);
-                    showToast('❌ Network error performing action.', 'danger');
-                }
+                });
             });
-        });
+        }
+
 
         // --- Update the table row visually ---
         function updateRow(row, newStatus, color, toastMessage) {
@@ -442,26 +452,23 @@
             try {
                 const res = await fetch(`/Items/ToggleListing/${itemId}`, { method: "POST" });
                 if (!res.ok) throw new Error("Failed to toggle listing");
-                const data = await res.json();
 
+                const data = await res.json();
                 const row = button.closest("tr");
-                const listedCell = row.querySelector("td:nth-child(4)");
+                const listedCell = row.querySelector("td:nth-child(3)");
+                const isListed = data.isListed === true || data.isListed === "true";
 
                 if (data.success) {
-                    if (data.isListed) {
-                        // ✅ Update button
+                    if (isListed) {
                         button.classList.remove("btn-success");
                         button.classList.add("btn-warning");
                         button.textContent = "Unlist";
 
-                        // ✅ Update cell
                         if (listedCell) listedCell.textContent = "✅";
 
-                        // ✅ Show toast
                         showToast("✅ Item listed successfully!", "success");
                         row.classList.add("flash");
                         setTimeout(() => row.classList.remove("flash"), 1000);
-
                     } else {
                         button.classList.remove("btn-warning");
                         button.classList.add("btn-success");
@@ -479,6 +486,8 @@
                 showToast("❌ Network error while updating listing.", "danger");
             }
         }
+        
+
 
     </script>
 }
