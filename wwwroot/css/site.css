@@ -92,5 +92,115 @@ tr.flash {
 .modal-backdrop.fade.show {
         opacity: 0.4;
  }
+/* Filter layout tweaks */
+@media (min-width: 992px) {
+    .col-lg-1-5 {
+        flex: 0 0 12%;
+        max-width: 12%;
+    }
+}
+/* Rotate arrow when expanded */
+button[aria-expanded="true"] .bi-chevron-down {
+    transform: rotate(180deg);
+    transition: transform 0.3s ease;
+}
+
+button[aria-expanded="false"] .bi-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+/* Slight glow on hero input focus */
+.input-group-lg .form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+}
+/* keep consistent height and smooth focus outline */
+form .form-control-lg {
+    min-width: 250px;
+    transition: box-shadow 0.25s ease;
+}
+
+    form .form-control-lg:focus {
+        box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+    }
+
+/* responsive alignment */
+@media (max-width: 576px) {
+    form.d-flex.gap-2 {
+        flex-direction: column;
+        align-items: center;
+    }
+
+        form.d-flex.gap-2 .form-control-lg,
+        form.d-flex.gap-2 .btn-lg {
+            width: 100%;
+            max-width: none;
+        }
+}
+/* === Hero Search Styling === */
+
+/* subtle gradient background for input */
+.hero-search-input {
+    background: linear-gradient(135deg, #ffffff, #f6f7fb);
+    border: 1px solid #ced4da;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+}
+
+    .hero-search-input:focus {
+        background: linear-gradient(135deg, #ffffff, #eef3ff);
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+/* premium gradient button */
+.hero-search-btn {
+    background: linear-gradient(135deg, #0d6efd, #4791ff);
+    border: none;
+    color: #fff;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
+}
+
+    .hero-search-btn:hover {
+        background: linear-gradient(135deg, #2b7cff, #64a2ff);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 14px rgba(13, 110, 253, 0.45);
+    }
+
+    .hero-search-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 3px 8px rgba(13, 110, 253, 0.35);
+    }
+
+/* keep smooth spacing & responsive layout */
+.hero-search-form {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+    .hero-search-form input,
+    .hero-search-form button {
+        border-radius: 50rem !important;
+    }
+
+@media (max-width: 576px) {
+    .hero-search-form {
+        flex-direction: column;
+        align-items: center;
+    }
+
+        .hero-search-form input,
+        .hero-search-form button {
+            width: 100%;
+            max-width: none;
+        }
+}
+
+
+
+
+
 
 

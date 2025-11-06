@@ -20,8 +20,115 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
+        @* === HERO SEARCH SECTION === *@
+        <div class="text-center mb-5">
+            <h2 class="fw-bold mb-3">Find your next rental</h2>
+
+            <form method="get" class="hero-search-form">
+                <input type="text"
+                       class="form-control form-control-lg hero-search-input"
+                       style="max-width: 550px; flex: 1 1 auto;"
+                       name="search"
+                       placeholder="Search items, descriptions..."
+                       value="@ViewBag.Search" />
+
+                <button type="submit"
+                        class="btn btn-lg hero-search-btn px-4">
+                    <i class="bi bi-search me-1"></i> Search
+                </button>
+            </form>
+
+            <!-- Toggle Advanced Filters -->
+            <div class="mt-3">
+                <button id="advancedFiltersToggle"
+                        class="btn btn-outline-secondary btn-sm rounded-pill"
+                        type="button"
+                        aria-expanded="false"
+                        aria-controls="advancedFilters">
+                    <i class="bi bi-funnel me-1"></i>
+                    <span class="filter-label">Advanced Filters</span>
+                    <i class="bi bi-chevron-down ms-1 chevron-icon"></i>
+                </button>
+            </div>
+        </div>
+
+
+        @* === COLLAPSIBLE ADVANCED FILTERS === *@
+        <div class="collapse mb-4" id="advancedFilters">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="row g-3 align-items-end">
+                        <!-- 💶 Price -->
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-semibold">Min (€)</label>
+                            <input type="number" step="0.01" class="form-control" name="minPrice"
+                                   value="@(ViewBag.MinPrice ?? "")" />
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-semibold">Max (€)</label>
+                            <input type="number" step="0.01" class="form-control" name="maxPrice"
+                                   value="@(ViewBag.MaxPrice ?? "")" />
+                        </div>
+
+                        <!-- 📍 City -->
+                        <div class="col-12 col-md-3">
+                            <label class="form-label fw-semibold">City</label>
+                            <select class="form-select" name="city">
+                                <option value="">All</option>
+                                @foreach (var c in (List<string>)ViewBag.Cities)
+                                {
+                                    <option value="@c" selected="@(ViewBag.City == c ? "selected" : null)">
+                                        @c
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- 🗓️ Dates -->
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-semibold">Start</label>
+                            <input type="date" class="form-control" name="startDate" value="@ViewBag.StartDate" />
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <label class="form-label fw-semibold">End</label>
+                            <input type="date" class="form-control" name="endDate" value="@ViewBag.EndDate" />
+                        </div>
+
+                        <!-- ⚙️ Sort -->
+                        <div class="col-12 col-md-2">
+                            <label class="form-label fw-semibold">Sort</label>
+                            <select class="form-select" name="sort">
+                                <option value="">Newest</option>
+                                <option value="priceAsc" selected="@(ViewBag.Sort == "priceAsc" ? "selected" : null)">Price ↑</option>
+                                <option value="priceDesc" selected="@(ViewBag.Sort == "priceDesc" ? "selected" : null)">Price ↓</option>
+                                <option value="titleAsc" selected="@(ViewBag.Sort == "titleAsc" ? "selected" : null)">Title A–Z</option>
+                            </select>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="col-12 col-md-2 text-md-end">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle me-1"></i> Apply
+                                </button>
+                                <a href="@Url.Action("Index","Rentals")" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-circle me-1"></i> Clear
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
 
     <div class="row row-cols-1 row-cols-md-3 g-4">
+        @if (!Model.Any())
+        {
+            <div class="alert alert-secondary text-center">No items match your search or filters.</div>
+        }
+
         @foreach (var item in Model)
         {
             <div class="col">
@@ -254,6 +361,77 @@
 
         connection.start().catch(err => console.error("SignalR connection failed:", err));
     </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const STORAGE_KEY = "rentmate-advancedFilters-open";
+            const collapseEl = document.getElementById("advancedFilters");
+            const toggleBtn = document.getElementById("advancedFiltersToggle");
+
+            if (!collapseEl || !toggleBtn) {
+                console.warn("RentMate: collapse element or toggle button missing.");
+                return;
+            }
+
+            // ensure the collapse element has the 'collapse' class (bootstrap requirement)
+            if (!collapseEl.classList.contains("collapse")) {
+                collapseEl.classList.add("collapse");
+            }
+
+            // create (or get) collapse instance and do NOT auto-toggle on creation
+            const collapseInstance = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+
+            const labelEl = toggleBtn.querySelector(".filter-label");
+            const chevronEl = toggleBtn.querySelector(".chevron-icon");
+
+            // helper to set UI state (text, aria, chevron)
+            function applyUI(isOpen) {
+                if (labelEl) labelEl.textContent = isOpen ? "Hide Filters" : "Advanced Filters";
+                if (chevronEl) chevronEl.style.transform = isOpen ? "rotate(180deg)" : "rotate(0deg)";
+                toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            }
+
+            // restore state (defer a tiny bit to allow Bootstrap internals to settle)
+            setTimeout(() => {
+                const shouldOpen = localStorage.getItem(STORAGE_KEY) === "true";
+                if (shouldOpen) {
+                    collapseInstance.show();
+                    applyUI(true);
+                } else {
+                    applyUI(false);
+                }
+            }, 80);
+
+            // sync state when user uses programmatic show/hide (animation complete)
+            collapseEl.addEventListener("shown.bs.collapse", () => {
+                localStorage.setItem(STORAGE_KEY, "true");
+                applyUI(true);
+            });
+            collapseEl.addEventListener("hidden.bs.collapse", () => {
+                localStorage.setItem(STORAGE_KEY, "false");
+                applyUI(false);
+            });
+
+            // manual click toggler - we control collapse explicitly
+            toggleBtn.addEventListener("click", function (e) {
+                // don't preventDefault or stopPropagation — we only control collapse
+                const currentlyOpen = collapseEl.classList.contains("show");
+                if (currentlyOpen) {
+                    collapseInstance.hide();
+                } else {
+                    collapseInstance.show();
+                }
+            });
+
+            // OPTIONAL: diagnostic logs (uncomment if you want to debug)
+            // console.log("RentMate collapse instance:", collapseInstance);
+            // collapseEl.addEventListener("show.bs.collapse", () => console.log("show start"));
+            // collapseEl.addEventListener("shown.bs.collapse", () => console.log("shown"));
+            // collapseEl.addEventListener("hide.bs.collapse", () => console.log("hide start"));
+            // collapseEl.addEventListener("hidden.bs.collapse", () => console.log("hidden"));
+
+        });
+        </script>
+
 }
 
 

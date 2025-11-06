@@ -23,20 +23,89 @@ namespace RentMate.Controllers
             _userManager = userManager;
             _hubContext = hubContext;
         }
-        
+
 
         // 🔹 Public listings: items available to rent
+        // 🔹 Public listings: items available to rent
         [AllowAnonymous]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(
+            string? search,
+            decimal? minPrice,
+            decimal? maxPrice,
+            string? city,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? sort)
         {
-            var available = await _context.Items
+            // Base query: only listed and not rented
+            var query = _context.Items
                 .Include(i => i.User)
+                .Include(i => i.Rentals)
                 .Where(i => i.IsListed && !i.IsRented)
-                .OrderByDescending(i => i.CreatedAt)
+                .AsQueryable();
+
+            // 🔍 Text search
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lower = search.ToLower();
+                query = query.Where(i =>
+                    (i.Title != null && i.Title.ToLower().Contains(lower)) ||
+                    (i.Description != null && i.Description.ToLower().Contains(lower)));
+            }
+
+            // 💶 Price filters
+            if (minPrice.HasValue)
+                query = query.Where(i => i.Price >= minPrice.Value);
+            if (maxPrice.HasValue)
+                query = query.Where(i => i.Price <= maxPrice.Value);
+
+            // 📍 City filter
+            if (!string.IsNullOrEmpty(city))
+                query = query.Where(i => i.User!.City == city);
+
+            // 🗓️ Availability filter (only if both dates given)
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                query = query.Where(i =>
+                    !i.Rentals!.Any(r =>
+                        (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
+                        r.StartDate <= endDate && r.EndDate >= startDate));
+            }
+
+            // ⚙️ Sorting
+            query = sort switch
+            {
+                "priceAsc" => query.OrderBy(i => i.Price),
+                "priceDesc" => query.OrderByDescending(i => i.Price),
+                "titleAsc" => query.OrderBy(i => i.Title),
+                _ => query.OrderByDescending(i => i.CreatedAt) // Default: newest first
+            };
+
+            // Execute query
+            var available = await query.ToListAsync();
+
+            // Populate dropdown data (distinct cities)
+            var cities = await _context.Users
+                .Where(u => u.Items!.Any(i => i.IsListed && !i.IsRented))
+                .Select(u => u.City)
+                .Where(c => c != null && c != "")
+                .Distinct()
+                .OrderBy(c => c)
                 .ToListAsync();
+
+            // Pass current filters to view (to persist values)
+            ViewBag.Search = search;
+            ViewBag.MinPrice = minPrice;
+            ViewBag.MaxPrice = maxPrice;
+            ViewBag.City = city;
+            ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
+            ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
+            ViewBag.Sort = sort;
+            ViewBag.Cities = cities;
 
             return View(available);
         }
+
 
         // 🔹 Step 1: Request a rental (Pending)
         [HttpPost]
