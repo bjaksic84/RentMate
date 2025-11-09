@@ -11,6 +11,7 @@ namespace RentMate.Data
 
         public DbSet<Item> Items { get; set; }
         public DbSet<Rental> Rentals { get; set; }
+        public DbSet<Review> Reviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,13 +38,26 @@ namespace RentMate.Data
                 .HasForeignKey(r => r.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-
             // 🔹 Item → Rentals
             modelBuilder.Entity<Item>()
                 .HasMany(i => i.Rentals)
                 .WithOne(r => r.Item)
                 .HasForeignKey(r => r.ItemId)
                 .OnDelete(DeleteBehavior.Cascade); // Delete item => delete associated rentals
+
+            // Item → Reviews relationship
+            modelBuilder.Entity<Item>()
+                .HasMany(i => i.Reviews)
+                .WithOne(r => r.Item)
+                .HasForeignKey(r => r.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ApplicationUser → Reviews
+            modelBuilder.Entity<ApplicationUser>()
+                .HasMany<Review>()
+                .WithOne(r => r.Reviewer)
+                .HasForeignKey(r => r.ReviewerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // 🔹 Configure Rental entity
             modelBuilder.Entity<Rental>(entity =>
@@ -54,6 +68,16 @@ namespace RentMate.Data
                 entity.Property(r => r.Status)
                       .HasConversion<string>(); // store enum as string for readability
             });
+            // Review indexes for performance
+            modelBuilder.Entity<Review>()
+                .HasIndex(r => new { r.ItemId, r.IsDeleted });
+            modelBuilder.Entity<Review>()
+                .HasIndex(r => r.ReviewerId);
+
+            modelBuilder.Entity<Review>()
+                .Property(r => r.Rating)
+                .HasDefaultValue(5);
+
         }
     }
 }

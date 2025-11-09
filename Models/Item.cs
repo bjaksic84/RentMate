@@ -27,5 +27,10 @@ namespace RentMate.Models
         public ICollection<Rental>? Rentals { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        public double? AverageRating { get; set; } = null;
+        public int ReviewCount { get; set; } = 0;
+
+        public ICollection<Review>? Reviews { get; set; }
     }
 }
