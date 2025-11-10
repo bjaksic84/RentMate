@@ -256,15 +256,26 @@
                                         </form>
                                     }
                                     else if (rental.Status == RentalStatus.Completed)
-                                    {
-                                        <button class="btn btn-sm btn-outline-success"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#writeReviewModal"
-                                                data-itemid="@rental.ItemId"
-                                                data-itemtitle="@rental.Item?.Title">
-                                            Write Review
-                                        </button>
-                                    }
+                                        {
+                                            <button class="btn btn-sm btn-outline-success"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#writeReviewModal"
+                                                    data-itemid="@rental.ItemId"
+                                                    data-itemtitle="@rental.Item?.Title">
+                                                Write Review
+                                            </button>
+
+                                            <button class="btn btn-sm btn-outline-success d-none" id="editBtn-@rental.ItemId"
+                                                    data-bs-toggle="modal" data-bs-target="#editReviewModal"
+                                                    data-itemid="@rental.ItemId" data-itemtitle="@rental.Item?.Title">
+                                                Edit Review
+                                            </button>
+
+                                            <button class="btn btn-sm btn-outline-danger d-none" id="deleteBtn-@rental.ItemId"
+                                                    onclick="deleteReview(@rental.ItemId)">
+                                                Delete Review
+                                            </button>
+                                        }
                                     else
                                     {
                                         <span class="text-muted">—</span>
@@ -321,7 +332,47 @@
             </div>
         </div>
     </div>
+    <!-- EDIT REVIEW MODAL -->
+    <div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editReviewForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editReviewLabel">Edit Review</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="Id" id="editReviewId" />
+                        <input type="hidden" name="ItemId" id="editItemId" />
 
+                        <div class="mb-3">
+                            <label class="form-label">Rating</label>
+                            <div id="editReviewStars" class="text-warning fs-4"></div>
+                            <input type="hidden" name="Rating" id="editReviewRating" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input name="Title" id="editReviewTitle" maxlength="200" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Review</label>
+                            <textarea name="Body" id="editReviewBody" maxlength="2000" class="form-control" rows="4"></textarea>
+                        </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="IsAnonymous" id="editReviewAnon">
+                            <label class="form-check-label" for="editReviewAnon">Post anonymously</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -688,9 +739,115 @@ else {
         modalBody.innerHTML = `<div class="text-danger text-center p-3">Failed to load reviews.</div>`;
     }
 });
+// === Review Edit/Delete Logic ===
+        document.addEventListener("DOMContentLoaded", async () => {
+            // --- Check if user has already reviewed an item ---
+            document.querySelectorAll('[data-bs-target="#writeReviewModal"]').forEach(async btn => {
+                const itemId = btn.getAttribute("data-itemid");
+                const editBtn = document.getElementById(`editBtn-${itemId}`);
+                const delBtn = document.getElementById(`deleteBtn-${itemId}`);
 
+                try {
+                    const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
+                    if (res.ok) {
+                        // User already has a review: hide "Write Review", show "Edit/Delete"
+                        btn.classList.add("d-none");
+                        if (editBtn) editBtn.classList.remove("d-none");
+                        if (delBtn) delBtn.classList.remove("d-none");
+                    } else {
+                        // No review yet: show "Write Review", hide "Edit/Delete"
+                        btn.classList.remove("d-none");
+                        if (editBtn) editBtn.classList.add("d-none");
+                        if (delBtn) delBtn.classList.add("d-none");
+                    }
+                } catch (err) {
+                    console.error("Error checking user reviews:", err);
+                }
+            });
+
+            // === DELETE REVIEW ===
+            window.deleteReview = async (itemId) => {
+                if (!confirm("Are you sure you want to delete your review?")) return;
+                const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
+                if (!res.ok) return showToast("❌ You haven't reviewed this item yet.", "danger");
+
+                const review = await res.json();
+                const delRes = await fetch(`/api/Reviews/${review.id}`, { method: "DELETE" });
+                if (delRes.ok) {
+                    showToast("🗑️ Review deleted.", "secondary");
+                    setTimeout(() => location.reload(), 700);
+                } else {
+                    showToast("❌ Failed to delete review.", "danger");
+                }
+            };
+
+            // === EDIT MODAL SETUP ===
+            const editModal = document.getElementById('editReviewModal');
+            editModal.addEventListener('show.bs.modal', async (event) => {
+                const btn = event.relatedTarget;
+                const itemId = btn.getAttribute('data-itemid');
+                const title = btn.getAttribute('data-itemtitle');
+
+                document.getElementById('editReviewLabel').textContent = `Edit Review: ${title}`;
+                document.getElementById('editItemId').value = itemId;
+
+                const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
+                if (!res.ok) return showToast("Failed to load review", "danger");
+                const r = await res.json();
+
+                document.getElementById('editReviewId').value = r.id;
+                document.getElementById('editReviewTitle').value = r.title ?? "";
+                document.getElementById('editReviewBody').value = r.body ?? "";
+                document.getElementById('editReviewAnon').checked = r.isAnonymous;
+                document.getElementById('editReviewRating').value = r.rating;
+
+                buildStarPicker("editReviewStars", "editReviewRating", r.rating);
+            });
+
+            // === EDIT SUBMIT ===
+            document.getElementById('editReviewForm').addEventListener('submit', async e => {
+                e.preventDefault();
+                const data = Object.fromEntries(new FormData(e.target).entries());
+                data.Rating = parseInt(data.Rating);
+
+                const res = await fetch(`/api/Reviews/${data.Id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    bootstrap.Modal.getInstance(document.getElementById('editReviewModal')).hide();
+                    showToast("✅ Review updated!", "success");
+                    setTimeout(() => location.reload(), 700);
+                } else {
+                    const err = await res.text();
+                    showToast(`❌ ${err}`, "danger");
+                }
+            });
+
+            // === Shared Star Picker Builder ===
+            window.buildStarPicker = (containerId, inputId, val = 0) => {
+                const container = document.getElementById(containerId);
+                const input = document.getElementById(inputId);
+                container.innerHTML = "";
+
+                for (let i = 1; i <= 5; i++) {
+                    const star = document.createElement("i");
+                    star.className = i <= val ? "bi bi-star-fill text-warning" : "bi bi-star text-muted";
+                    star.dataset.value = i;
+                    star.style.cursor = "pointer";
+                    star.addEventListener("click", () => {
+                        input.value = i;
+                        container.querySelectorAll("i").forEach((s, idx) => {
+                            s.className = idx < i ? "bi bi-star-fill text-warning" : "bi bi-star text-muted";
+                        });
+                    });
+                    container.appendChild(star);
+                }
+            };
+        });
     </script>
-
 }
 
 
