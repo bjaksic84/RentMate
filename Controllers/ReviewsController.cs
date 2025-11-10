@@ -32,7 +32,23 @@ namespace RentMate.Controllers
                 .OrderByDescending(r => r.CreatedAt);
 
             var total = await query.CountAsync();
-            var reviews = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            var reviews = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Title,
+                    r.Body,
+                    r.Rating,
+                    r.CreatedAt,
+                    r.IsAnonymous,
+                    Reviewer = r.IsAnonymous
+                        ? null
+                        : new { r.Reviewer.Id, r.Reviewer.UserName, r.Reviewer.Email }
+                })
+                .ToListAsync();
+
 
             return Ok(new { total, reviews });
         }
@@ -152,5 +168,7 @@ namespace RentMate.Controllers
 
             return NoContent();
         }
+        
+        
     }
 }

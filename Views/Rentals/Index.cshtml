@@ -139,6 +139,24 @@
                         <p><strong>Price:</strong> €@item.Price / day</p>
                         <p><small class="text-muted">Owner: @item.User?.Email</small></p>
                     </div>
+                    <div class="d-flex align-items-center mt-1">
+                        @if (item.AverageRating != null)
+                        {
+                            <span class="text-warning me-1">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <i class="fa@(i <= Math.Round(item.AverageRating.Value) ? "s" : "r") fa-star"></i>
+                                }
+                            </span>
+                            <small class="text-muted">(@item.ReviewCount)</small>
+                        }
+                        else
+                        {
+                            <small class="text-muted">No reviews yet</small>
+                        }
+                    </div>
+
+
                     <div class="card-footer bg-transparent border-top-0">
                         <button class="btn btn-primary w-100"
                                 data-bs-toggle="modal"

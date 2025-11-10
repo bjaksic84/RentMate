@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RentMate.Data;
 
@@ -11,9 +12,11 @@ using RentMate.Data;
 namespace RentMate.Migrations
 {
     [DbContext(typeof(RentMateContext))]
-    partial class RentMateContextModelSnapshot : ModelSnapshot
+    [Migration("20251109225219_AddReviewSystem4")]
+    partial class AddReviewSystem4
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -349,7 +352,7 @@ namespace RentMate.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<bool>("IsAnonymous")
+                    b.Property<bool?>("IsAnonymous")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsDeleted")

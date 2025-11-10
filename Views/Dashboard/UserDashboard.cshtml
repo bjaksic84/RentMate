@@ -85,6 +85,13 @@
                                             onclick="toggleListing(@item.Id, this)">
                                         @(item.IsListed ? "Unlist" : "List")
                                     </button>
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#reviewsModal"
+                                            data-itemid="@item.Id"
+                                            data-title="@item.Title">
+                                        View Reviews
+                                    </button>
                                     <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
                                     <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Delete</a>
                                 </td>
@@ -248,11 +255,22 @@
                                             <button class="btn btn-sm btn-danger">Cancel Request</button>
                                         </form>
                                     }
+                                    else if (rental.Status == RentalStatus.Completed)
+                                    {
+                                        <button class="btn btn-sm btn-outline-success"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#writeReviewModal"
+                                                data-itemid="@rental.ItemId"
+                                                data-itemtitle="@rental.Item?.Title">
+                                            Write Review
+                                        </button>
+                                    }
                                     else
                                     {
                                         <span class="text-muted">—</span>
                                     }
                                 </td>
+
                             </tr>
                         }
                         </tbody>
@@ -266,6 +284,44 @@
         </div>
 
     </div>
+    <!-- WRITE REVIEW MODAL -->
+    <div class="modal fade" id="writeReviewModal" tabindex="-1" aria-labelledby="writeReviewLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="writeReviewForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="writeReviewLabel">Write a Review</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="ItemId" id="reviewItemId" />
+                        <div class="mb-3">
+                            <label class="form-label">Rating</label>
+                            <div id="reviewStars" class="text-warning fs-4"></div>
+                            <input type="hidden" name="Rating" id="reviewRating" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input name="Title" maxlength="200" class="form-control" placeholder="Optional" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Review</label>
+                            <textarea name="Body" maxlength="2000" class="form-control" rows="4"
+                                    placeholder="Describe your experience"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="IsAnonymous" id="reviewAnon">
+                            <label class="form-check-label" for="reviewAnon">Post anonymously</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary w-100">Submit Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 @section Scripts {
@@ -486,10 +542,155 @@
                 showToast("❌ Network error while updating listing.", "danger");
             }
         }
-        
+    </script>
+    <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const modalEl = document.getElementById('writeReviewModal');
+    const starsContainer = document.getElementById("reviewStars");
+    const ratingInput = document.getElementById("reviewRating");
 
+    // ⭐ Build stars dynamically (only when modal is shown)
+    function buildStars() {
+        if (!starsContainer) return;
+        starsContainer.innerHTML = "";
+        for (let i = 1; i <= 5; i++) {
+            const star = document.createElement("i");
+            star.className = "bi bi-star"; // ✅ Bootstrap icons, no CDN needed
+            star.dataset.value = i;
+            star.style.cursor = "pointer";
+            star.addEventListener("mouseenter", () => highlightStars(i));
+            star.addEventListener("mouseleave", () => highlightStars(ratingInput.value || 0));
+            star.addEventListener("click", () => {
+                ratingInput.value = i;
+                highlightStars(i);
+            });
+            starsContainer.appendChild(star);
+        }
+        highlightStars(0);
+    }
+
+    function highlightStars(val) {
+        starsContainer.querySelectorAll("i").forEach((s, idx) => {
+            s.className = idx < val
+                ? "bi bi-star-fill text-warning"
+                : "bi bi-star text-muted";
+        });
+    }
+
+    // Build stars *only when the modal is shown*
+    modalEl.addEventListener("shown.bs.modal", event => {
+        const btn = event.relatedTarget;
+        const itemId = btn.getAttribute("data-itemid");
+        const title = btn.getAttribute("data-itemtitle");
+
+        document.getElementById("writeReviewLabel").textContent = `Review: ${title}`;
+        document.getElementById("reviewItemId").value = itemId;
+        ratingInput.value = 0;
+        buildStars();
+    });
+
+    // Submit handler stays same
+    document.getElementById("writeReviewForm").addEventListener("submit", async e => {
+        e.preventDefault();
+        const formData = Object.fromEntries(new FormData(e.target).entries());
+        formData.Rating = parseInt(formData.Rating);
+
+        const res = await fetch(`/api/Reviews`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData)
+        });
+
+        if (res.ok) {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+
+            // explicit cleanup after hide
+            setTimeout(() => {
+                document.body.classList.remove("modal-open");
+                const backdrop = document.querySelector(".modal-backdrop");
+                if (backdrop) backdrop.remove();
+            }, 400);
+
+            e.target.reset();
+            ratingInput.value = 0;
+            highlightStars(0);
+            showToast("✅ Review posted successfully!", "success");
+        }
+
+else {
+            const text = await res.text();
+            showToast(`❌ ${text}`, "danger");
+        }
+    });
+});
+
+</script>
+
+    <!-- Reviews Modal -->
+    <div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reviewsModalLabel">Reviews</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="reviewsModalBody">
+                    <div class="text-center text-muted">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.getElementById('reviewsModal')
+.addEventListener('show.bs.modal', async event => {
+    const button = event.relatedTarget;
+    const itemId = button.getAttribute('data-itemid');
+    const title  = button.getAttribute('data-title');
+    const modalTitle = document.getElementById('reviewsModalLabel');
+    const modalBody  = document.getElementById('reviewsModalBody');
+
+    modalTitle.textContent = `Reviews for "${title}"`;
+    modalBody.innerHTML = `<div class="text-center text-muted p-3">Loading reviews...</div>`;
+
+    try {
+        const res = await fetch(`/api/Reviews/item/${itemId}?page=1&pageSize=20`);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+
+        modalBody.innerHTML = "";
+        if (!data.reviews?.length) {
+            modalBody.innerHTML = `<div class="text-center text-muted p-3">No reviews yet.</div>`;
+            return;
+        }
+
+        data.reviews.forEach(r => {
+            const stars = Array.from({ length: 5 }, (_, i) =>
+                `<i class="fa${i < r.rating ? 's' : 'r'} fa-star text-warning"></i>`
+            ).join("");
+
+            const block = document.createElement("div");
+            block.className = "border-bottom pb-3 mb-3";
+            block.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>${r.isAnonymous ? "Anonymous" : (r.reviewer?.userName ?? "User")}</strong>
+                    <span>${stars}</span>
+                </div>
+                ${r.title ? `<div class="fw-bold mt-1">${r.title}</div>` : ""}
+                ${r.body ? `<p class="mb-0 mt-1">${r.body}</p>` : ""}
+                <small class="text-muted">${new Date(r.createdAt).toLocaleString()}</small>
+            `;
+            modalBody.appendChild(block);
+        });
+    } catch (err) {
+        console.error(err);
+        modalBody.innerHTML = `<div class="text-danger text-center p-3">Failed to load reviews.</div>`;
+    }
+});
 
     </script>
+
 }
 
 

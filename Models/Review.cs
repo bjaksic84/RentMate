@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace RentMate.Models
 {
@@ -9,13 +10,14 @@ namespace RentMate.Models
         public int Id { get; set; }
 
         // FK to Item
-        [Required]
         public int ItemId { get; set; }
+        [JsonIgnore]
         public Item? Item { get; set; }
 
         // FK to Reviewer
-        [Required]
-        public string ReviewerId { get; set; } = null!;
+
+        public string? ReviewerId { get; set; } = null!;
+        [JsonIgnore]
         public ApplicationUser? Reviewer { get; set; }
 
         [Range(1, 5)]

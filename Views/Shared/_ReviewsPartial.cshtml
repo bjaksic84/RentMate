@@ -1,0 +1,185 @@
+@model RentMate.Models.Item
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+
+<div id="reviews-section" class="mt-6">
+    <h3 class="text-2xl font-semibold mb-2">Reviews</h3>
+
+    <!-- Average Rating Summary -->
+    <div class="flex items-center gap-3 mb-4">
+        <div class="text-3xl font-bold">@Model.AverageRating?.ToString("0.0") ?? "—"</div>
+        <div>
+            <div class="flex items-center text-yellow-400 text-lg">
+                @for (int i = 1; i <= 5; i++)
+                {
+                    <i class="fa@(i <= (Model.AverageRating ?? 0) ? "s" : "r") fa-star"></i>
+                }
+            </div>
+            <div class="text-sm text-gray-500">@Model.ReviewCount review@(Model.ReviewCount == 1 ? "" : "s")</div>
+        </div>
+    </div>
+
+    <!-- Add Review Form -->
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <div id="add-review-form" class="mb-6 p-4 border rounded-lg shadow-sm">
+            <h4 class="text-lg font-semibold mb-3">Write a Review</h4>
+
+            <form id="reviewForm" method="post">
+                <input type="hidden" name="ItemId" value="@Model.Id" />
+
+                <div class="mb-3">
+                    <label class="block font-medium">Your Rating:</label>
+                    <div id="starPicker" class="flex space-x-1 text-yellow-400 text-2xl cursor-pointer"></div>
+                    <input type="hidden" id="ratingInput" name="Rating" value="0" required />
+                </div>
+
+                <div class="mb-3">
+                    <input name="Title" maxlength="200" placeholder="Title (optional)"
+                           class="w-full p-2 border rounded-md" />
+                </div>
+
+                <div class="mb-3">
+                    <textarea name="Body" maxlength="2000" placeholder="Write your review..."
+                              class="w-full p-2 border rounded-md" rows="4"></textarea>
+                </div>
+
+                <label class="inline-flex items-center mb-3">
+                    <input type="checkbox" name="IsAnonymous" class="mr-2" />
+                    Post anonymously
+                </label>
+
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+                    Submit Review
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="text-gray-500">
+            <a href="/Account/Login" class="text-blue-600 hover:underline">Sign in</a> to write a review.
+        </div>
+    }
+
+    <!-- Review List -->
+    <div id="reviewList" class="space-y-4"></div>
+
+    <!-- Load More Button -->
+    <div class="flex justify-center mt-4">
+        <button id="loadMoreBtn" class="hidden bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded">
+            Load more
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://kit.fontawesome.com/a2e0f9b2e4.js" crossorigin="anonymous"></script>
+    <script>
+        const itemId = @Model.Id;
+        let currentPage = 1;
+        const pageSize = 5;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            loadReviews();
+            setupStarPicker();
+            setupReviewForm();
+        });
+
+        async function loadReviews(loadMore = false) {
+            const res = await fetch(`/api/Reviews/item/${itemId}?page=${currentPage}&pageSize=${pageSize}`);
+            const data = await res.json();
+
+            const container = document.getElementById("reviewList");
+            if (!loadMore) container.innerHTML = "";
+
+            data.reviews.forEach(r => container.appendChild(renderReview(r)));
+
+            const loadMoreBtn = document.getElementById("loadMoreBtn");
+            if (currentPage * pageSize < data.total) {
+                loadMoreBtn.classList.remove("hidden");
+                loadMoreBtn.onclick = () => {
+                    currentPage++;
+                    loadReviews(true);
+                };
+            } else {
+                loadMoreBtn.classList.add("hidden");
+            }
+        }
+
+        function renderReview(r) {
+            const div = document.createElement("div");
+            div.className = "p-3 border rounded-md shadow-sm bg-white";
+
+            const stars = Array.from({ length: 5 }, (_, i) =>
+                `<i class="fa${i < r.rating ? 's' : 'r'} fa-star text-yellow-400"></i>`
+            ).join("");
+
+            div.innerHTML = `
+                <div class="flex justify-between mb-1">
+                    <div class="flex items-center gap-2">
+                        <div class="font-semibold">${r.isAnonymous ? "Anonymous" : r.reviewer?.userName ?? "User"}</div>
+                        <div class="text-sm text-gray-400">${new Date(r.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div>${stars}</div>
+                </div>
+                ${r.title ? `<div class="font-medium">${r.title}</div>` : ""}
+                ${r.body ? `<div class="text-gray-700 mt-1">${r.body}</div>` : ""}
+            `;
+            return div;
+        }
+
+        function setupStarPicker() {
+            const picker = document.getElementById("starPicker");
+            const input = document.getElementById("ratingInput");
+
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement("i");
+                star.className = "far fa-star";
+                star.dataset.value = i;
+                picker.appendChild(star);
+                star.addEventListener("mouseover", () => highlightStars(i));
+                star.addEventListener("mouseout", () => highlightStars(input.value));
+                star.addEventListener("click", () => {
+                    input.value = i;
+                    highlightStars(i);
+                });
+            }
+
+            function highlightStars(val) {
+                picker.querySelectorAll("i").forEach((s, idx) => {
+                    s.className = idx < val ? "fas fa-star text-yellow-400" : "far fa-star text-gray-300";
+                });
+            }
+        }
+
+        function setupReviewForm() {
+            const form = document.getElementById("reviewForm");
+            if (!form) return;
+
+            form.addEventListener("submit", async e => {
+                e.preventDefault();
+                const formData = Object.fromEntries(new FormData(form).entries());
+                formData.Rating = parseInt(formData.Rating);
+
+                const res = await fetch(`/api/Reviews`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(formData)
+                });
+
+                if (res.ok) {
+                    form.reset();
+                    document.getElementById("ratingInput").value = 0;
+                    currentPage = 1;
+                    await loadReviews();
+                    alert("Review posted successfully!");
+                } else {
+                    const text = await res.text();
+                    alert(`Error: ${text}`);
+                }
+            });
+        }
+    </script>
+}

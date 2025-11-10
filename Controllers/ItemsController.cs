@@ -212,6 +212,21 @@ namespace RentMate.Controllers
             return Json(new { success = true, isListed = item.IsListed });
         }
 
+        [HttpGet("LoadReviewsPartial/{itemId}")]
+        public async Task<IActionResult> LoadReviewsPartial(int itemId)
+        {
+            var item = await _context.Items
+                .Include(i => i.Reviews.Where(r => !r.IsDeleted))
+                    .ThenInclude(r => r.Reviewer)
+                .FirstOrDefaultAsync(i => i.Id == itemId);
 
+            if (item == null)
+                return NotFound();
+
+            // Sort newest first
+            var reviews = item.Reviews.OrderByDescending(r => r.CreatedAt).ToList();
+
+            return PartialView("~/Views/Shared/_ReviewsPartial.cshtml", reviews);
+        }
     }
 }
