@@ -5,21 +5,21 @@
 
 <div class="container mt-5">
     <h2 class="text-center mb-4">My Dashboard</h2>
-        <!-- Message Alerts -->
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                @TempData["SuccessMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-        @if (TempData["ErrorMessage"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                @TempData["ErrorMessage"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
+    <!-- Message Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
     <div class="row g-4">
 
@@ -74,29 +74,29 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var item in Model.ListingsOwned)
-                        {
-                            <tr>
-                                <td>@item.Title</td>
-                                <td>@item.Price?.ToString("C")</td>
-                                <td>@(item.IsListed ? "✅" : "❌")</td>
-                                <td>
-                                    <button class="btn btn-sm @(item.IsListed ? "btn-warning" : "btn-success")"
-                                            onclick="toggleListing(@item.Id, this)">
-                                        @(item.IsListed ? "Unlist" : "List")
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-primary"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#reviewsModal"
-                                            data-itemid="@item.Id"
-                                            data-title="@item.Title">
-                                        View Reviews
-                                    </button>
-                                    <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                    <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Delete</a>
-                                </td>
-                            </tr>
-                        }
+                            @foreach (var item in Model.ListingsOwned)
+                            {
+                                <tr>
+                                    <td>@item.Title</td>
+                                    <td>@item.Price?.ToString("C")</td>
+                                    <td>@(item.IsListed ? "✅" : "❌")</td>
+                                    <td>
+                                        <button class="btn btn-sm @(item.IsListed ? "btn-warning" : "btn-success")"
+                                                onclick="toggleListing(@item.Id, this)">
+                                            @(item.IsListed ? "Unlist" : "List")
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#reviewsModal"
+                                                data-itemid="@item.Id"
+                                                data-title="@item.Title">
+                                            View Reviews
+                                        </button>
+                                        <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                        <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Delete</a>
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 }
@@ -127,40 +127,40 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var rental in Model.OwnerRentals)
-                        {
-                            <tr>
-                                <td>@rental.Item?.Title</td>
-                                <td>@rental.Renter?.Email</td>
-                                <td>@rental.Status</td>
-                                <td>@rental.StartDate.ToShortDateString()</td>
-                                <td>@rental.EndDate.ToShortDateString()</td>
-                                <td>
-                                    @if (rental.Status == RentalStatus.Pending)
-                                    {
-                                        <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="d-inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="btn btn-sm btn-success">Approve</button>
-                                        </form>
-                                        <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="btn btn-sm btn-danger">Reject</button>
-                                        </form>
-                                    }
-                                    else if (rental.Status == RentalStatus.Active)
-                                    {
-                                        <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="btn btn-sm btn-primary">Mark Complete</button>
-                                        </form>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">—</span>
-                                    }
-                                </td>
-                            </tr>
-                        }
+                            @foreach (var rental in Model.OwnerRentals)
+                            {
+                                <tr>
+                                    <td>@rental.Item?.Title</td>
+                                    <td>@rental.Renter?.Email</td>
+                                    <td>@rental.Status</td>
+                                    <td>@rental.StartDate.ToShortDateString()</td>
+                                    <td>@rental.EndDate.ToShortDateString()</td>
+                                    <td>
+                                        @if (rental.Status == RentalStatus.Pending)
+                                        {
+                                            <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="d-inline">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="btn btn-sm btn-success">Approve</button>
+                                            </form>
+                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="btn btn-sm btn-danger">Reject</button>
+                                            </form>
+                                        }
+                                        else if (rental.Status == RentalStatus.Active)
+                                        {
+                                            <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="btn btn-sm btn-primary">Mark Complete</button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 }
@@ -190,7 +190,7 @@
                                 <label class="form-label">Select Item</label>
                                 <select class="form-select" name="itemId" required>
                                     <option value="">-- Select --</option>
-                                    @if (Model.ListingsOwned != null && Model.ListingsOwned.Any()) 
+                                    @if (Model.ListingsOwned != null && Model.ListingsOwned.Any())
                                     {
                                         @foreach (var item in Model.ListingsOwned?.Where(i => i.IsListed && !i.IsRented) ?? Enumerable.Empty<RentMate.Models.Item>())
                                         {
@@ -198,7 +198,7 @@
                                         }
 
                                     }
-                                    
+
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -232,30 +232,30 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach (var rental in Model.MyRentals)
-                        {
-                            <tr>
-                                <td>@rental.Item?.Title</td>
-                                <td>@rental.Owner?.Email</td>
-                                <td>@rental.Status</td>
-                                <td>@rental.StartDate.ToShortDateString()</td>
-                                <td>@rental.EndDate.ToShortDateString()</td>
-                                <td>
-                                    @if (rental.Status == RentalStatus.Active)
-                                    {
-                                        <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="btn btn-sm btn-primary">Return Item</button>
-                                        </form>
-                                    }
-                                    else if (rental.Status == RentalStatus.Pending)
-                                    {
-                                        <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="btn btn-sm btn-danger">Cancel Request</button>
-                                        </form>
-                                    }
-                                    else if (rental.Status == RentalStatus.Completed)
+                            @foreach (var rental in Model.MyRentals)
+                            {
+                                <tr>
+                                    <td>@rental.Item?.Title</td>
+                                    <td>@rental.Owner?.Email</td>
+                                    <td>@rental.Status</td>
+                                    <td>@rental.StartDate.ToShortDateString()</td>
+                                    <td>@rental.EndDate.ToShortDateString()</td>
+                                    <td>
+                                        @if (rental.Status == RentalStatus.Active)
+                                        {
+                                            <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="btn btn-sm btn-primary">Return Item</button>
+                                            </form>
+                                        }
+                                        else if (rental.Status == RentalStatus.Pending)
+                                        {
+                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="btn btn-sm btn-danger">Cancel Request</button>
+                                            </form>
+                                        }
+                                        else if (rental.Status == RentalStatus.Completed)
                                         {
                                             <button class="btn btn-sm btn-outline-success"
                                                     data-bs-toggle="modal"
@@ -276,14 +276,14 @@
                                                 Delete Review
                                             </button>
                                         }
-                                    else
-                                    {
-                                        <span class="text-muted">—</span>
-                                    }
-                                </td>
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
 
-                            </tr>
-                        }
+                                </tr>
+                            }
                         </tbody>
                     </table>
                 }
@@ -318,7 +318,7 @@
                         <div class="mb-3">
                             <label class="form-label">Review</label>
                             <textarea name="Body" maxlength="2000" class="form-control" rows="4"
-                                    placeholder="Describe your experience"></textarea>
+                                      placeholder="Describe your experience"></textarea>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="IsAnonymous" id="reviewAnon">
@@ -381,7 +381,7 @@
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/RentMateHub")
             .build();
-        
+
         connection.on("RentalRequested", (data) => {
             console.log("🔔 New rental request:", data);
 
@@ -442,9 +442,9 @@
             toast.show();
             toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
         }
-       
 
-        
+
+
         const indicator = document.getElementById("connectionIndicator");
         indicator.classList.add("visible");
         function pulseIndicator() {
@@ -594,89 +594,6 @@
             }
         }
     </script>
-    <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const modalEl = document.getElementById('writeReviewModal');
-    const starsContainer = document.getElementById("reviewStars");
-    const ratingInput = document.getElementById("reviewRating");
-
-    // ⭐ Build stars dynamically (only when modal is shown)
-    function buildStars() {
-        if (!starsContainer) return;
-        starsContainer.innerHTML = "";
-        for (let i = 1; i <= 5; i++) {
-            const star = document.createElement("i");
-            star.className = "bi bi-star"; // ✅ Bootstrap icons, no CDN needed
-            star.dataset.value = i;
-            star.style.cursor = "pointer";
-            star.addEventListener("mouseenter", () => highlightStars(i));
-            star.addEventListener("mouseleave", () => highlightStars(ratingInput.value || 0));
-            star.addEventListener("click", () => {
-                ratingInput.value = i;
-                highlightStars(i);
-            });
-            starsContainer.appendChild(star);
-        }
-        highlightStars(0);
-    }
-
-    function highlightStars(val) {
-        starsContainer.querySelectorAll("i").forEach((s, idx) => {
-            s.className = idx < val
-                ? "bi bi-star-fill text-warning"
-                : "bi bi-star text-muted";
-        });
-    }
-
-    // Build stars *only when the modal is shown*
-    modalEl.addEventListener("shown.bs.modal", event => {
-        const btn = event.relatedTarget;
-        const itemId = btn.getAttribute("data-itemid");
-        const title = btn.getAttribute("data-itemtitle");
-
-        document.getElementById("writeReviewLabel").textContent = `Review: ${title}`;
-        document.getElementById("reviewItemId").value = itemId;
-        ratingInput.value = 0;
-        buildStars();
-    });
-
-    // Submit handler stays same
-    document.getElementById("writeReviewForm").addEventListener("submit", async e => {
-        e.preventDefault();
-        const formData = Object.fromEntries(new FormData(e.target).entries());
-        formData.Rating = parseInt(formData.Rating);
-
-        const res = await fetch(`/api/Reviews`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(formData)
-        });
-
-        if (res.ok) {
-            const modalInstance = bootstrap.Modal.getInstance(modalEl);
-            if (modalInstance) modalInstance.hide();
-
-            // explicit cleanup after hide
-            setTimeout(() => {
-                document.body.classList.remove("modal-open");
-                const backdrop = document.querySelector(".modal-backdrop");
-                if (backdrop) backdrop.remove();
-            }, 400);
-
-            e.target.reset();
-            ratingInput.value = 0;
-            highlightStars(0);
-            showToast("✅ Review posted successfully!", "success");
-        }
-
-else {
-            const text = await res.text();
-            showToast(`❌ ${text}`, "danger");
-        }
-    });
-});
-
-</script>
 
     <!-- Reviews Modal -->
     <div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
@@ -694,165 +611,227 @@ else {
     </div>
 
     <script>
-    document.getElementById('reviewsModal')
-.addEventListener('show.bs.modal', async event => {
-    const button = event.relatedTarget;
-    const itemId = button.getAttribute('data-itemid');
-    const title  = button.getAttribute('data-title');
-    const modalTitle = document.getElementById('reviewsModalLabel');
-    const modalBody  = document.getElementById('reviewsModalBody');
+            document.getElementById('reviewsModal')
+        .addEventListener('show.bs.modal', async event => {
+            const button = event.relatedTarget;
+            const itemId = button.getAttribute('data-itemid');
+            const title  = button.getAttribute('data-title');
+            const modalTitle = document.getElementById('reviewsModalLabel');
+            const modalBody  = document.getElementById('reviewsModalBody');
 
-    modalTitle.textContent = `Reviews for "${title}"`;
-    modalBody.innerHTML = `<div class="text-center text-muted p-3">Loading reviews...</div>`;
+            modalTitle.textContent = `Reviews for "${title}"`;
+            modalBody.innerHTML = `<div class="text-center text-muted p-3">Loading reviews...</div>`;
 
-    try {
-        const res = await fetch(`/api/Reviews/item/${itemId}?page=1&pageSize=20`);
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
+            try {
+                const res = await fetch(`/api/Reviews/item/${itemId}?page=1&pageSize=20`);
+                if (!res.ok) throw new Error(await res.text());
+                const data = await res.json();
 
-        modalBody.innerHTML = "";
-        if (!data.reviews?.length) {
-            modalBody.innerHTML = `<div class="text-center text-muted p-3">No reviews yet.</div>`;
-            return;
-        }
+                modalBody.innerHTML = "";
+                if (!data.reviews?.length) {
+                    modalBody.innerHTML = `<div class="text-center text-muted p-3">No reviews yet.</div>`;
+                    return;
+                }
 
-        data.reviews.forEach(r => {
-            const stars = Array.from({ length: 5 }, (_, i) =>
-                `<i class="fa${i < r.rating ? 's' : 'r'} fa-star text-warning"></i>`
-            ).join("");
+                data.reviews.forEach(r => {
+                    const stars = Array.from({ length: 5 }, (_, i) =>
+                        `<i class="fa${i < r.rating ? 's' : 'r'} fa-star text-warning"></i>`
+                    ).join("");
 
-            const block = document.createElement("div");
-            block.className = "border-bottom pb-3 mb-3";
-            block.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <strong>${r.isAnonymous ? "Anonymous" : (r.reviewer?.userName ?? "User")}</strong>
-                    <span>${stars}</span>
-                </div>
-                ${r.title ? `<div class="fw-bold mt-1">${r.title}</div>` : ""}
-                ${r.body ? `<p class="mb-0 mt-1">${r.body}</p>` : ""}
-                <small class="text-muted">${new Date(r.createdAt).toLocaleString()}</small>
-            `;
-            modalBody.appendChild(block);
+                    const block = document.createElement("div");
+                    block.className = "border-bottom pb-3 mb-3";
+                    block.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong>${r.isAnonymous ? "Anonymous" : (r.reviewer?.userName ?? "User")}</strong>
+                            <span>${stars}</span>
+                        </div>
+                        ${r.title ? `<div class="fw-bold mt-1">${r.title}</div>` : ""}
+                        ${r.body ? `<p class="mb-0 mt-1">${r.body}</p>` : ""}
+                        <small class="text-muted">${new Date(r.createdAt).toLocaleString()}</small>
+                    `;
+                    modalBody.appendChild(block);
+                });
+            } catch (err) {
+                console.error(err);
+                modalBody.innerHTML = `<div class="text-danger text-center p-3">Failed to load reviews.</div>`;
+            }
         });
-    } catch (err) {
-        console.error(err);
-        modalBody.innerHTML = `<div class="text-danger text-center p-3">Failed to load reviews.</div>`;
-    }
-});
-// === Review Edit/Delete Logic ===
-        document.addEventListener("DOMContentLoaded", async () => {
-            // --- Check if user has already reviewed an item ---
-            document.querySelectorAll('[data-bs-target="#writeReviewModal"]').forEach(async btn => {
-                const itemId = btn.getAttribute("data-itemid");
-                const editBtn = document.getElementById(`editBtn-${itemId}`);
-                const delBtn = document.getElementById(`deleteBtn-${itemId}`);
+        // === Review Edit/Delete Logic ===
+                                document.addEventListener("DOMContentLoaded", async () => {
+                    // --- Helper: Star builder ---
+                    function buildStarPicker(containerId, inputId, val = 0) {
+                        const container = document.getElementById(containerId);
+                        const input = document.getElementById(inputId);
+                        if (!container || !input) return;
+                        container.innerHTML = "";
 
-                try {
-                    const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
-                    if (res.ok) {
-                        // User already has a review: hide "Write Review", show "Edit/Delete"
-                        btn.classList.add("d-none");
-                        if (editBtn) editBtn.classList.remove("d-none");
-                        if (delBtn) delBtn.classList.remove("d-none");
-                    } else {
-                        // No review yet: show "Write Review", hide "Edit/Delete"
-                        btn.classList.remove("d-none");
-                        if (editBtn) editBtn.classList.add("d-none");
-                        if (delBtn) delBtn.classList.add("d-none");
+                        for (let i = 1; i <= 5; i++) {
+                            const star = document.createElement("i");
+                            star.className = i <= val ? "bi bi-star-fill text-warning" : "bi bi-star text-muted";
+                            star.dataset.value = i;
+                            star.style.cursor = "pointer";
+                            star.addEventListener("mouseenter", () => highlight(i));
+                            star.addEventListener("mouseleave", () => highlight(input.value));
+                            star.addEventListener("click", () => {
+                                input.value = i;
+                                highlight(i);
+                            });
+                            container.appendChild(star);
+                        }
+
+                        function highlight(v) {
+                            container.querySelectorAll("i").forEach((s, idx) => {
+                                s.className = idx < v ? "bi bi-star-fill text-warning" : "bi bi-star text-muted";
+                            });
+                        }
+
+                        highlight(val);
                     }
-                } catch (err) {
-                    console.error("Error checking user reviews:", err);
-                }
-            });
 
-            // === DELETE REVIEW ===
-            window.deleteReview = async (itemId) => {
-                if (!confirm("Are you sure you want to delete your review?")) return;
-                const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
-                if (!res.ok) return showToast("❌ You haven't reviewed this item yet.", "danger");
+                    // --- Write Review Modal setup ---
+                    const writeModal = document.getElementById("writeReviewModal");
+                    const writeForm = document.getElementById("writeReviewForm");
 
-                const review = await res.json();
-                const delRes = await fetch(`/api/Reviews/${review.id}`, { method: "DELETE" });
-                if (delRes.ok) {
-                    showToast("🗑️ Review deleted.", "secondary");
-                    setTimeout(() => location.reload(), 700);
-                } else {
-                    showToast("❌ Failed to delete review.", "danger");
-                }
-            };
+                    if (writeModal && writeForm) {
+                        writeModal.addEventListener("shown.bs.modal", event => {
+                            const btn = event.relatedTarget;
+                            const itemId = btn.getAttribute("data-itemid");
+                            const title = btn.getAttribute("data-itemtitle");
 
-            // === EDIT MODAL SETUP ===
-            const editModal = document.getElementById('editReviewModal');
-            editModal.addEventListener('show.bs.modal', async (event) => {
-                const btn = event.relatedTarget;
-                const itemId = btn.getAttribute('data-itemid');
-                const title = btn.getAttribute('data-itemtitle');
+                            document.getElementById("writeReviewLabel").textContent = `Review: ${title}`;
+                            document.getElementById("reviewItemId").value = itemId;
+                            document.getElementById("reviewRating").value = 0;
 
-                document.getElementById('editReviewLabel').textContent = `Edit Review: ${title}`;
-                document.getElementById('editItemId').value = itemId;
+                            buildStarPicker("reviewStars", "reviewRating", 0);
+                        });
 
-                const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
-                if (!res.ok) return showToast("Failed to load review", "danger");
-                const r = await res.json();
+                        // --- Write Review Submit ---
+                        if (!window.writeReviewBound) {
+                            window.writeReviewBound = true; // ✅ prevents duplicate binding
+                            writeForm.addEventListener("submit", async e => {
+                                e.preventDefault();
+                                const data = Object.fromEntries(new FormData(writeForm).entries());
+                                data.Rating = parseInt(data.Rating);
 
-                document.getElementById('editReviewId').value = r.id;
-                document.getElementById('editReviewTitle').value = r.title ?? "";
-                document.getElementById('editReviewBody').value = r.body ?? "";
-                document.getElementById('editReviewAnon').checked = r.isAnonymous;
-                document.getElementById('editReviewRating').value = r.rating;
+                                const res = await fetch(`/api/Reviews`, {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify(data)
+                                });
 
-                buildStarPicker("editReviewStars", "editReviewRating", r.rating);
-            });
+                                if (res.ok) {
+                                    bootstrap.Modal.getInstance(writeModal)?.hide();
+                                    showToast("✅ Review posted successfully!", "success");
 
-            // === EDIT SUBMIT ===
-            document.getElementById('editReviewForm').addEventListener('submit', async e => {
-                e.preventDefault();
-                const data = Object.fromEntries(new FormData(e.target).entries());
-                data.Rating = parseInt(data.Rating);
+                                    const itemId = data.ItemId;
+                                    const writeBtn = document.querySelector(`[data-bs-target="#writeReviewModal"][data-itemid="${itemId}"]`);
+                                    const editBtn = document.getElementById(`editBtn-${itemId}`);
+                                    const delBtn = document.getElementById(`deleteBtn-${itemId}`);
 
-                const res = await fetch(`/api/Reviews/${data.Id}`, {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
+                                    if (writeBtn) writeBtn.classList.add("d-none");
+                                    if (editBtn) editBtn.classList.remove("d-none");
+                                    if (delBtn) delBtn.classList.remove("d-none");
+
+                                    setTimeout(() => {
+                                        document.body.classList.remove("modal-open");
+                                        document.querySelector(".modal-backdrop")?.remove();
+                                    }, 400);
+
+                                    writeForm.reset();
+                                } else {
+                                    const err = await res.text();
+                                    showToast(`❌ ${err}`, "danger");
+                                }
+                            });
+                        }
+                    }
+
+                    // --- Check existing reviews to toggle buttons ---
+                    document.querySelectorAll('[data-bs-target="#writeReviewModal"]').forEach(async btn => {
+                        const itemId = btn.getAttribute("data-itemid");
+                        const editBtn = document.getElementById(`editBtn-${itemId}`);
+                        const delBtn = document.getElementById(`deleteBtn-${itemId}`);
+
+                        try {
+                            const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
+                            if (res.ok) {
+                                btn.classList.add("d-none");
+                                editBtn?.classList.remove("d-none");
+                                delBtn?.classList.remove("d-none");
+                            } else {
+                                btn.classList.remove("d-none");
+                                editBtn?.classList.add("d-none");
+                                delBtn?.classList.add("d-none");
+                            }
+                        } catch (err) {
+                            console.error("Error checking user reviews:", err);
+                        }
+                    });
+
+                    // --- Delete Review ---
+                    window.deleteReview = async itemId => {
+                        if (!confirm("Are you sure you want to delete your review?")) return;
+                        const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
+                        if (!res.ok) return showToast("❌ You haven't reviewed this item yet.", "danger");
+
+                        const review = await res.json();
+                        const delRes = await fetch(`/api/Reviews/${review.id}`, { method: "DELETE" });
+                        if (delRes.ok) {
+                            showToast("🗑️ Review deleted.", "secondary");
+                            setTimeout(() => location.reload(), 700);
+                        } else {
+                            showToast("❌ Failed to delete review.", "danger");
+                        }
+                    };
+
+                    // --- Edit Modal setup + submit ---
+                    const editModal = document.getElementById('editReviewModal');
+                    const editForm = document.getElementById('editReviewForm');
+
+                    if (editModal && editForm) {
+                        editModal.addEventListener('show.bs.modal', async event => {
+                            const btn = event.relatedTarget;
+                            const itemId = btn.getAttribute('data-itemid');
+                            const title = btn.getAttribute('data-itemtitle');
+
+                            document.getElementById('editReviewLabel').textContent = `Edit Review: ${title}`;
+                            document.getElementById('editItemId').value = itemId;
+
+                            const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
+                            if (!res.ok) return showToast("Failed to load review", "danger");
+                            const r = await res.json();
+
+                            document.getElementById('editReviewId').value = r.id;
+                            document.getElementById('editReviewTitle').value = r.title ?? "";
+                            document.getElementById('editReviewBody').value = r.body ?? "";
+                            document.getElementById('editReviewAnon').checked = r.isAnonymous;
+                            document.getElementById('editReviewRating').value = r.rating;
+
+                            buildStarPicker("editReviewStars", "editReviewRating", r.rating);
+                        });
+
+                        editForm.addEventListener('submit', async e => {
+                            e.preventDefault();
+                            const data = Object.fromEntries(new FormData(editForm).entries());
+                            data.Rating = parseInt(data.Rating);
+
+                            const res = await fetch(`/api/Reviews/${data.Id}`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(data)
+                            });
+
+                            if (res.ok) {
+                                bootstrap.Modal.getInstance(editModal)?.hide();
+                                showToast("✅ Review updated!", "success");
+                                setTimeout(() => location.reload(), 700);
+                            } else {
+                                const err = await res.text();
+                                showToast(`❌ ${err}`, "danger");
+                            }
+                        });
+                    }
                 });
 
-                if (res.ok) {
-                    bootstrap.Modal.getInstance(document.getElementById('editReviewModal')).hide();
-                    showToast("✅ Review updated!", "success");
-                    setTimeout(() => location.reload(), 700);
-                } else {
-                    const err = await res.text();
-                    showToast(`❌ ${err}`, "danger");
-                }
-            });
-
-            // === Shared Star Picker Builder ===
-            window.buildStarPicker = (containerId, inputId, val = 0) => {
-                const container = document.getElementById(containerId);
-                const input = document.getElementById(inputId);
-                container.innerHTML = "";
-
-                for (let i = 1; i <= 5; i++) {
-                    const star = document.createElement("i");
-                    star.className = i <= val ? "bi bi-star-fill text-warning" : "bi bi-star text-muted";
-                    star.dataset.value = i;
-                    star.style.cursor = "pointer";
-                    star.addEventListener("click", () => {
-                        input.value = i;
-                        container.querySelectorAll("i").forEach((s, idx) => {
-                            s.className = idx < i ? "bi bi-star-fill text-warning" : "bi bi-star text-muted";
-                        });
-                    });
-                    container.appendChild(star);
-                }
-            };
-        });
     </script>
 }
-
-
-
-
-
-
-
