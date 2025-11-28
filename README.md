@@ -15,10 +15,10 @@ ItemsController, RentalsController, ReviewsController, Account/User kontrolerji,
 Pogledi:
 Razor pogledi za iskanje, predmete, najeme, profile in administracijo.
 
-2. PODATKOVNA BAZA (Entity Framework + SQL Server)
+2. PODATKOVNA BAZA (Entity Framework + MySQL Server)
 
-EF Core + SQL Server z glavnimi relacijami:
-Uporabnik–Predmeti (cascade), Uporabnik–Najemi (restrict), Predmet–Najemi (cascade), Predmet–Ocene (cascade), Uporabnik–Ocene (restrict).
+EF Core + MySQL Server z glavnimi relacijami:
+Uporabnik–Predmeti (cascade), Uporabnik–Najemi (restrict), Predmet–Zgodovina_Najemi (cascade), Predmet–Ocene (cascade), Uporabnik–Ocene (cascade).
 
 Podprta integriteta:
 Brez prekrivanja najemov, validni razpon ocen, mehko brisanje ocen, avtomatsko posodabljanje statistike ocen.
@@ -29,7 +29,7 @@ ASP.NET Identity:
 Registracija, prijava, gesla, potrjevanje e-pošte, ponastavitve, 2FA.
 
 Vloge:
-User, Owner, Admin, SuperAdmin.
+User, Moderator, Admin.
 
 Pravila dostopa:
 Urejanje oglasov samo lastnik, ocene samo po zaključku najema, admin dostopa do upravljanja sistema, suspendirani uporabniki nimajo dostopa do objavljanja ali najemov.
@@ -40,17 +40,9 @@ Iskanje in filtriranje, sistem najemov, sistem ocen, upravljanje predmetov, upor
 
 5. TEHNOLOGIJE
 
-Backend: ASP.NET Core MVC, C# 12, Identity, EF Core  
-Baza: SQL Server  
+Backend: ASP.NET Core MVC, C#, Identity, EF Core  
+Baza: MySQL Server  
 Frontend: Razor, Bootstrap/Tailwind
-
-6. NAMESTITEV
-
-dotnet restore  
-dotnet ef database update  
-dotnet run
-
-Aplikacija teče na http://localhost:5000 in https://localhost:5001
 
 7. LICENCA
 
