@@ -25,13 +25,9 @@
                                     foreach (var c in ViewBag.Cities)
                                     {
                                         if (ViewBag.City == c)
-                                        {
-                                            <option value="@c" selected>@c</option>
-                                        }
+                                        { <option value="@c" selected>@c</option> }
                                         else
-                                        {
-                                            <option value="@c">@c</option>
-                                        }
+                                        { <option value="@c">@c</option> }
                                     }
                                 }
                             </select>
@@ -40,21 +36,6 @@
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="bi bi-search"></i> Išči
                             </button>
-                        </div>
-                    </div>
-                    <div class="row mt-2 g-2">
-                        <div class="col-6 col-md-3">
-                            <input type="number" name="minPrice" class="form-control form-control-sm" placeholder="Min €" value="@ViewBag.MinPrice">
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <input type="number" name="maxPrice" class="form-control form-control-sm" placeholder="Max €" value="@ViewBag.MaxPrice">
-                        </div>
-                        <div class="col-md-3">
-                             <select name="sort" class="form-select form-select-sm">
-                                <option value="">Razvrsti po...</option>
-                                <option value="priceAsc">Cena (nizka -> visoka)</option>
-                                <option value="priceDesc">Cena (visoka -> nizka)</option>
-                            </select>
                         </div>
                     </div>
                 </form>
@@ -89,7 +70,6 @@
                              {
                                  <i class="bi bi-box-seam display-4 text-secondary opacity-25"></i>
                              }
-                             
                              <div class="position-absolute top-0 end-0 m-2">
                                  <span class="badge bg-white text-dark shadow-sm">
                                      <i class="bi bi-geo-alt-fill text-danger"></i> @item.User?.City
@@ -105,17 +85,61 @@
                             
                             <div class="d-flex justify-content-between align-items-center mt-3">
                                 <span class="h5 mb-0 text-primary fw-bold">€@item.Price <small class="text-muted fs-6">/ dan</small></span>
-                                
                                 <small class="text-warning">
                                     <i class="bi bi-star-fill"></i> @(item.AverageRating?.ToString("0.0") ?? "-")
                                     <span class="text-muted">(@item.ReviewCount)</span>
                                 </small>
                             </div>
                         </div>
+
                         <div class="card-footer bg-white border-0 pb-3">
-                             <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary w-100 stretched-link">
-                                Poglej podrobnosti
-                            </a>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#rentModal-@item.Id">
+                                    <i class="bi bi-cart-plus"></i> Izposodi
+                                </button>
+                                
+                                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary btn-sm">
+                                    Več info
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="rentModal-@item.Id" tabindex="-1" aria-labelledby="rentModalLabel-@item.Id" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="rentModalLabel-@item.Id">Izposoja: @item.Title</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form asp-controller="Rentals" asp-action="RequestRental" method="post">
+                                <div class="modal-body">
+                                    <input type="hidden" name="itemId" value="@item.Id" />
+                                    
+                                    <p class="text-muted mb-3">Izberite časovno obdobje izposoje:</p>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Začetek izposoje</label>
+                                        <input type="date" name="startDate" class="form-control" required 
+                                               min="@DateTime.Now.ToString("yyyy-MM-dd")" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Konec izposoje</label>
+                                        <input type="date" name="endDate" class="form-control" required 
+                                               min="@DateTime.Now.ToString("yyyy-MM-dd")" value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
+                                    </div>
+                                    
+                                    <div class="alert alert-info py-2 small">
+                                        <i class="bi bi-info-circle"></i> Cena na dan: <strong>€@item.Price</strong>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Prekliči</button>
+                                    <button type="submit" class="btn btn-success fw-bold">Potrdi in Rezerviraj</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
