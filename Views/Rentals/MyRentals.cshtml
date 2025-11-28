@@ -1,35 +1,90 @@
 @model IEnumerable<RentMate.Models.Rental>
 
-<h2>My Rentals</h2>
+@{
+    ViewData["Title"] = "Moje Izposoje";
+}
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Item</th>
-            <th>Status</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach (var r in Model)
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>📦 Moje Izposoje</h1>
+        <a asp-action="Index" class="btn btn-primary btn-lg shadow-sm">
+            <i class="bi bi-plus-lg"></i> Nova izposoja
+        </a>
+    </div>
+
+    @if (!Model.Any())
     {
-        <tr>
-            <td>@r.Item?.Title</td>
-            <td>@r.Status</td>
-            <td>@r.StartDate.ToShortDateString()</td>
-            <td>@r.EndDate.ToShortDateString()</td>
-            <td>
-                @if (r.Status == RentMate.Models.RentalStatus.Active)
-                {
-                    <form asp-action="CompleteRental" method="post">
-                        <input type="hidden" name="rentalId" value="@r.Id" />
-                        <button type="submit" class="btn btn-success btn-sm">Complete</button>
-                    </form>
-                }
-            </td>
-        </tr>
+        <div class="text-center py-5">
+            <h3 class="text-muted">Trenutno nimate nobenih izposoj.</h3>
+            <p>Začnite z izposojo nekega predmeta!</p>
+        </div>
     }
-    </tbody>
-</table>
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            @foreach (var item in Model)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 rental-card">
+                        <div class="card-header bg-white border-0 pt-3">
+                            @{
+                                var statusColor = item.Status.ToString() switch
+                                {
+                                    "Active" => "success",   
+                                    "Pending" => "warning",  
+                                    "Completed" => "secondary",
+                                    "Cancelled" => "danger",
+                                    _ => "primary"
+                                };
+                            }
+                            <span class="badge bg-@statusColor rounded-pill float-end">
+                                @Html.DisplayFor(modelItem => item.Status)
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-dark">
+                                @Html.DisplayFor(modelItem => item.Item.Title)
+                            </h5>
+                            <p class="card-text text-muted small">
+                                <i class="bi bi-person"></i> @Html.DisplayFor(modelItem => item.Renter.Email)
+                            </p>
+                            
+                            <hr class="my-2 opacity-25">
+
+                            <div class="d-flex justify-content-between mt-3">
+                                <div>
+                                    <small class="text-muted d-block">Začetek</small>
+                                    <strong>@item.StartDate.ToString("dd. MMM")</strong>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">Konec</small>
+                                    <strong>@item.EndDate.ToString("dd. MMM")</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 pb-3">
+                            <div class="d-grid gap-2">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">
+                                    Podrobnosti
+                                </a>
+                                <div class="btn-group">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-light btn-sm text-muted">Uredi</a> 
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-light btn-sm text-danger">Prekliči</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .rental-card {
+        transition: transform 0.2s;
+    }
+    .rental-card:hover {
+        transform: translateY(-5px);
+    }
+</style>

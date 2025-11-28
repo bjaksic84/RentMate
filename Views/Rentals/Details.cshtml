@@ -1,48 +1,60 @@
 ﻿@model RentMate.Models.Rental
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Podrobnosti izposoje";
+    var statusColor = Model.Status.ToString() switch
+    {
+        "Active" => "success",
+        "Pending" => "warning",
+        "Completed" => "secondary",
+        "Cancelled" => "danger",
+        _ => "primary"
+    };
 }
 
-<h1>Details</h1>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-@statusColor text-white text-center py-3">
+                    <h5 class="mb-0 text-uppercase ls-1">@Model.Status</h5> </div>
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold">@Model.Item.Title</h2> <p class="text-muted">ID Izposoje: #@Model.Id</p>
+                    </div>
 
-<div>
-    <h4>Rental</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Item)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Item.Title)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Renter)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Renter.Email)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.StartDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.StartDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.EndDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.EndDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+                    <div class="row mb-3 border-bottom pb-3">
+                        <div class="col-6">
+                            <small class="text-muted text-uppercase">Najemnik</small>
+                            <p class="fw-bold mb-0">@Model.Renter.Email</p> </div>
+                        <div class="col-6 text-end">
+                            <small class="text-muted text-uppercase">Cena</small>
+                            <p class="fw-bold mb-0 text-success">@Model.TotalPrice.ToString("C2", new System.Globalization.CultureInfo("de-DE"))</p>
+                        </div>
+                    </div>
+
+                    <div class="row text-center mb-4">
+                        <div class="col-5">
+                            <div class="p-2 bg-light rounded">
+                                <small class="d-block text-muted">Od</small>
+                                <strong>@Model.StartDate.ToString("dd. MM. yyyy")</strong> </div>
+                        </div>
+                        <div class="col-2 align-self-center">
+                            <i class="bi bi-arrow-right text-muted"></i>
+                        </div>
+                        <div class="col-5">
+                            <div class="p-2 bg-light rounded">
+                                <small class="d-block text-muted">Do</small>
+                                <strong>@Model.EndDate.ToString("dd. MM. yyyy")</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-primary">Uredi podatke</a>
+                        <a asp-action="MyRentals" class="btn btn-outline-secondary">Nazaj na moje izposoje</a> </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
