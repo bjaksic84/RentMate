@@ -41,7 +41,7 @@ namespace RentMate.Controllers
             var query = _context.Items
                 .Include(i => i.User)
                 .Include(i => i.Rentals)
-                .Where(i => i.IsListed && !i.IsRented)
+                .Where(i => i.IsListed)
                 .AsQueryable();
 
             // 🔍 Text search

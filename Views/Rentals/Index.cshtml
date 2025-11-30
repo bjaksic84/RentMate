@@ -1,70 +1,157 @@
 ﻿@model IEnumerable<RentMate.Models.Item>
+@using System.Text.Json;
 
 @{
-    ViewData["Title"] = "Ponudba";
+    ViewData["Title"] = "Tržnica";
+    
+    // Priprava začetnih vrednosti za ceno (če niso nastavljene, damo privzete)
+    decimal currentMin = ViewBag.MinPrice ?? 0;
+    decimal currentMax = ViewBag.MaxPrice ?? 500; // Privzet max, če ni izbran
 }
 
-<div class="bg-light py-5 mb-5 border-bottom">
-    <div class="container">
-        <div class="row justify-content-center text-center">
-            <div class="col-lg-8">
-                <h1 class="fw-bold mb-3">Poišči, kar potrebuješ</h1>
-                <p class="lead text-muted mb-4">Sposodi si orodje, elektroniko ali športno opremo od sosedov.</p>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css">
+
+<style>
+    /* Stil za inpute nad sliderjem - da izgledajo kot lebdeče številke, a so editabilni */
+    .price-input {
+        border: 1px solid #dee2e6;
+        background: #fff;
+        padding: 2px 5px;
+        border-radius: 4px;
+        width: 70px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+        color: #0d6efd;
+        transition: border-color 0.2s;
+    }
+    .price-input:focus {
+        border-color: #0d6efd;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+    }
+    /* Slider ročke */
+    .noUi-connect {
+        background: #0d6efd; /* Primary color */
+    }
+    .noUi-handle {
+        border-radius: 50%;
+        cursor: grab;
+    }
+    .noUi-handle:active {
+        cursor: grabbing;
+    }
+</style>
+
+<div class="bg-white border-bottom shadow-sm sticky-top" style="z-index: 900;">
+    <div class="container py-3">
+        <form asp-action="Index" method="get" id="filterForm">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Iskanje</label>
+                    <input type="text" name="search" class="form-control" placeholder="Kaj iščeš?" value="@ViewBag.Search">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Lokacija</label>
+                    <select name="city" class="form-select">
+                        <option value="">Vsa mesta</option>
+                        @if (ViewBag.Cities != null)
+                        {
+                            foreach (var c in ViewBag.Cities)
+                            {
+                                if (ViewBag.City == c) { <option value="@c" selected>@c</option> }
+                                else { <option value="@c">@c</option> }
+                            }
+                        }
+                    </select>
+                </div>
                 
-                <form asp-action="Index" method="get" class="card card-body shadow-sm border-0 p-2">
-                    <div class="row g-2">
-                        <div class="col-md-5">
-                            <input type="text" name="search" class="form-control form-control-lg border-0" 
-                                   placeholder="Kaj iščeš? (npr. Vrtalnik)" value="@ViewBag.Search">
-                        </div>
-                        <div class="col-md-3">
-                            <select name="city" class="form-select form-select-lg border-0 bg-light">
-                                <option value="">Vsa mesta</option>
-                                @if (ViewBag.Cities != null)
-                                {
-                                    foreach (var c in ViewBag.Cities)
-                                    {
-                                        if (ViewBag.City == c)
-                                        { <option value="@c" selected>@c</option> }
-                                        else
-                                        { <option value="@c">@c</option> }
-                                    }
-                                }
-                            </select>
-                        </div>
-                        <div class="col-md-4 d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-search"></i> Išči
-                            </button>
-                        </div>
-                    </div>
-                </form>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Od</label>
+                    <input type="date" name="startDate" class="form-control" value="@ViewBag.StartDate">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Do</label>
+                    <input type="date" name="endDate" class="form-control" value="@ViewBag.EndDate">
+                </div>
+                
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="bi bi-search"></i> Preveri ponudbo
+                    </button>
+                </div>
             </div>
-        </div>
+
+            <div class="row g-2 mt-3 align-items-center bg-light p-3 rounded mx-0">
+                
+                <div class="col-md-6 col-12">
+                     <label class="form-label small fw-bold text-muted d-block mb-3">Cenovni razpon (€ / dan)</label>
+                     
+                     <div class="px-2">
+                         <div class="d-flex justify-content-between mb-2">
+                             <div class="input-group input-group-sm w-auto">
+                                 <input type="number" id="input-min" name="minPrice" class="price-input" value="@currentMin">
+                             </div>
+                             <div class="input-group input-group-sm w-auto">
+                                 <input type="number" id="input-max" name="maxPrice" class="price-input" value="@currentMax">
+                             </div>
+                         </div>
+                         
+                         <div id="slider-price"></div>
+                     </div>
+                </div>
+
+                <div class="col-md-3 ms-auto">
+                     <label class="form-label small fw-bold text-muted">Razvrščanje</label>
+                     <select name="sort" class="form-select border-primary" onchange="this.form.submit()">
+                        <option value="">Privzeto</option>
+                        @if(ViewBag.Sort == "priceAsc") { <option value="priceAsc" selected>Cena: Najnižja</option> } else { <option value="priceAsc">Cena: Najnižja</option> }
+                        @if(ViewBag.Sort == "priceDesc") { <option value="priceDesc" selected>Cena: Najvišja</option> } else { <option value="priceDesc">Cena: Najvišja</option> }
+                        @if(ViewBag.Sort == "titleAsc") { <option value="titleAsc" selected>Ime (A-Z)</option> } else { <option value="titleAsc">Ime (A-Z)</option> }
+                    </select>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="container mb-5">
+<div class="container py-5">
+    @if (!string.IsNullOrEmpty(ViewBag.StartDate))
+    {
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-calendar-check"></i> Prikazujem rezultate, ki so prosti v terminu: <strong>@ViewBag.StartDate</strong> do <strong>@ViewBag.EndDate</strong>
+        </div>
+    }
+
     <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
         @if (!Model.Any())
         {
             <div class="col-12 text-center py-5">
-                <i class="bi bi-emoji-frown display-1 text-muted"></i>
-                <h3 class="mt-3">Ni zadetkov.</h3>
-                <p class="text-muted">Poskusite spremeniti iskalne pogoje.</p>
-                <a asp-action="Index" class="btn btn-outline-primary">Prikaži vse</a>
+                <i class="bi bi-search display-1 text-muted opacity-25"></i>
+                <h3 class="mt-3">Ni najdenih izdelkov.</h3>
+                <a asp-action="Index" class="btn btn-outline-primary">Počisti filtre</a>
             </div>
         }
         else
         {
             @foreach (var item in Model)
             {
+                // PRIPRAVA BLOKIRANIH DATUMOV (JSON)
+                var blockedDates = item.Rentals
+                    .Where(r => r.Status == RentMate.Models.RentalStatus.Active || r.Status == RentMate.Models.RentalStatus.Pending)
+                    .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
+                    .ToList();
+                
+                string jsonBlocked = JsonSerializer.Serialize(blockedDates);
+
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0 product-card">
                         <div class="bg-light text-center py-5 rounded-top position-relative" style="min-height: 200px;">
                              @if (!string.IsNullOrEmpty(item.ImageUrl))
                              {
-                                 <img src="@item.ImageUrl" class="card-img-top" style="object-fit:cover; height:200px" alt="@item.Title">
+                                 <img src="@item.ImageUrl" class="card-img-top h-100" style="object-fit:cover; min-height:200px" alt="@item.Title">
                              }
                              else
                              {
@@ -79,25 +166,28 @@
 
                         <div class="card-body">
                             <h5 class="card-title fw-bold text-truncate">@item.Title</h5>
-                            <p class="card-text text-muted small text-truncate">
-                                @(item.Description?.Length > 50 ? item.Description.Substring(0, 50) + "..." : item.Description)
-                            </p>
-                            
                             <div class="d-flex justify-content-between align-items-center mt-3">
-                                <span class="h5 mb-0 text-primary fw-bold">€@item.Price <small class="text-muted fs-6">/ dan</small></span>
-                                <small class="text-warning">
-                                    <i class="bi bi-star-fill"></i> @(item.AverageRating?.ToString("0.0") ?? "-")
-                                    <span class="text-muted">(@item.ReviewCount)</span>
-                                </small>
+                                <span class="h5 mb-0 text-primary fw-bold">
+                                    @item.Price?.ToString("C2", new System.Globalization.CultureInfo("de-DE")) 
+                                    <small class="text-muted fs-6">/ dan</small>
+                                </span>
                             </div>
                         </div>
 
                         <div class="card-footer bg-white border-0 pb-3">
                             <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#rentModal-@item.Id">
-                                    <i class="bi bi-cart-plus"></i> Izposodi
-                                </button>
-                                
+                                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                {
+                                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#rentModal-@item.Id">
+                                        <i class="bi bi-calendar-plus"></i> Rezerviraj
+                                    </button>
+                                }
+                                else
+                                {
+                                    <a href="/Identity/Account/Login" class="btn btn-secondary">
+                                        <i class="bi bi-lock"></i> Prijavi se za najem
+                                    </a>
+                                }
                                 <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary btn-sm">
                                     Več info
                                 </a>
@@ -106,38 +196,31 @@
                     </div>
                 </div>
 
-                <div class="modal fade" id="rentModal-@item.Id" tabindex="-1" aria-labelledby="rentModalLabel-@item.Id" aria-hidden="true">
+                <div class="modal fade" id="rentModal-@item.Id" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header bg-primary text-white">
-                                <h5 class="modal-title" id="rentModalLabel-@item.Id">Izposoja: @item.Title</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                <h5 class="modal-title">Rezervacija: @item.Title</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
                             <form asp-controller="Rentals" asp-action="RequestRental" method="post">
                                 <div class="modal-body">
                                     <input type="hidden" name="itemId" value="@item.Id" />
-                                    
-                                    <p class="text-muted mb-3">Izberite časovno obdobje izposoje:</p>
-
                                     <div class="mb-3">
-                                        <label class="form-label fw-bold">Začetek izposoje</label>
-                                        <input type="date" name="startDate" class="form-control" required 
-                                               min="@DateTime.Now.ToString("yyyy-MM-dd")" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                        <label class="form-label fw-bold">Izberite termin</label>
+                                        <input type="text" class="form-control rent-daterange-picker" 
+                                               placeholder="Klikni za izbiro datuma..."
+                                               data-blocked='@jsonBlocked' required />
+                                        <input type="hidden" name="startDate" class="start-date-input" value="@ViewBag.StartDate" />
+                                        <input type="hidden" name="endDate" class="end-date-input" value="@ViewBag.EndDate" />
                                     </div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Konec izposoje</label>
-                                        <input type="date" name="endDate" class="form-control" required 
-                                               min="@DateTime.Now.ToString("yyyy-MM-dd")" value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" />
-                                    </div>
-                                    
-                                    <div class="alert alert-info py-2 small">
-                                        <i class="bi bi-info-circle"></i> Cena na dan: <strong>€@item.Price</strong>
+                                    <div class="alert alert-light border small text-muted">
+                                        <i class="bi bi-info-circle"></i> Sivi datumi so že zasedeni.
                                     </div>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Prekliči</button>
-                                    <button type="submit" class="btn btn-success fw-bold">Potrdi in Rezerviraj</button>
+                                    <button type="submit" class="btn btn-success fw-bold">Potrdi</button>
                                 </div>
                             </form>
                         </div>
@@ -149,6 +232,86 @@
 </div>
 
 <style>
-    .product-card { transition: transform 0.2s, box-shadow 0.2s; }
-    .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
+    .product-card { transition: transform 0.2s; }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        
+        // --- 1. CONFIGURATION FOR PRICE SLIDER ---
+        var slider = document.getElementById('slider-price');
+        var inputMin = document.getElementById('input-min');
+        var inputMax = document.getElementById('input-max');
+
+        // Preberi začetne vrednosti iz inputov (ki so prišli iz serverja)
+        var startMin = parseInt(inputMin.value) || 0;
+        var startMax = parseInt(inputMax.value) || 500;
+
+        noUiSlider.create(slider, {
+            start: [startMin, startMax], // Dve ročki
+            connect: true, // Obarvaj sredino
+            range: {
+                'min': 0,
+                'max': 1000 // Nastavi primerno max vrednost za tvojo trgovino
+            },
+            step: 5, // Korak po 5 eur
+            tooltips: false, // Ne rabimo tooltipov, ker imamo inpute zgoraj
+            format: {
+                to: function (value) { return Math.round(value); },
+                from: function (value) { return Number(value); }
+            }
+        });
+
+        // Ko se premakne slider -> posodobi input polja
+        slider.noUiSlider.on('update', function (values, handle) {
+            var value = values[handle];
+            if (handle === 0) {
+                inputMin.value = value;
+            } else {
+                inputMax.value = value;
+            }
+        });
+
+        // Ko uporabnik ročno vpiše v input -> posodobi slider
+        inputMin.addEventListener('change', function () {
+            slider.noUiSlider.set([this.value, null]);
+        });
+        inputMax.addEventListener('change', function () {
+            slider.noUiSlider.set([null, this.value]);
+        });
+
+
+        // --- 2. CONFIGURATION FOR FLATPICKR (DATEPICKER) ---
+        var pickers = document.querySelectorAll(".rent-daterange-picker");
+        pickers.forEach(function (element) {
+            var blockedDatesJson = element.getAttribute("data-blocked");
+            var blockedDates = JSON.parse(blockedDatesJson);
+            var form = element.closest("form");
+            var startDateInput = form.querySelector(".start-date-input");
+            var endDateInput = form.querySelector(".end-date-input");
+            var defaultDate = [];
+            if(startDateInput.value && endDateInput.value) {
+                defaultDate = [startDateInput.value, endDateInput.value];
+            }
+
+            flatpickr(element, {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                minDate: "today",
+                defaultDate: defaultDate,
+                disable: blockedDates,
+                locale: { firstDayOfWeek: 1 },
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length === 2) {
+                        startDateInput.value = instance.formatDate(selectedDates[0], "Y-m-d");
+                        endDateInput.value = instance.formatDate(selectedDates[1], "Y-m-d");
+                    }
+                }
+            });
+        });
+    });
+</script>
