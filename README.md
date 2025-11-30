@@ -18,7 +18,7 @@ Razor pogledi za iskanje, predmete, najeme, profile in administracijo.
 2. PODATKOVNA BAZA (Entity Framework + MySQL Server)
 
 EF Core + MySQL Server z glavnimi relacijami:
-Uporabnik–Predmeti (cascade), Uporabnik–Najemi (restrict), Predmet–Zgodovina_Najemi (cascade), Predmet–Ocene (cascade), Uporabnik–Ocene (cascade).
+Uporabnik–Predmeti (cascade), Uporabnik–Najemi (restrict), Predmet–Najemi (cascade), Predmet–Ocene (cascade), Uporabnik–Ocene (cascade).
 
 Podprta integriteta:
 Brez prekrivanja najemov, validni razpon ocen, mehko brisanje ocen, avtomatsko posodabljanje statistike ocen.
@@ -44,7 +44,4 @@ Backend: ASP.NET Core MVC, C#, Identity, EF Core
 Baza: MySQL Server  
 Frontend: Razor, Bootstrap/Tailwind
 
-7. LICENCA
-
-Projekt je interni in lastniški.
 
