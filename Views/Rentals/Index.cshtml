@@ -1,457 +1,317 @@
 ﻿@model IEnumerable<RentMate.Models.Item>
+@using System.Text.Json;
+
 @{
-    ViewData["Title"] = "Available Rentals";
+    ViewData["Title"] = "Tržnica";
+    
+    // Priprava začetnih vrednosti za ceno (če niso nastavljene, damo privzete)
+    decimal currentMin = ViewBag.MinPrice ?? 0;
+    decimal currentMax = ViewBag.MaxPrice ?? 500; // Privzet max, če ni izbran
 }
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Available Items for Rent</h2>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/confirmDate/confirmDate.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css">
 
-    @if (TempData["InfoMessage"] != null)
-    {
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-            @TempData["InfoMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+<style>
+    /* Stil za inpute nad sliderjem - da izgledajo kot lebdeče številke, a so editabilni */
+    .price-input {
+        border: 1px solid #dee2e6;
+        background: #fff;
+        padding: 2px 5px;
+        border-radius: 4px;
+        width: 70px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 0.9rem;
+        color: #0d6efd;
+        transition: border-color 0.2s;
     }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+    .price-input:focus {
+        border-color: #0d6efd;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
     }
-        @* === HERO SEARCH SECTION === *@
-        <div class="text-center mb-5">
-            <h2 class="fw-bold mb-3">Find your next rental</h2>
+    /* Slider ročke */
+    .noUi-connect {
+        background: #0d6efd; /* Primary color */
+    }
+    .noUi-handle {
+        border-radius: 50%;
+        cursor: grab;
+    }
+    .noUi-handle:active {
+        cursor: grabbing;
+    }
+</style>
 
-            <form method="get" class="hero-search-form">
-                <input type="text"
-                       class="form-control form-control-lg hero-search-input"
-                       style="max-width: 550px; flex: 1 1 auto;"
-                       name="search"
-                       placeholder="Search items, descriptions..."
-                       value="@ViewBag.Search" />
-
-                <button type="submit"
-                        class="btn btn-lg hero-search-btn px-4">
-                    <i class="bi bi-search me-1"></i> Search
-                </button>
-            </form>
-
-            <!-- Toggle Advanced Filters -->
-            <div class="mt-3">
-                <button id="advancedFiltersToggle"
-                        class="btn btn-outline-secondary btn-sm rounded-pill"
-                        type="button"
-                        aria-expanded="false"
-                        aria-controls="advancedFilters">
-                    <i class="bi bi-funnel me-1"></i>
-                    <span class="filter-label">Advanced Filters</span>
-                    <i class="bi bi-chevron-down ms-1 chevron-icon"></i>
-                </button>
+<div class="bg-white border-bottom shadow-sm sticky-top" style="z-index: 900;">
+    <div class="container py-3">
+        <form asp-action="Index" method="get" id="filterForm">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-muted">Iskanje</label>
+                    <input type="text" name="search" class="form-control" placeholder="Kaj iščeš?" value="@ViewBag.Search">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Lokacija</label>
+                    <select name="city" class="form-select">
+                        <option value="">Vsa mesta</option>
+                        @if (ViewBag.Cities != null)
+                        {
+                            foreach (var c in ViewBag.Cities)
+                            {
+                                if (ViewBag.City == c) { <option value="@c" selected>@c</option> }
+                                else { <option value="@c">@c</option> }
+                            }
+                        }
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Od</label>
+                    <input type="date" name="startDate" class="form-control" value="@ViewBag.StartDate">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Do</label>
+                    <input type="date" name="endDate" class="form-control" value="@ViewBag.EndDate">
+                </div>
+                
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="bi bi-search"></i> Preveri ponudbo
+                    </button>
+                </div>
             </div>
+
+            <div class="row g-2 mt-3 align-items-center bg-light p-3 rounded mx-0">
+                
+                <div class="col-md-6 col-12">
+                     <label class="form-label small fw-bold text-muted d-block mb-3">Cenovni razpon (€ / dan)</label>
+                     
+                     <div class="px-2">
+                         <div class="d-flex justify-content-between mb-2">
+                             <div class="input-group input-group-sm w-auto">
+                                 <input type="number" id="input-min" name="minPrice" class="price-input" value="@currentMin">
+                             </div>
+                             <div class="input-group input-group-sm w-auto">
+                                 <input type="number" id="input-max" name="maxPrice" class="price-input" value="@currentMax">
+                             </div>
+                         </div>
+                         
+                         <div id="slider-price"></div>
+                     </div>
+                </div>
+
+                <div class="col-md-3 ms-auto">
+                     <label class="form-label small fw-bold text-muted">Razvrščanje</label>
+                     <select name="sort" class="form-select border-primary" onchange="this.form.submit()">
+                        <option value="">Privzeto</option>
+                        @if(ViewBag.Sort == "priceAsc") { <option value="priceAsc" selected>Cena: Najnižja</option> } else { <option value="priceAsc">Cena: Najnižja</option> }
+                        @if(ViewBag.Sort == "priceDesc") { <option value="priceDesc" selected>Cena: Najvišja</option> } else { <option value="priceDesc">Cena: Najvišja</option> }
+                        @if(ViewBag.Sort == "titleAsc") { <option value="titleAsc" selected>Ime (A-Z)</option> } else { <option value="titleAsc">Ime (A-Z)</option> }
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="container py-5">
+    @if (!string.IsNullOrEmpty(ViewBag.StartDate))
+    {
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-calendar-check"></i> Prikazujem rezultate, ki so prosti v terminu: <strong>@ViewBag.StartDate</strong> do <strong>@ViewBag.EndDate</strong>
         </div>
+    }
 
+    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+        @if (!Model.Any())
+        {
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-search display-1 text-muted opacity-25"></i>
+                <h3 class="mt-3">Ni najdenih izdelkov.</h3>
+                <a asp-action="Index" class="btn btn-outline-primary">Počisti filtre</a>
+            </div>
+        }
+        else
+        {
+            @foreach (var item in Model)
+            {
+                // PRIPRAVA BLOKIRANIH DATUMOV (JSON)
+                var blockedDates = item.Rentals
+                    .Where(r => r.Status == RentMate.Models.RentalStatus.Active || r.Status == RentMate.Models.RentalStatus.Pending)
+                    .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
+                    .ToList();
+                
+                string jsonBlocked = JsonSerializer.Serialize(blockedDates);
 
-        @* === COLLAPSIBLE ADVANCED FILTERS === *@
-        <div class="collapse mb-4" id="advancedFilters">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="row g-3 align-items-end">
-                        <!-- 💶 Price -->
-                        <div class="col-6 col-md-2">
-                            <label class="form-label fw-semibold">Min (€)</label>
-                            <input type="number" step="0.01" class="form-control" name="minPrice"
-                                   value="@(ViewBag.MinPrice ?? "")" />
-                        </div>
-                        <div class="col-6 col-md-2">
-                            <label class="form-label fw-semibold">Max (€)</label>
-                            <input type="number" step="0.01" class="form-control" name="maxPrice"
-                                   value="@(ViewBag.MaxPrice ?? "")" />
-                        </div>
-
-                        <!-- 📍 City -->
-                        <div class="col-12 col-md-3">
-                            <label class="form-label fw-semibold">City</label>
-                            <select class="form-select" name="city">
-                                <option value="">All</option>
-                                @foreach (var c in (List<string>)ViewBag.Cities)
-                                {
-                                    <option value="@c" selected="@(ViewBag.City == c ? "selected" : null)">
-                                        @c
-                                    </option>
-                                }
-                            </select>
-                        </div>
-
-                        <!-- 🗓️ Dates -->
-                        <div class="col-6 col-md-2">
-                            <label class="form-label fw-semibold">Start</label>
-                            <input type="date" class="form-control" name="startDate" value="@ViewBag.StartDate" />
-                        </div>
-                        <div class="col-6 col-md-2">
-                            <label class="form-label fw-semibold">End</label>
-                            <input type="date" class="form-control" name="endDate" value="@ViewBag.EndDate" />
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 product-card">
+                        <div class="bg-light text-center py-5 rounded-top position-relative" style="min-height: 200px;">
+                             @if (!string.IsNullOrEmpty(item.ImageUrl))
+                             {
+                                 <img src="@item.ImageUrl" class="card-img-top h-100" style="object-fit:cover; min-height:200px" alt="@item.Title">
+                             }
+                             else
+                             {
+                                 <i class="bi bi-box-seam display-4 text-secondary opacity-25"></i>
+                             }
+                             <div class="position-absolute top-0 end-0 m-2">
+                                 <span class="badge bg-white text-dark shadow-sm">
+                                     <i class="bi bi-geo-alt-fill text-danger"></i> @item.User?.City
+                                 </span>
+                             </div>
                         </div>
 
-                        <!-- ⚙️ Sort -->
-                        <div class="col-12 col-md-2">
-                            <label class="form-label fw-semibold">Sort</label>
-                            <select class="form-select" name="sort">
-                                <option value="">Newest</option>
-                                <option value="priceAsc" selected="@(ViewBag.Sort == "priceAsc" ? "selected" : null)">Price ↑</option>
-                                <option value="priceDesc" selected="@(ViewBag.Sort == "priceDesc" ? "selected" : null)">Price ↓</option>
-                                <option value="titleAsc" selected="@(ViewBag.Sort == "titleAsc" ? "selected" : null)">Title A–Z</option>
-                            </select>
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold text-truncate">@item.Title</h5>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="h5 mb-0 text-primary fw-bold">
+                                    @item.Price?.ToString("C2", new System.Globalization.CultureInfo("de-DE")) 
+                                    <small class="text-muted fs-6">/ dan</small>
+                                </span>
+                            </div>
                         </div>
 
-                        <!-- Buttons -->
-                        <div class="col-12 col-md-2 text-md-end">
+                        <div class="card-footer bg-white border-0 pb-3">
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="bi bi-check-circle me-1"></i> Apply
-                                </button>
-                                <a href="@Url.Action("Index","Rentals")" class="btn btn-outline-secondary">
-                                    <i class="bi bi-x-circle me-1"></i> Clear
+                                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                {
+                                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#rentModal-@item.Id">
+                                        <i class="bi bi-calendar-plus"></i> Rezerviraj
+                                    </button>
+                                }
+                                else
+                                {
+                                    <a href="/Identity/Account/Login" class="btn btn-secondary">
+                                        <i class="bi bi-lock"></i> Prijavi se za najem
+                                    </a>
+                                }
+                                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-secondary btn-sm">
+                                    Več info
                                 </a>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-
-
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-        @if (!Model.Any())
-        {
-            <div class="alert alert-secondary text-center">No items match your search or filters.</div>
-        }
-
-        @foreach (var item in Model)
-        {
-            <div class="col">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">@item.Title</h5>
-                        <p class="card-text text-muted">@item.Description</p>
-                        <p><strong>Price:</strong> €@item.Price / day</p>
-                        <p><small class="text-muted">Owner: @item.User?.Email</small></p>
-                    </div>
-                    <div class="d-flex align-items-center mt-1">
-                        @if (item.AverageRating != null)
-                        {
-                            <span class="text-warning me-1">
-                                @for (int i = 1; i <= 5; i++)
-                                {
-                                    <i class="fa@(i <= Math.Round(item.AverageRating.Value) ? "s" : "r") fa-star"></i>
-                                }
-                            </span>
-                            <small class="text-muted">(@item.ReviewCount)</small>
-                        }
-                        else
-                        {
-                            <small class="text-muted">No reviews yet</small>
-                        }
-                    </div>
-
-
-                    <div class="card-footer bg-transparent border-top-0">
-                        <button class="btn btn-primary w-100"
-                                data-bs-toggle="modal"
-                                data-bs-target="#rentalModal"
-                                data-itemid="@item.Id"
-                                data-title="@item.Title"
-                                data-price="@item.Price">
-                            Rent
-                        </button>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-</div>
-
-<!-- RENTAL MODAL -->
-<div class="modal fade" id="rentalModal" tabindex="-1" aria-labelledby="rentalModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form asp-controller="Rentals" asp-action="RequestRental" method="post">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="rentalModalLabel">Rent Item</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" name="itemId" id="modalItemId" />
-
-                    <div class="mb-3">
-                        <label class="form-label">Item</label>
-                        <input type="text" class="form-control" id="modalItemTitle" readonly />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" class="form-control" name="startDate" required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">End Date</label>
-                        <input type="date" class="form-control" name="endDate" required />
-                    </div>
-
-                    <div class="text-muted">
-                        <small>Price per day: <span id="modalItemPrice"></span> €</small>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-success w-100">Request Rental</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        // --- Handle modal field population ---
-        const rentalModal = document.getElementById('rentalModal');
-        rentalModal.addEventListener('show.bs.modal', event => {
-            const button = event.relatedTarget;
-            const itemId = button.getAttribute('data-itemid');
-            const title = button.getAttribute('data-title');
-            const price = button.getAttribute('data-price');
-
-            document.getElementById('modalItemId').value = itemId;
-            document.getElementById('modalItemTitle').value = title;
-            document.getElementById('modalItemPrice').textContent = price;
-            document.getElementById('rentalModalLabel').textContent = `Rent: ${title}`;
-        });
-
-        // --- Handle AJAX rental submission (with safe backdrop fade) ---
-        const rentalForm = rentalModal.querySelector("form");
-        rentalForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const formData = new FormData(rentalForm);
-            const itemId = formData.get("itemId");
-            const modalInstance = bootstrap.Modal.getInstance(rentalModal);
-
-            try {
-                const response = await fetch(rentalForm.action, {
-                    method: "POST",
-                    body: formData,
-                });
-
-                if (response.ok) {
-                    // ✅ Hide the modal cleanly
-                    if (modalInstance) modalInstance.hide();
-
-                    // ✅ Manually remove the Bootstrap backdrop (sometimes sticks)
-                    document.querySelectorAll(".modal-backdrop").forEach((b) => {
-                        b.style.transition = "opacity 0.4s ease";
-                        b.style.opacity = "0";
-                        setTimeout(() => b.remove(), 400);
-                    });
-
-                    // ✅ Restore body scroll (Bootstrap sometimes keeps it disabled)
-                    document.body.classList.remove("modal-open");
-                    document.body.style.overflow = "auto";
-                    document.body.style.paddingRight = "0";
-
-                    // ✅ Visual feedback on the card
-                    markItemAsPending(itemId);
-
-                    // ✅ Show confirmation toast
-                    showToast("✅ Rental request submitted — awaiting approval.", "success");
-
-                    // ✅ Optional reset
-                    rentalForm.reset();
-                } else {
-                    const errorText = await response.text();
-                    console.warn("Unexpected response:", errorText);
-                    showToast(`❌ Rental request failed: ${errorText}`, "danger");
-                }
-            } catch (err) {
-                console.error(err);
-                showToast("❌ Network error while submitting request.", "danger");
-            }
-        });
-
-
-        // --- Toast helper (Bootstrap 5) ---
-        function showToast(message, type = 'info') {
-            const toastContainerId = 'toastContainer';
-            let container = document.getElementById(toastContainerId);
-            if (!container) {
-                container = document.createElement('div');
-                container.id = toastContainerId;
-                container.className = 'toast-container position-fixed top-0 end-0 p-3';
-                document.body.appendChild(container);
-            }
-
-            const toastEl = document.createElement('div');
-            toastEl.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
-            toastEl.setAttribute('role', 'alert');
-            toastEl.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">${message}</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-            container.appendChild(toastEl);
-
-            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-            toast.show();
-            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-        }
-        // --- Mark card as pending visually ---
-        function markItemAsPending(itemId) {
-            const card = document.querySelector(`[data-itemid="${itemId}"]`)?.closest('.card');
-            if (card) {
-                // Dim the card
-                card.classList.add('opacity-50');
-                card.style.transition = 'opacity 0.4s ease';
-
-                // Replace footer with pending message
-                const footer = card.querySelector('.card-footer');
-                footer.innerHTML = `
-                    <div class="text-center text-warning fw-bold">
-                        ⏳ Pending Approval
-                    </div>
-                `;
-            }
-        }
-
-    </script>
-
-    
-    <script>
-        // --- SignalR connection setup ---
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/RentMateHub")
-            .build();
-
-        connection.on("ItemListingChanged", (data) => {
-            console.log("Received real-time update:", data);
-            const { itemId, isListed, title, price, description } = data;
-
-            const existingCard = document.querySelector(`[data-itemid="${itemId}"]`)?.closest(".col");
-
-            if (isListed) {
-                // ✅ Item was listed — add it if it doesn't exist
-                if (!existingCard) {
-                    const container = document.querySelector(".row.row-cols-1");
-                    const newCard = document.createElement("div");
-                    newCard.className = "col";
-                    newCard.innerHTML = `
-                        <div class="card shadow-sm h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">${title}</h5>
-                                <p class="card-text text-muted">${description ?? ""}</p>
-                                <p><strong>Price:</strong> €${price} / day</p>
+                <div class="modal fade" id="rentModal-@item.Id" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Rezervacija: @item.Title</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                             </div>
-                            <div class="card-footer bg-transparent border-top-0">
-                                <button class="btn btn-primary w-100"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#rentalModal"
-                                        data-itemid="${itemId}"
-                                        data-title="${title}"
-                                        data-price="${price}">
-                                    Rent
-                                </button>
-                            </div>
+                            <form asp-controller="Rentals" asp-action="RequestRental" method="post">
+                                <div class="modal-body">
+                                    <input type="hidden" name="itemId" value="@item.Id" />
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">Izberite termin</label>
+                                        <input type="text" class="form-control rent-daterange-picker" 
+                                               placeholder="Klikni za izbiro datuma..."
+                                               data-blocked='@jsonBlocked' required />
+                                        <input type="hidden" name="startDate" class="start-date-input" value="@ViewBag.StartDate" />
+                                        <input type="hidden" name="endDate" class="end-date-input" value="@ViewBag.EndDate" />
+                                    </div>
+                                    <div class="alert alert-light border small text-muted">
+                                        <i class="bi bi-info-circle"></i> Sivi datumi so že zasedeni.
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Prekliči</button>
+                                    <button type="submit" class="btn btn-success fw-bold">Potrdi</button>
+                                </div>
+                            </form>
                         </div>
-                    `;
-                    container.prepend(newCard);
-                    showToast(`🟢 ${title} is now available for rent!`, "success");
-                }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<style>
+    .product-card { transition: transform 0.2s; }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        
+        // --- 1. CONFIGURATION FOR PRICE SLIDER ---
+        var slider = document.getElementById('slider-price');
+        var inputMin = document.getElementById('input-min');
+        var inputMax = document.getElementById('input-max');
+
+        // Preberi začetne vrednosti iz inputov (ki so prišli iz serverja)
+        var startMin = parseInt(inputMin.value) || 0;
+        var startMax = parseInt(inputMax.value) || 500;
+
+        noUiSlider.create(slider, {
+            start: [startMin, startMax], // Dve ročki
+            connect: true, // Obarvaj sredino
+            range: {
+                'min': 0,
+                'max': 1000 // Nastavi primerno max vrednost za tvojo trgovino
+            },
+            step: 5, // Korak po 5 eur
+            tooltips: false, // Ne rabimo tooltipov, ker imamo inpute zgoraj
+            format: {
+                to: function (value) { return Math.round(value); },
+                from: function (value) { return Number(value); }
+            }
+        });
+
+        // Ko se premakne slider -> posodobi input polja
+        slider.noUiSlider.on('update', function (values, handle) {
+            var value = values[handle];
+            if (handle === 0) {
+                inputMin.value = value;
             } else {
-                // ❌ Item was unlisted — remove it if visible
-                if (existingCard) {
-                    existingCard.classList.add("opacity-50");
-                    existingCard.style.transition = "opacity 0.4s";
-                    setTimeout(() => existingCard.remove(), 400);
-                    showToast(`🔕 ${title} was unlisted.`, "secondary");
-                }
+                inputMax.value = value;
             }
         });
 
-        connection.start().catch(err => console.error("SignalR connection failed:", err));
-    </script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const STORAGE_KEY = "rentmate-advancedFilters-open";
-            const collapseEl = document.getElementById("advancedFilters");
-            const toggleBtn = document.getElementById("advancedFiltersToggle");
-
-            if (!collapseEl || !toggleBtn) {
-                console.warn("RentMate: collapse element or toggle button missing.");
-                return;
-            }
-
-            // ensure the collapse element has the 'collapse' class (bootstrap requirement)
-            if (!collapseEl.classList.contains("collapse")) {
-                collapseEl.classList.add("collapse");
-            }
-
-            // create (or get) collapse instance and do NOT auto-toggle on creation
-            const collapseInstance = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
-
-            const labelEl = toggleBtn.querySelector(".filter-label");
-            const chevronEl = toggleBtn.querySelector(".chevron-icon");
-
-            // helper to set UI state (text, aria, chevron)
-            function applyUI(isOpen) {
-                if (labelEl) labelEl.textContent = isOpen ? "Hide Filters" : "Advanced Filters";
-                if (chevronEl) chevronEl.style.transform = isOpen ? "rotate(180deg)" : "rotate(0deg)";
-                toggleBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-            }
-
-            // restore state (defer a tiny bit to allow Bootstrap internals to settle)
-            setTimeout(() => {
-                const shouldOpen = localStorage.getItem(STORAGE_KEY) === "true";
-                if (shouldOpen) {
-                    collapseInstance.show();
-                    applyUI(true);
-                } else {
-                    applyUI(false);
-                }
-            }, 80);
-
-            // sync state when user uses programmatic show/hide (animation complete)
-            collapseEl.addEventListener("shown.bs.collapse", () => {
-                localStorage.setItem(STORAGE_KEY, "true");
-                applyUI(true);
-            });
-            collapseEl.addEventListener("hidden.bs.collapse", () => {
-                localStorage.setItem(STORAGE_KEY, "false");
-                applyUI(false);
-            });
-
-            // manual click toggler - we control collapse explicitly
-            toggleBtn.addEventListener("click", function (e) {
-                // don't preventDefault or stopPropagation — we only control collapse
-                const currentlyOpen = collapseEl.classList.contains("show");
-                if (currentlyOpen) {
-                    collapseInstance.hide();
-                } else {
-                    collapseInstance.show();
-                }
-            });
-
-            // OPTIONAL: diagnostic logs (uncomment if you want to debug)
-            // console.log("RentMate collapse instance:", collapseInstance);
-            // collapseEl.addEventListener("show.bs.collapse", () => console.log("show start"));
-            // collapseEl.addEventListener("shown.bs.collapse", () => console.log("shown"));
-            // collapseEl.addEventListener("hide.bs.collapse", () => console.log("hide start"));
-            // collapseEl.addEventListener("hidden.bs.collapse", () => console.log("hidden"));
-
+        // Ko uporabnik ročno vpiše v input -> posodobi slider
+        inputMin.addEventListener('change', function () {
+            slider.noUiSlider.set([this.value, null]);
         });
-        </script>
-
-}
-
-
+        inputMax.addEventListener('change', function () {
+            slider.noUiSlider.set([null, this.value]);
+        });
 
 
+        // --- 2. CONFIGURATION FOR FLATPICKR (DATEPICKER) ---
+        var pickers = document.querySelectorAll(".rent-daterange-picker");
+        pickers.forEach(function (element) {
+            var blockedDatesJson = element.getAttribute("data-blocked");
+            var blockedDates = JSON.parse(blockedDatesJson);
+            var form = element.closest("form");
+            var startDateInput = form.querySelector(".start-date-input");
+            var endDateInput = form.querySelector(".end-date-input");
+            var defaultDate = [];
+            if(startDateInput.value && endDateInput.value) {
+                defaultDate = [startDateInput.value, endDateInput.value];
+            }
+
+            flatpickr(element, {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                minDate: "today",
+                defaultDate: defaultDate,
+                disable: blockedDates,
+                locale: { firstDayOfWeek: 1 },
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length === 2) {
+                        startDateInput.value = instance.formatDate(selectedDates[0], "Y-m-d");
+                        endDateInput.value = instance.formatDate(selectedDates[1], "Y-m-d");
+                    }
+                }
+            });
+        });
+    });
+</script>
