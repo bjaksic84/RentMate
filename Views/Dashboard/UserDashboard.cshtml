@@ -1,379 +1,363 @@
 ﻿@model RentMate.Models.DashboardViewModel
 @{
-    ViewData["Title"] = "My Dashboard";
+    ViewData["Title"] = "Nadzorna plošča";
 }
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4">My Dashboard</h2>
-    <!-- Message Alerts -->
+<div class="container mt-5 pb-5">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+        <div>
+            <h2 class="fw-bold mb-0">👋 Pozdravljeni, @User.Identity?.Name</h2>
+            <p class="text-muted mb-0">Upravljajte svoje predmete, najeme in izposoje na enem mestu.</p>
+        </div>
+        <div>
+            <span id="connectionIndicator" class="badge bg-secondary rounded-pill px-3 py-2">Offline</span>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["SuccessMessage"]
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            @TempData["ErrorMessage"]
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
-    <div class="row g-4">
+    <div class="row g-5">
 
-        <!-- ====================== MY ITEMS SECTION ====================== -->
         <div class="col-12">
-            <div class="card shadow-sm p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4>My Items</h4>
-                    <button class="btn btn-success" type="button" data-bs-toggle="collapse" data-bs-target="#createItemForm">
-                        + Add Item
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-box-seam me-2"></i>Moji Predmeti</h5>
+                    <button class="btn btn-primary btn-sm rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#createItemForm">
+                        <i class="bi bi-plus-lg"></i> Dodaj predmet
                     </button>
                 </div>
 
-                <!-- CREATE ITEM FORM -->
-                <div class="collapse mt-3" id="createItemForm">
-                    <form asp-controller="Items" asp-action="Create" method="post">
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label">Title</label>
-                                <input name="Title" class="form-control" required />
+                <div class="collapse px-4 pb-3" id="createItemForm">
+                    <div class="bg-light p-4 rounded-3 border">
+                        <h6 class="fw-bold mb-3">Nov predmet</h6>
+                        <form asp-controller="Items" asp-action="Create" method="post">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Naslov</label>
+                                    <input name="Title" class="form-control" required placeholder="npr. Električni vrtalnik" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Kategorija</label>
+                                    <input name="Category" class="form-control" placeholder="npr. Orodje" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small fw-bold">Cena na dan (€)</label>
+                                    <input name="Price" type="number" step="0.01" class="form-control" required placeholder="0.00" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Opis</label>
+                                    <textarea name="Description" class="form-control" rows="2" placeholder="Kratek opis predmeta..."></textarea>
+                                </div>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Category</label>
-                                <input name="Category" class="form-control" />
+                            <div class="mt-3 text-end">
+                                <button type="button" class="btn btn-link text-muted text-decoration-none me-2" data-bs-toggle="collapse" data-bs-target="#createItemForm">Prekliči</button>
+                                <button type="submit" class="btn btn-success px-4">Objavi predmet</button>
                             </div>
-                            <div class="col-md-4">
-                                <label class="form-label">Price per day (€)</label>
-                                <input name="Price" type="number" step="0.01" class="form-control" required />
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Description</label>
-                                <textarea name="Description" class="form-control" rows="2"></textarea>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <button type="submit" class="btn btn-primary">Create Item</button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
 
-                <hr />
-
-                @if (Model.ListingsOwned?.Any() ?? false)
-                {
-                    <table class="table table-striped align-middle mt-3">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Price/day</th>
-                                <th>Listed</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model.ListingsOwned)
-                            {
+                <div class="table-responsive">
+                    @if (Model.ListingsOwned?.Any() ?? false)
+                    {
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-muted small text-uppercase">
                                 <tr>
-                                    <td>@item.Title</td>
-                                    <td>@item.Price?.ToString("C")</td>
-                                    <td>@(item.IsListed ? "✅" : "❌")</td>
-                                    <td>
-                                        <button class="btn btn-sm @(item.IsListed ? "btn-warning" : "btn-success")"
-                                                onclick="toggleListing(@item.Id, this)">
-                                            @(item.IsListed ? "Unlist" : "List")
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-primary"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#reviewsModal"
-                                                data-itemid="@item.Id"
-                                                data-title="@item.Title">
-                                            View Reviews
-                                        </button>
-                                        <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                        <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Delete</a>
-                                    </td>
+                                    <th class="ps-4">Predmet</th>
+                                    <th>Cena/Dan</th>
+                                    <th>Status</th>
+                                    <th>Statistika</th>
+                                    <th class="text-end pe-4">Akcije</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <p class="mt-3">You have not listed any items yet.</p>
-                }
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.ListingsOwned)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                                                     @if(!string.IsNullOrEmpty(item.ImageUrl)) {
+                                                         <img src="@item.ImageUrl" class="rounded" style="width:100%; height:100%; object-fit:cover;" />
+                                                     } else {
+                                                         <i class="bi bi-image text-muted opacity-50"></i>
+                                                     }
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-dark">@item.Title</div>
+                                                    <div class="small text-muted">@item.Category</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="fw-bold text-primary">@item.Price?.ToString("C")</td>
+                                        <td>
+                                            @if (item.IsListed)
+                                            {
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Objavljeno</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill">Skrito</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="d-flex gap-3 small text-muted">
+                                                <span title="Ocena"><i class="bi bi-star-fill text-warning"></i> @(item.AverageRating?.ToString("0.0") ?? "-")</span>
+                                                <span title="Število mnenj"><i class="bi bi-chat-left-text"></i> @item.ReviewCount</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm btn-outline-secondary" onclick="toggleListing(@item.Id, this)" title="Spremeni vidnost">
+                                                    @if(item.IsListed) { <i class="bi bi-eye-slash"></i> } else { <i class="bi bi-eye"></i> }
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#reviewsModal"
+                                                        data-itemid="@item.Id" data-title="@item.Title" title="Poglej mnenja">
+                                                    <i class="bi bi-chat-dots"></i>
+                                                </button>
+                                                <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Uredi">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger" title="Izbriši">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-box-seam display-1 text-muted opacity-25"></i>
+                            <h5 class="mt-3 text-muted">Nimate še objavljenih predmetov.</h5>
+                            <button class="btn btn-primary mt-2" type="button" data-bs-toggle="collapse" data-bs-target="#createItemForm">Dodaj prvi predmet</button>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
 
 
-        <!-- ====================== RENTALS OF MY ITEMS (OWNER) ====================== -->
         <div class="col-12">
-            <div class="card shadow-sm p-4 mb-4">
-                <h4 class="mb-3">Rentals of My Items (Owner)</h4>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="fw-bold mb-0 text-success"><i class="bi bi-graph-up-arrow me-2"></i>Oddajanje (Lastnik)</h5>
+                </div>
 
-                @if (Model.OwnerRentals?.Any() ?? false)
-                {
-                    <table class="table table-bordered align-middle" id="ownerRentalsTable">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Renter</th>
-                                <th>Status</th>
-                                <th>Start</th>
-                                <th>End</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var rental in Model.OwnerRentals)
-                            {
+                <div class="table-responsive">
+                    @if (Model.OwnerRentals?.Any() ?? false)
+                    {
+                        <table class="table table-hover align-middle mb-0" id="ownerRentalsTable">
+                            <thead class="bg-light text-muted small text-uppercase">
                                 <tr>
-                                    <td>@rental.Item?.Title</td>
-                                    <td>@rental.Renter?.Email</td>
-                                    <td>@rental.Status</td>
-                                    <td>@rental.StartDate.ToShortDateString()</td>
-                                    <td>@rental.EndDate.ToShortDateString()</td>
-                                    <td>
-                                        @if (rental.Status == RentalStatus.Pending)
-                                        {
-                                            <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="d-inline">
-                                                <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                <button class="btn btn-sm btn-success">Approve</button>
-                                            </form>
-                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline">
-                                                <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                <button class="btn btn-sm btn-danger">Reject</button>
-                                            </form>
-                                        }
-                                        else if (rental.Status == RentalStatus.Active)
-                                        {
-                                            <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
-                                                <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                <button class="btn btn-sm btn-primary">Mark Complete</button>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">—</span>
-                                        }
-                                    </td>
+                                    <th class="ps-4">Predmet</th>
+                                    <th>Najemnik</th>
+                                    <th>Termin</th>
+                                    <th>Zaslužek</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-4">Akcije</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <p>No one has rented your items yet.</p>
-                }
+                            </thead>
+                            <tbody>
+                                @foreach (var rental in Model.OwnerRentals)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-bold">@rental.Item?.Title</div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-2 small" style="width:28px; height:28px;">
+                                                    <i class="bi bi-person"></i>
+                                                </div>
+                                                <span class="small">@rental.Renter?.Email</span>
+                                            </div>
+                                        </td>
+                                        <td class="small text-muted">
+                                            <div>@rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")</div>
+                                        </td>
+                                        <td class="fw-bold text-success">
+                                            @rental.TotalPrice.ToString("C2", new System.Globalization.CultureInfo("de-DE"))
+                                        </td>
+                                        <td>
+                                            @if(rental.Status == RentalStatus.Pending) { <span class="badge bg-warning text-dark">Čaka potrditev</span> }
+                                            else if(rental.Status == RentalStatus.Active) { <span class="badge bg-primary">Aktivno</span> }
+                                            else if(rental.Status == RentalStatus.Completed) { <span class="badge bg-success">Zaključeno</span> }
+                                            else { <span class="badge bg-danger">Preklicano</span> }
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            @if (rental.Status == RentalStatus.Pending)
+                                            {
+                                                <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="d-inline">
+                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                    <button class="btn btn-sm btn-success rounded-pill px-3"><i class="bi bi-check-lg"></i> Sprejmi</button>
+                                                </form>
+                                                <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline ms-1">
+                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x-lg"></i> Zavrni</button>
+                                                </form>
+                                            }
+                                            else if (rental.Status == RentalStatus.Active)
+                                            {
+                                                <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
+                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                    <button class="btn btn-sm btn-primary rounded-pill px-3">Označi vrnjeno</button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-calendar-x display-1 text-muted opacity-25"></i>
+                            <h5 class="mt-3 text-muted">Trenutno nimate zahtevkov za najem.</h5>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
 
 
-        <!-- ====================== MY RENTALS FROM OTHERS (RENTER) ====================== -->
         <div class="col-12">
-            <div class="card shadow-sm p-4 mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4>My Rentals from Others (Renter)</h4>
-                    <button class="btn btn-success" type="button" data-bs-toggle="collapse" data-bs-target="#createRentalForm">
-                        + Request Rental
-                    </button>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0 text-secondary"><i class="bi bi-bag me-2"></i>Moje Izposoje (Od drugih)</h5>
+                    <a asp-controller="Rentals" asp-action="Index" class="btn btn-outline-primary btn-sm rounded-pill">
+                        <i class="bi bi-search me-1"></i> Poišči na tržnici
+                    </a>
                 </div>
 
-                <!-- REQUEST RENTAL FORM -->
-                <div class="collapse mt-3" id="createRentalForm">
-                    <form asp-controller="Rentals" asp-action="RequestRental" method="post">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Select Item</label>
-                                <select class="form-select" name="itemId" required>
-                                    <option value="">-- Select --</option>
-                                    @if (Model.ListingsOwned != null && Model.ListingsOwned.Any())
-                                    {
-                                        @foreach (var item in Model.ListingsOwned?.Where(i => i.IsListed && !i.IsRented) ?? Enumerable.Empty<RentMate.Models.Item>())
-                                        {
-                                            <option value="@item.Id">@item.Title (@item.Price?.ToString("C")/day)</option>
-                                        }
-
-                                    }
-
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Start Date</label>
-                                <input type="date" class="form-control" name="startDate" required />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">End Date</label>
-                                <input type="date" class="form-control" name="endDate" required />
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <button type="submit" class="btn btn-primary">Request Rental</button>
-                        </div>
-                    </form>
-                </div>
-
-                <hr />
-
-                @if (Model.MyRentals?.Any() ?? false)
-                {
-                    <table class="table table-bordered align-middle mt-3" id="myRentalsTable">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Owner</th>
-                                <th>Status</th>
-                                <th>Start</th>
-                                <th>End</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var rental in Model.MyRentals)
-                            {
+                <div class="table-responsive">
+                    @if (Model.MyRentals?.Any() ?? false)
+                    {
+                        <table class="table table-hover align-middle mb-0" id="myRentalsTable">
+                            <thead class="bg-light text-muted small text-uppercase">
                                 <tr>
-                                    <td>@rental.Item?.Title</td>
-                                    <td>@rental.Owner?.Email</td>
-                                    <td>@rental.Status</td>
-                                    <td>@rental.StartDate.ToShortDateString()</td>
-                                    <td>@rental.EndDate.ToShortDateString()</td>
-                                    <td>
-                                        @if (rental.Status == RentalStatus.Active)
-                                        {
-                                            <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
-                                                <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                <button class="btn btn-sm btn-primary">Return Item</button>
-                                            </form>
-                                        }
-                                        else if (rental.Status == RentalStatus.Pending)
-                                        {
-                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline">
-                                                <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                <button class="btn btn-sm btn-danger">Cancel Request</button>
-                                            </form>
-                                        }
-                                        else if (rental.Status == RentalStatus.Completed)
-                                        {
-                                            <button class="btn btn-sm btn-outline-success"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#writeReviewModal"
-                                                    data-itemid="@rental.ItemId"
-                                                    data-itemtitle="@rental.Item?.Title">
-                                                Write Review
-                                            </button>
-
-                                            <button class="btn btn-sm btn-outline-success d-none" id="editBtn-@rental.ItemId"
-                                                    data-bs-toggle="modal" data-bs-target="#editReviewModal"
-                                                    data-itemid="@rental.ItemId" data-itemtitle="@rental.Item?.Title">
-                                                Edit Review
-                                            </button>
-
-                                            <button class="btn btn-sm btn-outline-danger d-none" id="deleteBtn-@rental.ItemId"
-                                                    onclick="deleteReview(@rental.ItemId)">
-                                                Delete Review
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted">—</span>
-                                        }
-                                    </td>
-
+                                    <th class="ps-4">Predmet</th>
+                                    <th>Lastnik</th>
+                                    <th>Termin</th>
+                                    <th>Cena</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-4">Akcije</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                }
-                else
-                {
-                    <p>You have no rentals from other users yet.</p>
-                }
+                            </thead>
+                            <tbody>
+                                @foreach (var rental in Model.MyRentals)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                             <div class="d-flex align-items-center">
+                                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                                     @if(!string.IsNullOrEmpty(rental.Item?.ImageUrl)) {
+                                                         <img src="@rental.Item.ImageUrl" class="rounded" style="width:100%; height:100%; object-fit:cover;" />
+                                                     } else {
+                                                         <i class="bi bi-box text-muted opacity-50"></i>
+                                                     }
+                                                </div>
+                                                <div class="fw-bold text-dark">@rental.Item?.Title</div>
+                                            </div>
+                                        </td>
+                                        <td class="small text-muted">@rental.Owner?.Email</td>
+                                        <td class="small">
+                                            <div>@rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")</div>
+                                        </td>
+                                        <td class="fw-bold text-dark">
+                                            @rental.TotalPrice.ToString("C2", new System.Globalization.CultureInfo("de-DE"))
+                                        </td>
+                                        <td>
+                                            @if(rental.Status == RentalStatus.Pending) { <span class="badge bg-warning text-dark">Čaka odobritev</span> }
+                                            else if(rental.Status == RentalStatus.Active) { <span class="badge bg-success">V teku</span> }
+                                            else if(rental.Status == RentalStatus.Completed) { <span class="badge bg-secondary">Vrnjeno</span> }
+                                            else { <span class="badge bg-danger">Preklicano</span> }
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            @if (rental.Status == RentalStatus.Pending)
+                                            {
+                                                <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline">
+                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                    <button class="btn btn-sm btn-outline-danger">Prekliči</button>
+                                                </form>
+                                            }
+                                            else if (rental.Status == RentalStatus.Active)
+                                            {
+                                                 <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
+                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                    <button class="btn btn-sm btn-primary">Vrni predmet</button>
+                                                </form>
+                                            }
+                                            else if (rental.Status == RentalStatus.Completed)
+                                            {
+                                                <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#writeReviewModal"
+                                                        data-itemid="@rental.ItemId" data-itemtitle="@rental.Item?.Title">
+                                                    <i class="bi bi-star"></i> Oceni
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary d-none" id="editBtn-@rental.ItemId"
+                                                        data-bs-toggle="modal" data-bs-target="#editReviewModal"
+                                                        data-itemid="@rental.ItemId" data-itemtitle="@rental.Item?.Title">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger d-none" id="deleteBtn-@rental.ItemId"
+                                                        onclick="deleteReview(@rental.ItemId)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="bi bi-cart-x display-1 text-muted opacity-25"></i>
+                            <h5 class="mt-3 text-muted">Nimate aktivnih izposoj.</h5>
+                            <a asp-controller="Rentals" asp-action="Index" class="btn btn-primary mt-2">Pojdi na Tržnico</a>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
 
-    </div>
-    <!-- WRITE REVIEW MODAL -->
-    <div class="modal fade" id="writeReviewModal" tabindex="-1" aria-labelledby="writeReviewLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="writeReviewForm">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="writeReviewLabel">Write a Review</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="ItemId" id="reviewItemId" />
-                        <div class="mb-3">
-                            <label class="form-label">Rating</label>
-                            <div id="reviewStars" class="text-warning fs-4"></div>
-                            <input type="hidden" name="Rating" id="reviewRating" required />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Title</label>
-                            <input name="Title" maxlength="200" class="form-control" placeholder="Optional" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Review</label>
-                            <textarea name="Body" maxlength="2000" class="form-control" rows="4"
-                                      placeholder="Describe your experience"></textarea>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="IsAnonymous" id="reviewAnon">
-                            <label class="form-check-label" for="reviewAnon">Post anonymously</label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary w-100">Submit Review</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    <!-- EDIT REVIEW MODAL -->
-    <div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="editReviewForm">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editReviewLabel">Edit Review</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="Id" id="editReviewId" />
-                        <input type="hidden" name="ItemId" id="editItemId" />
-
-                        <div class="mb-3">
-                            <label class="form-label">Rating</label>
-                            <div id="editReviewStars" class="text-warning fs-4"></div>
-                            <input type="hidden" name="Rating" id="editReviewRating" required />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Title</label>
-                            <input name="Title" id="editReviewTitle" maxlength="200" class="form-control" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Review</label>
-                            <textarea name="Body" id="editReviewBody" maxlength="2000" class="form-control" rows="4"></textarea>
-                        </div>
-
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="IsAnonymous" id="editReviewAnon">
-                            <label class="form-check-label" for="editReviewAnon">Post anonymously</label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary w-100">Save Changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
     </div>
 </div>
+
+    <div class="modal fade" id="writeReviewModal" tabindex="-1" aria-hidden="true">
+         </div>
+     <div class="modal fade" id="editReviewModal" tabindex="-1" aria-hidden="true">
+          </div>
+     <div class="modal fade" id="reviewsModal" tabindex="-1" aria-hidden="true">
+          </div>
 
 @section Scripts {
     <script>

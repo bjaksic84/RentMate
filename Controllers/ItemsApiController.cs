@@ -11,7 +11,7 @@ namespace RentMate.Controllers
     {
         private readonly RentMateContext _context;
 
-        public ItemsApiController(RentMateContext context)
+        public ItemsApiController(RentMateContext context)   
         {
             _context = context;
         }
