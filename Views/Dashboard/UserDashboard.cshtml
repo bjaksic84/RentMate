@@ -350,16 +350,97 @@
         </div>
 
     </div>
-</div>
 
-    <div class="modal fade" id="writeReviewModal" tabindex="-1" aria-hidden="true">
-         </div>
-     <div class="modal fade" id="editReviewModal" tabindex="-1" aria-hidden="true">
-          </div>
-     <div class="modal fade" id="reviewsModal" tabindex="-1" aria-hidden="true">
-          </div>
+    <div class="modal fade" id="writeReviewModal" tabindex="-1" aria-labelledby="writeReviewLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="writeReviewForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="writeReviewLabel">Write a Review</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="ItemId" id="reviewItemId" />
+                        <div class="mb-3">
+                            <label class="form-label">Rating</label>
+                            <div id="reviewStars" class="text-warning fs-4"></div>
+                            <input type="hidden" name="Rating" id="reviewRating" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input name="Title" maxlength="200" class="form-control" placeholder="Optional" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Review</label>
+                            <textarea name="Body" maxlength="2000" class="form-control" rows="4"
+                                      placeholder="Describe your experience"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="IsAnonymous" id="reviewAnon">
+                            <label class="form-check-label" for="reviewAnon">Post anonymously</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary w-100">Submit Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="editReviewForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editReviewLabel">Edit Review</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="Id" id="editReviewId" />
+                        <input type="hidden" name="ItemId" id="editItemId" />
 
-@section Scripts {
+                        <div class="mb-3">
+                            <label class="form-label">Rating</label>
+                            <div id="editReviewStars" class="text-warning fs-4"></div>
+                            <input type="hidden" name="Rating" id="editReviewRating" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input name="Title" id="editReviewTitle" maxlength="200" class="form-control" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Review</label>
+                            <textarea name="Body" id="editReviewBody" maxlength="2000" class="form-control" rows="4"></textarea>
+                        </div>
+
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="IsAnonymous" id="editReviewAnon">
+                            <label class="form-check-label" for="editReviewAnon">Post anonymously</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reviewsModalLabel">Reviews</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="reviewsModalBody">
+                    <div class="text-center text-muted">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @section Scripts {
     <script>
          // --- SignalR: Listen for live rental requests ---
         const connection = new signalR.HubConnectionBuilder()
@@ -578,22 +659,6 @@
             }
         }
     </script>
-
-    <!-- Reviews Modal -->
-    <div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="reviewsModalLabel">Reviews</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="reviewsModalBody">
-                    <div class="text-center text-muted">Loading...</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
             document.getElementById('reviewsModal')
         .addEventListener('show.bs.modal', async event => {
@@ -819,3 +884,4 @@
 
     </script>
 }
+</div>
