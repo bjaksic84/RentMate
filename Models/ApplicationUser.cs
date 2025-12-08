@@ -8,6 +8,8 @@ public class ApplicationUser : IdentityUser
     public string? LastName { get; set; }
     public string? City { get; set; }
 
+    public string? ProfilePictureUrl { get; set; }
+
     public ICollection<Item>? Items { get; set; }
     public ICollection<Rental>? RentalsAsRenter { get; set; }
     public ICollection<Rental>? RentalsAsOwner { get; set; } // ✅ NEW

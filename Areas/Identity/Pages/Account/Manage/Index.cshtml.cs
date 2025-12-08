@@ -1,15 +1,9 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-#nullable disable
-
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RentMate.Models;
+using RentMate.Services; // ✅ Tvoj namespace za servise
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {
@@ -17,48 +11,47 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IFileUploadService _fileUploadService; // ✅ Servis
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager,
+            IFileUploadService fileUploadService) // ✅ Dependency Injection
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _fileUploadService = fileUploadService;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        public string Username { get; set; }
+        public string? Username { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [TempData]
-        public string StatusMessage { get; set; }
+        public string? StatusMessage { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [BindProperty]
-        public InputModel Input { get; set; }
+        public InputModel? Input { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         public class InputModel
         {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
             [Phone]
-            [Display(Name = "Phone number")]
-            public string PhoneNumber { get; set; }
+            [Display(Name = "Telefonska številka")]
+            public string? PhoneNumber { get; set; }
+
+            [Display(Name = "Ime")]
+            public string? FirstName { get; set; }
+
+            [Display(Name = "Priimek")]
+            public string? LastName { get; set; }
+
+            [Display(Name = "Mesto")]
+            public string? City { get; set; }
+
+            // ✅ URL za prikaz obstoječe slike
+            public string? ProfilePictureUrl { get; set; }
+
+            // ✅ Polje za nalaganje nove slike
+            [Display(Name = "Slika profila")]
+            public IFormFile? NewProfilePicture { get; set; }
         }
 
         private async Task LoadAsync(ApplicationUser user)
@@ -70,7 +63,11 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
             Input = new InputModel
             {
-                PhoneNumber = phoneNumber
+                PhoneNumber = phoneNumber,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                City = user.City,
+                ProfilePictureUrl = user.ProfilePictureUrl // Naložimo iz baze
             };
         }
 
@@ -111,8 +108,25 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
                 }
             }
 
+            // ✅ Posodobitev osnovnih podatkov
+            if (Input.FirstName != user.FirstName) user.FirstName = Input.FirstName;
+            if (Input.LastName != user.LastName) user.LastName = Input.LastName;
+            if (Input.City != user.City) user.City = Input.City;
+
+            // ✅ LOGIKA ZA SLIKO (Cloudinary)
+            if (Input.NewProfilePicture != null)
+            {
+                // 1. Nalaganje na Cloudinary (mapa "profiles")
+                string newUrl = await _fileUploadService.UploadFileAsync(Input.NewProfilePicture, "profiles");
+
+                // 2. Posodobitev uporabnika
+                user.ProfilePictureUrl = newUrl;
+            }
+
+            await _userManager.UpdateAsync(user);
             await _signInManager.RefreshSignInAsync(user);
-            StatusMessage = "Your profile has been updated";
+            
+            StatusMessage = "Vaš profil je bil posodobljen";
             return RedirectToPage();
         }
     }

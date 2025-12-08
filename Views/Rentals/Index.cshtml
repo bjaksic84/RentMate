@@ -149,19 +149,34 @@
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0 product-card">
                         <div class="bg-light text-center py-5 rounded-top position-relative" style="min-height: 200px;">
-                             @if (!string.IsNullOrEmpty(item.ImageUrl))
-                             {
-                                 <img src="@item.ImageUrl" class="card-img-top h-100" style="object-fit:cover; min-height:200px" alt="@item.Title">
-                             }
-                             else
-                             {
-                                 <i class="bi bi-box-seam display-4 text-secondary opacity-25"></i>
-                             }
-                             <div class="position-absolute top-0 end-0 m-2">
-                                 <span class="badge bg-white text-dark shadow-sm">
-                                     <i class="bi bi-geo-alt-fill text-danger"></i> @item.User?.City
-                                 </span>
-                             </div>
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                var optimizedUrl = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_500,h_350,q_auto/f_auto/");
+                                <img src="@optimizedUrl" class="w-100 h-100" style="object-fit: cover;" alt="@item.Title">
+                            }
+                            else
+                            {
+                            <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+                                <i class="bi bi-box-seam display-1 opacity-25"></i>
+                            </div>
+                            }
+                            @if(item.AverageRating.HasValue) 
+                            {
+                                <div class="position-absolute bottom-0 end-0 m-2 px-2 py-1 rounded bg-dark bg-opacity-75 text-white shadow-sm" 
+                                    style="backdrop-filter: blur(2px);">
+                                    <div class="d-flex align-items-center small">
+                                        <span class="text-warning me-1">
+                                            @for(int i=0; i < Math.Round(item.AverageRating.Value); i++) { <span>★</span> }
+                                        </span>
+                                        <span class="fw-bold">@item.AverageRating?.ToString("0.0")</span>
+                                    </div>
+                                </div>
+                            }
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-white text-dark shadow-sm">
+                                    <i class="bi bi-geo-alt-fill text-danger"></i> @item.User?.City
+                                </span>
+                            </div>
                         </div>
 
                         <div class="card-body">

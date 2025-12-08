@@ -8,6 +8,7 @@ using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using RentMate.Data;
 using RentMate.Models;
 using RentMate.Hubs;
+using RentMate.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
@@ -66,6 +67,7 @@ builder.Services.AddAuthorization(options =>
     // default policy remains cookie-based for Razor pages; when using the policy,
     // explicitly add AuthenticationSchemes if you want to require JWT
 });
+builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
 var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {

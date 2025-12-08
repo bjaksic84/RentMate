@@ -11,6 +11,7 @@ using RentMate.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
+using RentMate.Services;
 
 namespace RentMate.Controllers
 {
@@ -21,11 +22,14 @@ namespace RentMate.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
 
         private readonly IHubContext<RentMateHub> _hubContext;
-        public ItemsController(RentMateContext context, UserManager<ApplicationUser> userManager, IHubContext<RentMateHub> hubContext)
+
+        private readonly IFileUploadService _fileService;
+        public ItemsController(RentMateContext context, UserManager<ApplicationUser> userManager, IHubContext<RentMateHub> hubContext, IFileUploadService fileService)
         {
             _context = context;
             _userManager = userManager;
             _hubContext = hubContext;
+            _fileService = fileService;
         }
 
 
@@ -68,7 +72,7 @@ namespace RentMate.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category")] Item item)
+        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category")] Item item, IFormFile? image)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
@@ -77,6 +81,11 @@ namespace RentMate.Controllers
             if (ModelState.IsValid)
             {
                 // ✅ Assign ownership and safe defaults
+                if (image != null)
+                {
+                    // Uporabimo mapo "items" na Cloudinary
+                    item.ImageUrl = await _fileService.UploadFileAsync(image, "items");
+                }
                 item.UserId = user.Id;
                 item.IsListed = false;    // start unlisted
                 item.IsRented = false;    // not rented yet
@@ -119,34 +128,50 @@ namespace RentMate.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,UserId")] Item item)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl")] Item item, IFormFile? image)
         {
-            if (id != item.Id)
-            {
-                return NotFound();
-            }
+            if (id != item.Id) return NotFound();
+
+            // Ker Bind ne vključuje UserId (varnost), ga moramo prebrati iz baze ali ohraniti
+            // Najbolj varno je dobiti original iz baze in posodobiti polja
+            var existingItem = await _context.Items.FindAsync(id);
+            if (existingItem == null) return NotFound();
+            
+            var user = await _userManager.GetUserAsync(User);
+            if (existingItem.UserId != user.Id) return Forbid();
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(item);
+                    // Posodobi polja
+                    existingItem.Title = item.Title;
+                    existingItem.Description = item.Description;
+                    existingItem.Price = item.Price;
+                    existingItem.Category = item.Category;
+                    existingItem.UpdatedAt = DateTime.UtcNow;
+
+                    // ✅ 2. Logika za zamenjavo slike
+                    if (image != null)
+                    {
+                        // Izbriši staro sliko (če obstaja)
+                        if (!string.IsNullOrEmpty(existingItem.ImageUrl))
+                        {
+                            _fileService.DeleteFile(existingItem.ImageUrl);
+                        }
+                        // Naloži novo
+                        existingItem.ImageUrl = await _fileService.UploadFileAsync(image, "items");
+                    }
+
+                    _context.Update(existingItem);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ItemExists(item.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                throw;
                 }
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("UserDashboard", "Dashboard");
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", item.UserId);
             return View(item);
         }
 
@@ -175,13 +200,20 @@ namespace RentMate.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var item = await _context.Items.FindAsync(id);
-            if (item != null)
+            var user = await _userManager.GetUserAsync(User);
+            
+            if (item != null && item.UserId == user.Id)
             {
-                _context.Items.Remove(item);
-            }
+                // ✅ 3. Izbriši sliko iz Cloudinary
+                if (!string.IsNullOrEmpty(item.ImageUrl))
+                {
+                    _fileService.DeleteFile(item.ImageUrl);
+                }
 
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+                _context.Items.Remove(item);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("UserDashboard", "Dashboard");
         }
 
         private bool ItemExists(int id)
