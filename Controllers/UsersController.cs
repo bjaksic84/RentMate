@@ -218,7 +218,29 @@ namespace RentMate.Controllers
             TempData["SuccessMessage"] = $"Vloge za {user.Email} so bile uspešno posodobljene.";
             return RedirectToAction(nameof(Index));
         }
+        // Klik ime lastnika
+        [AllowAnonymous] 
+        public async Task<IActionResult> GetOwnerInfoPartial(string userId)
+        {
+            var user = await _userManager.Users
+                .Where(u => u.Id == userId)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.City,
+                    u.ProfilePictureUrl,
+                    // Kasneje lahko tu dodaš še povprečno oceno, datum pridružitve itd.
+                })
+                .FirstOrDefaultAsync();
 
+            if (user == null) return NotFound();
+            
+            // Vrnemo PartialView, ki ga bomo ustvarili v naslednjem koraku
+            return PartialView("~/Views/Shared/_OwnerInfoPartial.cshtml", user);
+        }
 
 
     }

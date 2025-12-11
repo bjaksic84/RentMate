@@ -1,0 +1,47 @@
+@model dynamic
+
+@{
+    var fullName = (Model.FirstName ?? "Uporabnik") + " " + (Model.LastName ?? "");
+    var profilePic = !string.IsNullOrEmpty(Model.ProfilePictureUrl) 
+                     ? Model.ProfilePictureUrl 
+                     : "https://via.placeholder.com/100?text=U"; 
+}
+
+<div class="modal-header bg-primary text-white border-0">
+    <h5 class="modal-title">Lastnik predmeta</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body text-center p-4">
+    <img src="@profilePic" 
+         class="rounded-circle mb-3 border border-3 border-white shadow" 
+         style="width: 90px; height: 90px; object-fit: cover;" 
+         alt="@fullName" />
+    
+    <h4 class="mb-1 fw-bold">@fullName</h4>
+    <p class="text-muted mb-4"><i class="bi bi-geo-alt-fill text-danger"></i> @(Model.City ?? "Neznano")</p>
+
+    <div class="row text-start border-top pt-3 bg-light rounded-3 mx-1">
+        <div class="col-6 mb-3">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-shield-check text-success fs-4 me-2"></i>
+                <div style="line-height: 1.2;">
+                    <small class="d-block text-muted" style="font-size: 0.7rem;">STATUS</small>
+                    <span class="fw-bold small">Preverjen</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 mb-3">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-star-fill text-warning fs-4 me-2"></i>
+                <div style="line-height: 1.2;">
+                    <small class="d-block text-muted" style="font-size: 0.7rem;">OCENA</small>
+                    <span class="fw-bold small">4.9 (12 mnenj)</span> </div>
+            </div>
+        </div>
+        <div class="col-12 text-center pb-2">
+            <a href="mailto:@Model.Email" class="btn btn-sm btn-outline-primary w-100">
+                <i class="bi bi-envelope"></i> Kontaktiraj
+            </a>
+        </div>
+    </div>
+</div>

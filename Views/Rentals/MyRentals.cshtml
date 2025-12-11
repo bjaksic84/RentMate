@@ -43,10 +43,12 @@
                         </div>
                         <div class="card-body">
                             <h5 class="card-title fw-bold text-dark">
-                                @Html.DisplayFor(modelItem => item.Item.Title)
+                                @* POPRAVEK: Uporaba ? za varen dostop do Title *@
+                                @item.Item?.Title
                             </h5>
                             <p class="card-text text-muted small">
-                                <i class="bi bi-person"></i> @Html.DisplayFor(modelItem => item.Renter.Email)
+                                @* POPRAVEK: Uporaba ? za varen dostop do Renter.Email *@
+                                <i class="bi bi-person"></i> @item.Renter?.Email
                             </p>
                             
                             <hr class="my-2 opacity-25">

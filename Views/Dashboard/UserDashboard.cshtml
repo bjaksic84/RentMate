@@ -165,7 +165,6 @@
                 <div class="card-header bg-white border-0 py-3">
                     <h5 class="fw-bold mb-0 text-success"><i class="bi bi-graph-up-arrow me-2"></i>Oddajanje (Lastnik)</h5>
                 </div>
-
                 <div class="table-responsive">
                     @if (Model.OwnerRentals?.Any() ?? false)
                     {
@@ -189,8 +188,21 @@
                                         </td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-2 small" style="width:28px; height:28px;">
-                                                    <i class="bi bi-person"></i>
+                                                <div class="me-2">
+                                                    @if (!string.IsNullOrEmpty(rental.Renter?.ProfilePictureUrl))
+                                                    {
+                                                        <img src="@rental.Renter.ProfilePictureUrl"
+                                                            class="rounded-circle border border-secondary shadow-sm"
+                                                            style="width: 32px; height: 32px; object-fit: cover;"
+                                                            alt="Renter" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center shadow-sm"
+                                                            style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                            <i class="bi bi-person"></i>
+                                                        </div>
+                                                    }
                                                 </div>
                                                 <span class="small">@rental.Renter?.Email</span>
                                             </div>
@@ -202,13 +214,17 @@
                                             @rental.TotalPrice.ToString("C2", new System.Globalization.CultureInfo("de-DE"))
                                         </td>
                                         <td>
-                                            @if(rental.Status == RentalStatus.Pending) { <span class="badge bg-warning text-dark">Čaka potrditev</span> }
-                                            else if(rental.Status == RentalStatus.Active) { <span class="badge bg-primary">Aktivno</span> }
-                                            else if(rental.Status == RentalStatus.Completed) { <span class="badge bg-success">Zaključeno</span> }
-                                            else { <span class="badge bg-danger">Preklicano</span> }
+                                            @if (rental.Status == RentMate.Models.RentalStatus.Pending)
+                                            { <span class="badge bg-warning text-dark">Čaka potrditev</span> }
+                                            else if (rental.Status == RentMate.Models.RentalStatus.Active)
+                                            { <span class="badge bg-primary">Aktivno</span> }
+                                            else if (rental.Status == RentMate.Models.RentalStatus.Completed)
+                                            { <span class="badge bg-success">Zaključeno</span> }
+                                            else
+                                            { <span class="badge bg-danger">Preklicano</span> }
                                         </td>
                                         <td class="text-end pe-4">
-                                            @if (rental.Status == RentalStatus.Pending)
+                                            @if (rental.Status == RentMate.Models.RentalStatus.Pending)
                                             {
                                                 <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="d-inline">
                                                     <input type="hidden" name="rentalId" value="@rental.Id" />
@@ -219,7 +235,7 @@
                                                     <button class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x-lg"></i> Zavrni</button>
                                                 </form>
                                             }
-                                            else if (rental.Status == RentalStatus.Active)
+                                            else if (rental.Status == RentMate.Models.RentalStatus.Active)
                                             {
                                                 <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
                                                     <input type="hidden" name="rentalId" value="@rental.Id" />
@@ -246,7 +262,6 @@
                 </div>
             </div>
         </div>
-
 
         <div class="col-12">
             <div class="card shadow-sm border-0">
@@ -287,7 +302,30 @@
                                                 <div class="fw-bold text-dark">@rental.Item?.Title</div>
                                             </div>
                                         </td>
-                                        <td class="small text-muted">@rental.Owner?.Email</td>
+                                        <td class="small">
+                                            <div class="d-flex align-items-center">
+                                                
+                                                @* Mesto za profilno sliko *@
+                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" 
+                                                    style="width: 32px; height: 32px; overflow: hidden; flex-shrink: 0;">
+                                                    @if(!string.IsNullOrEmpty(rental.Owner?.ProfilePictureUrl))
+                                                    {
+                                                        <img src="@rental.Owner.ProfilePictureUrl" 
+                                                            class="rounded-circle" 
+                                                            style="width:100%; height:100%; object-fit:cover;" 
+                                                            alt="Profilna slika"/>
+                                                    }
+                                                    else
+                                                    {
+                                                        @* Nadomestna ikona, če slika ni na voljo (predpostavljamo Bootstrap ikone) *@
+                                                        <i class="bi bi-person-circle text-muted opacity-75" style="font-size: 1.2rem;"></i>
+                                                    }
+                                                </div>
+                                                
+                                                @* E-pošta/Ime lastnika *@
+                                                <span class="text-dark text-truncate">@rental.Owner?.Email</span>
+                                            </div>
+                                        </td>
                                         <td class="small">
                                             <div>@rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")</div>
                                         </td>
@@ -352,7 +390,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <div class="modal fade" id="writeReviewModal" tabindex="-1" aria-labelledby="writeReviewLabel" aria-hidden="true">
@@ -710,8 +747,8 @@
             }
         });
         // === Review Edit/Delete Logic ===
-                                document.addEventListener("DOMContentLoaded", async () => {
-                    // --- Helper: Star builder ---
+                    document.addEventListener("DOMContentLoaded", async () => {
+                // --- Helper: Star builder ---
                     function buildStarPicker(containerId, inputId, val = 0) {
                         const container = document.getElementById(containerId);
                         const input = document.getElementById(inputId);

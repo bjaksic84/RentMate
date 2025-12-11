@@ -326,8 +326,8 @@ namespace RentMate.Controllers
             {
                 rentalId = rental.Id,
                 newStatus = rental.Status.ToString(),
-                itemTitle = rental.Item.Title,
-                message = $"Rental for '{rental.Item.Title}' was cancelled."
+                itemTitle = rental.Item!.Title,
+                message = $"Rental for '{rental.Item!.Title}' was cancelled."
             });
             TempData["SuccessMessage"] = "Rental cancelled successfully.";
             return RedirectToAction("UserDashboard", "Dashboard");
