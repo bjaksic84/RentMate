@@ -1,3 +1,5 @@
+//treba dodat se Item Details page, User public profile page in potem integrirati povprecno oceno user-ja v njegov Owner Modal
+
 RENTMATE – PREGLED APLIKACIJE (README)
 
 RentMate je platforma za izposojo predmetov med uporabniki, zgrajena na ASP.NET Core MVC, Entity Framework Core in ASP.NET Identity. Omogoča uporabnikom, da objavljajo predmete za izposojo, brskajo po objavah, ustvarijo najeme, dodajajo ocene in upravljajo svoj račun. Sistem vključuje iskalnik, upravljanje najemov, sistem ocen in administratorsko ploščo za upravljanje uporabnikov in vsebin.
