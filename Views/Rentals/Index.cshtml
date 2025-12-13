@@ -231,26 +231,29 @@
                         <p class="card-text fw-bold mb-0 mt-3 text-primary">
                             @item.Price?.ToString("C2", new System.Globalization.CultureInfo("de-DE")) <span class="fw-normal text-muted small">/ dan</span>
                         </p>
-                    </div> <div class="card-footer bg-white border-0 py-2 position-relative" style="z-index: 2;">
-                            <div class="d-grid gap-2">
-                      
-                                @if (User.Identity != null && User.Identity.IsAuthenticated)
-                                {
-                                    <button type="button" class="btn btn-success btn-sm fw-bold" data-bs-toggle="modal" data-bs-target="#rentModal-@item.Id">
-          
-                                        Rezerviraj
-                                    </button>
-                                }
-  
-                                else
-                                {
-                                    <a href="/Identity/Account/Login" 
-                                        class="btn btn-secondary btn-sm">Prijavi se</a>
-                                }
-                            </div>
+                    </div> 
+                    <div class="card-footer bg-white border-0 py-2 position-relative" style="z-index: 2;">
+                        <div class="d-flex gap-2">
+                            
+                            <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm fw-bold flex-grow-1">
+                                <i class="bi bi-info-circle"></i> Info
+                            </a>
+
+                            @if (User.Identity != null && User.Identity.IsAuthenticated)
+                            {
+                                <button type="button" class="btn btn-success btn-sm fw-bold flex-grow-1" data-bs-toggle="modal" data-bs-target="#rentModal-@item.Id">
+                                    Rezerviraj
+                                </button>
+                            }
+                            else
+                            {
+                                <a href="/Identity/Account/Login" class="btn btn-secondary btn-sm flex-grow-1">Prijavi se</a>
+                            }
                         </div>
-             
-                    </div> </div> <div class="modal fade" id="rentModal-@item.Id" tabindex="-1" aria-hidden="true">
+                    </div>
+                </div> 
+            </div> 
+            <div class="modal fade" id="rentModal-@item.Id" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                          

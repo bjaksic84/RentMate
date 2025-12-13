@@ -223,23 +223,34 @@ namespace RentMate.Controllers
         public async Task<IActionResult> GetOwnerInfoPartial(string userId)
         {
             var user = await _userManager.Users
-                .Where(u => u.Id == userId)
-                .Select(u => new
-                {
-                    u.Id,
-                    u.FirstName,
-                    u.LastName,
-                    u.Email,
-                    u.City,
-                    u.ProfilePictureUrl,
-                    // Kasneje lahko tu dodaš še povprečno oceno, datum pridružitve itd.
-                })
-                .FirstOrDefaultAsync();
+                .Include(u => u.Items!) // Nujno vključimo Items
+                    .ThenInclude(i => i.Reviews) // In njihove ocene
+                .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null) return NotFound();
+
+            // Moje mnenje: Uporaba anonimnega objekta ali ViewModela je tukaj nujna, 
+            // da View ne rabi delati matematike.
             
-            // Vrnemo PartialView, ki ga bomo ustvarili v naslednjem koraku
-            return PartialView("~/Views/Shared/_OwnerInfoPartial.cshtml", user);
+            var allReviews = user.Items.SelectMany(i => i.Reviews).Where(r => !r.IsDeleted).ToList();
+            var avgRating = allReviews.Any() ? allReviews.Average(r => r.Rating) : 0;
+            var reviewCount = allReviews.Count;
+
+            // Ustvarimo dinamičen objekt za View (ali uporabi ViewModel, če ga imaš)
+            var model = new OwnerModalViewModel 
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                City = user.City,
+                Email = user.Email, // Za mailto povezavo
+                ProfilePictureUrl = user.ProfilePictureUrl,
+                AverageRating = avgRating,
+                ReviewCount = reviewCount,
+                JoinDate = DateTime.Now.AddYears(-1) // Dummy podatek, če nimaš CreatedAt v User modelu
+            };
+
+            return PartialView("~/Views/Shared/_OwnerInfoPartial.cshtml", model);
         }
 
 

@@ -1,42 +1,182 @@
 ﻿@model RentMate.Models.Item
+@using System.Text.Json;
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = Model.Title;
+    var avgRating = Model.AverageRating ?? 0;
+    
+    // Za koledar
+    var blockedDates = Model.Rentals?
+        .Where(r => r.Status == RentMate.Models.RentalStatus.Active || r.Status == RentMate.Models.RentalStatus.Pending)
+        .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
+        .ToList();
+    string jsonBlocked = JsonSerializer.Serialize(blockedDates ?? new object());
 }
 
-<h1>Details</h1>
+<div class="container py-5">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Rentals" asp-action="Index">Tržnica</a></li>
+            <li class="breadcrumb-item"><a href="#">@Model.Category</a></li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
+        </ol>
+    </nav>
 
-<div>
-    <h4>Item</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Title)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Title)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Price)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Price)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.User)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.User.Email)
-        </dd>
-    </dl>
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="fw-bold display-5">@Model.Title</h1>
+            <div class="d-flex align-items-center gap-3 text-muted">
+                <span><i class="bi bi-star-fill text-warning"></i> <strong>@avgRating.ToString("0.0")</strong> (@Model.ReviewCount mnenj)</span>
+                <span>•</span>
+                <span><i class="bi bi-geo-alt"></i> @Model.User?.City</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-5">
+        <div class="col-lg-8">
+            <div class="mb-5">
+                @if(!string.IsNullOrEmpty(Model.ImageUrl)) {
+                    <img src="@Model.ImageUrl" class="img-fluid rounded-4 shadow-sm w-100" style="max-height: 500px; object-fit: cover;">
+                } else {
+                    <div class="bg-light rounded-4 d-flex align-items-center justify-content-center" style="height: 400px;">
+                        <span class="text-muted"><i class="bi bi-image fs-1"></i> Ni slike</span>
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
+                <div>
+                    <h3 class="fw-bold">Opis predmeta</h3>
+                    <p class="text-muted">Kategorija: @Model.Category</p>
+                </div>
+                <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="text-decoration-none text-dark text-center">
+                    <img src="@(Model.User?.ProfilePictureUrl ?? "https://via.placeholder.com/60")" 
+                         class="rounded-circle object-fit-cover shadow-sm mb-1" style="width: 60px; height: 60px;">
+                    <div class="small fw-bold">@Model.User?.FirstName</div>
+                </a>
+            </div>
+
+            <div class="mb-5">
+                <p class="lead fs-6" style="white-space: pre-line;">@Model.Description</p>
+            </div>
+
+            <div class="border-top pt-5">
+                <h3 class="fw-bold mb-4"><i class="bi bi-star-fill text-warning me-2"></i> @avgRating.ToString("0.0") · @Model.ReviewCount mnenj</h3>
+                
+                <div class="row row-cols-1 row-cols-md-2 g-4">
+                    @foreach(var review in Model.Reviews.OrderByDescending(r => r.CreatedAt).Take(4))
+                    {
+                        <div class="col">
+                            <div class="card border-0 h-100">
+                                <div class="card-body px-0">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <img src="@(review.Reviewer?.ProfilePictureUrl ?? "https://via.placeholder.com/40")" 
+                                             class="rounded-circle me-2 object-fit-cover" style="width: 40px; height: 40px;">
+                                        <div>
+                                            <div class="fw-bold">@(review.IsAnonymous ? "Anonimno" : review.Reviewer?.FirstName)</div>
+                                            <div class="text-muted small">@review.CreatedAt.ToString("MMMM yyyy")</div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-1">
+                                        @for(int i=0; i<review.Rating; i++){ <i class="bi bi-star-fill text-warning small"></i> }
+                                    </div>
+                                    <p class="text-muted small">@review.Body</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                @if(Model.ReviewCount > 4) {
+                    <button class="btn btn-outline-dark mt-3">Prikaži vseh @Model.ReviewCount mnenj</button>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="sticky-top" style="top: 100px; z-index: 10;">
+                <div class="card shadow-lg border-0 rounded-4 p-4">
+                    <div class="d-flex justify-content-between align-items-end mb-4">
+                        <div>
+                            <span class="fs-3 fw-bold">@Model.Price?.ToString("C")</span>
+                            <span class="text-muted"> / dan</span>
+                        </div>
+                        <div class="small">
+                            <i class="bi bi-star-fill text-warning"></i> @avgRating.ToString("0.0")
+                        </div>
+                    </div>
+
+                    <form asp-controller="Rentals" asp-action="RequestRental" method="post">
+                        <input type="hidden" name="itemId" value="@Model.Id" />
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">IZBERITE TERMIN</label>
+                            <input type="text" class="form-control p-3 bg-white" id="detailsDatePicker" 
+                                   placeholder="Datum začetka - Datum konca" required />
+                            <input type="hidden" name="startDate" id="startDateInput" />
+                            <input type="hidden" name="endDate" id="endDateInput" />
+                        </div>
+
+                        <div id="priceCalculation" class="d-none mb-3 bg-light p-3 rounded small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span id="calcDays">0 dni x @Model.Price €</span>
+                                <span id="calcTotalBase">0 €</span>
+                            </div>
+                            <div class="d-flex justify-content-between fw-bold border-top pt-2 mt-2">
+                                <span>Skupaj</span>
+                                <span id="calcFinalTotal">0 €</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold">
+                            Rezerviraj
+                        </button>
+                    </form>
+                    
+                    <div class="text-center mt-3 small text-muted">
+                        <i class="bi bi-shield-lock"></i> Varno plačilo in najem
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const blockedDates = @Html.Raw(jsonBlocked);
+            const pricePerDay = @(Model.Price ?? 0);
+            
+            flatpickr("#detailsDatePicker", {
+                mode: "range",
+                dateFormat: "Y-m-d",
+                minDate: "today",
+                disable: blockedDates,
+                locale: { firstDayOfWeek: 1 },
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (selectedDates.length === 2) {
+                        const start = selectedDates[0];
+                        const end = selectedDates[1];
+                        
+                        // Populate hidden fields
+                        document.getElementById('startDateInput').value = instance.formatDate(start, "Y-m-d");
+                        document.getElementById('endDateInput').value = instance.formatDate(end, "Y-m-d");
+
+                        // Calculate Days
+                        const diffTime = Math.abs(end - start);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 ker vključimo oba dneva
+                        
+                        const total = diffDays * pricePerDay;
+
+                        // Show calculation
+                        document.getElementById('calcDays').innerText = `${diffDays} dni x ${pricePerDay}€`;
+                        document.getElementById('calcTotalBase').innerText = `${total.toFixed(2)}€`;
+                        document.getElementById('calcFinalTotal').innerText = `${total.toFixed(2)}€`;
+                        document.getElementById('priceCalculation').classList.remove('d-none');
+                    }
+                }
+            });
+        });
+    </script>
+}

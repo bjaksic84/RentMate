@@ -1,4 +1,4 @@
-//treba dodat se Item Details page, User public profile page in potem integrirati povprecno oceno user-ja v njegov Owner Modal
+
 
 RENTMATE – PREGLED APLIKACIJE (README)
 

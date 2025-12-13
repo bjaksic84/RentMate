@@ -26,6 +26,10 @@ namespace RentMate.Controllers
 
             if (user == null) return NotFound();
 
+            var allReviews = user.Items.SelectMany(i => i.Reviews).Where(r => !r.IsDeleted).ToList();
+            ViewBag.ReviewCount = allReviews.Count;
+            ViewBag.AverageRating = allReviews.Any() ? allReviews.Average(r => r.Rating) : 0;
+
             return View(user);
         }
     }

@@ -24,9 +24,16 @@
     <div class="row">
         <div class="col-md-4">
             <div class="card shadow-sm border-0 text-center p-4">
-                <div class="mb-3">
-                    <img src="@profilePic" class="rounded-circle shadow-sm object-fit-cover" 
-                         style="width: 150px; height: 150px;" alt="@Model.UserName">
+                <div class="position-relative d-inline-block mb-3">
+                    <img src="@(Model.ProfilePictureUrl ?? "https://via.placeholder.com/150")" 
+                         class="rounded-circle shadow-sm border border-3 border-white object-fit-cover" 
+                         style="width: 150px; height: 150px;" alt="@Model.FirstName">
+                    @if(avgRating > 4.5) 
+                    {
+                        <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-white" title="Super lastnik">
+                            <i class="bi bi-shield-check"></i>
+                        </span>
+                    }
                 </div>
                 <h3 class="fw-bold">@Model.FirstName @Model.LastName</h3>
                 <p class="text-muted"><i class="bi bi-geo-alt-fill text-danger"></i> @(Model.City ?? "Neznano")</p>
@@ -60,26 +67,43 @@
             </div>
         </div>
 
-        <div class="col-md-8">
-            <h4 class="fw-bold mb-4">Aktivni Oglasi</h4>
-            @if (!allItems.Any())
+        <div class="col-lg-8">
+            <h4 class="fw-bold mb-4">Aktivni oglasi (@Model.Items.Count())</h4>
+            
+            @if (!Model.Items.Any())
             {
-                <div class="alert alert-light border">Uporabnik nima aktivnih oglasov.</div>
+                <div class="alert alert-light text-center py-5">
+                    Uporabnik trenutno nima aktivnih oglasov.
+                </div>
             }
             else
             {
                 <div class="row row-cols-1 row-cols-md-2 g-4">
-                    @foreach (var item in allItems)
+                    @foreach (var item in Model.Items)
                     {
                         <div class="col">
-                            <div class="card h-100 shadow-sm border-0">
-                                @if(!string.IsNullOrEmpty(item.ImageUrl)) {
-                                     <img src="@item.ImageUrl" class="card-img-top" style="height: 180px; object-fit: cover;">
-                                }
+                            <div class="card h-100 shadow-sm border-0 product-card">
+                                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id">
+                                    <div class="position-relative" style="height: 200px;">
+                                        @if(!string.IsNullOrEmpty(item.ImageUrl)) {
+                                            var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_300,q_auto/");
+                                            <img src="@thumbUrl" class="w-100 h-100 object-fit-cover rounded-top">
+                                        } else {
+                                            <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center text-muted">
+                                                <i class="bi bi-image fs-1"></i>
+                                            </div>
+                                        }
+                                        <div class="position-absolute bottom-0 end-0 m-2">
+                                            <span class="badge bg-light text-dark shadow-sm">@item.Price?.ToString("C") / dan</span>
+                                        </div>
+                                    </div>
+                                </a>
                                 <div class="card-body">
-                                    <h5 class="card-title fw-bold">@item.Title</h5>
-                                    <p class="text-primary fw-bold mb-1">@item.Price?.ToString("C") / dan</p>
-                                    <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm w-100 mt-2">Poglej predmet</a>
+                                    <h6 class="card-title fw-bold text-truncate">@item.Title</h6>
+                                    <p class="card-text small text-muted text-truncate">@item.Category</p>
+                                    <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary w-100">
+                                        Poglej podrobnosti
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -87,5 +111,6 @@
                 </div>
             }
         </div>
+        
     </div>
 </div>

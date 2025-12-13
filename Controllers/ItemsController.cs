@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
 using RentMate.Services;
 
+
 namespace RentMate.Controllers
 {
     public class ItemsController : Controller
@@ -41,20 +42,18 @@ namespace RentMate.Controllers
         }
 
         // GET: Items/Details/5
+        [AllowAnonymous]
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var item = await _context.Items
-                .Include(i => i.User)
+                .Include(i => i.User) // Lastnik
+                .Include(i => i.Reviews.Where(r => !r.IsDeleted)) // Mnenja
+                    .ThenInclude(r => r.Reviewer) // Kdo je napisal mnenje
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (item == null)
-            {
-                return NotFound();
-            }
+
+            if (item == null) return NotFound();
 
             return View(item);
         }
