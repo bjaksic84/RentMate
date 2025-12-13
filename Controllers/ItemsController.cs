@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
 using RentMate.Services;
+using RentMate.Helpers;
 
 
 namespace RentMate.Controllers
@@ -54,6 +55,13 @@ namespace RentMate.Controllers
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (item == null) return NotFound();
+            // 1. Pridobi koordinate glede na mesto lastnika
+            var cityInfo = CityData.GetCoordinates(item.User?.City);
+
+            // 2. Pošlji podatke v View
+            ViewBag.MapLat = cityInfo.Lat;
+            ViewBag.MapLng = cityInfo.Lng;
+            ViewBag.MapCityName = cityInfo.Name;
 
             return View(item);
         }

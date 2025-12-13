@@ -84,14 +84,8 @@ namespace RentMate.Controllers
             // Execute query
             var available = await query.ToListAsync();
 
-            // Populate dropdown data (distinct cities)
-            var cities = await _context.Users
-                .Where(u => u.Items!.Any(i => i.IsListed && !i.IsRented))
-                .Select(u => u.City)
-                .Where(c => c != null && c != "")
-                .Distinct()
-                .OrderBy(c => c)
-                .ToListAsync();
+            // Populate dropdown data — use canonical list from CityData
+            var cities = RentMate.Helpers.CityData.Cities.Select(c => c.Name).ToList();
 
             // Pass current filters to view (to persist values)
             ViewBag.Search = search;

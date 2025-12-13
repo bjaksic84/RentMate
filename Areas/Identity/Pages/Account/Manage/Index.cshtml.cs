@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using RentMate.Models;
-using RentMate.Services; // ✅ Tvoj namespace za servise
+using RentMate.Services;
+using Microsoft.AspNetCore.Mvc.Rendering; // Za SelectListItem
+using RentMate.Helpers; // Za CityData
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {
@@ -11,12 +13,12 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly IFileUploadService _fileUploadService; // ✅ Servis
+        private readonly IFileUploadService _fileUploadService;
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            IFileUploadService fileUploadService) // ✅ Dependency Injection
+            IFileUploadService fileUploadService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -24,6 +26,9 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         }
 
         public string? Username { get; set; }
+        
+        // Seznam mest za dropdown
+        public List<SelectListItem>? CityOptions { get; set; }
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -46,10 +51,10 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             [Display(Name = "Mesto")]
             public string? City { get; set; }
 
-            // ✅ URL za prikaz obstoječe slike
+            // URL za prikaz obstoječe slike
             public string? ProfilePictureUrl { get; set; }
 
-            // ✅ Polje za nalaganje nove slike
+            // Polje za nalaganje nove slike
             [Display(Name = "Slika profila")]
             public IFormFile? NewProfilePicture { get; set; }
         }
@@ -69,6 +74,14 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
                 City = user.City,
                 ProfilePictureUrl = user.ProfilePictureUrl // Naložimo iz baze
             };
+
+            // ✅ KORAK 2: Napolnimo dropdown seznam z mesti iz CityData
+            CityOptions = CityData.Cities.Select(c => new SelectListItem 
+            { 
+                Value = c.Name, 
+                Text = c.Name,
+                Selected = c.Name == user.City // Če ima uporabnik že to mesto, ga označi
+            }).ToList();
         }
 
         public async Task<IActionResult> OnGetAsync()
@@ -93,7 +106,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
             if (!ModelState.IsValid)
             {
-                await LoadAsync(user);
+                await LoadAsync(user); // Če validacija ne uspe, moramo ponovno naložiti mesta!
                 return Page();
             }
 
@@ -108,12 +121,14 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
                 }
             }
 
-            // ✅ Posodobitev osnovnih podatkov
+            // Posodobitev osnovnih podatkov
             if (Input.FirstName != user.FirstName) user.FirstName = Input.FirstName;
             if (Input.LastName != user.LastName) user.LastName = Input.LastName;
+            
+            // ✅ Shranjevanje mesta (prihaja iz dropdowna)
             if (Input.City != user.City) user.City = Input.City;
 
-            // ✅ LOGIKA ZA SLIKO (Cloudinary)
+            // LOGIKA ZA SLIKO (Cloudinary)
             if (Input.NewProfilePicture != null)
             {
                 // 1. Nalaganje na Cloudinary (mapa "profiles")

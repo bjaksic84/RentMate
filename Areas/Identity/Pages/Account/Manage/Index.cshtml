@@ -54,8 +54,11 @@
                             </div>
 
                             <div class="form-floating mb-3">
-                                <input asp-for="Input.City" class="form-control" placeholder="Mesto" />
-                                <label asp-for="Input.City">Mesto (za lažje iskanje)</label>
+                                <select asp-for="Input.City" asp-items="Model.CityOptions" class="form-select">
+                                    <option value="">-- Izberite mesto --</option>
+                                </select>
+                                <label asp-for="Input.City">Lokacija (Mesto)</label>
+                                <span asp-validation-for="Input.City" class="text-danger"></span>
                             </div>
 
                             <div class="form-floating mb-3">

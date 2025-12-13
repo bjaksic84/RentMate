@@ -1,6 +1,6 @@
 ﻿@model RentMate.Models.Item
 @using System.Text.Json;
-
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 @{
     ViewData["Title"] = Model.Title;
     var avgRating = Model.AverageRating ?? 0;
@@ -137,12 +137,58 @@
                         <i class="bi bi-shield-lock"></i> Varno plačilo in najem
                     </div>
                 </div>
+                <div class="border-top pt-4 mb-5">
+                    <h3 class="fw-bold mb-3">Lokacija</h3>
+                    <p class="text-muted mb-3">
+                        <i class="bi bi-geo-alt-fill text-danger me-1"></i> 
+                        @ViewBag.MapCityName 
+                        <span class="badge bg-light text-dark border ms-2">Približna lokacija</span>
+                    </p>
+                    
+                    <div id="map" class="shadow-sm rounded-4" style="height: 320px; width: 100%; z-index: 1;"></div>
+                    
+                    <div class="d-flex align-items-start mt-3 gap-2 text-muted small">
+                        <i class="bi bi-shield-check fs-5 text-primary"></i>
+                        <p class="mb-0">
+                            Zaradi varnosti in zasebnosti prikazujemo le <strong>približno območje (krog)</strong>, kjer se predmet nahaja. 
+                            Točen naslov za prevzem boste prejeli po potrditvi rezervacije.
+                        </p>
+                    </div>
+                </div>
             </div>
+
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Pridobi koordinate
+            var lat = @(((double)ViewBag.MapLat).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var lng = @(((double)ViewBag.MapLng).ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var cityName = "@ViewBag.MapCityName";
+
+            // 1. POPRAVEK: Zoom level spremenjen iz 13 na 11 (bolj odzoomirano, da se vidi regija)
+            var map = L.map('map', { scrollWheelZoom: false }).setView([lat, lng], 11);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Dodajanje KROGA (Varnostna cona) - ne pina
+            var circle = L.circle([lat, lng], {
+                color: '#0d6efd',       // Rob (RentMate modra)
+                fillColor: '#0d6efd',   // Polnilo
+                fillOpacity: 0.15,      // Prozornost
+                radius: 1200            // 1.2 km radij
+            }).addTo(map);
+
+            // Popup ostane enak
+            circle.bindPopup(`<b>${cityName}</b><br>Približna lokacija prevzema.`);
+        });
+    </script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const blockedDates = @Html.Raw(jsonBlocked);
