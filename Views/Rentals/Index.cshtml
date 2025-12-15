@@ -136,9 +136,9 @@
                              @if (!string.IsNullOrEmpty(item.ImageUrl))
                              {
                                  // Cloudinary Transformation
-                      
-                                 var optimizedUrl = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_500,h_350,q_auto,f_auto/");
-                                 <img src="@optimizedUrl" class="w-100 h-100" style="object-fit: cover;" alt="@item.Title">
+                                 var url500 = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_500,h_350,q_auto,f_auto/");
+                                 var url300 = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_300,h_210,q_auto,f_auto/");
+                                 <img src="@url500" srcset="@url300 300w, @url500 500w" sizes="(max-width: 768px) 300px, 500px" loading="lazy" class="w-100 h-100" style="object-fit: cover;" alt="@item.Title">
                              }
                              else
                              {
@@ -201,10 +201,8 @@
                             <div class="me-2 flex-shrink-0">
                                 @if(!string.IsNullOrEmpty(item.User?.ProfilePictureUrl))
                                 {
-      
-                                    <img src="@item.User.ProfilePictureUrl" 
+                                    <img src="@item.User.ProfilePictureUrl" loading="lazy"
                                         class="rounded-circle border border-1 border-light shadow-sm owner-link" 
-                      
                                         style="width: 24px; height: 24px; object-fit: cover; cursor: pointer;"
                                         data-user-id="@item.UserId"
                                         alt="@ownerDisplayName" />
@@ -256,42 +254,8 @@
                     </div>
                 </div> 
             </div> 
-            <div class="modal fade" id="rentModal-@item.Id" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                         
-                            <div class="modal-header bg-primary text-white">
-                                <h5 class="modal-title">Rezervacija: @item.Title</h5>
-                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        
-                            </div>
-                            <form asp-controller="Rentals" asp-action="RequestRental" method="post">
-                                <div class="modal-body">
-                                
-                                    <input type="hidden" name="itemId" value="@item.Id" />
-                                    <div class="mb-3">
-                                        <label class="form-label fw-bold">Izberite termin</label>
-            
-                                        <input type="text" class="form-control rent-daterange-picker" 
-                                               placeholder="Klikni za izbiro datuma..."
-                  
-                                               data-blocked='@jsonBlocked' required />
-                                        <input type="hidden" name="startDate" class="start-date-input" value="@ViewBag.StartDate" />
-                        
-                                        <input type="hidden" name="endDate" class="end-date-input" value="@ViewBag.EndDate" />
-                                    </div>
-                                </div>
-           
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Prekliči</button>
-                                    <button type="submit" 
-                                        class="btn btn-success fw-bold">Potrdi</button>
-                                </div>
-                            </form>
-                        </div>
-              
-                    </div>
-                </div>
+                @* Use shared Rent modal partial (unique per item) *@
+                <partial name="_RentModal" model="item" />
             }
         }
     </div>

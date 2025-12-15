@@ -1,0 +1,297 @@
+:root {
+  --bg: #ffffff;
+  --text: #0f1720;
+  --muted-bg: #f8f9fa;
+  --card-bg: #ffffff;
+  --primary: #d97706; /* warmer primary (amber) */
+  --muted-text: #6c757d;
+  --border: rgba(0,0,0,0.08);
+  --badge-bg: #f1f3f5;
+  --navbar-bg: var(--card-bg);
+  --row-hover: rgba(0,0,0,0.03);
+  --panel-white: #ffffff; /* sections that should remain white */
+  --panel-white-text: #0f1720;
+  --surface-soft: #f7f9fb; /* very soft elevated surface for light theme */
+}
+
+[data-theme="dark"] {
+  --bg: #0b1220;
+  --text: #f1f7fb; /* slightly brighter for better contrast */
+  --muted-bg: #0f1724;
+  --card-bg: #0f1724;
+  --primary: #d97706; /* warmer primary applied to dark theme too */
+  --muted-text: #9fb0c2; /* slightly warmer/lighter muted text */
+  --border: rgba(255,255,255,0.06);
+  --badge-bg: #132f2b; /* slightly warm/darker badge surface */
+  --badge-warm-tint: rgba(217,119,6,0.06);
+  --navbar-bg: #0b1520;
+  --row-hover: rgba(255,255,255,0.02);
+  --panel-white: #fbf6ef; /* softened warm 'white' for preserved panels */
+  --panel-white-text: #081018; /* dark text on preserved white panels */
+  --surface-soft: #101922; /* Option B: slightly warmer/darker soft surface */
+}
+
+/* Apply base colors */
+body {
+  background-color: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+.bg-light {
+  background-color: var(--muted-bg) !important;
+}
+
+.card, .dropdown-menu, .modal-content {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+
+/* Rental location badge: solid adaptive background, fits text */
+.product-card .badge,
+.card .badge {
+  display: inline-block !important;
+  padding: 0.25rem 0.5rem !important;
+  background-color: var(--badge-bg) !important;
+  color: var(--text) !important;
+  border-radius: 0.35rem !important;
+  font-size: 0.85rem !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+  border: 1px solid transparent !important;
+}
+
+/* Ensure preserved white card headers' semantic text colors stay readable */
+.card-header.bg-white .text-primary,
+.card-header.bg-white .text-success,
+.card-header.bg-white .text-secondary,
+.card-header.bg-white h5,
+.card-header.bg-white h5 i {
+  color: var(--panel-white-text) !important;
+}
+
+/* Slight warm tint for subtle badges in dark mode */
+[data-theme="dark"] .product-card .badge,
+[data-theme="dark"] .card .badge {
+  background-color: color-mix(in srgb, var(--badge-bg) 80%, var(--badge-warm-tint) 20%) !important;
+}
+
+/* Navbar should adopt theme background so changed text remains readable */
+.navbar {
+  background-color: var(--navbar-bg) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.navbar .navbar-brand,
+.navbar .nav-link,
+.navbar .nav-item {
+  color: var(--text) !important;
+}
+
+/* Keep specific card headers / top panels white for emphasis (UserDashboard sections) */
+.card-header.bg-white {
+  background-color: var(--panel-white) !important;
+  color: var(--panel-white-text) !important;
+}
+
+/* A softer elevated surface to reduce stark contrast on cards */
+.card.shadow-sm.border-0 {
+  background-color: var(--surface-soft) !important;
+}
+
+/* In dark mode, make preserved white headers and sticky filter use the softer surface
+   so they don't stay bright white and clash with the dark background. */
+[data-theme="dark"] .card-header.bg-white {
+  background-color: var(--surface-soft) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .card-header.bg-white h5,
+[data-theme="dark"] .card-header.bg-white h5 i,
+[data-theme="dark"] .card-header.bg-white .text-primary,
+[data-theme="dark"] .card-header.bg-white .text-success,
+[data-theme="dark"] .card-header.bg-white .text-secondary {
+  color: var(--text) !important;
+}
+
+/* Rentals filter sticky-top used class="bg-white ..." — make it soft in dark mode too */
+[data-theme="dark"] .sticky-top.bg-white {
+  background-color: var(--surface-soft) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Ensure muted text adapts */
+.text-muted {
+  color: var(--muted-text) !important;
+}
+
+/* Ensure dark mode overrides for explicit utility classes */
+[data-theme="dark"] .text-dark {
+  color: var(--text) !important;
+}
+
+/* Tables */
+.table {
+  color: var(--text) !important;
+  background-color: transparent !important;
+  border-color: var(--border) !important;
+}
+.table th,
+.table thead th {
+  background-color: var(--muted-bg) !important;
+  color: var(--muted-text) !important;
+  border-color: var(--border) !important;
+}
+.table td {
+  background-color: transparent !important;
+  color: var(--text) !important;
+  border-top: 1px solid var(--border) !important;
+}
+.table-hover tbody tr:hover {
+  background-color: var(--row-hover) !important;
+}
+
+/* Forms / inputs */
+.form-control,
+.form-select,
+textarea.form-control {
+  background-color: var(--card-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+.form-control::placeholder {
+  color: var(--muted-text) !important;
+}
+
+/* Nav links */
+.navbar, .navbar-nav .nav-link {
+  color: var(--text) !important;
+}
+
+/* Small text */
+.small, small {
+  color: var(--muted-text) !important;
+}
+
+/* Cards */
+.card .card-title, .card .card-text {
+  color: var(--text) !important;
+}
+
+
+/* Subtle adjustments for badges used in project */
+[data-theme="dark"] .bg-success-subtle {
+  background-color: rgba(40,167,69,0.12) !important;
+}
+[data-theme="dark"] .bg-danger-subtle {
+  background-color: rgba(220,53,69,0.08) !important;
+}
+
+/* Keep the small rating overlay text bright even when global card color is overridden */
+.product-card .position-absolute.bottom-0.end-0.bg-dark,
+.product-card .position-absolute.bottom-0.end-0.bg-dark.bg-opacity-50 {
+  color: #fff !important;
+}
+.product-card .position-absolute.bottom-0.end-0 .fw-bold {
+  color: #fff !important;
+}
+
+/* Modal backdrop darker in dark mode */
+[data-theme="dark"] .modal-backdrop.show {
+  background-color: rgba(2,6,23,0.7);
+}
+
+/* Smooth transitions when toggling theme */
+html[data-theme], html {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Floating-label autofill handling reverted — using Bootstrap defaults */
+
+/* High-impact UX tweaks */
+/* Focus styles: visible, accessible focus rings in dark theme */
+.btn:focus, .btn:focus-visible,
+.form-control:focus, .form-select:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 0.25rem rgba(217,119,6,0.16) !important; /* soft amber focus ring */
+  border-color: rgba(217,119,6,0.18) !important;
+}
+
+/* Sticky filter separation - subtle shadow + border so it reads above content */
+[data-theme="dark"] .sticky-top.bg-white {
+  background-color: var(--surface-soft) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.45) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Ensure stretched links inherit surrounding text color (avoid bright links in dark mode) */
+.stretched-link {
+  color: inherit !important;
+}
+
+/* Make placeholder/inline big icons more visible in dark mode (replace opacity-25 which is too light) */
+[data-theme="dark"] .position-relative .bi.opacity-25,
+[data-theme="dark"] .display-1.opacity-25 {
+  color: rgba(255,255,255,0.12) !important;
+  opacity: 1 !important;
+}
+
+/* Reduce heavy transitions for theme-sensitive elements to keep snappy feel */
+.card, .btn, .form-control, .form-select {
+  transition: background-color 0.12s linear, color 0.12s linear, border-color 0.12s linear !important;
+}
+
+/* Soften the lower card area (footer / action row) in dark mode so buttons
+   and controls sit on the warmer surface instead of pure white. */
+[data-theme="dark"] .card .card-footer,
+[data-theme="dark"] .card .card-body .card-actions,
+[data-theme="dark"] .card .card-body .actions,
+[data-theme="dark"] .card .card-body + .bg-white,
+[data-theme="dark"] .card .bg-white.card-footer,
+[data-theme="dark"] .card .bg-white.card-body {
+  background-color: var(--surface-soft) !important;
+  color: var(--text) !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+/* If footer contains utility `.bg-white` directly, ensure it adapts */
+[data-theme="dark"] .bg-white.card-footer,
+[data-theme="dark"] .bg-white.card-body {
+  background-color: var(--surface-soft) !important;
+}
+
+
+/* Make icons adapt to the active theme
+   - SVG/bootstrap icons: inherit `currentColor` so `color` changes affect them
+   - Raster images used as icons: apply a gentle filter in dark mode */
+:root {
+  --icon-filter: none;
+}
+
+[data-theme="dark"] {
+  --icon-filter: brightness(1.15) contrast(0.9);
+}
+
+svg, svg.bi {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+  color: inherit !important;
+  vertical-align: middle;
+}
+
+/* Ensure common icon containers inherit the site text color */
+.card-header .bi,
+.navbar .bi,
+.btn .bi,
+.text-primary .bi,
+.text-dark .bi,
+.badge .bi {
+  color: var(--text) !important;
+}
+
+/* Raster images used as icons (add class `icon` or `icon-img`) */
+img.icon, .icon-img {
+  filter: var(--icon-filter) !important;
+  -webkit-filter: var(--icon-filter) !important;
+}

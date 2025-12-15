@@ -1,6 +1,7 @@
 ﻿@model RentMate.Models.Item
 @using System.Text.Json;
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 @{
     ViewData["Title"] = Model.Title;
     var avgRating = Model.AverageRating ?? 0;
@@ -10,7 +11,8 @@
         .Where(r => r.Status == RentMate.Models.RentalStatus.Active || r.Status == RentMate.Models.RentalStatus.Pending)
         .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
         .ToList();
-    string jsonBlocked = JsonSerializer.Serialize(blockedDates ?? new object());
+    // Serialize blocked dates as JSON array; if null, use an empty array string
+    string jsonBlocked = blockedDates != null ? JsonSerializer.Serialize(blockedDates) : "[]";
 }
 
 <div class="container py-5">
@@ -35,9 +37,11 @@
 
     <div class="row g-5">
         <div class="col-lg-8">
-            <div class="mb-5">
+                <div class="mb-5">
                 @if(!string.IsNullOrEmpty(Model.ImageUrl)) {
-                    <img src="@Model.ImageUrl" class="img-fluid rounded-4 shadow-sm w-100" style="max-height: 500px; object-fit: cover;">
+                    var urlLarge = Model.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/");
+                    var urlMed = Model.ImageUrl.Replace("/upload/", "/upload/c_fill,w_800,h_533,q_auto,f_auto/");
+                    <img src="@urlLarge" srcset="@urlMed 800w, @urlLarge 1200w" sizes="(max-width: 992px) 800px, 1200px" loading="lazy" class="img-fluid rounded-4 shadow-sm w-100" style="max-height: 500px; object-fit: cover;" alt="@Model.Title">
                 } else {
                     <div class="bg-light rounded-4 d-flex align-items-center justify-content-center" style="height: 400px;">
                         <span class="text-muted"><i class="bi bi-image fs-1"></i> Ni slike</span>
@@ -98,7 +102,7 @@
                 <div class="card shadow-lg border-0 rounded-4 p-4">
                     <div class="d-flex justify-content-between align-items-end mb-4">
                         <div>
-                            <span class="fs-3 fw-bold">@Model.Price?.ToString("C")</span>
+                                <span class="fs-3 fw-bold">@Model.Price?.ToString("C")</span>
                             <span class="text-muted"> / dan</span>
                         </div>
                         <div class="small">
@@ -106,32 +110,12 @@
                         </div>
                     </div>
 
-                    <form asp-controller="Rentals" asp-action="RequestRental" method="post">
-                        <input type="hidden" name="itemId" value="@Model.Id" />
-                        
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">IZBERITE TERMIN</label>
-                            <input type="text" class="form-control p-3 bg-white" id="detailsDatePicker" 
-                                   placeholder="Datum začetka - Datum konca" required />
-                            <input type="hidden" name="startDate" id="startDateInput" />
-                            <input type="hidden" name="endDate" id="endDateInput" />
-                        </div>
-
-                        <div id="priceCalculation" class="d-none mb-3 bg-light p-3 rounded small">
-                            <div class="d-flex justify-content-between mb-1">
-                                <span id="calcDays">0 dni x @Model.Price €</span>
-                                <span id="calcTotalBase">0 €</span>
-                            </div>
-                            <div class="d-flex justify-content-between fw-bold border-top pt-2 mt-2">
-                                <span>Skupaj</span>
-                                <span id="calcFinalTotal">0 €</span>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold">
+                    <!-- Reservation: open modal to pick dates (prevents free-text input) -->
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-primary btn-lg rounded-3 fw-bold" data-bs-toggle="modal" data-bs-target="#rentModal-@Model.Id">
                             Rezerviraj
                         </button>
-                    </form>
+                    </div>
                     
                     <div class="text-center mt-3 small text-muted">
                         <i class="bi bi-shield-lock"></i> Varno plačilo in najem
@@ -189,39 +173,49 @@
             circle.bindPopup(`<b>${cityName}</b><br>Približna lokacija prevzema.`);
         });
     </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    @* Use shared rent modal partial *@
+    <partial name="_RentModal" model="Model" />
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const blockedDates = @Html.Raw(jsonBlocked);
             const pricePerDay = @(Model.Price ?? 0);
-            
-            flatpickr("#detailsDatePicker", {
-                mode: "range",
-                dateFormat: "Y-m-d",
-                minDate: "today",
-                disable: blockedDates,
-                locale: { firstDayOfWeek: 1 },
-                onChange: function(selectedDates, dateStr, instance) {
-                    if (selectedDates.length === 2) {
-                        const start = selectedDates[0];
-                        const end = selectedDates[1];
-                        
-                        // Populate hidden fields
-                        document.getElementById('startDateInput').value = instance.formatDate(start, "Y-m-d");
-                        document.getElementById('endDateInput').value = instance.formatDate(end, "Y-m-d");
 
-                        // Calculate Days
-                        const diffTime = Math.abs(end - start);
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 ker vključimo oba dneva
-                        
-                        const total = diffDays * pricePerDay;
+            document.querySelectorAll(".rent-daterange-picker").forEach(function (element) {
+                const blocked = JSON.parse(element.getAttribute('data-blocked')) || [];
+                const form = element.closest('form');
+                const startInput = form.querySelector('.start-date-input');
+                const endInput = form.querySelector('.end-date-input');
+                const calcWrapper = document.getElementById('modalPriceCalculation');
+                const calcDays = document.getElementById('modalCalcDays');
+                const calcTotalBase = document.getElementById('modalCalcTotalBase');
+                const calcFinalTotal = document.getElementById('modalCalcFinalTotal');
 
-                        // Show calculation
-                        document.getElementById('calcDays').innerText = `${diffDays} dni x ${pricePerDay}€`;
-                        document.getElementById('calcTotalBase').innerText = `${total.toFixed(2)}€`;
-                        document.getElementById('calcFinalTotal').innerText = `${total.toFixed(2)}€`;
-                        document.getElementById('priceCalculation').classList.remove('d-none');
+                flatpickr(element, {
+                    mode: 'range', dateFormat: 'Y-m-d', minDate: 'today', disable: blocked, locale: { firstDayOfWeek: 1 },
+                    onChange: function(selectedDates, dateStr, instance) {
+                        if (selectedDates.length === 2) {
+                            const start = selectedDates[0];
+                            const end = selectedDates[1];
+
+                            startInput.value = instance.formatDate(start, 'Y-m-d');
+                            endInput.value = instance.formatDate(end, 'Y-m-d');
+
+                            const diffTime = Math.abs(end - start);
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                            const total = diffDays * pricePerDay;
+
+                            if (calcWrapper) {
+                                calcDays.innerText = `${diffDays} dni x ${pricePerDay}€`;
+                                calcTotalBase.innerText = `${total.toFixed(2)}€`;
+                                calcFinalTotal.innerText = `${total.toFixed(2)}€`;
+                                calcWrapper.classList.remove('d-none');
+                            }
+                        }
                     }
-                }
+                });
             });
         });
     </script>

@@ -1,0 +1,47 @@
+@model RentMate.Models.Item
+@using System.Text.Json
+@{
+    var blockedDates = (Model.Rentals ?? Enumerable.Empty<RentMate.Models.Rental>())
+        .Where(r => r.Status == RentMate.Models.RentalStatus.Active || r.Status == RentMate.Models.RentalStatus.Pending)
+        .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
+        .ToList();
+    var jsonBlocked = blockedDates != null && blockedDates.Any() ? JsonSerializer.Serialize(blockedDates) : "[]";
+}
+
+<div class="modal fade" id="rentModal-@Model.Id" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Rezervacija: @Model.Title</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-controller="Rentals" asp-action="RequestRental" method="post" data-price="@Model.Price?.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                <div class="modal-body">
+                    <input type="hidden" name="itemId" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Izberite termin</label>
+                        <input type="text" class="form-control rent-daterange-picker" placeholder="Klikni za izbiro datuma..." data-blocked='@jsonBlocked' required />
+                        <input type="hidden" name="startDate" class="start-date-input" />
+                        <input type="hidden" name="endDate" class="end-date-input" />
+                    </div>
+
+                    <div id="modalPriceCalculation-@Model.Id" class="d-none mb-3 bg-light p-3 rounded small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span id="modalCalcDays-@Model.Id">0 dni x @Model.Price €</span>
+                            <span id="modalCalcTotalBase-@Model.Id">0 €</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-bold border-top pt-2 mt-2">
+                            <span>Skupaj</span>
+                            <span id="modalCalcFinalTotal-@Model.Id">0 €</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Prekliči</button>
+                    <button type="submit" class="btn btn-success fw-bold">Potrdi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
