@@ -122,7 +122,7 @@
                                             }
                                             else
                                             {
-                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill">Skrito</span>
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">Skrito</span>
                                             }
                                         </td>
                                         <td>
@@ -340,8 +340,8 @@
                                         </td>
                                         <td>
                                             @if(rental.Status == RentalStatus.Pending) { <span class="badge bg-warning text-dark">Čaka odobritev</span> }
-                                            else if(rental.Status == RentalStatus.Active) { <span class="badge bg-success">V teku</span> }
-                                            else if(rental.Status == RentalStatus.Completed) { <span class="badge bg-secondary">Vrnjeno</span> }
+                                            else if(rental.Status == RentalStatus.Active) { <span class="badge bg-secondary">V teku</span> }
+                                            else if(rental.Status == RentalStatus.Completed) { <span class="badge bg-success">Vrnjeno</span> }
                                             else { <span class="badge bg-danger">Preklicano</span> }
                                         </td>
                                         <td class="text-end pe-4">
@@ -666,7 +666,7 @@
             showToast(`✅ ${toastMessage}`, color);
         }
 
-        // --- Toggle listing stays same as before ---
+        // --- Toggle listing: only update badge content and button icon (do not touch table/row classes) ---
         async function toggleListing(itemId, button) {
             try {
                 const res = await fetch(`/Items/ToggleListing/${itemId}`, { method: "POST" });
@@ -678,25 +678,30 @@
                 const isListed = data.isListed === true || data.isListed === "true";
 
                 if (data.success) {
-                    if (isListed) {
-                        button.classList.remove("btn-success");
-                        button.classList.add("btn-warning");
-                        button.textContent = "Unlist";
+                    // update button classes (keep layout classes intact)
+                    button.classList.toggle("btn-success", !isListed);
+                    button.classList.toggle("btn-warning", isListed);
 
-                        if (listedCell) listedCell.textContent = "✅";
-
-                        showToast("✅ Item listed successfully!", "success");
-                        row.classList.add("flash");
-                        setTimeout(() => row.classList.remove("flash"), 1000);
+                    // update icon inside button (don't replace whole button text)
+                    const icon = button.querySelector('i');
+                    if (icon) {
+                        icon.className = isListed ? 'bi bi-eye-slash' : 'bi bi-eye';
                     } else {
-                        button.classList.remove("btn-warning");
-                        button.classList.add("btn-success");
-                        button.textContent = "List";
-
-                        if (listedCell) listedCell.textContent = "❌";
-
-                        showToast("🔕 Item unlisted.", "secondary");
+                        button.innerHTML = isListed ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
                     }
+
+                    // replace only the inner HTML of the status cell with a proper badge
+                    if (listedCell) {
+                        if (isListed) {
+                            listedCell.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2">Objavljeno</span>';
+                        } else {
+                            listedCell.innerHTML = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2">Skrito</span>';
+                        }
+                    }
+
+                    showToast(isListed ? "✅ Item listed successfully!" : "🔕 Item unlisted.", isListed ? "success" : "secondary");
+                    row.classList.add("flash");
+                    setTimeout(() => row.classList.remove("flash"), 1000);
                 } else {
                     showToast("❌ Could not update listing status.", "danger");
                 }

@@ -11,6 +11,8 @@
   href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
   crossorigin="anonymous"
   referrerpolicy="no-referrer">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/RentMate.styles.css" asp-append-version="true" />
 </head>
@@ -56,7 +58,12 @@
                             <span id="connectionIndicator" class="badge bg-secondary">Offline</span>
                         </li>
                     </ul>
-                    <div><partial name="_LoginPartial" /></div>
+                    <div class="d-flex align-items-center">
+                        <button id="themeToggle" class="btn btn-sm btn-outline-secondary me-2" aria-label="Toggle theme">
+                            <i id="themeIcon" class="bi bi-moon-fill"></i>
+                        </button>
+                        <partial name="_LoginPartial" />
+                    </div>
                 </div>
             </div>
         </nav>
@@ -75,6 +82,7 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <!-- Load SignalR client BEFORE per-page scripts so pages can use `signalR` in their Scripts section -->
