@@ -1,10 +1,9 @@
-﻿namespace RentMateMobile
+﻿namespace RentMateMobile;
+
+public partial class MainPage : ContentPage
 {
-    public partial class MainPage : ContentPage
-    {
-        public MainPage()
-        {
-            InitializeComponent();
-        }
-    }
+	public MainPage()
+	{
+		InitializeComponent();
+	}
 }
