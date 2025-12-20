@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using RentMate.Models;
+using RentMate.Shared;
 using RentMate.Models.Auth; // adjust namespace to your DTOs
 
 

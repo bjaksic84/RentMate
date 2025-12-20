@@ -13,7 +13,16 @@ public static class MauiProgram
 			{
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 			});
+		// Ustvari HttpClient s podporo za piškotke in ignoriranjem SSL napak za razvoj
+		var handler = new HttpClientHandler {
+			ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true,
+			UseCookies = true,
+			CookieContainer = new System.Net.CookieContainer()
+		};
 
+		builder.Services.AddSingleton(new HttpClient(handler) { 
+			BaseAddress = new Uri("http://10.0.2.2:5276/") 
+		});
 		builder.Services.AddMauiBlazorWebView();
 
 #if DEBUG

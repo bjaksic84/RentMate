@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
+using RentMate.Shared;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -32,7 +33,7 @@ namespace RentMate.Controllers
 
         // --- ADMIN DASHBOARD ---
         [Authorize(Roles = "Admin")]
-        public IActionResult AdminDashboard()
+        public async Task<IActionResult> AdminDashboard()
         {
             var viewModel = new DashboardViewModel
             {
@@ -42,17 +43,23 @@ namespace RentMate.Controllers
                 TotalRentals = _context.Rentals.Count(),
                 ActiveRentals = _context.Rentals.Count(r => r.Status == RentalStatus.Active),
 
-                Users = _userManager.Users.ToList(),
-                Listings = _context.Items
+                // Izračun prihodkov (če uporabljaš mock Payment sistem)
+                TotalRevenue = await _context.Payments
+                    .Where(p => p.Status == PaymentStatus.Success)
+                    .SumAsync(p => p.Amount),
+
+                Users = await _userManager.Users.Take(10).ToListAsync(),
+                Listings = await _context.Items
                     .Include(i => i.User)
                     .OrderByDescending(i => i.CreatedAt)
-                    .ToList(),
-                Rentals = _context.Rentals
+                    .Take(10).ToListAsync(),
+                
+                Rentals = await _context.Rentals
                     .Include(r => r.Item)
                     .Include(r => r.Renter)
                     .Include(r => r.Owner)
                     .OrderByDescending(r => r.CreatedAt)
-                    .ToList()
+                    .Take(10).ToListAsync()
             };
 
             return View(viewModel);

@@ -11,6 +11,11 @@ namespace RentMate.Models
         public int TotalRentals { get; set; }
         public int ActiveRentals { get; set; }
 
+        // NOVO: Finančni podatki za Admina
+        public decimal TotalRevenue { get; set; }
+        public decimal MonthlyRevenue { get; set; }
+        public List<Payment>? RecentPayments { get; set; }
+
         // Shared lists used by admin or debugging
         public List<ApplicationUser>? Users { get; set; }
         public List<Item>? Listings { get; set; }

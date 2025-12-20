@@ -1,0 +1,67 @@
+@page "/items"
+@using RentMate.Shared
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>Razpoložljiva oprema</h4>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="LoadItems">
+            <i class="fas fa-sync"></i> Osveži
+        </button>
+    </div>
+
+    @if (items == null)
+    {
+        <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p>Nalagam predmete...</p>
+        </div>
+    }
+    else if (!items.Any())
+    {
+        <div class="alert alert-info">Trenutno ni nobenih predmetov za najem.</div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var item in items)
+            {
+                <div class="col-12 col-md-6">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">@item.Title</h5>
+                            <p class="card-text text-muted small">@item.Description</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-success">@item.Price € / dan</span>
+                                <button class="btn btn-primary btn-sm">Najemi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Item>? items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadItems();
+    }
+
+    private async Task LoadItems()
+    {
+        try
+        {
+            // Pokliče tvoj ItemsApiController.cs -> GetItems()
+            items = await Http.GetFromJsonAsync<List<Item>>("api/itemsapi");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Napaka pri nalaganju: {ex.Message}");
+        }
+    }
+}

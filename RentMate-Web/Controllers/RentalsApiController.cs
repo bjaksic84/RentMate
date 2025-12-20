@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace RentMate.Controllers
 {
@@ -10,12 +11,14 @@ namespace RentMate.Controllers
     public class RentalsApiController : ControllerBase
     {
         private readonly RentMateContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public RentalsApiController(RentMateContext context)
+        public RentalsApiController(RentMateContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
-
+        
         // GET: api/Rentals
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Rental>>> GetRentals()
@@ -87,6 +90,15 @@ namespace RentMate.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+        [HttpGet("my-rentals")]
+        public async Task<ActionResult<IEnumerable<Rental>>> GetMyRentals()
+        {
+            var userId = _userManager.GetUserId(User);
+            return await _context.Rentals
+                .Include(r => r.Item)
+                .Where(r => r.RenterId == userId)
+                .ToListAsync();
         }
     }
 }

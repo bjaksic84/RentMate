@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Models;
+using RentMate.Shared;
 
 namespace RentMate.Data
 {
@@ -9,9 +10,11 @@ namespace RentMate.Data
         public RentMateContext(DbContextOptions<RentMateContext> options)
             : base(options) { }
 
-        public DbSet<Item> Items { get; set; }
-        public DbSet<Rental> Rentals { get; set; }
-        public DbSet<Review> Reviews { get; set; }
+        public DbSet<RentMate.Models.Item> Items { get; set; }
+        public DbSet<RentMate.Models.Rental> Rentals { get; set; }
+        public DbSet<RentMate.Models.Review> Reviews { get; set; }
+
+        public DbSet<RentMate.Models.Payment> Payments { get; set; } // NOVO
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,14 +42,14 @@ namespace RentMate.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             // 🔹 Item → Rentals
-            modelBuilder.Entity<Item>()
+            modelBuilder.Entity<RentMate.Models.Item>()
                 .HasMany(i => i.Rentals)
                 .WithOne(r => r.Item)
                 .HasForeignKey(r => r.ItemId)
                 .OnDelete(DeleteBehavior.Cascade); // Delete item => delete associated rentals
 
             // Item → Reviews relationship
-            modelBuilder.Entity<Item>()
+            modelBuilder.Entity<RentMate.Models.Item>()
                 .HasMany(i => i.Reviews)
                 .WithOne(r => r.Item)
                 .HasForeignKey(r => r.ItemId)
@@ -54,13 +57,13 @@ namespace RentMate.Data
 
             // ApplicationUser → Reviews
             modelBuilder.Entity<ApplicationUser>()
-                .HasMany<Review>()
+                .HasMany<RentMate.Models.Review>()
                 .WithOne(r => r.Reviewer)
                 .HasForeignKey(r => r.ReviewerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // 🔹 Configure Rental entity
-            modelBuilder.Entity<Rental>(entity =>
+            modelBuilder.Entity<RentMate.Models.Rental>(entity =>
             {
                 entity.Property(r => r.TotalPrice)
                       .HasColumnType("decimal(10,2)");
@@ -68,13 +71,32 @@ namespace RentMate.Data
                 entity.Property(r => r.Status)
                       .HasConversion<string>(); // store enum as string for readability
             });
+
+            // 🔹 Konfiguracija za Payment
+            modelBuilder.Entity<RentMate.Models.Payment>(entity =>
+            {
+                entity.Property(p => p.Amount)
+                      .HasColumnType("decimal(18,2)"); // Nujno za denarne vrednosti
+
+                // Povezava Payment -> User
+                entity.HasOne(p => p.User)
+                      .WithMany()
+                      .HasForeignKey(p => p.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                // Povezava Payment -> Rental
+                entity.HasOne(p => p.Rental)
+                      .WithMany()
+                      .HasForeignKey(p => p.RentalId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
             // Review indexes for performance
-            modelBuilder.Entity<Review>()
+            modelBuilder.Entity<RentMate.Models.Review>()
                 .HasIndex(r => new { r.ItemId, r.IsDeleted });
-            modelBuilder.Entity<Review>()
+            modelBuilder.Entity<RentMate.Models.Review>()
                 .HasIndex(r => r.ReviewerId);
 
-            modelBuilder.Entity<Review>()
+            modelBuilder.Entity<RentMate.Models.Review>()
                 .Property(r => r.Rating)
                 .HasDefaultValue(5);
 

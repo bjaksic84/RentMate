@@ -1,40 +1,16 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-
+// RentMate-Web/Models/Item.cs
+using RentMate.Shared;
 
 namespace RentMate.Models
 {
-    public enum RentalStatus { Pending, Active, Completed, Cancelled }
-
-    public class Rental
-{
-    public int Id { get; set; }
-
-    // Item being rented
-    public int ItemId { get; set; }
-    public Item? Item { get; set; }
-
-    // Person renting (borrowing)
-    public string RenterId { get; set; } = string.Empty;
-    public ApplicationUser? Renter { get; set; }
-
-    // Person renting out (owner)
-    public string? OwnerId { get; set; } = string.Empty;
-    public ApplicationUser? Owner { get; set; }
-
-    [DataType(DataType.Date)]
-    public DateTime StartDate { get; set; }
-
-    [DataType(DataType.Date)]
-    public DateTime EndDate { get; set; }
-
-    public RentalStatus Status { get; set; } = RentalStatus.Pending;
-
-    [Column(TypeName = "decimal(10,2)")]
-    public decimal TotalPrice { get; set; }
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? UpdatedAt { get; set; }
-}
-
+    // Ta Item je "nadgradnja" Shared Itema za potrebe baze
+    public class Rental : RentMate.Shared.Rental
+    {
+        // Ta vrstica zdaj omogoča Entity Frameworku, da poveže tabelo
+        public virtual ApplicationUser? Owner { get; set; }
+        
+        public virtual ApplicationUser? Renter { get; set; }
+        public virtual Item? Item { get; set; }
+        
+    }
 }

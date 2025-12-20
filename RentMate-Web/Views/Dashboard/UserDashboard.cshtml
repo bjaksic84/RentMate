@@ -1,4 +1,5 @@
 ﻿@model RentMate.Models.DashboardViewModel
+@using RentMate.Shared;
 @{
     ViewData["Title"] = "Nadzorna plošča";
 }
@@ -220,17 +221,17 @@
                                             @rental.TotalPrice.ToString("C2", new System.Globalization.CultureInfo("de-DE"))
                                         </td>
                                         <td>
-                                            @if (rental.Status == RentMate.Models.RentalStatus.Pending)
+                                            @if (rental.Status == RentMate.Shared.RentalStatus.Pending)
                                             { <span class="badge bg-warning text-dark">Čaka potrditev</span> }
-                                            else if (rental.Status == RentMate.Models.RentalStatus.Active)
+                                            else if (rental.Status == RentMate.Shared.RentalStatus.Active)
                                             { <span class="badge bg-primary">Aktivno</span> }
-                                            else if (rental.Status == RentMate.Models.RentalStatus.Completed)
+                                            else if (rental.Status == RentMate.Shared.RentalStatus.Completed)
                                             { <span class="badge bg-success">Zaključeno</span> }
                                             else
                                             { <span class="badge bg-danger">Preklicano</span> }
                                         </td>
                                         <td class="text-end pe-4">
-                                            @if (rental.Status == RentMate.Models.RentalStatus.Pending)
+                                            @if (rental.Status == RentMate.Shared.RentalStatus.Pending)
                                             {
                                                 <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="d-inline">
                                                     <input type="hidden" name="rentalId" value="@rental.Id" />
@@ -241,7 +242,7 @@
                                                     <button class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x-lg"></i> Zavrni</button>
                                                 </form>
                                             }
-                                            else if (rental.Status == RentMate.Models.RentalStatus.Active)
+                                            else if (rental.Status == RentMate.Shared.RentalStatus.Active)
                                             {
                                                 <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
                                                     <input type="hidden" name="rentalId" value="@rental.Id" />

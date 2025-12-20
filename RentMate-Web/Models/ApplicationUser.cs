@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using RentMate.Shared;
 
 namespace RentMate.Models;
 

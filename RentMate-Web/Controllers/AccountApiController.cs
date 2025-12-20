@@ -1,0 +1,46 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using RentMate.Models;
+
+[Route("api/[controller]")]
+[ApiController]
+public class AccountApiController : ControllerBase
+{
+    private readonly SignInManager<ApplicationUser> _signInManager;
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public AccountApiController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+    {
+        _signInManager = signInManager;
+        _userManager = userManager;
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginModel model)
+    {
+        var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, isPersistent: true, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            var user = await _userManager.FindByEmailAsync(model.Email);
+            return Ok(new { UserId = user.Id, UserName = user.UserName, Email = user.Email });
+        }
+        return Unauthorized("Napačni podatki za prijavo.");
+    }
+
+    [HttpGet("currentuser")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+        return Ok(new { user.Id, user.UserName, user.Email });
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        await _signInManager.SignOutAsync();
+        return Ok();
+    }
+}
+
+public class LoginModel { public string? Email { get; set; } public string? Password { get; set; } }

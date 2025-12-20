@@ -6,6 +6,7 @@ using RentMate.Data;
 using RentMate.Models;
 using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
+using RentMate.Shared;
 
 namespace RentMate.Controllers
 {
@@ -152,7 +153,7 @@ namespace RentMate.Controllers
             int rentalDays = Math.Max((endDate.Date - startDate.Date).Days, 1);
             decimal totalPrice = (item.Price ?? 0) * rentalDays;
 
-            var rental = new Rental
+            var rental = new RentMate.Models.Rental
             {
                 ItemId = item.Id,
                 OwnerId = item.UserId ?? string.Empty,

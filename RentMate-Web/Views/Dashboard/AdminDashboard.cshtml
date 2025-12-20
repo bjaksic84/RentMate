@@ -1,48 +1,117 @@
 ﻿@model RentMate.Models.DashboardViewModel
+@using RentMate.Shared;
 @{
-    ViewData["Title"] = "Admin Dashboard";
+    ViewData["Title"] = "Admin Nadzorna Plošča";
 }
 
+<div class="container-fluid px-4 mt-4">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Pregled sistema</h1>
+        <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-download fa-sm text-white-50"></i> Izvozi poročilo
+        </a>
+    </div>
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Admin Dashboard</h2>
-    
-    <div class="row g-3">
-        <div class="col-md-3">
-            <div class="card shadow-sm text-center p-3">
-                <h6 class="text-muted">Total users</h6>
-                <h3>@Model?.TotalUsers</h3>
-                <p class="mb-0">Manage roles and user accounts</p>
-                <a asp-controller="Users" asp-action="Index" class="btn btn-sm btn-primary mt-2">Manage Users</a>
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Uporabniki</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
+                    <a asp-controller="Users" asp-action="Index" class="btn btn-link btn-sm p-0 mt-2">Upravljaj</a>
+                </div>
             </div>
         </div>
 
-        <div class="col-md-3">
-            <div class="card shadow-sm text-center p-3">
-                <h6 class="text-muted">Total listings</h6>
-                <h3>@Model?.TotalListings</h3>
-                <p class="mb-0">All listings posted by users</p>
-                <a asp-controller="Listings" asp-action="Index" class="btn btn-sm btn-primary mt-2">View Listings</a>
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Skupaj prihodkov</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalRevenue.ToString("C")</div>
+                </div>
             </div>
         </div>
-        
-        <div class="col-md-3">
-            <div class="card shadow-sm text-center p-3">
-                <h6 class="text-muted">Active listings</h6>
-                <h3>@Model?.ActiveListings</h3>
-                <p class="mb-0">Currently available</p>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Aktivni oglasi</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveListings</div>
+                </div>
             </div>
         </div>
-        
-        <div class="col-md-3">
-            <div class="card shadow-sm text-center p-3">
-                <h6 class="text-muted">Total rentals</h6>
-                <h3>@Model?.TotalRentals</h3>
-                <p class="mb-0">Completed / active rentals</p>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">V teku</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveRentals</div>
+                </div>
             </div>
         </div>
-        
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Zadnji najemi</h6>
+                    <a href="/Rentals" class="btn btn-sm btn-outline-primary">Vsi najemi</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Predmet</th>
+                                    <th>Najemnik</th>
+                                    <th>Datum</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (RentMate.Models.Rental rental in Model.Rentals ?? new List<RentMate.Models.Rental>())
+                                {
+                                    <tr>
+                                        <td>@rental.Item?.Title</td>
+                                        <td>@rental.Renter?.Email</td>
+                                        <td>@rental.CreatedAt.ToString("dd. MM. yyyy")</td>
+                                        <td>
+                                            <span class="badge @(rental.Status == RentalStatus.Active ? "bg-success" : "bg-secondary")">
+                                                @rental.Status
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Novi uporabniki</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        @foreach (var user in Model.Users ?? new List<ApplicationUser>())
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold">@user.UserName</span><br />
+                                    <small class="text-muted">@user.Email</small>
+                                </div>
+                                <a asp-controller="Users" asp-action="Index" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-user-cog"></i> Upravljaj
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
-

@@ -1,0 +1,63 @@
+@page "/login"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="container mt-5">
+    <div class="card shadow-sm p-4">
+        <h2 class="text-center mb-4">Prijava v RentMate</h2>
+        
+        <div class="mb-3">
+            <label>Email</label>
+            <input @bind="loginModel.Email" class="form-control" placeholder="ime@primer.com" />
+        </div>
+
+        <div class="mb-3">
+            <label>Geslo</label>
+            <input @bind="loginModel.Password" type="password" class="form-control" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <button class="btn btn-primary w-100" @onclick="HandleLogin" disabled="@isLoggingIn">
+            @if (isLoggingIn) { <span>Prijavljam...</span> } else { <span>Prijava</span> }
+        </button>
+    </div>
+</div>
+
+@code {
+    private LoginDto loginModel = new();
+    private string? errorMessage;
+    private bool isLoggingIn;
+
+    private async Task HandleLogin()
+    {
+        isLoggingIn = true;
+        errorMessage = null;
+
+        try 
+        {
+            // Port 7280 glede na tvoj launchSettings.json
+            var response = await Http.PostAsJsonAsync("api/accountapi/login", loginModel);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/items"); // Preusmeritev po uspešni prijavi
+            }
+            else
+            {
+                errorMessage = "Prijava ni uspela. Preveri podatke.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Napaka pri povezavi: " + ex.Message;
+        }
+        finally { isLoggingIn = false; }
+    }
+
+    public class LoginDto { public string? Email { get; set; } public string? Password { get; set; } }
+}

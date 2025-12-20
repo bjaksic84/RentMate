@@ -1,4 +1,4 @@
-﻿namespace RentMate.Models.Auth
+﻿namespace RentMate.Shared
 {
     public class LoginDto
     {

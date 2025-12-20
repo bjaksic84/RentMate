@@ -1,39 +1,50 @@
 ﻿@model IEnumerable<RentMate.Models.ApplicationUser>
-
 @{
-    ViewData["Title"] = "User Management";
+    ViewData["Title"] = "Upravljanje uporabnikov";
 }
 
-
-
-<div class="container mt-5">
-    <h2 class="mb-4 text-center">User Management</h2>
-
-    <table class="table table-bordered table-hover align-middle text-center">
-        <thead class="table-dark">
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Roles</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="usersTable">
-            @foreach (var user in Model)
-            {
-                <tr data-user-id="@user.Id">
-                    <td>@user.UserName</td>
-                    <td>@user.Email</td>
-                    <td class="user-roles text-muted">Loading...</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="openRoleModal('@user.Id', '@user.UserName')">
-                            Manage Roles
-                        </button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+<div class="container-fluid px-4 mt-4">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center bg-dark text-white">
+            <h6 class="m-0 font-weight-bold">Seznam vseh uporabnikov</h6>
+            <div class="input-group w-25">
+                <input type="text" id="userSearch" class="form-control form-control-sm" placeholder="Išči uporabnika...">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Uporabniško ime</th>
+                            <th>Email</th>
+                            <th>Vloge</th>
+                            <th class="text-end">Akcije</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTable">
+                        @foreach (var user in Model)
+                        {
+                            <tr data-user-id="@user.Id">
+                                <td><span class="fw-bold">@user.UserName</span></td>
+                                <td>@user.Email</td>
+                                <td class="user-roles"><span class="badge bg-light text-dark">Nalaganje...</span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-sm btn-primary" onclick="openRoleModal('@user.Id', '@user.UserName')">
+                                        <i class="fas fa-shield-alt"></i> Vloge
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="confirmDelete('@user.Id', '@user.UserName')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Bootstrap Modal -->
@@ -69,6 +80,31 @@ let modalInstance = null;
 document.addEventListener("DOMContentLoaded", async () => {
     await loadRolesForAllUsers();
     modalInstance = new bootstrap.Modal(document.getElementById('roleModal'));
+});
+
+// Dodaj k obstoječim skriptam [cite: 12-22]
+async function confirmDelete(userId, userName) {
+    if (confirm(`Ali ste prepričani, da želite izbrisati uporabnika ${userName}? To dejanje je nepovratno.`)) {
+        const res = await fetch(`/api/UsersApi/${userId}`, {
+            method: "DELETE"
+        });
+
+        if (res.ok) {
+            // Odstrani vrstico iz tabele brez ponovnega nalaganja strani
+            document.querySelector(`tr[data-user-id="${userId}"]`).remove();
+        } else {
+            const error = await res.text();
+            alert("Napaka pri brisanju: " + error);
+        }
+    }
+}
+
+// Enostavno iskanje po tabeli
+document.getElementById("userSearch").addEventListener("keyup", function() {
+    let value = this.value.toLowerCase();
+    document.querySelectorAll("#usersTable tr").forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+    });
 });
 
 async function loadRolesForAllUsers() {

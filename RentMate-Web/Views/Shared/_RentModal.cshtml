@@ -2,7 +2,7 @@
 @using System.Text.Json
 @{
     var blockedDates = (Model.Rentals ?? Enumerable.Empty<RentMate.Models.Rental>())
-        .Where(r => r.Status == RentMate.Models.RentalStatus.Active || r.Status == RentMate.Models.RentalStatus.Pending)
+        .Where(r => r.Status == RentMate.Shared.RentalStatus.Active || r.Status == RentMate.Shared.RentalStatus.Pending)
         .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
         .ToList();
     var jsonBlocked = blockedDates != null && blockedDates.Any() ? JsonSerializer.Serialize(blockedDates) : "[]";
