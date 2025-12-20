@@ -1,0 +1,55 @@
+﻿@page "/add-item"
+@using RentMate.Shared
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="container pb-5">
+    <h3 class="my-4 fw-bold">Oddaj opremo</h3>
+
+    <div class="card border-0 shadow-sm p-4">
+        <div class="mb-3">
+            <label class="form-label fw-bold">Naziv predmeta</label>
+            <input @bind="newItem.Title" class="form-control" placeholder="npr. Gorsko kolo" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Opis</label>
+            <textarea @bind="newItem.Description" class="form-control" rows="3" placeholder="Opišite stanje in lastnosti..."></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Cena na dan (€)</label>
+            <input @bind="newItem.Price" type="number" class="form-control" />
+        </div>
+
+        <button class="btn btn-primary w-100 mt-3 py-3" @onclick="SaveItem" disabled="@isSaving">
+            @if (isSaving)
+            {
+                <span>Shranjujem...</span>
+            }
+            else
+            {
+
+                <span>Objavi oglas</span>
+            }
+        </button>
+    </div>
+</div>
+
+@code {
+    private RentMate.Shared.Item newItem = new();
+    private bool isSaving;
+
+    async Task SaveItem()
+    {
+        isSaving = true;
+        try
+        {
+            // Kliče tvoj ItemsApiController
+            var response = await Http.PostAsJsonAsync("api/itemsapi", newItem);
+            if (response.IsSuccessStatusCode) Nav.NavigateTo("marketplace");
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+        finally { isSaving = false; }
+    }
+}

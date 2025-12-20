@@ -1,5 +1,14 @@
-﻿html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+﻿:root {
+    --primary-blue: #006ce4; /* Booking.com blue */
+    --accent-red: #ff385c; /* Airbnb red */
+    --bg-gray: #f7f7f7;
+    --text-dark: #222222;
+    --card-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+html, body {
+    background-color: var(--bg-gray);
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text-dark);
 }
 
 a, .btn-link {
@@ -7,9 +16,11 @@ a, .btn-link {
 }
 
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: var(--primary-blue);
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-weight: 600;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
@@ -83,4 +94,132 @@ h1:focus {
     .flex-column, .navbar-brand {
         padding-left: env(safe-area-inset-left);
     }
+}
+/* Kartica predmeta (Marketplace) */
+.item-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s;
+}
+
+    .item-card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+    }
+
+.item-card-body {
+    padding: 15px;
+}
+
+.item-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 5px;
+}
+
+.item-price {
+    font-weight: 700;
+    color: var(--primary-blue);
+}
+/* Spodnja navigacija */
+.bottom-nav {
+    background-color: white !important;
+    border-top: 1px solid #ebebeb !important;
+}
+/* Statistične kartice za Dashboard */
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    text-align: center;
+    border: 1px solid #f0f0f0;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--primary-blue);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Profilni avatar */
+.profile-avatar {
+    width: 100px;
+    height: 100px;
+    background: #f0f0f0;
+    border-radius: 50%;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Izboljšani obrazci */
+.form-control {
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid #ddd;
+}
+
+    .form-control:focus {
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 0.2rem rgba(0, 108, 228, 0.1);
+    }
+/* Zavihki za najeme */
+.rental-tabs {
+    display: flex;
+    gap: 10px;
+    background: #eee;
+    padding: 5px;
+    border-radius: 12px;
+}
+
+    .rental-tabs .btn {
+        flex: 1;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+/* Kartice najemov */
+.rental-card {
+    transition: transform 0.1s;
+}
+
+    .rental-card:active {
+        transform: scale(0.98);
+    }
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.status-dot {
+    height: 10px;
+    width: 10px;
+    background-color: #bbb;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+    .status-dot.active {
+        background-color: #28a745;
+        box-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+    }
+
+.rounded-4 {
+    border-radius: 1rem !important;
 }

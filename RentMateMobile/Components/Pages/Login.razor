@@ -1,6 +1,8 @@
 @page "/login"
+@layout RentMateMobile.Components.Layout.EmptyLayout
 @using System.Net.Http.Json
 @inject HttpClient Http
+@inject RentMateMobile.Services.AuthService Auth
 @inject NavigationManager Nav
 
 <div class="container mt-5">
@@ -40,12 +42,14 @@
 
         try 
         {
-            // Port 7280 glede na tvoj launchSettings.json
-            var response = await Http.PostAsJsonAsync("api/accountapi/login", loginModel);
+            
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
             
             if (response.IsSuccessStatusCode)
             {
-                Nav.NavigateTo("/items"); // Preusmeritev po uspešni prijavi
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                await Auth.SaveToken(result.Token);
+                Nav.NavigateTo("marketplace"); // Po prijavi gremo na glavno stran
             }
             else
             {
@@ -60,4 +64,5 @@
     }
 
     public class LoginDto { public string? Email { get; set; } public string? Password { get; set; } }
+    public class LoginResponse { public string Token { get; set; } = ""; }
 }

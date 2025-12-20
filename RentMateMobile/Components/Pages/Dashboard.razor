@@ -1,0 +1,55 @@
+﻿@page "/dashboard"
+@using RentMate.Shared
+@inject HttpClient Http
+
+<div class="container pb-5">
+    <h3 class="my-4 fw-bold">Tvoj pregled</h3>
+
+    @if (stats == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-6">
+                <div class="stat-card">
+                    <span class="stat-value">@stats.TotalListingsOwned</span>
+                    <span class="stat-label">Moja oprema</span>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="stat-card">
+                    <span class="stat-value">@stats.ActiveRentalsAsRenter</span>
+                    <span class="stat-label">V najemu</span>
+                </div>
+            </div>
+
+            <div class="col-12 mt-4">
+                <h5 class="fw-bold mb-3">Zadnje aktivnosti</h5>
+                <div class="list-group shadow-sm">
+                    <div class="list-group-item border-0 py-3">
+                        <i class="oi oi-info text-primary me-2"></i>
+                        Imate @stats.ActiveRentalsAsOwner aktivnih izposoj vaše opreme.
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private dynamic? stats; // Tukaj uporabi svoj DashboardViewModel, če ga imaš v Shared
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Predvidevamo, da imaš ta endpoint v DashboardControllerju
+            stats = await Http.GetFromJsonAsync<dynamic>("api/dashboard/userdashboard");
+        }
+        catch (Exception ex) { Console.WriteLine(ex.Message); }
+    }
+}

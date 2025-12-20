@@ -1,0 +1,55 @@
+﻿@page "/marketplace"
+@using RentMate.Shared
+@inject HttpClient Http
+
+<div class="container pb-5">
+    <h3 class="my-4 fw-bold">Razišči opremo</h3>
+
+    @if (items == null)
+    {
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var item in items)
+            {
+                <div class="col-12">
+                    <div class="item-card">
+                        @* Tukaj bi prišla slika, za zdaj placeholder *@
+                        <div style="height:200px; background:#ddd; display:flex; align-items:center; justify-content:center;">
+                            <i class="oi oi-image" style="font-size:3rem; color:#aaa;"></i>
+                        </div>
+                        <div class="item-card-body">
+                            <div class="d-flex justify-content-between">
+                                <span class="item-title">@item.Title</span>
+                                <span class="item-price">@item.Price € / dan</span>
+                            </div>
+                            <p class="text-muted small">@item.Description</p>
+                            <button class="btn btn-outline-primary btn-sm w-100">Podrobnosti</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<RentMate.Shared.ItemDto>? items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Kliče tvoj ItemsApiController
+            items = await Http.GetFromJsonAsync<List<RentMate.Shared.ItemDto>>("api/itemsapi");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Napaka pri nalaganju: {ex.Message}");
+        }
+    }
+}

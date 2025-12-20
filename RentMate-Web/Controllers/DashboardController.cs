@@ -120,6 +120,50 @@ namespace RentMate.Controllers
 
             return View(viewModel);
         }
+        // Dodaj te metode v DashboardController.cs
+
+        [HttpGet("api/dashboard/userdashboard")]
+        [Authorize] // JWT bo poskrbel za identiteto uporabnika prek NameIdentifier zahtevka
+        public async Task<IActionResult> GetUserDashboardApi()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            var userItemsCount = await _context.Items.CountAsync(i => i.UserId == user.Id);
+            var renterRentalsCount = await _context.Rentals.CountAsync(r => r.RenterId == user.Id);
+            var ownerRentalsCount = await _context.Rentals.CountAsync(r => r.OwnerId == user.Id);
+
+            // Vrnemo preprost objekt, ki ga Dashboard.razor pričakuje
+            return Ok(new
+            {
+                TotalListingsOwned = userItemsCount,
+                ActiveRentalsAsRenter = renterRentalsCount,
+                ActiveRentalsAsOwner = ownerRentalsCount
+            });
+        }
+
+        [HttpGet("api/dashboard/myrentals")]
+        [Authorize]
+        public async Task<IActionResult> GetMyRentalsApi()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            var myRentals = await _context.Rentals
+                .Include(r => r.Item)
+                .Where(r => r.RenterId == user.Id)
+                .OrderByDescending(r => r.StartDate)
+                .Select(r => new {
+                    ItemTitle = r.Item.Title,
+                    StartDate = r.StartDate,
+                    EndDate = r.EndDate,
+                    TotalPrice = r.TotalPrice, // Preveri, če je v bazi TotalAmount ali Price
+                    IsActive = r.Status == RentalStatus.Active
+                })
+                .ToListAsync();
+
+            return Ok(myRentals);
+        }
 
     }
 }

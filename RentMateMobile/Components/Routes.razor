@@ -1,6 +1,18 @@
-﻿<Router AppAssembly="@typeof(MauiProgram).Assembly">
+﻿@inject RentMateMobile.Services.AuthService Auth
+@inject NavigationManager Nav
+<Router AppAssembly="@typeof(MauiProgram).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
 </Router>
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Če ni žetona, uporabnika takoj pošljemo na /login
+        if (!await Auth.IsAuthenticated())
+        {
+            Nav.NavigateTo("login");
+        }
+    }
+}

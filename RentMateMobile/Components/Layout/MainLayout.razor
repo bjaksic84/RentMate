@@ -1,17 +1,37 @@
 ﻿@inherits LayoutComponentBase
+@inject RentMateMobile.Services.AuthService Auth
+@inject NavigationManager Nav
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
-
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+        <div class="top-bar">
+            <span class="brand">RentMate</span>
         </div>
 
         <article class="content px-4">
             @Body
         </article>
+
+        <nav class="bottom-nav">
+            <NavLink class="nav-link" href="marketplace" Match="NavLinkMatch.All">
+                <i class="oi oi-shop"></i>
+                <span>Tržnica</span>
+            </NavLink>
+            <NavLink class="nav-link" href="dashboard">
+                <i class="oi oi-dashboard"></i>
+                <span>Pregled</span>
+            </NavLink>
+            <div class="nav-link add-circle" @onclick='() => Nav.NavigateTo("add-item")'>
+                <i class="oi oi-plus"></i>
+            </div>
+            <NavLink class="nav-link" href="rentals">
+                <i class="oi oi-calendar"></i>
+                <span>Najemi</span>
+            </NavLink>
+            <NavLink class="nav-link" href="profile">
+                <i class="oi oi-person"></i>
+                <span>Profil</span>
+            </NavLink>
+        </nav>
     </main>
 </div>

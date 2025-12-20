@@ -76,7 +76,7 @@ namespace RentMate.Controllers
             var key = jwtSection["Key"];
             var issuer = jwtSection["Issuer"];
             var audience = jwtSection["Audience"];
-            var expireMinutes = int.Parse(jwtSection["ExpireMinutes"] ?? "60");
+            
 
             var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
             var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
@@ -101,7 +101,7 @@ namespace RentMate.Controllers
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(expireMinutes),
+                expires: DateTime.Now.AddDays(7),
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
