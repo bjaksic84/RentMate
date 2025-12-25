@@ -198,7 +198,24 @@ form .form-control-lg {
         }
 }
 
+/* PRISILNO skrij placeholder tekst, če polje ni v fokusu */
+    .form-floating input.form-control::placeholder {
+        color: transparent !important;
+        opacity: 0 !important;
+    }
 
+    /* Pokaži placeholder tekst SAMO, ko uporabnik klikne v polje (fokus) */
+    .form-floating input.form-control:focus::placeholder {
+        color: #a0a0a0 !important;
+        opacity: 1 !important;
+    }
+
+    /* Popravek za Auto-fill (ko Chrome sam izpolni geslo in ga obarva rumeno) */
+    .form-floating input:-webkit-autofill + label,
+    .form-floating input:-webkit-autofill:focus + label {
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+        opacity: 0.65;
+    }
 
 
 

@@ -1,67 +1,180 @@
 ﻿@page
 @model RegisterModel
 @{
-    ViewData["Title"] = "Register";
+    ViewData["Title"] = "Registracija";
 }
 
-<h1>@ViewData["Title"]</h1>
+<div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
+    <div class="card shadow-lg border-0 rounded-4" style="width: 100%; max-width: 500px;">
+        <div class="card-body p-4 p-md-5">
+            
+            <div class="text-center mb-4">
+                <h2 class="fw-bold text-dark">Ustvari račun</h2>
+                <p class="text-muted small">Geslo mora biti varno in močno.</p>
+            </div>
 
-<div class="row">
-    <div class="col-md-4">
-        <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-            <h2>Create a new account.</h2>
-            <hr />
-            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label asp-for="Input.Email">Email</label>
-                <span asp-validation-for="Input.Email" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label asp-for="Input.Password">Password</label>
-                <span asp-validation-for="Input.Password" class="text-danger"></span>
-            </div>
-            <div class="form-floating mb-3">
-                <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label asp-for="Input.ConfirmPassword">Confirm Password</label>
-                <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
-            </div>
-            <button id="registerSubmit" type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </form>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
-                {
-                    <div>
-                        <p>
-                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
-                            about setting up this ASP.NET application to support logging in via external services</a>.
-                        </p>
+            <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm" role="alert"></div>
+
+                <div class="form-floating mb-3">
+                    <input asp-for="Input.Email" class="form-control rounded-3" placeholder="name@example.com" />
+                    <label asp-for="Input.Email">E-poštni naslov</label>
+                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                </div>
+
+                <div class="form-floating mb-2">
+                    <input asp-for="Input.Password" 
+                           id="passwordInput"
+                           type="password"
+                           class="form-control rounded-3" 
+                           placeholder="password" />
+                    <label asp-for="Input.Password">Geslo</label>
+                    <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                </div>
+
+                <div class="password-strength-wrapper mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span id="strength-text" class="small fw-bold text-muted">Vnesite geslo</span>
+                        <span id="strength-percent" class="small text-muted">0%</span>
                     </div>
-                }
-                else
-                {
-                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
-                        <div>
-                            <p>
-                                @foreach (var provider in Model.ExternalLogins!)
-                                {
-                                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
-                                }
-                            </p>
-                        </div>
-                    </form>
-                }
-            }
-        </section>
+                    <div class="d-flex gap-2" style="height: 8px;">
+                        <div class="strength-segment flex-fill rounded-pill"></div>
+                        <div class="strength-segment flex-fill rounded-pill"></div>
+                        <div class="strength-segment flex-fill rounded-pill"></div>
+                        <div class="strength-segment flex-fill rounded-pill"></div>
+                    </div>
+                </div>
+
+                <div class="password-requirements p-3 bg-light rounded-3 border mb-4">
+                    <ul class="list-unstyled mb-0" style="font-size: 0.85rem;">
+                        <li id="req-length" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>Vsaj 6 znakov</li>
+                        <li id="req-upper" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>Vsaj ena velika začetnica</li>
+                        <li id="req-number" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>Vsaj ena številka</li>
+                        <li id="req-special" class="text-muted"><i class="bi bi-circle me-2"></i>Vsaj en poseben znak (!?#$)</li>
+                    </ul>
+                </div>
+
+                <div class="form-floating mb-4">
+                    <input asp-for="Input.ConfirmPassword" class="form-control rounded-3" placeholder="password" />
+                    <label asp-for="Input.ConfirmPassword">Potrdi geslo</label>
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
+                </div>
+
+                <button id="registerSubmit" type="submit" class="w-100 btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                    Registriraj se
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const passwordInput = document.getElementById('passwordInput');
+        const segments = document.querySelectorAll('.strength-segment');
+        const strengthText = document.getElementById('strength-text');
+        const strengthPercent = document.getElementById('strength-percent');
+
+        const reqs = {
+            length: document.getElementById('req-length'),
+            upper: document.getElementById('req-upper'),
+            number: document.getElementById('req-number'),
+            special: document.getElementById('req-special')
+        };
+
+        passwordInput.addEventListener('input', function () {
+            const val = passwordInput.value;
+            let score = 0;
+
+            const checks = {
+                length: val.length >= 6,
+                upper: /[A-Z]/.test(val),
+                number: /[0-9]/.test(val),
+                special: /[^A-Za-z0-9]/.test(val)
+            };
+
+            Object.keys(checks).forEach(key => {
+                updateRequirement(reqs[key], checks[key]);
+                if (checks[key]) score++;
+            });
+
+            updateStrengthBar(score);
+        });
+
+        function updateRequirement(element, isValid) {
+            const icon = element.querySelector('i');
+            if (isValid) {
+                element.classList.remove('text-muted');
+                element.classList.add('text-success');
+                icon.classList.remove('bi-circle');
+                icon.classList.add('bi-check-circle-fill');
+            } else {
+                element.classList.remove('text-success');
+                element.classList.add('text-muted');
+                icon.classList.remove('bi-check-circle-fill');
+                icon.classList.add('bi-circle');
+            }
+        }
+
+        function updateStrengthBar(score) {
+            segments.forEach(s => {
+                s.style.backgroundColor = "#e9ecef";
+                s.style.border = "1px solid #dee2e6";
+            });
+
+            const val = passwordInput.value;
+            if (val.length === 0) {
+                strengthText.innerText = "Vnesite geslo";
+                strengthText.style.color = "#6c757d";
+                strengthPercent.innerText = "0%";
+                return;
+            }
+
+            const config = {
+                0: { color: "#dc3545", text: "Zelo šibko", count: 1 },
+                1: { color: "#fd7e14", text: "Šibko", count: 2 },
+                2: { color: "#fd7e14", text: "Šibko", count: 2 },
+                3: { color: "#ffc107", text: "Srednje močno", count: 3 },
+                4: { color: "#198754", text: "Močno geslo", count: 4 }
+            };
+
+            const current = config[score];
+            strengthText.innerText = current.text;
+            strengthText.style.color = current.color;
+            strengthPercent.innerText = (score * 25) + "%";
+
+            for (let i = 0; i < current.count; i++) {
+                segments[i].style.backgroundColor = current.color;
+                segments[i].style.border = "none";
+            }
+        }
+    </script>
 }
+
+<style>
+    /* Popravek za prekrivanje label */
+    .form-floating .form-control::placeholder { color: transparent !important; opacity: 0 !important; }
+    .form-floating .form-control:focus::placeholder { color: #a0a0a0 !important; opacity: 1 !important; }
+
+    /* Stil za segmente */
+    .strength-segment {
+        height: 8px;
+        background-color: #e9ecef;
+        transition: all 0.3s ease-in-out;
+        border: 1px solid #dee2e6;
+    }
+
+    .min-vh-100 { min-height: 85vh !important; }
+
+    /* Animacija za kljukice */
+    .text-success i {
+        color: #198754 !important;
+        transform: scale(1.1);
+    }
+    
+    .password-requirements i {
+        transition: all 0.2s ease;
+    }
+</style>
