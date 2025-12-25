@@ -1,55 +1,109 @@
 ﻿@page "/dashboard"
 @using RentMate.Shared
+@using RentMateMobile.Services
+@inject AuthService Auth
 @inject HttpClient Http
+@inject NavigationManager Nav
 
-<div class="container pb-5">
-    <h3 class="my-4 fw-bold">Tvoj pregled</h3>
+<div class="container p-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold m-0">Upravljanje</h3>
+        <button class="btn btn-primary btn-sm rounded-pill px-3" @onclick='() => Nav.NavigateTo("/add-item")'>
+            + Dodaj novo
+        </button>
+    </div>
 
     @if (stats == null)
     {
-        <div class="d-flex justify-content-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-        </div>
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
     }
     else
     {
-        <div class="row g-3">
-            <div class="col-6">
-                <div class="stat-card">
-                    <span class="stat-value">@stats.TotalListingsOwned</span>
-                    <span class="stat-label">Moja oprema</span>
+        <div class="row g-2 mb-4">
+            <div class="col-4">
+                <div class="p-2 border rounded-3 bg-white text-center shadow-sm">
+                    <div class="small text-muted">Oglasi</div>
+                    <div class="fw-bold">@stats.TotalListingsOwned</div>
                 </div>
             </div>
-            <div class="col-6">
-                <div class="stat-card">
-                    <span class="stat-value">@stats.ActiveRentalsAsRenter</span>
-                    <span class="stat-label">V najemu</span>
+            <div class="col-4">
+                <div class="p-2 border rounded-3 bg-white text-center shadow-sm">
+                    <div class="small text-muted">Zaslužek</div>
+                    <div class="fw-bold text-success">@stats.TotalRevenue €</div>
                 </div>
             </div>
-
-            <div class="col-12 mt-4">
-                <h5 class="fw-bold mb-3">Zadnje aktivnosti</h5>
-                <div class="list-group shadow-sm">
-                    <div class="list-group-item border-0 py-3">
-                        <i class="oi oi-info text-primary me-2"></i>
-                        Imate @stats.ActiveRentalsAsOwner aktivnih izposoj vaše opreme.
-                    </div>
+            <div class="col-4">
+                <div class="p-2 border rounded-3 bg-white text-center shadow-sm">
+                    <div class="small text-muted">Najemi</div>
+                    <div class="fw-bold text-primary">@stats.TotalRentalsAsOwner</div>
                 </div>
             </div>
         </div>
+
+        <h5 class="fw-bold mb-3">Moji oglasi</h5>
+        @if (stats.ListingsOwned != null && stats.ListingsOwned.Any())
+        {
+            @foreach (var item in stats.ListingsOwned)
+            {
+                <div class="card border-0 shadow-sm mb-3 rounded-4 overflow-hidden">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="badge @(item.IsListed ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary") mb-1">
+                                    @(item.IsListed ? "Aktiven" : "Skrit")
+                                </span>
+                                <h6 class="fw-bold mb-0">@item.Title</h6>
+                                <small class="text-muted">@item.Price €/dan • @item.Location</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light btn-sm rounded-circle" type="button" data-bs-toggle="dropdown">
+                                    <i class="oi oi-ellipses"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-outline-primary btn-sm flex-grow-1" @onclick="() => EditItem(item.Id)">
+                                <i class="oi oi-pencil me-1"></i> Uredi
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm flex-grow-1" @onclick="() => ToggleVisibility(item)">
+                                <i class="oi @(item.IsListed ? "oi-eye" : "oi-circle-check") me-1"></i> 
+                                @(item.IsListed ? "Skrij" : "Objavi")
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm px-3" @onclick="() => DeleteItem(item.Id)">
+                                <i class="oi oi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
     }
 </div>
 
 @code {
-    private dynamic? stats; // Tukaj uporabi svoj DashboardViewModel, če ga imaš v Shared
+    private DashboardViewModelDto? stats;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadDashboard();
+
+    private async Task LoadDashboard()
     {
-        try
-        {
-            // Predvidevamo, da imaš ta endpoint v DashboardControllerju
-            stats = await Http.GetFromJsonAsync<dynamic>("api/dashboard/userdashboard");
-        }
-        catch (Exception ex) { Console.WriteLine(ex.Message); }
+        stats = await Http.GetFromJsonAsync<DashboardViewModelDto>("api/dashboard/userdashboard");
+    }
+
+    private void EditItem(int id) => Nav.NavigateTo($"/edit-item/{id}");
+
+    private async Task ToggleVisibility(RentMate.Shared.Item item)
+    {
+        item.IsListed = !item.IsListed;
+        var response = await Http.PutAsJsonAsync($"api/itemsapi/{item.Id}", item);
+        if (response.IsSuccessStatusCode) await LoadDashboard();
+    }
+
+    private async Task DeleteItem(int id)
+    {
+        // V MAUI bi bilo dobro dodati še potrditveno okno (DisplayAlert)
+        var response = await Http.DeleteAsync($"api/itemsapi/{id}");
+        if (response.IsSuccessStatusCode) await LoadDashboard();
     }
 }

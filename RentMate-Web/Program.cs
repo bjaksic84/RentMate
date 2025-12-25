@@ -9,8 +9,10 @@ using RentMate.Data;
 using RentMate.Models;
 using RentMate.Hubs;
 using RentMate.Services;
-
+using System.IdentityModel.Tokens.Jwt;
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 var builder = WebApplication.CreateBuilder(args);
+
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<RentMateContext>(options =>
@@ -70,6 +72,17 @@ builder.Services.AddAuthorization(options =>
 {
     // default policy remains cookie-based for Razor pages; when using the policy,
     // explicitly add AuthenticationSchemes if you want to require JWT
+});
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Rešitev za podvojena imena razredov (Rental)
+    options.CustomSchemaIds(type => type.FullName);
+    
+    // Če želiš v Swaggerju testirati klice z žetonom, dodaj še to:
+    
+
+    
 });
 builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
 var app = builder.Build();

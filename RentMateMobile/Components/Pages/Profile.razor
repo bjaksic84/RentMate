@@ -2,21 +2,42 @@
 @inject RentMateMobile.Services.AuthService Auth
 @inject NavigationManager Nav
 
-<div class="container text-center pt-5">
-    <div class="profile-avatar mb-3">
-        <i class="oi oi-person" style="font-size: 4rem; color: #ccc;"></i>
+<div class="container pt-5">
+    <div class="text-center mb-4">
+        <div class="bg-primary text-white d-inline-block rounded-circle p-4 mb-3 shadow">
+            <i class="oi oi-person" style="font-size: 3rem;"></i>
+        </div>
+        <h3 class="fw-bold">@userName</h3>
+        <p class="text-muted">@userEmail</p>
     </div>
-    <h4 class="fw-bold">Uporabnik RentMate</h4>
-    <p class="text-muted">Prijavljeni ste v svojo varno sejo.</p>
 
-    <div class="mt-5 px-3">
-        <button class="btn btn-outline-danger w-100 py-3" @onclick="HandleLogout">
-            <i class="oi oi-account-logout me-2"></i> Odjava
-        </button>
+    <div class="card border-0 shadow-sm mx-2">
+        <div class="list-group list-group-flush">
+            <div class="list-group-item py-3">
+                <small class="text-muted d-block">ID Uporabnika</small>
+                <span class="fw-medium">@userId</span>
+            </div>
+            <button class="list-group-item list-group-item-action py-3 text-danger" @onclick="HandleLogout">
+                <i class="oi oi-account-logout me-2"></i> <strong>Odjava</strong>
+            </button>
+        </div>
     </div>
 </div>
 
 @code {
+    private string? userId;
+    private string? userEmail;
+    private string? userName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = await Auth.GetUserId();
+        userEmail = await Auth.GetUserEmail();
+        userName = await Auth.GetUserName() ?? "Uporabnik";
+        
+        if (string.IsNullOrEmpty(userId)) Nav.NavigateTo("login");
+    }
+
     void HandleLogout()
     {
         Auth.Logout();

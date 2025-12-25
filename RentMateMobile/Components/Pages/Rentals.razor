@@ -1,14 +1,17 @@
 ﻿@page "/rentals"
-@using System.Net.Http.Json
 @using RentMate.Shared
 @inject HttpClient Http
 
 <div class="container pb-5">
-    <h3 class="my-4 fw-bold">Moji najemi</h3>
+    <h3 class="my-4 fw-bold">Najemi in rezervacije</h3>
 
-    <div class="rental-tabs mb-4">
-        <button class="btn @(activeTab == 1 ? "btn-primary" : "btn-light")" @onclick="() => activeTab = 1">Moje rezervacije</button>
-        <button class="btn @(activeTab == 2 ? "btn-primary" : "btn-light")" @onclick="() => activeTab = 2">Oddano drugim</button>
+    <div class="btn-group w-100 mb-4 shadow-sm" role="group">
+        <button class="btn @(activeTab == 1 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(1)">
+            Moje rezervacije
+        </button>
+        <button class="btn @(activeTab == 2 ? "btn-primary" : "btn-outline-primary")" @onclick="() => SwitchTab(2)">
+            Oddano drugim
+        </button>
     </div>
 
     @if (isFetching)
@@ -17,47 +20,35 @@
     }
     else
     {
-        @if (activeTab == 1)
+        var currentList = activeTab == 1 ? myRentals : ownerRentals;
+
+        @if (currentList.Any())
         {
-            <div class="rental-list">
-                @if (myRentals.Any())
-                {
-                    @foreach (var r in myRentals)
-                    {
-                        @* V Rentals.razor zamenjaj Rental-Card del s tem *@
-                        <div class="rental-card shadow-sm border-0 mb-3 p-3 bg-white rounded-4">
-                            <div class="row align-items-center">
-                                <div class="col-3">
-                                    <div class="rounded-3 bg-light d-flex align-items-center justify-content-center" style="height: 60px; width: 60px;">
-                                        <i class="oi oi-box text-primary"></i>
-                                    </div>
-                                </div>
-                                <div class="col-9">
-                                    <div class="d-flex justify-content-between">
-                                        <h6 class="fw-bold m-0">@r.Item</h6>
-                                        <span class="status-dot @(r.Status.Equals(1))? "active" : "")"></span>
-                                    </div>
-                                    <p class="text-muted small mb-1">@r.StartDate.ToString("dd. MMM") - @r.EndDate.ToString("dd. MMM")</p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold text-dark">@r.TotalPrice €</span>
-                                        <button class="btn btn-link btn-sm p-0 text-decoration-none">Podrobnosti</button>
-                                    </div>
-                                </div>
-                            </div>
+            @foreach (var r in currentList)
+            {
+                <div class="card shadow-sm border-0 mb-3 p-3 rounded-4 bg-white">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="fw-bold mb-1">@r.Item?.Title</h6>
+                            <p class="small text-muted mb-0">
+                                <i class="oi oi-calendar me-1"></i> @r.StartDate.ToShortDateString() - @r.EndDate.ToShortDateString()
+                            </p>
                         </div>
-                    }
-                }
-                else
-                {
-                    <p class="text-center text-muted">Nimate aktivnih najemov.</p>
-                }
-            </div>
+                        <span class="badge @GetStatusClass(r.Status)">@r.Status</span>
+                    </div>
+                    <hr class="my-2 opacity-25" />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">@r.TotalPrice €</span>
+                        <button class="btn btn-sm btn-light">Podrobnosti</button>
+                    </div>
+                </div>
+            }
         }
         else
         {
-            <div class="rental-list">
-                @* Podobna logika za OwnerRentals *@
-                <p class="text-center text-muted">Nihče si še ni izposodil vaše opreme.</p>
+            <div class="text-center py-5">
+                <i class="oi oi-inbox text-muted mb-3" style="font-size: 3rem;"></i>
+                <p class="text-muted">Tukaj še ni ničesar.</p>
             </div>
         }
     }
@@ -67,19 +58,33 @@
     private int activeTab = 1;
     private bool isFetching = false;
     private List<RentalDto> myRentals = new();
+    private List<RentalDto> ownerRentals = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
     {
         isFetching = true;
         try
         {
-            // To kliče MyRentals iz tvojega DashboardViewModel-a preko API-ja
-            // Če še nimaš tega endpointa, ga bo treba dodati v DashboardController
-            var result = await Http.GetFromJsonAsync<List<RentalDto>>("api/dashboard/myrentals");
-            if (result != null) myRentals = result;
+            // Popravljeni poti (niso več 404)
+            myRentals = await Http.GetFromJsonAsync<List<RentalDto>>("api/dashboard/my-rentals") ?? new();
+            ownerRentals = await Http.GetFromJsonAsync<List<RentalDto>>("api/dashboard/owner-rentals") ?? new();
         }
-        catch { /* Tiho spodleti za demo */ }
+        catch (Exception ex) { Console.WriteLine("Napaka: " + ex.Message); }
         finally { isFetching = false; }
     }
 
+    private async Task SwitchTab(int tab)
+    {
+        activeTab = tab;
+        await LoadData();
+    }
+
+    private string GetStatusClass(RentalStatus status) => status switch
+    {
+        RentalStatus.Active => "bg-success text-white",
+        RentalStatus.Pending => "bg-warning text-dark",
+        _ => "bg-secondary text-white"
+    };
 }

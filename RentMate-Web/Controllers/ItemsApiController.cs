@@ -4,11 +4,14 @@ using RentMate.Data;
 using RentMate.Models; // Za Web modele (vključno z ApplicationUser)
 using RentMate.Shared; // Za Shared modele (ItemDto, UserDto)
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace RentMate.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class ItemsApiController : ControllerBase
     {
         private readonly RentMateContext _context;
@@ -72,26 +75,48 @@ namespace RentMate.Controllers
             return Ok(itemDto);
         }
 
-        // POST: api/Items
         [HttpPost]
-        public async Task<ActionResult<RentMate.Shared.Item>> PostItem(RentMate.Shared.Item sharedItem)
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult<RentMate.Models.Item>> PostItem(RentMate.Shared.Item sharedItem)
         {
-            // Pretvorimo Shared model v Web model za bazo
+            // 1. Poskusi pridobiti ID na dva načina
+            string? userId = _userManager.GetUserId(User) ?? sharedItem.UserId;
+            
+            // Če je UserManager odpovedal, poskusi direktno iz Claimov
+            if (string.IsNullOrEmpty(userId))
+            {
+                userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            }
+
+            // 2. Če je še vedno NULL, ne smeš nadaljevati v bazo!
+            if (string.IsNullOrEmpty(userId))
+            {
+                // Vrni 401, da v MAUI vidiš, da žeton ni pravilno prebran
+                return Unauthorized("Napaka: Strežnik ne najde tvojega ID-ja v žetonu. Dashboard bo zato kazal 0.");
+            }
+
             var webItem = new RentMate.Models.Item
             {
                 Title = sharedItem.Title,
                 Description = sharedItem.Description,
                 Price = sharedItem.Price,
-                UserId = sharedItem.UserId,
-                IsListed = true,
-                CreatedAt = DateTime.Now
+                IsListed = sharedItem.IsListed,
+                Category = sharedItem.Category,
+                Location = sharedItem.Location,
+                UserId = userId, // Zdaj smo 100%, da ni null
+                CreatedAt = DateTime.UtcNow
             };
 
-            _context.Items.Add(webItem);
-            await _context.SaveChangesAsync();
-
-            sharedItem.Id = webItem.Id;
-            return CreatedAtAction(nameof(GetItem), new { id = webItem.Id }, sharedItem);
+            try 
+            {
+                _context.Items.Add(webItem);
+                await _context.SaveChangesAsync();
+                return CreatedAtAction("GetItem", new { id = webItem.Id }, webItem);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Napaka pri shranjevanju: {ex.InnerException?.Message ?? ex.Message}");
+            }
         }
 
         // PUT: api/Items/5

@@ -61,13 +61,21 @@ namespace RentMate.Controllers
         public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user == null) return Unauthorized("Invalid email or password.");
+            if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
+            {
+                var token = await GenerateJwtTokenAsync(user);
+                
+                // POSODOBLJENO: Vrnemo objekt z vsemi podatki
+                return Ok(new 
+                { 
+                    token = token,
+                    userId = user.Id,
+                    email = user.Email,
+                    userName = user.UserName
+                });
+            }
 
-            if (!await _userManager.CheckPasswordAsync(user, model.Password))
-                return Unauthorized("Invalid email or password.");
-
-            var token = await GenerateJwtTokenAsync(user);
-            return Ok(new { token });
+            return Unauthorized(new { message = "Napačen email ali geslo." });
         }
 
         private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
@@ -83,12 +91,14 @@ namespace RentMate.Controllers
 
             // basic claims
             var claims = new List<Claim>
-        {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Email ?? ""),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Name, user.UserName ?? "")
-        };
+            {
+                // SUB naj bo ID uporabnika, ne email!
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id), 
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName ?? ""),
+                new Claim(ClaimTypes.Email, user.Email ?? "") // Email daj v svoj claim
+            };
 
             // add role claims
             var roles = await _userManager.GetRolesAsync(user);

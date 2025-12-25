@@ -3,6 +3,7 @@ using RentMateMobile.Services; // Prepričaj se, da je pot pravilna
 using System.Net.Http.Headers;
 
 
+
 namespace RentMateMobile;
 
 public static class MauiProgram

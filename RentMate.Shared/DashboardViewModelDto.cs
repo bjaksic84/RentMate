@@ -1,11 +1,11 @@
-namespace RentMate.Models
+namespace RentMate.Shared
 {
-    public class DashboardViewModel : RentMate.Shared.DashboardViewModel
+    public class DashboardViewModelDto : DashboardViewModel
     {
         public List<Payment>? RecentPayments { get; set; }
 
         // Shared lists used by admin or debugging
-        public List<ApplicationUser>? Users { get; set; }
+        public List<UserDto>? Users { get; set; }
         public List<Item>? Listings { get; set; }
         public List<Rental>? Rentals { get; set; }
 
