@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="My Rentals" xml:space="preserve">
+    <value>Moje Izposoje</value>
+  </data>
+  <data name="New Rental" xml:space="preserve">
+    <value>Nova izposoja</value>
+  </data>
+  <data name="You currently have no rentals." xml:space="preserve">
+    <value>Trenutno nimate nobenih izposoj.</value>
+  </data>
+  <data name="Start by renting an item!" xml:space="preserve">
+    <value>Začnite z izposojo nekega predmeta!</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Aktivno</value>
+  </data>
+  <data name="Pending" xml:space="preserve">
+    <value>V čakanju</value>
+  </data>
+  <data name="Completed" xml:space="preserve">
+    <value>Zaključeno</value>
+  </data>
+  <data name="Cancelled" xml:space="preserve">
+    <value>Preklicano</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>Začetek</value>
+  </data>
+  <data name="End" xml:space="preserve">
+    <value>Konec</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>Podrobnosti</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Uredi</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Prekliči</value>
+  </data>
+</root>

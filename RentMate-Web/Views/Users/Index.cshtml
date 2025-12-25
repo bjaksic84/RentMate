@@ -1,14 +1,17 @@
 ﻿@model IEnumerable<RentMate.Models.ApplicationUser>
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
 @{
-    ViewData["Title"] = "Upravljanje uporabnikov";
+    ViewData["Title"] = Localizer["User Management"];
 }
 
 <div class="container-fluid px-4 mt-4">
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center bg-dark text-white">
-            <h6 class="m-0 font-weight-bold">Seznam vseh uporabnikov</h6>
+            <h6 class="m-0 font-weight-bold">@Localizer["List of all users"]</h6>
             <div class="input-group w-25">
-                <input type="text" id="userSearch" class="form-control form-control-sm" placeholder="Išči uporabnika...">
+                <input type="text" id="userSearch" class="form-control form-control-sm" placeholder="@Localizer["Search users..."]">
                 <span class="input-group-text"><i class="fas fa-search"></i></span>
             </div>
         </div>
@@ -17,10 +20,10 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Uporabniško ime</th>
-                            <th>Email</th>
-                            <th>Vloge</th>
-                            <th class="text-end">Akcije</th>
+                            <th>@Localizer["Username"]</th>
+                            <th>@Localizer["Email"]</th>
+                            <th>@Localizer["Roles"]</th>
+                            <th class="text-end">@Localizer["Actions"]</th>
                         </tr>
                     </thead>
                     <tbody id="usersTable">
@@ -29,10 +32,10 @@
                             <tr data-user-id="@user.Id">
                                 <td><span class="fw-bold">@user.UserName</span></td>
                                 <td>@user.Email</td>
-                                <td class="user-roles"><span class="badge bg-light text-dark">Nalaganje...</span></td>
+                                <td class="user-roles"><span class="badge bg-light text-dark">@Localizer["Loading..."]</span></td>
                                 <td class="text-end">
                                     <button class="btn btn-sm btn-primary" onclick="openRoleModal('@user.Id', '@user.UserName')">
-                                        <i class="fas fa-shield-alt"></i> Vloge
+                                        <i class="fas fa-shield-alt"></i> @Localizer["Roles"]
                                     </button>
                                     <button class="btn btn-sm btn-danger" onclick="confirmDelete('@user.Id', '@user.UserName')">
                                         <i class="fas fa-trash"></i>
@@ -47,12 +50,11 @@
     </div>
 </div>
 
-<!-- Bootstrap Modal -->
 <div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content shadow-lg">
       <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title" id="roleModalLabel">Manage Roles</h5>
+        <h5 class="modal-title" id="roleModalLabel">@Localizer["Manage Roles"]</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
@@ -60,13 +62,13 @@
         <div id="rolesCheckboxList" class="mb-3"></div>
 
         <div class="d-flex justify-content-end">
-            <button class="btn btn-primary" type="button" onclick="saveRoles()">Save Changes</button>
+            <button class="btn btn-primary" type="button" onclick="saveRoles()">@Localizer["Save Changes"]</button>
         </div>
 
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">@Localizer["Close"]</button>
       </div>
     </div>
   </div>
@@ -77,29 +79,35 @@
 let currentUserId = null;
 let modalInstance = null;
 
+// Localized strings for JavaScript
+const locConfirmDelete = "@Localizer["Are you sure you want to delete user"]";
+const locIrreversible = "@Localizer["This action is irreversible."] ";
+const locErrorDelete = "@Localizer["Error deleting:"] ";
+const locNoRoles = "@Localizer["No roles"]";
+const locErrorRoles = "@Localizer["Error loading roles"]";
+const locManageRolesFor = "@Localizer["Manage Roles for"]";
+const locErrorSaving = "@Localizer["Error saving roles"]";
+
 document.addEventListener("DOMContentLoaded", async () => {
     await loadRolesForAllUsers();
     modalInstance = new bootstrap.Modal(document.getElementById('roleModal'));
 });
 
-// Dodaj k obstoječim skriptam [cite: 12-22]
 async function confirmDelete(userId, userName) {
-    if (confirm(`Ali ste prepričani, da želite izbrisati uporabnika ${userName}? To dejanje je nepovratno.`)) {
+    if (confirm(`${locConfirmDelete} ${userName}? ${locIrreversible}`)) {
         const res = await fetch(`/api/UsersApi/${userId}`, {
             method: "DELETE"
         });
 
         if (res.ok) {
-            // Odstrani vrstico iz tabele brez ponovnega nalaganja strani
             document.querySelector(`tr[data-user-id="${userId}"]`).remove();
         } else {
             const error = await res.text();
-            alert("Napaka pri brisanju: " + error);
+            alert(locErrorDelete + error);
         }
     }
 }
 
-// Enostavno iskanje po tabeli
 document.getElementById("userSearch").addEventListener("keyup", function() {
     let value = this.value.toLowerCase();
     document.querySelectorAll("#usersTable tr").forEach(row => {
@@ -115,21 +123,20 @@ async function loadRolesForAllUsers() {
         try {
             const res = await fetch(`/api/UsersApi/${userId}/roles`);
             const roles = await res.json();
-            rolesCell.innerHTML = roles.length ? roles.join(", ") : "<i>No roles</i>";
+            rolesCell.innerHTML = roles.length ? roles.join(", ") : `<i>${locNoRoles}</i>`;
         } catch {
-            rolesCell.innerText = "Error loading roles";
+            rolesCell.innerText = locErrorRoles;
         }
     });
 }
 
 async function openRoleModal(userId, userName) {
     currentUserId = userId;
-    document.getElementById("roleModalLabel").innerText = `Manage Roles for ${userName}`;
+    document.getElementById("roleModalLabel").innerText = `${locManageRolesFor} ${userName}`;
     await loadCheckboxRoles();
     modalInstance.show();
 }
 
-// ✅ Load all available roles and mark user's current ones
 async function loadCheckboxRoles() {
     const [allRolesRes, userRolesRes] = await Promise.all([
         fetch('/api/UsersApi/roles'),
@@ -150,7 +157,6 @@ async function loadCheckboxRoles() {
     `).join("");
 }
 
-// ✅ Save roles: sends all checked roles to backend
 async function saveRoles() {
     const selectedRoles = Array.from(document.querySelectorAll("#rolesCheckboxList input:checked"))
         .map(cb => cb.value);
@@ -165,9 +171,8 @@ async function saveRoles() {
         modalInstance.hide();
         await loadRolesForAllUsers();
     } else {
-        alert("Error saving roles");
+        alert(locErrorSaving);
     }
 }
 </script>
 }
-

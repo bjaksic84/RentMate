@@ -2,6 +2,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using RentMate.Models;
+using Microsoft.Extensions.Localization;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace RentMate.Controllers
 {
@@ -12,13 +16,16 @@ namespace RentMate.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IStringLocalizer<UsersApiController> _localizer;
 
         public UsersApiController(
             UserManager<ApplicationUser> userManager,
-            RoleManager<IdentityRole> roleManager)
+            RoleManager<IdentityRole> roleManager,
+            IStringLocalizer<UsersApiController> localizer)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _localizer = localizer;
         }
 
         // Assign a role to a user
@@ -26,16 +33,16 @@ namespace RentMate.Controllers
         public async Task<IActionResult> AddRoleToUser(string userId, string roleName)
         {
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound("User not found.");
+            if (user == null) return NotFound(_localizer["User not found."].Value);
 
             if (!await _roleManager.RoleExistsAsync(roleName))
-                return BadRequest("Role does not exist.");
+                return BadRequest(_localizer["Role does not exist."].Value);
 
             var result = await _userManager.AddToRoleAsync(user, roleName);
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
-            return Ok(new { message = $"Role '{roleName}' assigned to user '{user.UserName}'." });
+            return Ok(new { message = string.Format(_localizer["Role '{0}' assigned to user '{1}'."], roleName, user.UserName) });
         }
 
         // Remove a role
@@ -43,16 +50,16 @@ namespace RentMate.Controllers
         public async Task<IActionResult> RemoveRoleFromUser(string userId, string roleName)
         {
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound("User not found.");
+            if (user == null) return NotFound(_localizer["User not found."].Value);
 
             if (!await _roleManager.RoleExistsAsync(roleName))
-                return BadRequest("Role does not exist.");
+                return BadRequest(_localizer["Role does not exist."].Value);
 
             var result = await _userManager.RemoveFromRoleAsync(user, roleName);
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
-            return Ok(new { message = $"Role '{roleName}' removed from user '{user.UserName}'." });
+            return Ok(new { message = string.Format(_localizer["Role '{0}' removed from user '{1}'."], roleName, user.UserName) });
         }
 
         // List roles of a user
@@ -60,7 +67,7 @@ namespace RentMate.Controllers
         public async Task<IActionResult> GetUserRoles(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound("User not found.");
+            if (user == null) return NotFound(_localizer["User not found."].Value);
 
             var roles = await _userManager.GetRolesAsync(user);
             return Ok(roles);
@@ -87,11 +94,12 @@ namespace RentMate.Controllers
 
             return Ok(result);
         }
+
         [HttpPost("{userId}/roles/manage")]
         public async Task<IActionResult> ManageUserRoles(string userId, [FromBody] List<string> roles)
         {
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound("User not found.");
+            if (user == null) return NotFound(_localizer["User not found."].Value);
 
             var currentRoles = await _userManager.GetRolesAsync(user);
 
@@ -103,21 +111,24 @@ namespace RentMate.Controllers
 
             return Ok();
         }
+
         [HttpGet("roles")]
         public IActionResult GetAllRoles()
         {
             var roles = _roleManager.Roles.Select(r => r.Name).ToList();
             return Ok(roles);
         }
+
         [HttpDelete("{userId}")]
         public async Task<IActionResult> DeleteUser(string userId)
         {
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return NotFound("Uporabnik ne obstaja.");
+            if (user == null) return NotFound(_localizer["User not found."].Value);
 
-            // Prepreči adminu, da bi izbrisal samega sebe
+            // Prevent admin from deleting themselves
             var currentUser = await _userManager.GetUserAsync(User);
-            if (currentUser.Id == userId) return BadRequest("Sami sebe ne morete izbrisati.");
+            if (currentUser?.Id == userId) 
+                return BadRequest(_localizer["You cannot delete yourself."].Value);
 
             var result = await _userManager.DeleteAsync(user);
             if (result.Succeeded) return Ok();
@@ -126,4 +137,3 @@ namespace RentMate.Controllers
         }
     }
 }
-

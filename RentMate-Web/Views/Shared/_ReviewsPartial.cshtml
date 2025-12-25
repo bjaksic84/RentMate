@@ -1,12 +1,13 @@
 @model RentMate.Models.Item
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc.Localization
 @inject UserManager<ApplicationUser> UserManager
 @inject SignInManager<ApplicationUser> SignInManager
+@inject IViewLocalizer Localizer
 
 <div id="reviews-section" class="mt-6">
-    <h3 class="text-2xl font-semibold mb-2">Reviews</h3>
+    <h3 class="text-2xl font-semibold mb-2">@Localizer["Reviews"]</h3>
 
-    <!-- Average Rating Summary -->
     <div class="flex items-center gap-3 mb-4">
         <div class="text-3xl font-bold">@Model.AverageRating?.ToString("0.0") ?? "—"</div>
         <div>
@@ -16,42 +17,41 @@
                     <i class="fa@(i <= (Model.AverageRating ?? 0) ? "s" : "r") fa-star"></i>
                 }
             </div>
-            <div class="text-sm text-gray-500">@Model.ReviewCount review@(Model.ReviewCount == 1 ? "" : "s")</div>
+            <div class="text-sm text-gray-500">@Model.ReviewCount @(Model.ReviewCount == 1 ? Localizer["review"] : Localizer["reviews"])</div>
         </div>
     </div>
 
-    <!-- Add Review Form -->
     @if (SignInManager.IsSignedIn(User))
     {
         <div id="add-review-form" class="mb-6 p-4 border rounded-lg shadow-sm">
-            <h4 class="text-lg font-semibold mb-3">Write a Review</h4>
+            <h4 class="text-lg font-semibold mb-3">@Localizer["Write a Review"]</h4>
 
             <form id="reviewForm" method="post">
                 <input type="hidden" name="ItemId" value="@Model.Id" />
 
                 <div class="mb-3">
-                    <label class="block font-medium">Your Rating:</label>
+                    <label class="block font-medium">@Localizer["Your Rating:"]</label>
                     <div id="starPicker" class="flex space-x-1 text-yellow-400 text-2xl cursor-pointer"></div>
                     <input type="hidden" id="ratingInput" name="Rating" value="0" required />
                 </div>
 
                 <div class="mb-3">
-                    <input name="Title" maxlength="200" placeholder="Title (optional)"
+                    <input name="Title" maxlength="200" placeholder="@Localizer["Title (optional)"]"
                            class="w-full p-2 border rounded-md" />
                 </div>
 
                 <div class="mb-3">
-                    <textarea name="Body" maxlength="2000" placeholder="Write your review..."
+                    <textarea name="Body" maxlength="2000" placeholder="@Localizer["Write your review..."]"
                               class="w-full p-2 border rounded-md" rows="4"></textarea>
                 </div>
 
                 <label class="inline-flex items-center mb-3">
                     <input type="checkbox" name="IsAnonymous" class="mr-2" />
-                    Post anonymously
+                    @Localizer["Post anonymously"]
                 </label>
 
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                    Submit Review
+                    @Localizer["Submit Review"]
                 </button>
             </form>
         </div>
@@ -59,17 +59,15 @@
     else
     {
         <div class="text-gray-500">
-            <a href="/Account/Login" class="text-blue-600 hover:underline">Sign in</a> to write a review.
+            <a href="/Account/Login" class="text-blue-600 hover:underline">@Localizer["Sign in"]</a> @Localizer["to write a review."]
         </div>
     }
 
-    <!-- Review List -->
     <div id="reviewList" class="space-y-4"></div>
 
-    <!-- Load More Button -->
     <div class="flex justify-center mt-4">
         <button id="loadMoreBtn" class="hidden bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded">
-            Load more
+            @Localizer["Load more"]
         </button>
     </div>
 </div>
@@ -80,6 +78,11 @@
         const itemId = @Model.Id;
         let currentPage = 1;
         const pageSize = 5;
+
+        // Pass localized strings to JS
+        const locAnonymous = "@Localizer["Anonymous"]";
+        const locUser = "@Localizer["User"]";
+        const locSuccess = "@Localizer["Review posted successfully!"]";
 
         document.addEventListener("DOMContentLoaded", () => {
             loadReviews();
@@ -119,7 +122,7 @@
             div.innerHTML = `
                 <div class="flex justify-between mb-1">
                     <div class="flex items-center gap-2">
-                        <div class="font-semibold">${r.isAnonymous ? "Anonymous" : r.reviewer?.userName ?? "User"}</div>
+                        <div class="font-semibold">${r.isAnonymous ? locAnonymous : r.reviewer?.userName ?? locUser}</div>
                         <div class="text-sm text-gray-400">${new Date(r.createdAt).toLocaleDateString()}</div>
                     </div>
                     <div>${stars}</div>
@@ -174,7 +177,7 @@
                     document.getElementById("ratingInput").value = 0;
                     currentPage = 1;
                     await loadReviews();
-                    alert("Review posted successfully!");
+                    alert(locSuccess);
                 } else {
                     const text = await res.text();
                     alert(`Error: ${text}`);

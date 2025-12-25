@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using Microsoft.Extensions.Localization;
 using RentMate.Models;
 using RentMate.Shared;
 using RentMate.Models.Auth; // adjust namespace to your DTOs
@@ -18,15 +19,18 @@ namespace RentMate.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
+        private readonly IStringLocalizer<AuthController> _localizer;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IStringLocalizer<AuthController> localizer)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
+            _localizer = localizer;
         }
 
         [HttpPost("register")]
@@ -54,7 +58,7 @@ namespace RentMate.Controllers
 
             await _userManager.AddToRoleAsync(user, "User");
 
-            return Ok(new { message = "Registration successful" });
+            return Ok(new { message = _localizer["Registration successful"].Value });
         }
 
         [HttpPost("login")]
@@ -65,7 +69,6 @@ namespace RentMate.Controllers
             {
                 var token = await GenerateJwtTokenAsync(user);
                 
-                // POSODOBLJENO: Vrnemo objekt z vsemi podatki
                 return Ok(new 
                 { 
                     token = token,
@@ -75,7 +78,7 @@ namespace RentMate.Controllers
                 });
             }
 
-            return Unauthorized(new { message = "Napačen email ali geslo." });
+            return Unauthorized(new { message = _localizer["Invalid email or password."].Value });
         }
 
         private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
@@ -92,12 +95,11 @@ namespace RentMate.Controllers
             // basic claims
             var claims = new List<Claim>
             {
-                // SUB naj bo ID uporabnika, ne email!
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id), 
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Name, user.UserName ?? ""),
-                new Claim(ClaimTypes.Email, user.Email ?? "") // Email daj v svoj claim
+                new Claim(ClaimTypes.Email, user.Email ?? "")
             };
 
             // add role claims

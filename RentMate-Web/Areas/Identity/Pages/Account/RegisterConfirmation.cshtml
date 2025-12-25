@@ -1,23 +1,50 @@
 ﻿@page
 @model RegisterConfirmationModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = "Register confirmation";
+    ViewData["Title"] = Localizer["Check email"];
 }
 
-<h1>@ViewData["Title"]</h1>
-@{
-    if (@Model.DisplayConfirmAccountLink)
-    {
-<p>
-    This app does not currently have a real email sender registered, see <a href="https://aka.ms/aspaccountconf">these docs</a> for how to configure a real email sender.
-    Normally this would be emailed: <a id="confirm-link" href="@Model.EmailConfirmationUrl">Click here to confirm your account</a>
-</p>
-    }
-    else
-    {
-<p>
-        Please check your email to confirm your account.
-</p>
-    }
-}
+<div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
+    <div class="card shadow-lg border-0 rounded-4 text-center" style="width: 100%; max-width: 500px;">
+        <div class="card-body p-4 p-md-5">
+            
+            <div class="mb-4">
+                <div class="bg-light text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="bi bi-envelope-check-fill" style="font-size: 2.5rem;"></i>
+                </div>
+                <h2 class="fw-bold text-dark">@Localizer["Almost there!"]</h2>
+                <p class="text-muted">@Localizer["We have sent an account confirmation link to your email address."]</p>
+            </div>
 
+            <div class="alert alert-info border-0 shadow-sm rounded-3 mb-4">
+                <strong>@Model.Email</strong>
+            </div>
+
+            <p class="small text-muted mb-4">
+                @Localizer["Please click on the link in the message to activate your account. If you cannot find the email, check your"] <strong>@Localizer["Spam"]</strong> @Localizer["folder"].
+            </p>
+
+            @{
+                if (Model.DisplayConfirmAccountLink)
+                {
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-3 mb-4">
+                        <p class="small text-warning-emphasis mb-2">@Localizer["Development mode: Email was not actually sent."]</p>
+                        <a id="confirm-link" href="@Model.EmailConfirmationUrl" class="btn btn-outline-warning fw-bold rounded-pill px-4">
+                            @Localizer["Click here to confirm your account"]
+                        </a>
+                    </div>
+                }
+            }
+
+            <hr class="my-4 opacity-25">
+
+            <div class="d-grid">
+                <a href="/" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                    @Localizer["Back to home page"]
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

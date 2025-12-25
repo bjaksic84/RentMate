@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="Reviews" xml:space="preserve">
+    <value>Mnenja</value>
+  </data>
+  <data name="review" xml:space="preserve">
+    <value>mnenje</value>
+  </data>
+  <data name="reviews" xml:space="preserve">
+    <value>mnenj</value>
+  </data>
+  <data name="Write a Review" xml:space="preserve">
+    <value>Napišite mnenje</value>
+  </data>
+  <data name="Your Rating:" xml:space="preserve">
+    <value>Vaša ocena:</value>
+  </data>
+  <data name="Title (optional)" xml:space="preserve">
+    <value>Naslov (neobvezno)</value>
+  </data>
+  <data name="Write your review..." xml:space="preserve">
+    <value>Zapišite svojo izkušnjo...</value>
+  </data>
+  <data name="Post anonymously" xml:space="preserve">
+    <value>Objavi anonimno</value>
+  </data>
+  <data name="Submit Review" xml:space="preserve">
+    <value>Oddaj mnenje</value>
+  </data>
+  <data name="Sign in" xml:space="preserve">
+    <value>Prijavite se</value>
+  </data>
+  <data name="to write a review." xml:space="preserve">
+    <value>, da lahko napišete mnenje.</value>
+  </data>
+  <data name="Load more" xml:space="preserve">
+    <value>Naloži več</value>
+  </data>
+  <data name="Anonymous" xml:space="preserve">
+    <value>Anonimno</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>Uporabnik</value>
+  </data>
+  <data name="Review posted successfully!" xml:space="preserve">
+    <value>Mnenje uspešno objavljeno!</value>
+  </data>
+</root>

@@ -1,8 +1,31 @@
 ﻿@page
 @model ConfirmEmailModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = "Confirm email";
+    ViewData["Title"] = Localizer["Email Confirmed"];
 }
 
-<h1>@ViewData["Title"]</h1>
-<partial name="_StatusMessage" model="Model.StatusMessage" />
+<div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
+    <div class="card shadow-lg border-0 rounded-4 text-center" style="width: 100%; max-width: 450px;">
+        <div class="card-body p-4 p-md-5">
+            
+            <div class="mb-4">
+                <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                    <i class="bi bi-patch-check-fill" style="font-size: 2.5rem;"></i>
+                </div>
+                <h2 class="fw-bold text-dark">@Localizer["Success!"]</h2>
+                <p class="text-muted">@Model.StatusMessage</p>
+            </div>
+
+            <p class="mb-4">@Localizer["Your account is now active. You can now start renting or listing your equipment."]</p>
+
+            <div class="d-grid gap-2">
+                <a asp-page="./Login" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                    @Localizer["Log in now"]
+                </a>
+                <a href="/" class="btn btn-link text-decoration-none text-muted small">@Localizer["Home"]</a>
+            </div>
+        </div>
+    </div>
+</div>

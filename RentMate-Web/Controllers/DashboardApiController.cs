@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
-using RentMate.Models; // Za ApplicationUser v bazi
-using RentMate.Shared; // Za Item, Rental, DashboardViewModelDto
+using RentMate.Models; // For ApplicationUser in the database
+using RentMate.Shared; // For Item, Rental, DashboardViewModelDto
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
@@ -18,26 +19,31 @@ namespace RentMate.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RentMateContext _context;
+        private readonly IStringLocalizer<DashboardApiController> _localizer;
 
-        public DashboardApiController(UserManager<ApplicationUser> userManager, RentMateContext context)
+        public DashboardApiController(
+            UserManager<ApplicationUser> userManager, 
+            RentMateContext context,
+            IStringLocalizer<DashboardApiController> localizer)
         {
             _userManager = userManager;
             _context = context;
+            _localizer = localizer;
         }
 
         [HttpGet("userdashboard")]
         public async Task<IActionResult> GetUserDashboard()
         {
-            
-
-            // Ker smo v Program.cs očistili mapiranje, bo "sub" vseboval ID
+            // Since mapping was cleared in Program.cs, "sub" will contain the ID
             var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) 
                         ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            Console.WriteLine($"[DEBUG API] Končni popravljeni UserId: '{userId}'");
+            // Refactored to English log message
+            Console.WriteLine($"[DEBUG API] Final corrected UserId: '{userId}'");
 
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
-            // 2. Pridobivanje podatkov s "Shared" modeli za mobilno aplikacijo
+
+            // 2. Fetching data with "Shared" models for mobile application
             var listingsOwned = await _context.Items
                 .Where(i => i.UserId == userId)
                 .Select(i => new RentMate.Shared.Item 
@@ -67,7 +73,7 @@ namespace RentMate.Controllers
 
             var ownerRentalsCount = await _context.Rentals.CountAsync(r => r.OwnerId == userId);
 
-            // 3. Sestava končnega DTO-ja
+            // 3. Construct the final DTO
             var response = new DashboardViewModelDto
             {
                 TotalListingsOwned = listingsOwned.Count,
@@ -75,19 +81,20 @@ namespace RentMate.Controllers
                 TotalRentalsAsOwner = ownerRentalsCount,
                 
                 ListingsOwned = listingsOwned,
-                // Za MyRentals moramo paziti na tip List<Rental> v DTO-ju
+                // Handle Rental casting for the DTO List
                 MyRentals = myRentals.Cast<RentMate.Shared.Rental>().ToList() 
             };
 
             return Ok(response);
         }
+
         [HttpGet("my-rentals")]
         public async Task<IActionResult> GetMyRentals()
         {
             var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            // Najemi, kjer sem JAZ tisti, ki si je sposodil (Renter)
+            // Rentals where I am the Renter
             var rentals = await _context.Rentals
                 .Include(r => r.Item)
                 .Where(r => r.RenterId == userId)
@@ -110,7 +117,7 @@ namespace RentMate.Controllers
             var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            // Najemi, kjer so si DRUGI sposodili MOJO opremo (Owner)
+            // Rentals where others borrowed MY equipment (Owner)
             var rentals = await _context.Rentals
                 .Include(r => r.Item)
                 .Where(r => r.OwnerId == userId)

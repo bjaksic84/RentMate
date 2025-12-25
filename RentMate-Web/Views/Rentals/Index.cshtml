@@ -2,9 +2,11 @@
 @using System.Text.Json;
 @using RentMate.Helpers;
 @using RentMate.Shared;
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 
 @{
-    ViewData["Title"] = "Tržnica";
+    ViewData["Title"] = Localizer["Marketplace"];
     decimal currentMin = ViewBag.MinPrice ?? 0;
     decimal currentMax = ViewBag.MaxPrice ?? 500;
 }
@@ -13,10 +15,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css">
 
 <style>
-    .product-card { transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
-    }
+    .product-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important; }
     
     .price-input {
         border: 1px solid #dee2e6;
@@ -24,8 +24,7 @@
         width: 70px; text-align: center; font-weight: bold; font-size: 0.9rem; color: #0d6efd;
     }
     .noUi-connect { background: #0d6efd; }
-    .noUi-handle { border-radius: 50%; cursor: grab;
-    }
+    .noUi-handle { border-radius: 50%; cursor: grab; }
 </style>
 
 <div class="bg-white border-bottom shadow-sm sticky-top" style="z-index: 900;">
@@ -33,15 +32,13 @@
         <form asp-action="Index" method="get" id="filterForm">
             <div class="row g-2 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted">Iskanje</label>
-                    <input 
-                        type="text" name="search" class="form-control" placeholder="Kaj iščeš?" value="@ViewBag.Search">
+                    <label class="form-label small fw-bold text-muted">@Localizer["Search"]</label>
+                    <input type="text" name="search" class="form-control" placeholder="@Localizer["What are you looking for?"]" value="@ViewBag.Search">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted">Lokacija</label>
+                    <label class="form-label small fw-bold text-muted">@Localizer["Location"]</label>
                     <select name="city" class="form-select">
-
-                        <option value="">Vsa mesta</option>
+                        <option value="">@Localizer["All cities"]</option>
                         @foreach (var c in (IEnumerable<string>)ViewBag.Cities)
                         {
                             @if(ViewBag.City == c)
@@ -53,48 +50,40 @@
                                 <option value="@c">@c</option>
                             }
                         }
-
                     </select>
                 </div>
                
                 <div class="col-md-2">
-                    <label class="form-label small fw-bold text-muted">Od</label>
+                    <label class="form-label small fw-bold text-muted">@Localizer["From"]</label>
                     <input type="date" name="startDate" class="form-control" value="@ViewBag.StartDate">
                 </div>
                 <div class="col-md-2">
-                 
-                    <label class="form-label small fw-bold text-muted">Do</label>
+                    <label class="form-label small fw-bold text-muted">@Localizer["To"]</label>
                     <input type="date" name="endDate" class="form-control" value="@ViewBag.EndDate">
                 </div>
                 <div class="col-md-3 d-grid">
-                    <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-search"></i> Preveri ponudbo</button>
-       
+                    <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-search"></i> @Localizer["Check offers"]</button>
                 </div>
             </div>
 
             <div class="row g-2 mt-3 align-items-center bg-light p-3 rounded mx-0">
                 <div class="col-md-6 col-12">
-                     <label class="form-label small fw-bold text-muted d-block mb-3">Cenovni razpon (€ / dan)</label>
-          
+                     <label class="form-label small fw-bold text-muted d-block mb-3">@Localizer["Price range (€ / day)"]</label>
                     <div class="px-2">
                          <div class="d-flex justify-content-between mb-2">
                              <div class="input-group input-group-sm w-auto"><input type="number" id="input-min" name="minPrice" class="price-input" value="@currentMin"></div>
-                       
                              <div class="input-group input-group-sm w-auto"><input type="number" id="input-max" name="maxPrice" class="price-input" value="@currentMax"></div>
                          </div>
                          <div id="slider-price"></div>
                      </div>
-              
                 </div>
                 <div class="col-md-3 ms-auto">
-                     <label class="form-label small fw-bold text-muted">Razvrščanje</label>
+                     <label class="form-label small fw-bold text-muted">@Localizer["Sorting"]</label>
                      <select name="sort" class="form-select border-primary" onchange="this.form.submit()">
-                        <option value="">Privzeto</option>
-     
-                        @if(ViewBag.Sort == "priceAsc") { <option value="priceAsc" selected>Cena: Najnižja</option> } else { <option value="priceAsc">Cena: Najnižja</option> }
-                        @if(ViewBag.Sort == "priceDesc") { <option value="priceDesc" selected>Cena: Najvišja</option> } else { <option value="priceDesc">Cena: Najvišja</option> }
-                        @if(ViewBag.Sort == "titleAsc") { <option 
-                            value="titleAsc" selected>Ime (A-Z)</option> } else { <option value="titleAsc">Ime (A-Z)</option> }
+                        <option value="">@Localizer["Default"]</option>
+                        @if(ViewBag.Sort == "priceAsc") { <option value="priceAsc" selected>@Localizer["Price: Lowest"]</option> } else { <option value="priceAsc">@Localizer["Price: Lowest"]</option> }
+                        @if(ViewBag.Sort == "priceDesc") { <option value="priceDesc" selected>@Localizer["Price: Highest"]</option> } else { <option value="priceDesc">@Localizer["Price: Highest"]</option> }
+                        @if(ViewBag.Sort == "titleAsc") { <option value="titleAsc" selected>@Localizer["Name (A-Z)"]</option> } else { <option value="titleAsc">@Localizer["Name (A-Z)"]</option> }
                     </select>
                 </div>
             </div>
@@ -105,18 +94,18 @@
 <div class="container py-5">
     @if (!string.IsNullOrEmpty(ViewBag.StartDate))
     {
-        <div class="alert alert-info mb-4"><i class="bi bi-calendar-check"></i> Prikazujem rezultate za termin: <strong>@ViewBag.StartDate</strong> do 
-            <strong>@ViewBag.EndDate</strong></div>
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-calendar-check"></i> @Localizer["Showing results for dates:"] <strong>@ViewBag.StartDate</strong> @Localizer["to"] <strong>@ViewBag.EndDate</strong>
+        </div>
     }
 
     <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
         @if (!Model.Any())
         {
             <div class="col-12 text-center py-5">
-                <h3 class="text-muted">Ni najdenih izdelkov.</h3>
-                <a asp-action="Index" class="btn btn-outline-primary">Počisti filtre</a>
+                <h3 class="text-muted">@Localizer["No items found."]</h3>
+                <a asp-action="Index" class="btn btn-outline-primary">@Localizer["Clear filters"]</a>
             </div>
-    
         }
         else
         {
@@ -131,136 +120,105 @@
 
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0 product-card">
-                        
                         <div class="position-relative overflow-hidden bg-light rounded-top" style="height: 220px;">
-                
                              @if (!string.IsNullOrEmpty(item.ImageUrl))
                              {
-                                 // Cloudinary Transformation
                                  var url500 = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_500,h_350,q_auto,f_auto/");
                                  var url300 = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_300,h_210,q_auto,f_auto/");
                                  <img src="@url500" srcset="@url300 300w, @url500 500w" sizes="(max-width: 768px) 300px, 500px" loading="lazy" class="w-100 h-100" style="object-fit: cover;" alt="@item.Title">
                              }
                              else
                              {
-       
                                 <div class="d-flex align-items-center justify-content-center h-100 text-muted">
                                      <i class="bi bi-box-seam display-1 opacity-25"></i>
-                            
                                 </div>
                              }
-
                              <div class="position-absolute bottom-0 w-100" style="height: 50%; background: linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0));"></div>
-
-                           
                              @if(item.AverageRating.HasValue) 
                              {
                                  <div class="position-absolute bottom-0 end-0 m-2 px-2 py-1 rounded bg-dark bg-opacity-50 text-white shadow-sm" style="backdrop-filter: blur(4px);">
-                      
                                     <div class="d-flex align-items-center small">
                                          <span class="text-warning me-1">★</span>
-                                       
                                          <span class="fw-bold">@item.AverageRating?.ToString("0.0")</span>
                                      </div>
                                  </div>
-                           
                              }
-                             
                              <div class="position-absolute top-0 start-0 m-2">
-                                 <span class="badge bg-white 
-                                     text-dark shadow-sm bg-opacity-90">
+                                 <span class="badge bg-white text-dark shadow-sm bg-opacity-90">
                                      <i class="bi bi-geo-alt-fill text-danger"></i> @item.User?.City
                                  </span>
-                        
                              </div>
                         </div>
 
                         <div class="card-body pt-3 pb-2 px-3">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-               
-                             <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none text-dark stretched-link">
-                            <h5 class="card-title fw-bold text-truncate mb-0">@item.Title</h5>
-                            </a>
-                     
-                        </div>
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                 <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="text-decoration-none text-dark stretched-link">
+                                    <h5 class="card-title fw-bold text-truncate mb-0">@item.Title</h5>
+                                 </a>
+                            </div>
                         
-                        <div class="d-flex align-items-center mb-3 mt-2 position-relative" style="z-index: 2;">
-                            
-              
-                            <small class="text-muted me-2" style="font-size: 0.7rem;">Oddaja:</small>
-                            
-                            @{
-                                // Priprava imena: Uporabimo FirstName, če je na voljo, sicer UserName (običajno e-mail/username).
-                                var ownerDisplayName = !string.IsNullOrEmpty(item.User?.FirstName) 
-                                                    ? item.User.FirstName 
-                                                    : (item.User?.UserName ?? "Neznan Uporabnik");
-                                
-                                // Priprava začetnice za placeholder
-                                var initials = ownerDisplayName.Substring(0, 1).ToUpper();
-                            }
-
-                            <div class="me-2 flex-shrink-0">
-                                @if(!string.IsNullOrEmpty(item.User?.ProfilePictureUrl))
-                                {
-                                    <img src="@item.User.ProfilePictureUrl" loading="lazy"
-                                        class="rounded-circle border border-1 border-light shadow-sm owner-link" 
-                                        style="width: 24px; height: 24px; object-fit: cover; cursor: pointer;"
-                                        data-user-id="@item.UserId"
-                                        alt="@ownerDisplayName" />
+                            <div class="d-flex align-items-center mb-3 mt-2 position-relative" style="z-index: 2;">
+                                <small class="text-muted me-2" style="font-size: 0.7rem;">@Localizer["Owner:"]</small>
+                                @{
+                                    var ownerDisplayName = !string.IsNullOrEmpty(item.User?.FirstName) 
+                                                            ? item.User.FirstName 
+                                                            : (item.User?.UserName ?? Localizer["Unknown User"].Value);
+                                    var initials = ownerDisplayName.Substring(0, 1).ToUpper();
                                 }
-                           
+                                <div class="me-2 flex-shrink-0">
+                                    @if(!string.IsNullOrEmpty(item.User?.ProfilePictureUrl))
+                                    {
+                                        <img src="@item.User.ProfilePictureUrl" loading="lazy"
+                                            class="rounded-circle border border-1 border-light shadow-sm owner-link" 
+                                            style="width: 24px; height: 24px; object-fit: cover; cursor: pointer;"
+                                            data-user-id="@item.UserId"
+                                            alt="@ownerDisplayName" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center shadow-sm owner-link" 
+                                            style="width: 24px; height: 24px; cursor: pointer; font-size: 0.7rem;"
+                                            data-user-id="@item.UserId">
+                                            @initials
+                                        </div>
+                                    }
+                                </div>
+                                <div style="line-height: 1;">
+                                    <a href="#" class="owner-link text-decoration-underline text-primary small fw-bold" 
+                                        data-user-id="@item.UserId">
+                                        @ownerDisplayName
+                                    </a>
+                                </div>
+                            </div>
+                            <p class="card-text fw-bold mb-0 mt-3 text-primary">
+                                @item.Price?.ToString("C2", new System.Globalization.CultureInfo("de-DE")) <span class="fw-normal text-muted small">@Localizer["/ day"]</span>
+                            </p>
+                        </div> 
+                        <div class="card-footer bg-white border-0 py-2 position-relative" style="z-index: 2;">
+                            <div class="d-flex gap-2">
+                                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm fw-bold flex-grow-1">
+                                    <i class="bi bi-info-circle"></i> @Localizer["Info"]
+                                </a>
+                                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                {
+                                    <button type="button" class="btn btn-success btn-sm fw-bold flex-grow-1" data-bs-toggle="modal" data-bs-target="#rentModal-@item.Id">
+                                        @Localizer["Rent"]
+                                    </button>
+                                }
                                 else
                                 {
-                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center shadow-sm owner-link" 
-                  
-                                        style="width: 24px; height: 24px; cursor: pointer; font-size: 0.7rem;"
-                                        data-user-id="@item.UserId">
-                                        @initials
-                                    </div>
-                        
+                                    <a href="/Identity/Account/Login" class="btn btn-secondary btn-sm flex-grow-1">@Localizer["Login"]</a>
                                 }
                             </div>
-                            
-                            <div style="line-height: 1;">
-      
-                                <a href="#" class="owner-link text-decoration-underline text-primary small fw-bold" 
-                                    data-user-id="@item.UserId">
-                                   
-                                    @ownerDisplayName
-                                </a>
-                            </div>
                         </div>
-                        <p class="card-text fw-bold mb-0 mt-3 text-primary">
-                            @item.Price?.ToString("C2", new System.Globalization.CultureInfo("de-DE")) <span class="fw-normal text-muted small">/ dan</span>
-                        </p>
                     </div> 
-                    <div class="card-footer bg-white border-0 py-2 position-relative" style="z-index: 2;">
-                        <div class="d-flex gap-2">
-                            
-                            <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm fw-bold flex-grow-1">
-                                <i class="bi bi-info-circle"></i> Info
-                            </a>
-
-                            @if (User.Identity != null && User.Identity.IsAuthenticated)
-                            {
-                                <button type="button" class="btn btn-success btn-sm fw-bold flex-grow-1" data-bs-toggle="modal" data-bs-target="#rentModal-@item.Id">
-                                    Rezerviraj
-                                </button>
-                            }
-                            else
-                            {
-                                <a href="/Identity/Account/Login" class="btn btn-secondary btn-sm flex-grow-1">Prijavi se</a>
-                            }
-                        </div>
-                    </div>
                 </div> 
-            </div> 
-                @* Use shared Rent modal partial (unique per item) *@
                 <partial name="_RentModal" model="item" />
             }
         }
     </div>
 </div>
+
 <div class="modal fade" id="ownerInfoModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-sm modal-dialog-centered">
     <div class="modal-content shadow-lg" id="ownerInfoContent">
@@ -274,7 +232,6 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         // --- 1. PRICE SLIDER ---
-       
         var slider = document.getElementById('slider-price');
         var inputMin = document.getElementById('input-min');
         var inputMax = document.getElementById('input-max');
@@ -291,6 +248,7 @@
         });
         inputMin.addEventListener('change', function () { slider.noUiSlider.set([this.value, null]); });
         inputMax.addEventListener('change', function () { slider.noUiSlider.set([null, this.value]); });
+
         // --- 2. FLATPICKR ---
         document.querySelectorAll(".rent-daterange-picker").forEach(function (element) {
             var blockedDates = JSON.parse(element.getAttribute("data-blocked"));
@@ -299,12 +257,10 @@
             var endDateInput = form.querySelector(".end-date-input");
             var defaultDate = (startDateInput.value && endDateInput.value) ? [startDateInput.value, endDateInput.value] : [];
 
-    
             flatpickr(element, {
                 mode: "range", dateFormat: "Y-m-d", minDate: "today", defaultDate: defaultDate, disable: blockedDates, locale: { firstDayOfWeek: 1 },
                 onChange: function(selectedDates) {
                     if (selectedDates.length === 2) {
-                   
                         startDateInput.value = this.formatDate(selectedDates[0], "Y-m-d");
                         endDateInput.value = this.formatDate(selectedDates[1], "Y-m-d");
                     }
@@ -319,24 +275,21 @@
         document.querySelectorAll('.owner-link').forEach(link => {
             link.addEventListener('click', async function (e) {
                 e.preventDefault();
-                e.stopPropagation(); // Prepreči da bi se sprožil stretched-link kartice
+                e.stopPropagation(); 
                 
                 const userId = this.getAttribute('data-user-id');
-   
-                ownerContent.innerHTML = '<div class="p-5 text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Nalaganje...</p></div>';
+                ownerContent.innerHTML = '<div class="p-5 text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">@Localizer["Loading..."]</p></div>';
                 ownerModal.show();
 
                 try {
                     const response = await fetch(`/Users/GetOwnerInfoPartial?userId=${userId}`);
-                    if 
-                        (response.ok) {
+                    if (response.ok) {
                         ownerContent.innerHTML = await response.text();
                     } else {
-                        ownerContent.innerHTML = '<div class="p-4 text-center text-danger">Napaka pri nalaganju.</div>';
-                   
+                        ownerContent.innerHTML = '<div class="p-4 text-center text-danger">@Localizer["Error loading data."]</div>';
                     }
                 } catch (error) {
-                     ownerContent.innerHTML = '<div class="p-4 text-center text-danger">Napaka omrežja.</div>';
+                     ownerContent.innerHTML = '<div class="p-4 text-center text-danger">@Localizer["Network error."]</div>';
                 }
             });
         });

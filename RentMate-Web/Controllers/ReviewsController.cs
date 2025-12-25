@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
+using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
@@ -14,11 +15,16 @@ namespace RentMate.Controllers
     {
         private readonly RentMateContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IStringLocalizer<ReviewsController> _localizer;
 
-        public ReviewsController(RentMateContext context, UserManager<ApplicationUser> userManager)
+        public ReviewsController(
+            RentMateContext context, 
+            UserManager<ApplicationUser> userManager,
+            IStringLocalizer<ReviewsController> localizer)
         {
             _context = context;
             _userManager = userManager;
+            _localizer = localizer;
         }
 
         // ===========================
@@ -97,19 +103,19 @@ namespace RentMate.Controllers
             if (userId == null) return Unauthorized();
 
             var item = await _context.Items.FindAsync(review.ItemId);
-            if (item == null) return NotFound("Item not found.");
-            if (item.UserId == userId) return Forbid("Cannot review your own item.");
+            if (item == null) return NotFound(_localizer["Item not found."].Value);
+            if (item.UserId == userId) return Forbid(); // Contextually clear without string
 
             // Check if the user has already reviewed this item
             var existingReview = await _context.Reviews
                 .Where(r => r.ItemId == review.ItemId && r.ReviewerId == userId && !r.IsDeleted)
                 .FirstOrDefaultAsync();
+                
             if (existingReview != null)
             {
-                return BadRequest("You have already reviewed this item.");
+                return BadRequest(_localizer["You have already reviewed this item."].Value);
             }
 
-            // Continue with normal review creation logic
             review.ReviewerId = userId;
             review.CreatedAt = DateTime.UtcNow;
 
@@ -131,7 +137,6 @@ namespace RentMate.Controllers
             return CreatedAtAction(nameof(GetItemReviews), new { itemId = review.ItemId }, review);
         }
 
-
         // ===========================
         // PUT: api/Reviews/5
         // Edit existing review
@@ -143,8 +148,8 @@ namespace RentMate.Controllers
             if (userId == null) return Unauthorized();
 
             var review = await _context.Reviews.FindAsync(id);
-            if (review == null || review.IsDeleted) return NotFound("Review not found.");
-            if (review.ReviewerId != userId) return Forbid("You can only edit your own reviews.");
+            if (review == null || review.IsDeleted) return NotFound(_localizer["Review not found."].Value);
+            if (review.ReviewerId != userId) return Forbid();
 
             review.Title = updated.Title;
             review.Body = updated.Body;
@@ -176,9 +181,9 @@ namespace RentMate.Controllers
             if (userId == null) return Unauthorized();
 
             var review = await _context.Reviews.FindAsync(id);
-            if (review == null || review.IsDeleted) return NotFound("Review not found.");
+            if (review == null || review.IsDeleted) return NotFound(_localizer["Review not found."].Value);
             if (review.ReviewerId != userId && !User.IsInRole("Admin"))
-                return Forbid("Not allowed to delete this review.");
+                return Forbid();
 
             review.IsDeleted = true;
             await _context.SaveChangesAsync();

@@ -1,12 +1,16 @@
-﻿@model RentMate.Models.Item
-@using System.Text.Json;
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@using System.Text.Json
+@model RentMate.Models.Item
+@inject IViewLocalizer Localizer
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
 @{
     ViewData["Title"] = Model.Title;
     var avgRating = Model.AverageRating ?? 0;
     
-    // Za koledar
+    // For calendar
     var blockedDates = Model.Rentals?
         .Where(r => r.Status == RentMate.Shared.RentalStatus.Active || r.Status == RentMate.Shared.RentalStatus.Pending)
         .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
@@ -18,7 +22,7 @@
 <div class="container py-5">
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-controller="Rentals" asp-action="Index">Tržnica</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Rentals" asp-action="Index">@Localizer["Marketplace"]</a></li>
             <li class="breadcrumb-item"><a href="#">@Model.Category</a></li>
             <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
         </ol>
@@ -28,7 +32,7 @@
         <div class="col-12">
             <h1 class="fw-bold display-5">@Model.Title</h1>
             <div class="d-flex align-items-center gap-3 text-muted">
-                <span><i class="bi bi-star-fill text-warning"></i> <strong>@avgRating.ToString("0.0")</strong> (@Model.ReviewCount mnenj)</span>
+                <span><i class="bi bi-star-fill text-warning"></i> <strong>@avgRating.ToString("0.0")</strong> (@Model.ReviewCount @Localizer["reviews"])</span>
                 <span>•</span>
                 <span><i class="bi bi-geo-alt"></i> @Model.User?.City</span>
             </div>
@@ -44,15 +48,15 @@
                     <img src="@urlLarge" srcset="@urlMed 800w, @urlLarge 1200w" sizes="(max-width: 992px) 800px, 1200px" loading="lazy" class="img-fluid rounded-4 shadow-sm w-100" style="max-height: 500px; object-fit: cover;" alt="@Model.Title">
                 } else {
                     <div class="bg-light rounded-4 d-flex align-items-center justify-content-center" style="height: 400px;">
-                        <span class="text-muted"><i class="bi bi-image fs-1"></i> Ni slike</span>
+                        <span class="text-muted"><i class="bi bi-image fs-1"></i> @Localizer["No image"]</span>
                     </div>
                 }
             </div>
 
             <div class="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
                 <div>
-                    <h3 class="fw-bold">Opis predmeta</h3>
-                    <p class="text-muted">Kategorija: @Model.Category</p>
+                    <h3 class="fw-bold">@Localizer["Item Description"]</h3>
+                    <p class="text-muted">@Localizer["Category"]: @Model.Category</p>
                 </div>
                 <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="text-decoration-none text-dark text-center">
                     <img src="@(Model.User?.ProfilePictureUrl ?? "https://via.placeholder.com/60")" 
@@ -66,7 +70,7 @@
             </div>
 
             <div class="border-top pt-5">
-                <h3 class="fw-bold mb-4"><i class="bi bi-star-fill text-warning me-2"></i> @avgRating.ToString("0.0") · @Model.ReviewCount mnenj</h3>
+                <h3 class="fw-bold mb-4"><i class="bi bi-star-fill text-warning me-2"></i> @avgRating.ToString("0.0") · @Model.ReviewCount @Localizer["reviews"]</h3>
                 
                 <div class="row row-cols-1 row-cols-md-2 g-4">
                     @foreach(var review in Model.Reviews.OrderByDescending(r => r.CreatedAt).Take(4))
@@ -78,7 +82,7 @@
                                         <img src="@(review.Reviewer?.ProfilePictureUrl ?? "https://via.placeholder.com/40")" 
                                              class="rounded-circle me-2 object-fit-cover" style="width: 40px; height: 40px;">
                                         <div>
-                                            <div class="fw-bold">@(review.IsAnonymous ? "Anonimno" : review.Reviewer?.FirstName)</div>
+                                            <div class="fw-bold">@(review.IsAnonymous ? Localizer["Anonymous"] : review.Reviewer?.FirstName)</div>
                                             <div class="text-muted small">@review.CreatedAt.ToString("MMMM yyyy")</div>
                                         </div>
                                     </div>
@@ -92,7 +96,7 @@
                     }
                 </div>
                 @if(Model.ReviewCount > 4) {
-                    <button class="btn btn-outline-dark mt-3">Prikaži vseh @Model.ReviewCount mnenj</button>
+                    <button class="btn btn-outline-dark mt-3">@Localizer["Show all {0} reviews", Model.ReviewCount]</button>
                 }
             </div>
         </div>
@@ -103,30 +107,29 @@
                     <div class="d-flex justify-content-between align-items-end mb-4">
                         <div>
                                 <span class="fs-3 fw-bold">@Model.Price?.ToString("C")</span>
-                            <span class="text-muted"> / dan</span>
+                            <span class="text-muted"> @Localizer["/ day"]</span>
                         </div>
                         <div class="small">
                             <i class="bi bi-star-fill text-warning"></i> @avgRating.ToString("0.0")
                         </div>
                     </div>
 
-                    <!-- Reservation: open modal to pick dates (prevents free-text input) -->
                     <div class="d-grid">
                         <button type="button" class="btn btn-primary btn-lg rounded-3 fw-bold" data-bs-toggle="modal" data-bs-target="#rentModal-@Model.Id">
-                            Rezerviraj
+                            @Localizer["Rent"]
                         </button>
                     </div>
                     
                     <div class="text-center mt-3 small text-muted">
-                        <i class="bi bi-shield-lock"></i> Varno plačilo in najem
+                        <i class="bi bi-shield-lock"></i> @Localizer["Secure payment and rental"]
                     </div>
                 </div>
                 <div class="border-top pt-4 mb-5">
-                    <h3 class="fw-bold mb-3">Lokacija</h3>
+                    <h3 class="fw-bold mb-3">@Localizer["Location"]</h3>
                     <p class="text-muted mb-3">
                         <i class="bi bi-geo-alt-fill text-danger me-1"></i> 
                         @ViewBag.MapCityName 
-                        <span class="badge bg-light text-dark border ms-2">Približna lokacija</span>
+                        <span class="badge bg-light text-dark border ms-2">@Localizer["Approximate location"]</span>
                     </p>
                     
                     <div id="map" class="shadow-sm rounded-4" style="height: 320px; width: 100%; z-index: 1;"></div>
@@ -134,8 +137,7 @@
                     <div class="d-flex align-items-start mt-3 gap-2 text-muted small">
                         <i class="bi bi-shield-check fs-5 text-primary"></i>
                         <p class="mb-0">
-                            Zaradi varnosti in zasebnosti prikazujemo le <strong>približno območje (krog)</strong>, kjer se predmet nahaja. 
-                            Točen naslov za prevzem boste prejeli po potrditvi rezervacije.
+                            @Localizer["For safety and privacy, we only show the <strong>approximate area (circle)</strong> where the item is located. You will receive the exact pickup address after booking confirmation."]
                         </p>
                     </div>
                 </div>
@@ -149,28 +151,28 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            // Pridobi koordinate
+            // Get coordinates
             var lat = @(((double)ViewBag.MapLat).ToString(System.Globalization.CultureInfo.InvariantCulture));
             var lng = @(((double)ViewBag.MapLng).ToString(System.Globalization.CultureInfo.InvariantCulture));
             var cityName = "@ViewBag.MapCityName";
 
-            // 1. POPRAVEK: Zoom level spremenjen iz 13 na 11 (bolj odzoomirano, da se vidi regija)
+            // 1. FIX: Zoom level changed from 13 to 11 (more zoomed out to show region)
             var map = L.map('map', { scrollWheelZoom: false }).setView([lat, lng], 11);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            // Dodajanje KROGA (Varnostna cona) - ne pina
+            // Adding CIRCLE (Safety zone) - not pin
             var circle = L.circle([lat, lng], {
-                color: '#0d6efd',       // Rob (RentMate modra)
-                fillColor: '#0d6efd',   // Polnilo
-                fillOpacity: 0.15,      // Prozornost
-                radius: 1200            // 1.2 km radij
+                color: '#0d6efd',       // Border (RentMate blue)
+                fillColor: '#0d6efd',   // Fill
+                fillOpacity: 0.15,      // Opacity
+                radius: 1200            // 1.2 km radius
             }).addTo(map);
 
-            // Popup ostane enak
-            circle.bindPopup(`<b>${cityName}</b><br>Približna lokacija prevzema.`);
+            // Popup remains the same
+            circle.bindPopup(`<b>${cityName}</b><br>@Localizer["Approximate pickup location."]`);
         });
     </script>
 
@@ -208,7 +210,7 @@
                             const total = diffDays * pricePerDay;
 
                             if (calcWrapper) {
-                                calcDays.innerText = `${diffDays} dni x ${pricePerDay}€`;
+                                calcDays.innerText = `${diffDays} @Localizer["days x"] ${pricePerDay}€`;
                                 calcTotalBase.innerText = `${total.toFixed(2)}€`;
                                 calcFinalTotal.innerText = `${total.toFixed(2)}€`;
                                 calcWrapper.classList.remove('d-none');

@@ -1,7 +1,9 @@
 @using Microsoft.AspNetCore.Identity
 @using RentMate.Models
+@using Microsoft.AspNetCore.Mvc.Localization
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@inject IViewLocalizer Localizer
 
 <ul class="navbar-nav">
 @if (SignInManager.IsSignedIn(User))
@@ -9,30 +11,30 @@
     var user = await UserManager.GetUserAsync(User);
     // V primeru null referenc uporabimo placeholder
     var profilePic = !string.IsNullOrEmpty(user?.ProfilePictureUrl) 
-                     ? user.ProfilePictureUrl 
-                     : "https://via.placeholder.com/40?text=U"; 
-    var displayName = user?.FirstName ?? User.Identity?.Name ?? "User";
+                    ? user.ProfilePictureUrl 
+                    : "https://via.placeholder.com/40?text=U"; 
+    var displayName = user?.FirstName ?? User.Identity?.Name ?? Localizer["User"].Value;
 
     <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <img src="@profilePic" class="rounded-circle me-2 border border-secondary object-fit-cover" style="width: 32px; height: 32px;" alt="Profile" />
+            <img src="@profilePic" class="rounded-circle me-2 border border-secondary object-fit-cover" style="width: 32px; height: 32px;" alt="@Localizer["Profile"]" />
             <span class="fw-bold">@displayName</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
             <li>
                 <a class="dropdown-item" asp-controller="Dashboard" asp-action="UserDashboard">
-                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                    <i class="bi bi-speedometer2 me-2"></i> @Localizer["Dashboard"]
                 </a>
             </li>
             <li>
                 <a class="dropdown-item" asp-area="Identity" asp-page="/Account/Manage/Index">
-                    <i class="bi bi-person-gear me-2"></i> Uredi profil
+                    <i class="bi bi-person-gear me-2"></i> @Localizer["Settings"]
                 </a>
             </li>
             <li><hr class="dropdown-divider"></li>
             <li>
                 <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-                    <button type="submit" class="dropdown-item text-danger">Odjava</button>
+                    <button type="submit" class="dropdown-item text-danger">@Localizer["Logout"]</button>
                 </form>
             </li>
         </ul>
@@ -41,10 +43,10 @@
 else
 {
     <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">Registracija</a>
+        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Register">@Localizer["Register"]</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">Prijava</a>
+        <a class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Login">@Localizer["Login"]</a>
     </li>
 }
 </ul>

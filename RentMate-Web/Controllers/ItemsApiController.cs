@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
-using RentMate.Models; // Za Web modele (vključno z ApplicationUser)
-using RentMate.Shared; // Za Shared modele (ItemDto, UserDto)
+using RentMate.Models; // For Web models (including ApplicationUser)
+using RentMate.Shared; // For Shared models (ItemDto, UserDto)
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
@@ -16,18 +17,23 @@ namespace RentMate.Controllers
     {
         private readonly RentMateContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IStringLocalizer<ItemsApiController> _localizer;
 
-        public ItemsApiController(RentMateContext context, UserManager<ApplicationUser> userManager)
+        public ItemsApiController(
+            RentMateContext context, 
+            UserManager<ApplicationUser> userManager,
+            IStringLocalizer<ItemsApiController> localizer)
         {
             _context = context;
             _userManager = userManager;
+            _localizer = localizer;
         }
 
         // GET: api/Items
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RentMate.Shared.ItemDto>>> GetItems()
         {
-            // Vzamemo Web modele iz baze in jih preslikamo v Shared DTO-je
+            // Map Web models from database to Shared DTOs
             var items = await _context.Items
                 .Include(i => i.User)
                 .Select(i => new RentMate.Shared.ItemDto
@@ -79,20 +85,20 @@ namespace RentMate.Controllers
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult<RentMate.Models.Item>> PostItem(RentMate.Shared.Item sharedItem)
         {
-            // 1. Poskusi pridobiti ID na dva načina
+            // 1. Attempt to get ID in two ways
             string? userId = _userManager.GetUserId(User) ?? sharedItem.UserId;
             
-            // Če je UserManager odpovedal, poskusi direktno iz Claimov
+            // If UserManager failed, try directly from Claims
             if (string.IsNullOrEmpty(userId))
             {
                 userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             }
 
-            // 2. Če je še vedno NULL, ne smeš nadaljevati v bazo!
+            // 2. If still NULL, we cannot proceed to the database
             if (string.IsNullOrEmpty(userId))
             {
-                // Vrni 401, da v MAUI vidiš, da žeton ni pravilno prebran
-                return Unauthorized("Napaka: Strežnik ne najde tvojega ID-ja v žetonu. Dashboard bo zato kazal 0.");
+                // Return 401 so MAUI can see that the token was not read correctly
+                return Unauthorized(_localizer["Error: Server cannot find your ID in the token. Dashboard will show 0."].Value);
             }
 
             var webItem = new RentMate.Models.Item
@@ -103,7 +109,7 @@ namespace RentMate.Controllers
                 IsListed = sharedItem.IsListed,
                 Category = sharedItem.Category,
                 Location = sharedItem.Location,
-                UserId = userId, // Zdaj smo 100%, da ni null
+                UserId = userId, // Now 100% sure it's not null
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -115,7 +121,8 @@ namespace RentMate.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest($"Napaka pri shranjevanju: {ex.InnerException?.Message ?? ex.Message}");
+                string errorMessage = _localizer["Error while saving: {0}", ex.InnerException?.Message ?? ex.Message].Value;
+                return BadRequest(errorMessage);
             }
         }
 
@@ -129,7 +136,7 @@ namespace RentMate.Controllers
             var webItem = await _context.Items.FindAsync(id);
             if (webItem == null) return NotFound();
 
-            // Posodobimo vrednosti Web modela
+            // Update Web model values
             webItem.Title = sharedItem.Title;
             webItem.Description = sharedItem.Description;
             webItem.Price = sharedItem.Price;
@@ -168,7 +175,7 @@ namespace RentMate.Controllers
             var userId = _userManager.GetUserId(User);
             return await _context.Items
                 .Where(i => i.UserId == userId)
-                .Select(i => new RentMate.Shared.Item // Vrnemo Shared verzijo
+                .Select(i => new RentMate.Shared.Item // Return Shared version
                 {
                     Id = i.Id,
                     Title = i.Title,

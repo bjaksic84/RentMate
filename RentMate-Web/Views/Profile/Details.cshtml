@@ -1,10 +1,12 @@
 @model RentMate.Models.ApplicationUser
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 
 @{
-    ViewData["Title"] = "Javni Profil";
+    ViewData["Title"] = Localizer["Public Profile"];
     var profilePic = !string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Model.ProfilePictureUrl : "https://via.placeholder.com/150?text=User";
     
-    // Izračun povprečne ocene vseh predmetov tega userja
+    // Calculation of average rating for all items of this user
     var allItems = Model.Items ?? new List<RentMate.Models.Item>();
     double avgRating = 0;
     int reviewCount = 0;
@@ -30,34 +32,34 @@
                          style="width: 150px; height: 150px;" alt="@Model.FirstName">
                     @if(avgRating > 4.5) 
                     {
-                        <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-white" title="Super lastnik">
+                        <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-white" title="@Localizer["Super Owner"]">
                             <i class="bi bi-shield-check"></i>
                         </span>
                     }
                 </div>
                 <h3 class="fw-bold">@Model.FirstName @Model.LastName</h3>
-                <p class="text-muted"><i class="bi bi-geo-alt-fill text-danger"></i> @(Model.City ?? "Neznano")</p>
+                <p class="text-muted"><i class="bi bi-geo-alt-fill text-danger"></i> @(Model.City ?? Localizer["Unknown"].Value)</p>
                 
                 <div class="d-flex justify-content-center gap-3 my-3">
                     <div class="text-center">
                         <h5 class="fw-bold mb-0">@allItems.Count()</h5>
-                        <small class="text-muted">Oglasi</small>
+                        <small class="text-muted">@Localizer["Listings"]</small>
                     </div>
                     <div class="border-end"></div>
                     <div class="text-center">
                         <h5 class="fw-bold mb-0">@avgRating.ToString("0.0") <i class="bi bi-star-fill text-warning" style="font-size: 0.8rem;"></i></h5>
-                        <small class="text-muted">Ocena</small>
+                        <small class="text-muted">@Localizer["Rating"]</small>
                     </div>
                     <div class="border-end"></div>
                     <div class="text-center">
                         <h5 class="fw-bold mb-0">@reviewCount</h5>
-                        <small class="text-muted">Mnenj</small>
+                        <small class="text-muted">@Localizer["Reviews"]</small>
                     </div>
                 </div>
 
                 <hr>
                 <div class="text-start">
-                    <small class="text-muted text-uppercase fw-bold">Kontakt</small>
+                    <small class="text-muted text-uppercase fw-bold">@Localizer["Contact"]</small>
                     <p class="mb-1 mt-1"><i class="bi bi-envelope me-2"></i> @Model.Email</p>
                     @if(!string.IsNullOrEmpty(Model.PhoneNumber))
                     {
@@ -68,12 +70,12 @@
         </div>
 
         <div class="col-lg-8">
-            <h4 class="fw-bold mb-4">Aktivni oglasi (@Model.Items.Count())</h4>
+            <h4 class="fw-bold mb-4">@Localizer["Active listings ({0})", Model.Items.Count()]</h4>
             
             @if (!Model.Items.Any())
             {
                 <div class="alert alert-light text-center py-5">
-                    Uporabnik trenutno nima aktivnih oglasov.
+                    @Localizer["User currently has no active listings."]
                 </div>
             }
             else
@@ -94,7 +96,7 @@
                                             </div>
                                         }
                                         <div class="position-absolute bottom-0 end-0 m-2">
-                                            <span class="badge bg-light text-dark shadow-sm">@item.Price?.ToString("C") / dan</span>
+                                            <span class="badge bg-light text-dark shadow-sm">@item.Price?.ToString("C") @Localizer["/ day"]</span>
                                         </div>
                                     </div>
                                 </a>
@@ -102,7 +104,7 @@
                                     <h6 class="card-title fw-bold text-truncate">@item.Title</h6>
                                     <p class="card-text small text-muted text-truncate">@item.Category</p>
                                     <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary w-100">
-                                        Poglej podrobnosti
+                                        @Localizer["View details"]
                                     </a>
                                 </div>
                             </div>

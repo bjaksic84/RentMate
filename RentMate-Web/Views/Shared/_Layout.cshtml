@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -6,12 +8,8 @@
     <title>@ViewData["Title"] - RentMate</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/zephyr/bootstrap.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link 
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-  crossorigin="anonymous"
-  referrerpolicy="no-referrer">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/RentMate.styles.css" asp-append-version="true" />
@@ -22,44 +20,69 @@
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">RentMate</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                        aria-expanded="false" aria-label="@Localizer["Toggle navigation"]">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">@Localizer["Home"]</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">@Localizer["Privacy"]</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Items" asp-action="Index">Items</a>
+                            <a class="nav-link text-dark" asp-controller="Items" asp-action="Index">@Localizer["Items"]</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Rentals" asp-action="Index">Rentals</a>
+                            <a class="nav-link text-dark" asp-controller="Rentals" asp-action="Index">@Localizer["Rentals"]</a>
                         </li>
                         @if (User.IsInRole("Admin"))
                         {
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Users" asp-action="Index">Users</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Dashboard" asp-action="AdminDashboard">Admin Dashboard</a>
-                        </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Users" asp-action="Index">@Localizer["Users"]</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Dashboard" asp-action="AdminDashboard">@Localizer["Admin Dashboard"]</a>
+                            </li>
                         }
                         else
                         {
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Dashboard" asp-action="UserDashboard">My Dashboard</a>
-                        </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Dashboard" asp-action="UserDashboard">@Localizer["My Dashboard"]</a>
+                            </li>
                         }
-                        <li class="text-end mb-2">
-                            <span id="connectionIndicator" class="badge bg-secondary">Offline</span>
+                        <li class="text-end mb-2 d-flex align-items-center px-2">
+                            <span id="connectionIndicator" class="badge bg-secondary">@Localizer["Offline"]</span>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-globe me-1"></i> @Localizer["Language"]
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="langDropdown">
+                                <li>
+                                    <form asp-controller="Culture" asp-action="SetLanguage" 
+                                          asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" 
+                                          method="post">
+                                        <button type="submit" name="culture" value="en" class="dropdown-item">
+                                            🇺🇸 English
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form asp-controller="Culture" asp-action="SetLanguage" 
+                                          asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" 
+                                          method="post">
+                                        <button type="submit" name="culture" value="sl" class="dropdown-item">
+                                            🇸🇮 Slovenščina
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
                         </li>
                     </ul>
                     <div class="d-flex align-items-center">
-                        <button id="themeToggle" class="btn btn-sm btn-outline-secondary me-2" aria-label="Toggle theme">
+                        <button id="themeToggle" class="btn btn-sm btn-outline-secondary me-2" aria-label="@Localizer["Toggle theme"]">
                             <i id="themeIcon" class="bi bi-moon-fill"></i>
                         </button>
                         <partial name="_LoginPartial" />
@@ -76,7 +99,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2025 - RentMate - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2025 - RentMate - <a asp-area="" asp-controller="Home" asp-action="Privacy">@Localizer["Privacy"]</a>
         </div>
     </footer>
 
@@ -84,13 +107,8 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-
-    <!-- Load SignalR client BEFORE per-page scripts so pages can use `signalR` in their Scripts section -->
-    <!-- SignalR client (matching .NET 8) - use minified file to avoid missing source map 404 -->
     <script src="~/lib/signalr/signalr.min.js"></script>
 
-
     @await RenderSectionAsync("Scripts", required: false)
-
 </body>
 </html>

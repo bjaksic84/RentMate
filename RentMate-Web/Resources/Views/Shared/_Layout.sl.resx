@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Toggle navigation" xml:space="preserve">
+    <value>Preklop navigacije</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Domov</value>
+  </data>
+  <data name="Privacy" xml:space="preserve">
+    <value>Zasebnost</value>
+  </data>
+  <data name="Items" xml:space="preserve">
+    <value>Predmeti</value>
+  </data>
+  <data name="Rentals" xml:space="preserve">
+    <value>Najemi</value>
+  </data>
+  <data name="Users" xml:space="preserve">
+    <value>Uporabniki</value>
+  </data>
+  <data name="Admin Dashboard" xml:space="preserve">
+    <value>Admin nadzorna plošča</value>
+  </data>
+  <data name="My Dashboard" xml:space="preserve">
+    <value>Moja nadzorna plošča</value>
+  </data>
+  <data name="Offline" xml:space="preserve">
+    <value>Brez povezave</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Jezik</value>
+  </data>
+  <data name="Toggle theme" xml:space="preserve">
+    <value>Preklop teme</value>
+  </data>
+</root>

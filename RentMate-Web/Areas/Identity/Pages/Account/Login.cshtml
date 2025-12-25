@@ -1,8 +1,9 @@
 ﻿@page
 @model LoginModel
-
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = "Log in";
+    ViewData["Title"] = Localizer["Log in"];
 }
 
 <div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
@@ -11,7 +12,7 @@
             
             <div class="text-center mb-4">
                 <h2 class="fw-bold text-primary">@ViewData["Title"]</h2>
-                <p class="text-muted">Use a local account to log in.</p>
+                <p class="text-muted">@Localizer["Use a local account to log in."]</p>
             </div>
 
             <form id="account" method="post">
@@ -23,7 +24,7 @@
                            autocomplete="username" 
                            aria-required="true" 
                            placeholder="name@example.com" />
-                    <label asp-for="Input.Email">Email</label>
+                    <label asp-for="Input.Email">@Localizer["Email"]</label>
                     <span asp-validation-for="Input.Email" class="text-danger small"></span>
                 </div>
 
@@ -33,25 +34,25 @@
                            autocomplete="current-password" 
                            aria-required="true" 
                            placeholder="password" />
-                    <label asp-for="Input.Password">Password</label>
+                    <label asp-for="Input.Password">@Localizer["Password"]</label>
                     <span asp-validation-for="Input.Password" class="text-danger small"></span>
                 </div>
 
                 <div class="checkbox mb-3">
                     <label asp-for="Input.RememberMe" class="form-check-label text-muted">
                         <input class="form-check-input me-2" asp-for="Input.RememberMe" />
-                        @Html.DisplayNameFor(m => m.Input.RememberMe)
+                        @Localizer["Remember me?"]
                     </label>
                 </div>
 
                 <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary rounded-pill fw-bold mb-3">
-                    Log in
+                    @Localizer["Log in"]
                 </button>
 
                 <div class="text-center small">
-                    <p class="mb-1"><a id="forgot-password" asp-page="./ForgotPassword" class="text-decoration-none">Forgot your password?</a></p>
-                    <p class="mb-1"><a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-decoration-none">Register as a new user</a></p>
-                    <p><a id="resend-confirmation" asp-page="./ResendEmailConfirmation" class="text-decoration-none">Resend email confirmation</a></p>
+                    <p class="mb-1"><a id="forgot-password" asp-page="./ForgotPassword" class="text-decoration-none">@Localizer["Forgot your password?"]</a></p>
+                    <p class="mb-1"><a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-decoration-none">@Localizer["Register as a new user"]</a></p>
+                    <p><a id="resend-confirmation" asp-page="./ResendEmailConfirmation" class="text-decoration-none">@Localizer["Resend email confirmation"]</a></p>
                 </div>
             </form>
 
@@ -59,11 +60,11 @@
             {
                 <hr class="my-4" />
                 <div class="text-center">
-                    <p class="text-muted small mb-3">Or sign in with</p>
+                    <p class="text-muted small mb-3">@Localizer["Or sign in with"]</p>
                     <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="d-grid gap-2">
                         @foreach (var provider in Model.ExternalLogins!)
                         {
-                            <button type="submit" class="btn btn-outline-secondary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">
+                            <button type="submit" class="btn btn-outline-secondary" name="provider" value="@provider.Name" title="@string.Format(Localizer["Log in using your {0} account"].Value, provider.DisplayName)">
                                 <i class="bi bi-box-arrow-in-right me-2"></i> @provider.DisplayName
                             </button>
                         }
@@ -79,22 +80,18 @@
 }
 
 <style>
-    /* 1. Ensure page takes full height to center the card vertically */
     .min-vh-100 {
-        min-height: 80vh !important; /* Adjusted to 80 to account for navbars */
+        min-height: 80vh !important;
     }
 
-    /* 2. FIX FOR OVERLAPPING TEXT */
-    /* This forces the placeholder text to be invisible unless the input is focused */
     .form-floating .form-control::placeholder {
         color: transparent; 
     }
     
     .form-floating .form-control:focus::placeholder {
-        color: #a0a0a0; /* Shows placeholder only when typing */
+        color: #a0a0a0;
     }
 
-    /* 3. Style tweaks for the card */
     .card {
         border-color: #f0f0f0;
     }

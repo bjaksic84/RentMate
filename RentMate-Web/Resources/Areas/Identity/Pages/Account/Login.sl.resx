@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="Log in" xml:space="preserve"><value>Prijava</value></data>
+  <data name="Use a local account to log in." xml:space="preserve"><value>Uporabite lokalni račun za prijavo.</value></data>
+  <data name="Email" xml:space="preserve"><value>E-poštni naslov</value></data>
+  <data name="Password" xml:space="preserve"><value>Geslo</value></data>
+  <data name="Remember me?" xml:space="preserve"><value>Zapomni si me?</value></data>
+  <data name="Forgot your password?" xml:space="preserve"><value>Pozabljeno geslo?</value></data>
+  <data name="Register as a new user" xml:space="preserve"><value>Registracija novega uporabnika</value></data>
+  <data name="Resend email confirmation" xml:space="preserve"><value>Ponovno pošlji potrditveno e-pošto</value></data>
+  <data name="Or sign in with" xml:space="preserve"><value>Ali se prijavite prek</value></data>
+  <data name="Log in using your {0} account" xml:space="preserve"><value>Prijavite se s svojim {0} računom</value></data>
+
+  <data name="Invalid login attempt." xml:space="preserve"><value>Neuspešen poskus prijave.</value></data>
+  <data name="The Email field is required." xml:space="preserve"><value>Polje za e-pošto je obvezno.</value></data>
+  <data name="The Email field is not a valid e-mail address." xml:space="preserve"><value>Vneseni e-poštni naslov ni veljaven.</value></data>
+  <data name="The Password field is required." xml:space="preserve"><value>Geslo je obvezno.</value></data>
+</root>

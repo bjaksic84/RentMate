@@ -1,22 +1,24 @@
 @model IEnumerable<RentMate.Models.Rental>
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 
 @{
-    ViewData["Title"] = "Moje Izposoje";
+    ViewData["Title"] = Localizer["My Rentals"];
 }
 
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>📦 Moje Izposoje</h1>
+        <h1>📦 @Localizer["My Rentals"]</h1>
         <a asp-action="Index" class="btn btn-primary btn-lg shadow-sm">
-            <i class="bi bi-plus-lg"></i> Nova izposoja
+            <i class="bi bi-plus-lg"></i> @Localizer["New Rental"]
         </a>
     </div>
 
     @if (!Model.Any())
     {
         <div class="text-center py-5">
-            <h3 class="text-muted">Trenutno nimate nobenih izposoj.</h3>
-            <p>Začnite z izposojo nekega predmeta!</p>
+            <h3 class="text-muted">@Localizer["You currently have no rentals."]</h3>
+            <p>@Localizer["Start by renting an item!"]</p>
         </div>
     }
     else
@@ -38,16 +40,14 @@
                                 };
                             }
                             <span class="badge bg-@statusColor rounded-pill float-end">
-                                @Html.DisplayFor(modelItem => item.Status)
+                                @Localizer[item.Status.ToString()]
                             </span>
                         </div>
                         <div class="card-body">
                             <h5 class="card-title fw-bold text-dark">
-                                @* POPRAVEK: Uporaba ? za varen dostop do Title *@
                                 @item.Item?.Title
                             </h5>
                             <p class="card-text text-muted small">
-                                @* POPRAVEK: Uporaba ? za varen dostop do Renter.Email *@
                                 <i class="bi bi-person"></i> @item.Renter?.Email
                             </p>
                             
@@ -55,11 +55,11 @@
 
                             <div class="d-flex justify-content-between mt-3">
                                 <div>
-                                    <small class="text-muted d-block">Začetek</small>
+                                    <small class="text-muted d-block">@Localizer["Start"]</small>
                                     <strong>@item.StartDate.ToString("dd. MMM")</strong>
                                 </div>
                                 <div class="text-end">
-                                    <small class="text-muted d-block">Konec</small>
+                                    <small class="text-muted d-block">@Localizer["End"]</small>
                                     <strong>@item.EndDate.ToString("dd. MMM")</strong>
                                 </div>
                             </div>
@@ -67,11 +67,11 @@
                         <div class="card-footer bg-white border-0 pb-3">
                             <div class="d-grid gap-2">
                                 <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-primary btn-sm">
-                                    Podrobnosti
+                                    @Localizer["Details"]
                                 </a>
                                 <div class="btn-group">
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-light btn-sm text-muted">Uredi</a> 
-                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-light btn-sm text-danger">Prekliči</a>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-light btn-sm text-muted">@Localizer["Edit"]</a> 
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-light btn-sm text-danger">@Localizer["Cancel"]</a>
                                 </div>
                             </div>
                         </div>

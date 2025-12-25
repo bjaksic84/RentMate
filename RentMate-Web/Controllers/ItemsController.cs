@@ -13,27 +13,31 @@ using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
 using RentMate.Services;
 using RentMate.Helpers;
-
+using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
     public class ItemsController : Controller
     {
         private readonly RentMateContext _context;
-
         private readonly UserManager<ApplicationUser> _userManager;
-
         private readonly IHubContext<RentMateHub> _hubContext;
-
         private readonly IFileUploadService _fileService;
-        public ItemsController(RentMateContext context, UserManager<ApplicationUser> userManager, IHubContext<RentMateHub> hubContext, IFileUploadService fileService)
+        private readonly IStringLocalizer<ItemsController> _localizer;
+
+        public ItemsController(
+            RentMateContext context, 
+            UserManager<ApplicationUser> userManager, 
+            IHubContext<RentMateHub> hubContext, 
+            IFileUploadService fileService,
+            IStringLocalizer<ItemsController> localizer)
         {
             _context = context;
             _userManager = userManager;
             _hubContext = hubContext;
             _fileService = fileService;
+            _localizer = localizer;
         }
-
 
         // GET: Items
         public async Task<IActionResult> Index()
@@ -49,16 +53,17 @@ namespace RentMate.Controllers
             if (id == null) return NotFound();
 
             var item = await _context.Items
-                .Include(i => i.User) // Lastnik
-                .Include(i => i.Reviews.Where(r => !r.IsDeleted)) // Mnenja
-                    .ThenInclude(r => r.Reviewer) // Kdo je napisal mnenje
+                .Include(i => i.User) // Owner
+                .Include(i => i.Reviews.Where(r => !r.IsDeleted)) // Reviews
+                    .ThenInclude(r => r.Reviewer) // Who wrote the review
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (item == null) return NotFound();
-            // 1. Pridobi koordinate glede na mesto lastnika
+
+            // 1. Get coordinates based on the owner's city
             var cityInfo = CityData.GetCoordinates(item.User?.City);
 
-            // 2. Pošlji podatke v View
+            // 2. Send data to View
             ViewBag.MapLat = cityInfo.Lat;
             ViewBag.MapLng = cityInfo.Lng;
             ViewBag.MapCityName = cityInfo.Name;
@@ -74,8 +79,6 @@ namespace RentMate.Controllers
         }
 
         // POST: Items/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
@@ -87,10 +90,10 @@ namespace RentMate.Controllers
 
             if (ModelState.IsValid)
             {
-                // ✅ Assign ownership and safe defaults
+                // Assign ownership and safe defaults
                 if (image != null)
                 {
-                    // Uporabimo mapo "items" na Cloudinary
+                    // Use the "items" folder on Cloudinary
                     item.ImageUrl = await _fileService.UploadFileAsync(image, "items");
                 }
                 item.UserId = user.Id;
@@ -102,45 +105,33 @@ namespace RentMate.Controllers
                 _context.Add(item);
                 await _context.SaveChangesAsync();
 
-                TempData["SuccessMessage"] = $"Item '{item.Title}' created successfully!";
+                TempData["SuccessMessage"] = string.Format(_localizer["Item '{0}' created successfully!"], item.Title);
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
-            TempData["ErrorMessage"] = "Failed to create item. Please try again.";
+            TempData["ErrorMessage"] = _localizer["Failed to create item. Please try again."].Value;
             return RedirectToAction("UserDashboard", "Dashboard");
         }
-
-
-
 
         // GET: Items/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var item = await _context.Items.FindAsync(id);
-            if (item == null)
-            {
-                return NotFound();
-            }
+            if (item == null) return NotFound();
+            
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", item.UserId);
             return View(item);
         }
 
         // POST: Items/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl")] Item item, IFormFile? image)
         {
             if (id != item.Id) return NotFound();
 
-            // Ker Bind ne vključuje UserId (varnost), ga moramo prebrati iz baze ali ohraniti
-            // Najbolj varno je dobiti original iz baze in posodobiti polja
             var existingItem = await _context.Items.FindAsync(id);
             if (existingItem == null) return NotFound();
             
@@ -151,22 +142,22 @@ namespace RentMate.Controllers
             {
                 try
                 {
-                    // Posodobi polja
+                    // Update fields
                     existingItem.Title = item.Title;
                     existingItem.Description = item.Description;
                     existingItem.Price = item.Price;
                     existingItem.Category = item.Category;
                     existingItem.UpdatedAt = DateTime.UtcNow;
 
-                    // ✅ 2. Logika za zamenjavo slike
+                    // Image replacement logic
                     if (image != null)
                     {
-                        // Izbriši staro sliko (če obstaja)
+                        // Delete old image if it exists
                         if (!string.IsNullOrEmpty(existingItem.ImageUrl))
                         {
                             _fileService.DeleteFile(existingItem.ImageUrl);
                         }
-                        // Naloži novo
+                        // Upload new
                         existingItem.ImageUrl = await _fileService.UploadFileAsync(image, "items");
                     }
 
@@ -175,7 +166,7 @@ namespace RentMate.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                throw;
+                    throw;
                 }
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
@@ -185,18 +176,13 @@ namespace RentMate.Controllers
         // GET: Items/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var item = await _context.Items
                 .Include(i => i.User)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (item == null)
-            {
-                return NotFound();
-            }
+            
+            if (item == null) return NotFound();
 
             return View(item);
         }
@@ -211,7 +197,7 @@ namespace RentMate.Controllers
             
             if (item != null && item.UserId == user.Id)
             {
-                // ✅ 3. Izbriši sliko iz Cloudinary
+                // Delete image from Cloudinary
                 if (!string.IsNullOrEmpty(item.ImageUrl))
                 {
                     _fileService.DeleteFile(item.ImageUrl);
@@ -227,7 +213,7 @@ namespace RentMate.Controllers
         {
             return _context.Items.Any(e => e.Id == id);
         }
-        // ItemsController.cs
+
         [HttpPost]
         [Authorize]
         public async Task<IActionResult> ToggleListing(int id)
@@ -238,7 +224,8 @@ namespace RentMate.Controllers
 
             item.IsListed = !item.IsListed;
             await _context.SaveChangesAsync();
-            // ✅ Broadcast real-time update
+
+            // Broadcast real-time update
             await _hubContext.Clients.All.SendAsync("ItemListingChanged", new
             {
                 itemId = item.Id,

@@ -1,54 +1,64 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization; // Dodano za RequestLocalizationOptions
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models; // Dodano za Swagger OpenApi objekti
 using RentMate.Data;
-using RentMate.Models;
 using RentMate.Hubs;
+using RentMate.Models;
 using RentMate.Services;
-using System.IdentityModel.Tokens.Jwt;
-JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+using System.Globalization;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Json.Serialization;
+
+// Čiščenje mapiranja claimov, da dobimo čiste "sub", "role" itd.
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// ==========================================
+// 1. KONFIGURACIJA STORITEV (SERVICES)
+// ==========================================
+
+// --- Baza podatkov ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
 builder.Services.AddDbContext<RentMateContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
-builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
-    options.SignIn.RequireConfirmedAccount = false)
+
+// --- Identity (Uporabniki in Role) ---
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => 
+    {
+        options.SignIn.RequireConfirmedAccount = false;
+        options.Password.RequireDigit = true; // Primer varnostnih nastavitev
+        options.Password.RequiredLength = 6;
+    })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<RentMateContext>()
     .AddDefaultTokenProviders();
+
+// Nastavitve piškotkov (za Razor Pages / MVC login)
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.AccessDeniedPath = "/AccessDenied";
-    options.LoginPath = "/Identity/Account/Login"; // adjust if needed
+    options.LoginPath = "/Identity/Account/Login";
+    options.SlidingExpiration = true;
 });
 
-builder.Services.AddCors(options => {
-    options.AddPolicy("AllowAll", b => b.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-});
-builder.Services.AddControllersWithViews();
-builder.Services.AddControllers().AddJsonOptions(x =>
-   x.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles);
-builder.Services.AddSignalR();
-builder.Services.AddRazorPages();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// --- JWT Avtentikacija (za API) ---
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var jwtKey = jwtSection["Key"];
+var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key is missing in configuration.");
 var issuer = jwtSection["Issuer"];
 var audience = jwtSection["Audience"];
-
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
-builder.Services.AddAuthentication() // add schemes, but don't override cookie defaults
+builder.Services.AddAuthentication()
     .AddJwtBearer(options =>
     {
-        options.RequireHttpsMetadata = true;
+        options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
         options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -60,42 +70,115 @@ builder.Services.AddAuthentication() // add schemes, but don't override cookie d
             IssuerSigningKey = signingKey,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromSeconds(30),
-
-            // make sure role claims map correctly
+            
+            // Mapiranje claimov
             RoleClaimType = ClaimTypes.Role,
             NameClaimType = ClaimTypes.NameIdentifier
         };
     });
 
-// Optional: Add policy(s) if you want centralized policy usage
-builder.Services.AddAuthorization(options =>
-{
-    // default policy remains cookie-based for Razor pages; when using the policy,
-    // explicitly add AuthenticationSchemes if you want to require JWT
+// --- Lokalizacija ---
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+// --- MVC, Kontrolerji in SignalR ---
+builder.Services.AddControllersWithViews()
+    .AddViewLocalization()
+    .AddDataAnnotationsLocalization()
+    .AddJsonOptions(x =>
+        x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles); // Prepreči krožne reference
+
+builder.Services.AddRazorPages();
+builder.Services.AddSignalR();
+
+// --- CORS ---
+builder.Services.AddCors(options => {
+    options.AddPolicy("AllowAll", b => b
+        .AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod());
 });
+
+// --- Swagger / OpenAPI ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    // Rešitev za podvojena imena razredov (Rental)
+    // Rešitev za podvojena imena razredov
     options.CustomSchemaIds(type => type.FullName);
-    
-    // Če želiš v Swaggerju testirati klice z žetonom, dodaj še to:
-    
 
-    
+    // Konfiguracija za JWT avtentikacijo v Swagger UI
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Vnesite JWT žeton. Primer: eyJhbGciOiJIUzI1NiIs..."
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
 });
+
+// --- Lastne storitve ---
 builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
+
+// ==========================================
+// 2. BUILD APP
+// ==========================================
 var app = builder.Build();
+
+// ==========================================
+// 3. MIDDLEWARE PIPELINE
+// ==========================================
+
+// Seeding podatkov (Admin role itd.)
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try 
+    {
+        // Dodan try-catch za varnost pri zagonu
+        await DataSeeder.SeedRolesAndAdminAsync(services);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
+
+// Lokalizacija (Mora biti pred Routing in Auth)
+var supportedCultures = new[] { new CultureInfo("sl"), new CultureInfo("en") };
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture("sl"), // Slovenščina kot privzeta
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+};
+app.UseRequestLocalization(localizationOptions);
+
+// Error handling in HSTS
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+else
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -103,20 +186,20 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-app.UseCors("AllowAll");
+
+app.UseCors("AllowAll"); // CORS mora biti med Routing in Auth
+
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Mapiranje poti
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
-
-app.MapControllers();
-app.MapDefaultControllerRoute();
 app.MapHub<RentMateHub>("/rentmateHub");
 
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    await DataSeeder.SeedRolesAndAdminAsync(services);
-}
-app.MapRazorPages();
+// ==========================================
+// 4. RUN
+// ==========================================
 app.Run();

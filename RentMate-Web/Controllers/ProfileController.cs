@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace RentMate.Controllers
 {
@@ -20,8 +22,8 @@ namespace RentMate.Controllers
             if (string.IsNullOrEmpty(id)) return NotFound();
 
             var user = await _context.Users
-                .Include(u => u.Items.Where(i => i.IsListed)) // Pokaži samo aktivne oglase
-                    .ThenInclude(i => i.Reviews) // Za izračun ocene
+                .Include(u => u.Items.Where(i => i.IsListed)) // Show only active listings
+                    .ThenInclude(i => i.Reviews) // For rating calculation
                 .FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null) return NotFound();

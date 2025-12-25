@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
@@ -17,17 +18,20 @@ namespace RentMate.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly RentMateContext _context;
+        private readonly IStringLocalizer<UsersController> _localizer;
 
-        public UsersController(RentMateContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+        public UsersController(
+            RentMateContext context, 
+            UserManager<ApplicationUser> userManager, 
+            RoleManager<IdentityRole> roleManager,
+            IStringLocalizer<UsersController> localizer)
         {
             _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
+            _localizer = localizer;
         }
-
-        private readonly RentMateContext _context;
-
-       
 
         // GET: Users
         public async Task<IActionResult> Index()
@@ -60,8 +64,6 @@ namespace RentMate.Controllers
         }
 
         // POST: Users/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Username,Email,PasswordHash")] ApplicationUser user)
@@ -92,8 +94,6 @@ namespace RentMate.Controllers
         }
 
         // POST: Users/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(string? id, [Bind("Id,Username,Email,PasswordHash")] ApplicationUser user)
@@ -131,7 +131,6 @@ namespace RentMate.Controllers
                         throw;
                     }
                 }
-                
             }
             return View(user);
         }
@@ -173,6 +172,7 @@ namespace RentMate.Controllers
         {
             return _context.Users.Any(e => e.Id == id);
         }
+
         public async Task<IActionResult> ManageRoles(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -215,44 +215,39 @@ namespace RentMate.Controllers
             var rolesToAdd = selectedRoles.Except(userRoles);
             await _userManager.AddToRolesAsync(user, rolesToAdd);
 
-            TempData["SuccessMessage"] = $"Vloge za {user.Email} so bile uspešno posodobljene.";
+            TempData["SuccessMessage"] = string.Format(_localizer["Roles for {0} were successfully updated."], user.Email);
             return RedirectToAction(nameof(Index));
         }
-        // Klik ime lastnika
+
+        // Triggered when clicking owner's name
         [AllowAnonymous] 
         public async Task<IActionResult> GetOwnerInfoPartial(string userId)
         {
             var user = await _userManager.Users
-                .Include(u => u.Items!) // Nujno vključimo Items
-                    .ThenInclude(i => i.Reviews) // In njihove ocene
+                .Include(u => u.Items!)
+                    .ThenInclude(i => i.Reviews) 
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null) return NotFound();
 
-            // Moje mnenje: Uporaba anonimnega objekta ali ViewModela je tukaj nujna, 
-            // da View ne rabi delati matematike.
-            
             var allReviews = user.Items.SelectMany(i => i.Reviews).Where(r => !r.IsDeleted).ToList();
             var avgRating = allReviews.Any() ? allReviews.Average(r => r.Rating) : 0;
             var reviewCount = allReviews.Count;
 
-            // Ustvarimo dinamičen objekt za View (ali uporabi ViewModel, če ga imaš)
             var model = new OwnerModalViewModel 
             {
                 Id = user.Id,
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 City = user.City,
-                Email = user.Email, // Za mailto povezavo
+                Email = user.Email, // For mailto link
                 ProfilePictureUrl = user.ProfilePictureUrl,
                 AverageRating = avgRating,
                 ReviewCount = reviewCount,
-                JoinDate = DateTime.Now.AddYears(-1) // Dummy podatek, če nimaš CreatedAt v User modelu
+                JoinDate = DateTime.Now.AddYears(-1) // Placeholder if JoinDate is not in the User model
             };
 
             return PartialView("~/Views/Shared/_OwnerInfoPartial.cshtml", model);
         }
-
-
     }
 }

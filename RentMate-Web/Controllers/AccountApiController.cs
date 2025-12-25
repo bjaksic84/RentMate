@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using RentMate.Models;
 
 [Route("api/[controller]")]
@@ -8,11 +9,16 @@ public class AccountApiController : ControllerBase
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<AccountApiController> _localizer;
 
-    public AccountApiController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+    public AccountApiController(
+        SignInManager<ApplicationUser> signInManager, 
+        UserManager<ApplicationUser> userManager,
+        IStringLocalizer<AccountApiController> localizer)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     [HttpPost("login")]
@@ -24,7 +30,7 @@ public class AccountApiController : ControllerBase
             var user = await _userManager.FindByEmailAsync(model.Email);
             return Ok(new { UserId = user.Id, UserName = user.UserName, Email = user.Email });
         }
-        return Unauthorized("Napačni podatki za prijavo.");
+        return Unauthorized(_localizer["Invalid login credentials."].Value);
     }
 
     [HttpGet("currentuser")]

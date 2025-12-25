@@ -1,24 +1,28 @@
 ﻿@model RentMate.Models.DashboardViewModel
 @using RentMate.Shared;
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
 @{
-    ViewData["Title"] = "Admin Nadzorna Plošča";
+    ViewData["Title"] = Localizer["Admin Dashboard"];
 }
 
 <div class="container-fluid px-4 mt-4">
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Pregled sistema</h1>
+        <h1 class="h3 mb-0 text-gray-800">@Localizer["System Overview"]</h1>
         <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
-            <i class="fas fa-download fa-sm text-white-50"></i> Izvozi poročilo
+            <i class="fas fa-download fa-sm text-white-50"></i> @Localizer["Export Report"]
         </a>
     </div>
 
+    @* Statistics Cards *@
     <div class="row g-3 mb-4">
         <div class="col-xl-3 col-md-6">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Uporabniki</div>
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">@Localizer["Users"]</div>
                     <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
-                    <a asp-controller="Users" asp-action="Index" class="btn btn-link btn-sm p-0 mt-2">Upravljaj</a>
+                    <a asp-controller="Users" asp-action="Index" class="btn btn-link btn-sm p-0 mt-2">@Localizer["Manage"]</a>
                 </div>
             </div>
         </div>
@@ -26,7 +30,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Skupaj prihodkov</div>
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">@Localizer["Total Revenue"]</div>
                     <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalRevenue.ToString("C")</div>
                 </div>
             </div>
@@ -35,7 +39,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Aktivni oglasi</div>
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">@Localizer["Active Listings"]</div>
                     <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveListings</div>
                 </div>
             </div>
@@ -44,7 +48,7 @@
         <div class="col-xl-3 col-md-6">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
-                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">V teku</div>
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">@Localizer["In Progress"]</div>
                     <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveRentals</div>
                 </div>
             </div>
@@ -52,21 +56,22 @@
     </div>
 
     <div class="row">
+        @* Recent Rentals Table *@
         <div class="col-lg-8">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Zadnji najemi</h6>
-                    <a href="/Rentals" class="btn btn-sm btn-outline-primary">Vsi najemi</a>
+                    <h6 class="m-0 font-weight-bold text-primary">@Localizer["Recent Rentals"]</h6>
+                    <a href="/Rentals" class="btn btn-sm btn-outline-primary">@Localizer["All Rentals"]</a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Predmet</th>
-                                    <th>Najemnik</th>
-                                    <th>Datum</th>
-                                    <th>Status</th>
+                                    <th>@Localizer["Item"]</th>
+                                    <th>@Localizer["Renter"]</th>
+                                    <th>@Localizer["Date"]</th>
+                                    <th>@Localizer["Status"]</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -90,10 +95,11 @@
             </div>
         </div>
 
+        @* New Users List *@
         <div class="col-lg-4">
             <div class="card shadow mb-4">
                 <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Novi uporabniki</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">@Localizer["New Users"]</h6>
                 </div>
                 <div class="card-body">
                     <ul class="list-group list-group-flush">
@@ -105,7 +111,7 @@
                                     <small class="text-muted">@user.Email</small>
                                 </div>
                                 <a asp-controller="Users" asp-action="Index" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-user-cog"></i> Upravljaj
+                                    <i class="fas fa-user-cog"></i> @Localizer["Manage"]
                                 </a>
                             </li>
                         }

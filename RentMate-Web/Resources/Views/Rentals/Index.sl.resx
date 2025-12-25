@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Marketplace" xml:space="preserve">
+    <value>Tržnica</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Iskanje</value>
+  </data>
+  <data name="What are you looking for?" xml:space="preserve">
+    <value>Kaj iščeš?</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Lokacija</value>
+  </data>
+  <data name="All cities" xml:space="preserve">
+    <value>Vsa mesta</value>
+  </data>
+  <data name="From" xml:space="preserve">
+    <value>Od</value>
+  </data>
+  <data name="To" xml:space="preserve">
+    <value>Do</value>
+  </data>
+  <data name="Check offers" xml:space="preserve">
+    <value>Preveri ponudbo</value>
+  </data>
+  <data name="Price range (€ / day)" xml:space="preserve">
+    <value>Cenovni razpon (€ / dan)</value>
+  </data>
+  <data name="Sorting" xml:space="preserve">
+    <value>Razvrščanje</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Privzeto</value>
+  </data>
+  <data name="Price: Lowest" xml:space="preserve">
+    <value>Cena: Najnižja</value>
+  </data>
+  <data name="Price: Highest" xml:space="preserve">
+    <value>Cena: Najvišja</value>
+  </data>
+  <data name="Name (A-Z)" xml:space="preserve">
+    <value>Ime (A-Z)</value>
+  </data>
+  <data name="Showing results for dates:" xml:space="preserve">
+    <value>Prikazujem rezultate za termin:</value>
+  </data>
+  <data name="to" xml:space="preserve">
+    <value>do</value>
+  </data>
+  <data name="No items found." xml:space="preserve">
+    <value>Ni najdenih izdelkov.</value>
+  </data>
+  <data name="Clear filters" xml:space="preserve">
+    <value>Počisti filtre</value>
+  </data>
+  <data name="Owner:" xml:space="preserve">
+    <value>Oddaja:</value>
+  </data>
+  <data name="Unknown User" xml:space="preserve">
+    <value>Neznan Uporabnik</value>
+  </data>
+  <data name="/ day" xml:space="preserve">
+    <value>/ dan</value>
+  </data>
+  <data name="Info" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="Rent" xml:space="preserve">
+    <value>Rezerviraj</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Prijavi se</value>
+  </data>
+  <data name="Loading..." xml:space="preserve">
+    <value>Nalaganje...</value>
+  </data>
+  <data name="Error loading data." xml:space="preserve">
+    <value>Napaka pri nalaganju.</value>
+  </data>
+  <data name="Network error." xml:space="preserve">
+    <value>Napaka omrežja.</value>
+  </data>
+</root>

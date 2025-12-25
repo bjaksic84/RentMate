@@ -1,6 +1,12 @@
 ﻿@model RentMate.Models.ManageRolesViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 
-<h2>Uredi vloge za @Model.UserEmail</h2>
+@{
+    ViewData["Title"] = Localizer["Manage Roles"];
+}
+
+<h2>@Localizer["Edit Roles for"] @Model.UserEmail</h2>
 
 <form asp-action="ManageRoles" method="post">
     <input type="hidden" asp-for="UserId" />
@@ -8,8 +14,8 @@
     <table class="table table-bordered">
         <thead>
             <tr>
-                <th>Vloga</th>
-                <th>Dodeljena</th>
+                <th>@Localizer["Role"]</th>
+                <th>@Localizer["Assigned"]</th>
             </tr>
         </thead>
         <tbody>
@@ -26,8 +32,6 @@
         </tbody>
     </table>
 
-    <button type="submit" class="btn btn-primary">Shrani</button>
-    <a asp-action="Index" class="btn btn-secondary">Nazaj</a>
+    <button type="submit" class="btn btn-primary">@Localizer["Save"]</button>
+    <a asp-action="Index" class="btn btn-secondary">@Localizer["Back"]</a>
 </form>
-
-

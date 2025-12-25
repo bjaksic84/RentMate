@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <data name="Public Profile" xml:space="preserve">
+    <value>Javni Profil</value>
+  </data>
+  <data name="Super Owner" xml:space="preserve">
+    <value>Super lastnik</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Neznano</value>
+  </data>
+  <data name="Listings" xml:space="preserve">
+    <value>Oglasi</value>
+  </data>
+  <data name="Rating" xml:space="preserve">
+    <value>Ocena</value>
+  </data>
+  <data name="Reviews" xml:space="preserve">
+    <value>Mnenj</value>
+  </data>
+  <data name="Contact" xml:space="preserve">
+    <value>Kontakt</value>
+  </data>
+  <data name="Active listings ({0})" xml:space="preserve">
+    <value>Aktivni oglasi ({0})</value>
+  </data>
+  <data name="User currently has no active listings." xml:space="preserve">
+    <value>Uporabnik trenutno nima aktivnih oglasov.</value>
+  </data>
+  <data name="/ day" xml:space="preserve">
+    <value>/ dan</value>
+  </data>
+  <data name="View details" xml:space="preserve">
+    <value>Poglej podrobnosti</value>
+  </data>
+</root>

@@ -7,6 +7,7 @@ using RentMate.Models;
 using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
 using RentMate.Shared;
+using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
@@ -15,18 +16,21 @@ namespace RentMate.Controllers
     {
         private readonly RentMateContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
-
         private readonly IHubContext<RentMateHub> _hubContext;
+        private readonly IStringLocalizer<RentalsController> _localizer;
 
-        public RentalsController(RentMateContext context, UserManager<ApplicationUser> userManager, IHubContext<RentMateHub> hubContext)
+        public RentalsController(
+            RentMateContext context, 
+            UserManager<ApplicationUser> userManager, 
+            IHubContext<RentMateHub> hubContext,
+            IStringLocalizer<RentalsController> localizer)
         {
             _context = context;
             _userManager = userManager;
             _hubContext = hubContext;
+            _localizer = localizer;
         }
 
-
-        // 🔹 Public listings: items available to rent
         // 🔹 Public listings: items available to rent
         [AllowAnonymous]
         public async Task<IActionResult> Index(
@@ -101,7 +105,6 @@ namespace RentMate.Controllers
             return View(available);
         }
 
-
         // 🔹 Step 1: Request a rental (Pending)
         [HttpPost]
         [Authorize]
@@ -118,19 +121,21 @@ namespace RentMate.Controllers
 
             if (item == null || !item.IsListed)
             {
+                var msg = _localizer["Item not available for rent."].Value;
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return BadRequest("Item not available for rent.");
+                    return BadRequest(msg);
 
-                TempData["ErrorMessage"] = "Item not available for rent.";
+                TempData["ErrorMessage"] = msg;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             if (item.UserId == user.Id)
             {
+                var msg = _localizer["You cannot rent your own item."].Value;
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return BadRequest("You cannot rent your own item.");
+                    return BadRequest(msg);
 
-                TempData["ErrorMessage"] = "You cannot rent your own item.";
+                TempData["ErrorMessage"] = msg;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
@@ -142,10 +147,11 @@ namespace RentMate.Controllers
 
             if (hasConflict)
             {
+                var msg = _localizer["Item is already booked during this period."].Value;
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return BadRequest("Item is already booked during this period.");
+                    return BadRequest(msg);
 
-                TempData["ErrorMessage"] = "Item is already booked during this period.";
+                TempData["ErrorMessage"] = msg;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
@@ -178,15 +184,12 @@ namespace RentMate.Controllers
                 status = rental.Status.ToString()
             });
 
-            // ✅ If AJAX call — return JSON success
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = true, message = "Rental request submitted successfully." });
+                return Json(new { success = true, message = _localizer["Rental request submitted successfully."].Value });
 
-            // ✅ Otherwise — normal redirect (for dashboard form)
-            TempData["SuccessMessage"] = "Rental request submitted. Awaiting owner approval.";
+            TempData["SuccessMessage"] = _localizer["Rental request submitted. Awaiting owner approval."].Value;
             return RedirectToAction("UserDashboard", "Dashboard");
         }
-
 
         // 🔹 Step 2: Owner approves rental
         [HttpPost]
@@ -203,13 +206,13 @@ namespace RentMate.Controllers
 
             if (rental == null || rental.Item == null)
             {
-                TempData["ErrorMessage"] = "Rental not found.";
+                TempData["ErrorMessage"] = _localizer["Rental not found."].Value;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             if (rental.OwnerId != user.Id)
             {
-                TempData["ErrorMessage"] = "You are not authorized to approve this rental.";
+                TempData["ErrorMessage"] = _localizer["You are not authorized to approve this rental."].Value;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
@@ -219,20 +222,18 @@ namespace RentMate.Controllers
 
             await _context.SaveChangesAsync();
 
-
             // Notify renter that their request was approved
             await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
             {
                 rentalId = rental.Id,
                 newStatus = rental.Status.ToString(),
                 itemTitle = rental.Item.Title,
-                message = $"Your rental request for '{rental.Item.Title}' was approved!"
+                message = string.Format(_localizer["Your rental request for '{0}' was approved!"], rental.Item.Title)
             });
 
-            TempData["SuccessMessage"] = $"You approved rental for '{rental.Item.Title}'.";
+            TempData["SuccessMessage"] = string.Format(_localizer["You approved rental for '{0}'."], rental.Item.Title);
             return RedirectToAction("UserDashboard", "Dashboard");
         }
-
 
         // 🔹 Step 3a: Complete rental
         [HttpPost]
@@ -249,13 +250,13 @@ namespace RentMate.Controllers
 
             if (rental == null)
             {
-                TempData["ErrorMessage"] = "Rental not found.";
+                TempData["ErrorMessage"] = _localizer["Rental not found."].Value;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             if (rental.OwnerId != user.Id && rental.RenterId != user.Id)
             {
-                TempData["ErrorMessage"] = "You are not authorized to complete this rental.";
+                TempData["ErrorMessage"] = _localizer["You are not authorized to complete this rental."].Value;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
@@ -265,22 +266,20 @@ namespace RentMate.Controllers
             rental.EndDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            // Notify renter that rental was completed
+
             await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
             {
                 rentalId = rental.Id,
                 newStatus = rental.Status.ToString(),
                 itemTitle = rental.Item.Title,
-                message = $"Rental for '{rental.Item.Title}' was marked as completed."
+                message = string.Format(_localizer["Rental for '{0}' was marked as completed."], rental.Item.Title)
             });
-            TempData["SuccessMessage"] = $"Rental for '{rental.Item.Title}' completed successfully.";
+
+            TempData["SuccessMessage"] = string.Format(_localizer["Rental for '{0}' completed successfully."], rental.Item.Title);
             return RedirectToAction("UserDashboard", "Dashboard");
         }
 
-
         // 🔹 Step 3b: Cancel rental (either party)
-        [HttpPost]
-        [Authorize]
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -295,19 +294,19 @@ namespace RentMate.Controllers
 
             if (rental == null)
             {
-                TempData["ErrorMessage"] = "Rental not found.";
+                TempData["ErrorMessage"] = _localizer["Rental not found."].Value;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             if (rental.OwnerId != user.Id && rental.RenterId != user.Id)
             {
-                TempData["ErrorMessage"] = "You are not authorized to cancel this rental.";
+                TempData["ErrorMessage"] = _localizer["You are not authorized to cancel this rental."].Value;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             if (rental.Status == RentalStatus.Completed)
             {
-                TempData["ErrorMessage"] = "Completed rentals cannot be cancelled.";
+                TempData["ErrorMessage"] = _localizer["Completed rentals cannot be cancelled."].Value;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
@@ -316,18 +315,18 @@ namespace RentMate.Controllers
             rental.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            // Notify renter that rental was cancelled
+
             await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
             {
                 rentalId = rental.Id,
                 newStatus = rental.Status.ToString(),
                 itemTitle = rental.Item!.Title,
-                message = $"Rental for '{rental.Item!.Title}' was cancelled."
+                message = string.Format(_localizer["Rental for '{0}' was cancelled."], rental.Item!.Title)
             });
-            TempData["SuccessMessage"] = "Rental cancelled successfully.";
+
+            TempData["SuccessMessage"] = _localizer["Rental cancelled successfully."].Value;
             return RedirectToAction("UserDashboard", "Dashboard");
         }
-
 
         // 🔹 My rentals (as renter)
         public async Task<IActionResult> MyRentals()
@@ -356,5 +355,3 @@ namespace RentMate.Controllers
         }
     }
 }
-
-

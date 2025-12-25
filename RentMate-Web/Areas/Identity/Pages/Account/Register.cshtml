@@ -1,7 +1,9 @@
 ﻿@page
 @model RegisterModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = "Registracija";
+    ViewData["Title"] = Localizer["Registration"];
 }
 
 <div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
@@ -9,8 +11,8 @@
         <div class="card-body p-4 p-md-5">
             
             <div class="text-center mb-4">
-                <h2 class="fw-bold text-dark">Ustvari račun</h2>
-                <p class="text-muted small">Geslo mora biti varno in močno.</p>
+                <h2 class="fw-bold text-dark">@Localizer["Create account"]</h2>
+                <p class="text-muted small">@Localizer["The password must be safe and strong."]</p>
             </div>
 
             <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
@@ -18,7 +20,7 @@
 
                 <div class="form-floating mb-3">
                     <input asp-for="Input.Email" class="form-control rounded-3" placeholder="name@example.com" />
-                    <label asp-for="Input.Email">E-poštni naslov</label>
+                    <label asp-for="Input.Email">@Localizer["Email address"]</label>
                     <span asp-validation-for="Input.Email" class="text-danger small"></span>
                 </div>
 
@@ -28,13 +30,13 @@
                            type="password"
                            class="form-control rounded-3" 
                            placeholder="password" />
-                    <label asp-for="Input.Password">Geslo</label>
+                    <label asp-for="Input.Password">@Localizer["Password"]</label>
                     <span asp-validation-for="Input.Password" class="text-danger small"></span>
                 </div>
 
                 <div class="password-strength-wrapper mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span id="strength-text" class="small fw-bold text-muted">Vnesite geslo</span>
+                        <span id="strength-text" class="small fw-bold text-muted">@Localizer["Enter password"]</span>
                         <span id="strength-percent" class="small text-muted">0%</span>
                     </div>
                     <div class="d-flex gap-2" style="height: 8px;">
@@ -47,21 +49,21 @@
 
                 <div class="password-requirements p-3 bg-light rounded-3 border mb-4">
                     <ul class="list-unstyled mb-0" style="font-size: 0.85rem;">
-                        <li id="req-length" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>Vsaj 6 znakov</li>
-                        <li id="req-upper" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>Vsaj ena velika začetnica</li>
-                        <li id="req-number" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>Vsaj ena številka</li>
-                        <li id="req-special" class="text-muted"><i class="bi bi-circle me-2"></i>Vsaj en poseben znak (!?#$)</li>
+                        <li id="req-length" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>@Localizer["At least 6 characters"]</li>
+                        <li id="req-upper" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>@Localizer["At least one uppercase letter"]</li>
+                        <li id="req-number" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>@Localizer["At least one number"]</li>
+                        <li id="req-special" class="text-muted"><i class="bi bi-circle me-2"></i>@Localizer["At least one special character (!?#$)"]</li>
                     </ul>
                 </div>
 
                 <div class="form-floating mb-4">
                     <input asp-for="Input.ConfirmPassword" class="form-control rounded-3" placeholder="password" />
-                    <label asp-for="Input.ConfirmPassword">Potrdi geslo</label>
+                    <label asp-for="Input.ConfirmPassword">@Localizer["Confirm password"]</label>
                     <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
                 </div>
 
                 <button id="registerSubmit" type="submit" class="w-100 btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
-                    Registriraj se
+                    @Localizer["Register"]
                 </button>
             </form>
         </div>
@@ -76,6 +78,14 @@
         const segments = document.querySelectorAll('.strength-segment');
         const strengthText = document.getElementById('strength-text');
         const strengthPercent = document.getElementById('strength-percent');
+
+        const translations = {
+            enter: "@Localizer["Enter password"]",
+            veryWeak: "@Localizer["Very weak"]",
+            weak: "@Localizer["Weak"]",
+            medium: "@Localizer["Medium strong"]",
+            strong: "@Localizer["Strong password"]"
+        };
 
         const reqs = {
             length: document.getElementById('req-length'),
@@ -126,18 +136,18 @@
 
             const val = passwordInput.value;
             if (val.length === 0) {
-                strengthText.innerText = "Vnesite geslo";
+                strengthText.innerText = translations.enter;
                 strengthText.style.color = "#6c757d";
                 strengthPercent.innerText = "0%";
                 return;
             }
 
             const config = {
-                0: { color: "#dc3545", text: "Zelo šibko", count: 1 },
-                1: { color: "#fd7e14", text: "Šibko", count: 2 },
-                2: { color: "#fd7e14", text: "Šibko", count: 2 },
-                3: { color: "#ffc107", text: "Srednje močno", count: 3 },
-                4: { color: "#198754", text: "Močno geslo", count: 4 }
+                0: { color: "#dc3545", text: translations.veryWeak, count: 1 },
+                1: { color: "#fd7e14", text: translations.weak, count: 2 },
+                2: { color: "#fd7e14", text: translations.weak, count: 2 },
+                3: { color: "#ffc107", text: translations.medium, count: 3 },
+                4: { color: "#198754", text: translations.strong, count: 4 }
             };
 
             const current = config[score];
@@ -154,26 +164,19 @@
 }
 
 <style>
-    /* Popravek za prekrivanje label */
     .form-floating .form-control::placeholder { color: transparent !important; opacity: 0 !important; }
     .form-floating .form-control:focus::placeholder { color: #a0a0a0 !important; opacity: 1 !important; }
-
-    /* Stil za segmente */
     .strength-segment {
         height: 8px;
         background-color: #e9ecef;
         transition: all 0.3s ease-in-out;
         border: 1px solid #dee2e6;
     }
-
     .min-vh-100 { min-height: 85vh !important; }
-
-    /* Animacija za kljukice */
     .text-success i {
         color: #198754 !important;
         transform: scale(1.1);
     }
-    
     .password-requirements i {
         transition: all 0.2s ease;
     }

@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using RentMate.Services;
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace RentMate.Services
 {
@@ -13,7 +15,7 @@ namespace RentMate.Services
 
         public CloudinaryFileUploadService(IConfiguration config)
         {
-            // Inicializacija Cloudinary računa s podatki iz appsettings.json
+            // Initialize Cloudinary account with credentials from appsettings.json
             var account = new Account(
                 config["Cloudinary:CloudName"],
                 config["Cloudinary:ApiKey"],
@@ -21,35 +23,36 @@ namespace RentMate.Services
             );
 
             _cloudinary = new Cloudinary(account);
-            _cloudinary.Api.Secure = true; // Vedno uporabi HTTPS
+            _cloudinary.Api.Secure = true; // Always use HTTPS
         }
 
         public async Task<string> UploadFileAsync(IFormFile file, string folderName)
         {
             if (file == null || file.Length == 0)
             {
-                return null; // Ali pa vrzi izjemo, odvisno od željene logike
+                return null;
             }
 
-            // Odpremo stream za branje datoteke
+            // Open stream to read the file
             using var stream = file.OpenReadStream();
 
             var uploadParams = new ImageUploadParams
             {
                 File = new FileDescription(file.FileName, stream),
-                // Organizacija map: rentmate/profiles/slika.jpg
+                // Folder organization: rentmate/profiles/image.jpg
                 Folder = $"rentmate/{folderName}", 
                 
-                // OPTIMIZACIJA:
-                // Če uporabnik naloži 4k sliko (10MB), jo Cloudinary avtomatsko zmanjša na max 1920px širine.
-                // To prihrani prostor in pospeši nalaganje, kvaliteta pa ostane visoka.
+                // OPTIMIZATION:
+                // If a user uploads a high-resolution image (e.g., 4k), Cloudinary automatically
+                // resizes it to a maximum of 1920px width/height while maintaining aspect ratio.
+                // This saves storage and speeds up loading while keeping high quality.
                 Transformation = new Transformation().Width(1920).Height(1920).Crop("limit") 
             };
 
-            // Izvedemo upload
+            // Execute upload
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
 
-            // Vrnemo SecureUrl (https), ki ga shranimo v bazo
+            // Return the SecureUrl (https) to be stored in the database
             return uploadResult.SecureUrl.ToString();
         }
 
@@ -59,23 +62,21 @@ namespace RentMate.Services
 
             try
             {
-                // Logika za pridobivanje PublicId iz URL-ja
-                // URL primer: https://res.cloudinary.com/demo/image/upload/v12345678/rentmate/profiles/mojaslika.jpg
-                // PublicId: rentmate/profiles/mojaslika
+                // Logic for extracting PublicId from the URL
+                // URL example: https://res.cloudinary.com/demo/image/upload/v12345678/rentmate/profiles/myimage.jpg
+                // PublicId: rentmate/profiles/myimage
                 
                 var uri = new Uri(fileUrl);
                 var pathSegments = uri.AbsolutePath.Split('/');
                 
-                // Iskanje segmenta, kjer se začne naša mapa "rentmate"
-                // To je preprosta logika, ki predvideva, da se mapa vedno imenuje "rentmate"
-                // Za bolj kompleksne primere se v bazo shranjuje PublicId posebej.
-                
+                // Find the segment where our "rentmate" root folder starts
+                // This logic assumes the root folder is always named "rentmate"
                 string publicId = "";
                 int startIndex = Array.IndexOf(pathSegments, "rentmate");
                 
                 if (startIndex != -1)
                 {
-                    // Združimo vse od "rentmate" naprej in odstranimo končnico (.jpg)
+                    // Combine all segments starting from "rentmate" and remove the file extension
                     string fullPath = string.Join("/", pathSegments.Skip(startIndex));
                     publicId = System.IO.Path.ChangeExtension(fullPath, null);
                 }
@@ -86,11 +87,11 @@ namespace RentMate.Services
                     _cloudinary.Destroy(deletionParams);
                 }
             }
-            catch 
+            catch (Exception ex)
             {
-                // Če brisanje ne uspe (npr. napačen URL), ne ustavimo aplikacije.
-                // Logiramo napako v realni produkciji.
-                Console.WriteLine($"Napaka pri brisanju slike: {fileUrl}");
+                // If deletion fails (e.g., malformed URL), we don't stop the application flow.
+                // In production, log the error to a logging service.
+                Console.WriteLine($"Error deleting image: {fileUrl}. Exception: {ex.Message}");
             }
         }
     }

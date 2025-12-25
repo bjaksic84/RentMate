@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="0" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="Register" xml:space="preserve">
+    <value>Registracija</value>
+  </data>
+  <data name="Associate your {0} account." xml:space="preserve">
+    <value>Povežite svoj {0} račun.</value>
+  </data>
+  <data name="You've successfully authenticated with" xml:space="preserve">
+    <value>Uspešno ste se avtenticirali prek</value>
+  </data>
+  <data name="Please enter an email address for this site below and click the Register button to finish logging in." xml:space="preserve">
+    <value>Spodaj vnesite e-poštni naslov za to spletno mesto in kliknite gumb Registracija za dokončanje prijave.</value>
+  </data>
+  <data name="Please enter your email." xml:space="preserve">
+    <value>Prosimo, vnesite svoj e-poštni naslov.</value>
+  </data>
+  <data name="Error from external provider: {0}" xml:space="preserve">
+    <value>Napaka zunanjega ponudnika: {0}</value>
+  </data>
+  <data name="Error loading external login information." xml:space="preserve">
+    <value>Napaka pri nalaganju informacij o zunanji prijavi.</value>
+  </data>
+  <data name="Error loading external login information during confirmation." xml:space="preserve">
+    <value>Napaka pri nalaganju informacij o zunanji prijavi med potrditvijo.</value>
+  </data>
+  <data name="Confirm your email" xml:space="preserve">
+    <value>Potrdite svojo e-pošto</value>
+  </data>
+  <data name="Please confirm your account by &lt;a href='{0}'&gt;clicking here&lt;/a&gt;." xml:space="preserve">
+    <value>Prosimo, potrdite svoj račun s &lt;a href='{0}'&gt;klikom tukaj&lt;/a&gt;.</value>
+  </data>
+  <data name="Can't create an instance of '{0}'." xml:space="preserve">
+    <value>Ni mogoče ustvariti primerka '{0}'.</value>
+  </data>
+  <data name="Ensure that '{0}' is not an abstract class and has a parameterless constructor, or alternatively override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml" xml:space="preserve">
+    <value>Prepričajte se, da '{0}' ni abstrakten razred in ima konstruktor brez parametrov, ali pa prepišite stran za zunanjo prijavo.</value>
+  </data>
+  <data name="The default UI requires a user store with email support." xml:space="preserve">
+    <value>Privzeti uporabniški vmesnik zahteva shrambo uporabnikov s podporo za e-pošto.</value>
+  </data>
+</root>

@@ -1,7 +1,9 @@
 ﻿@model RentMate.Models.Item
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 
 @{
-    ViewData["Title"] = "Nov Predmet";
+    ViewData["Title"] = Localizer["New Item"];
 }
 
 <div class="container py-5">
@@ -9,7 +11,7 @@
         <div class="col-md-8">
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Dodaj nov predmet</h4>
+                    <h4 class="mb-0">@Localizer["Add a new item"]</h4>
                 </div>
                 <div class="card-body">
                     <form asp-action="Create" enctype="multipart/form-data">
@@ -17,24 +19,24 @@
 
                         <div class="row mb-3">
                             <div class="col-md-4 text-center">
-                                <img id="imgPreview" src="https://via.placeholder.com/200x200?text=Ni+Slike" 
+                                <img id="imgPreview" src="https://via.placeholder.com/200x200?text=No+Image" 
                                      class="img-thumbnail mb-2 object-fit-cover" style="width: 200px; height: 200px;" />
                                 <input type="file" name="image" class="form-control form-control-sm" accept="image/*" onchange="previewImage(this)" />
                             </div>
                             <div class="col-md-8">
                                 <div class="form-group mb-3">
-                                    <label asp-for="Title" class="control-label fw-bold">Naslov</label>
-                                    <input asp-for="Title" class="form-control" placeholder="npr. Gorsko kolo" />
+                                    <label asp-for="Title" class="control-label fw-bold">@Localizer["Title"]</label>
+                                    <input asp-for="Title" class="form-control" placeholder="@Localizer["e.g. Mountain bike"]" />
                                     <span asp-validation-for="Title" class="text-danger"></span>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label asp-for="Category" class="control-label fw-bold">Kategorija</label>
-                                        <input asp-for="Category" class="form-control" placeholder="npr. Šport" />
+                                        <label asp-for="Category" class="control-label fw-bold">@Localizer["Category"]</label>
+                                        <input asp-for="Category" class="form-control" placeholder="@Localizer["e.g. Sports"]" />
                                         <span asp-validation-for="Category" class="text-danger"></span>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <label asp-for="Price" class="control-label fw-bold">Cena na dan (€)</label>
+                                        <label asp-for="Price" class="control-label fw-bold">@Localizer["Price per day (€)"]</label>
                                         <input asp-for="Price" type="number" step="0.01" class="form-control" />
                                         <span asp-validation-for="Price" class="text-danger"></span>
                                     </div>
@@ -43,14 +45,14 @@
                         </div>
 
                         <div class="form-group mb-4">
-                            <label asp-for="Description" class="control-label fw-bold">Opis</label>
+                            <label asp-for="Description" class="control-label fw-bold">@Localizer["Description"]</label>
                             <textarea asp-for="Description" class="form-control" rows="4"></textarea>
                             <span asp-validation-for="Description" class="text-danger"></span>
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a asp-controller="Dashboard" asp-action="UserDashboard" class="btn btn-secondary me-2">Prekliči</a>
-                            <input type="submit" value="Ustvari predmet" class="btn btn-success px-4" />
+                            <a asp-controller="Dashboard" asp-action="UserDashboard" class="btn btn-secondary me-2">@Localizer["Cancel"]</a>
+                            <input type="submit" value="@Localizer["Create item"]" class="btn btn-success px-4" />
                         </div>
                     </form>
                 </div>

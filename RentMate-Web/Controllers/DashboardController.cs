@@ -43,7 +43,7 @@ namespace RentMate.Controllers
                 TotalRentals = _context.Rentals.Count(),
                 ActiveRentals = _context.Rentals.Count(r => r.Status == RentalStatus.Active),
 
-                // Izračun prihodkov (če uporabljaš mock Payment sistem)
+                // Revenue calculation (if using mock Payment system)
                 TotalRevenue = await _context.Payments
                     .Where(p => p.Status == PaymentStatus.Success)
                     .SumAsync(p => p.Amount),
@@ -74,13 +74,13 @@ namespace RentMate.Controllers
             if (user == null)
                 return RedirectToAction("Index", "Home");
 
-            // 1️⃣ Items owned by the user
+            // 1. Items owned by the user
             var userItems = await _context.Items
                 .Where(i => i.UserId == user.Id)
                 .OrderByDescending(i => i.CreatedAt)
                 .ToListAsync();
 
-            // 2️⃣ Rentals where the user is the renter
+            // 2. Rentals where the user is the renter
             var myRentals = await _context.Rentals
                 .Include(r => r.Item)
                 .Include(r => r.Owner)
@@ -88,7 +88,7 @@ namespace RentMate.Controllers
                 .OrderByDescending(r => r.StartDate)
                 .ToListAsync();
 
-            // 3️⃣ Rentals where the user is the owner
+            // 3. Rentals where the user is the owner
             var ownerRentals = await _context.Rentals
                 .Include(r => r.Item)
                 .Include(r => r.Renter)
@@ -96,7 +96,7 @@ namespace RentMate.Controllers
                 .OrderByDescending(r => r.StartDate)
                 .ToListAsync();
 
-            // 🧱 Build view model
+            // Build view model
             var viewModel = new RentMate.Models.DashboardViewModel
             {
                 ListingsOwned = userItems,
@@ -110,7 +110,7 @@ namespace RentMate.Controllers
                 TotalRentalsAsRenter = myRentals.Count,
                 TotalRentalsAsOwner = ownerRentals.Count,
 
-                // (optional global summaries for display)
+                // (Optional global summaries for display)
                 TotalListings = userItems.Count,
                 ActiveListings = userItems.Count(i => i.IsListed),
                 TotalRentals = myRentals.Count + ownerRentals.Count,
@@ -120,8 +120,5 @@ namespace RentMate.Controllers
 
             return View(viewModel);
         }
-        
     }
 }
-
-
