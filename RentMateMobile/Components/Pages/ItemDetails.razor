@@ -1,0 +1,74 @@
+@page "/item-details/{Id:int}"
+@using RentMate.Shared
+@using RentMateMobile.Services
+@inject AuthService Auth
+@inject HttpClient Http
+@inject NavigationManager Nav
+
+<div class="container pb-5">
+    @if (item == null) {
+        <div class="text-center py-5"><div class="spinner-border text-primary"></div></div>
+    } else {
+        <div class="d-flex align-items-center my-3">
+            <button class="btn btn-light rounded-circle me-3" @onclick='() => Nav.NavigateTo("/marketplace")'>
+                <i class="oi oi-chevron-left"></i>
+            </button>
+            <h4 class="fw-bold m-0">Podrobnosti</h4>
+        </div>
+
+        <img src="@item.ImageUrl" class="w-100 rounded-4 shadow-sm mb-4" style="max-height: 300px; object-fit: cover;" />
+
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h3 class="fw-bold m-0">@item.Title</h3>
+                <span class="h4 fw-bold text-primary m-0">@item.Price €<small class="text-muted" style="font-size: 0.6em">/dan</small></span>
+            </div>
+            
+            <div class="d-flex align-items-center text-muted mb-4">
+                <i class="oi oi-map-marker me-1 text-primary"></i> @item.Location
+            </div>
+
+            <h6 class="fw-bold">Opis</h6>
+            <p class="text-muted">@item.Description</p>
+
+            <hr class="my-4 text-muted opacity-25" />
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="bg-primary-subtle p-3 rounded-circle text-primary">
+                    <i class="oi oi-person"></i>
+                </div>
+                <div>
+                    <div class="small text-muted">Lastnik</div>
+                    <div class="fw-bold">@item.User?.UserName</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow" @onclick="() => isBookingModalOpen = true">
+            Rezerviraj zdaj
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private ItemDto? item;
+    private string? currentUserName;
+    private string? currentUserId;
+    private bool isBookingModalOpen = false; // Lahko uporabiš isto logiko modala kot v Marketplace
+
+    protected override async Task OnInitializedAsync() {
+        try
+        {
+            item = await Http.GetFromJsonAsync<ItemDto>($"api/itemsapi/{Id}");
+            currentUserName = Auth.CurrentUser.Name;
+            currentUserId = Auth.CurrentUser.Id;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"ItemDetails load error for id={Id}: {ex.Message}");
+            await App.Current.MainPage.DisplayAlert("Napaka", "Ne morem naložiti podatkov o predmetu.", "V redu");
+            Nav.NavigateTo("/marketplace");
+        }
+    }
+}

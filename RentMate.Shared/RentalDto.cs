@@ -5,5 +5,6 @@ namespace RentMate.Shared
         public UserDto? Owner { get; set; }
         public UserDto? Renter { get; set; }
         public ItemDto? Item { get; set; }
+        public ReviewDto? ExistingReview { get; set; }
     }
 }

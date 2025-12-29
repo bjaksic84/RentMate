@@ -28,6 +28,8 @@ namespace RentMate.Shared
     [DataType(DataType.Date)]
     public DateTime EndDate { get; set; }
 
+    public DateTime RentalDate { get; set; }
+
     public RentalStatus Status { get; set; } = RentalStatus.Pending;
 
     [Column(TypeName = "decimal(10,2)")]

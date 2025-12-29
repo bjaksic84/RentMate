@@ -44,6 +44,8 @@ namespace RentMate.Controllers
                     Price = i.Price,
                     UserId = i.UserId,
                     IsListed = i.IsListed,
+                    Location = i.Location ?? i.User.City,
+                    ImageUrl = i.ImageUrl,
                     CreatedAt = i.CreatedAt,
                     User = i.User != null ? new UserDto
                     {
@@ -64,6 +66,9 @@ namespace RentMate.Controllers
             var item = await _context.Items
                 .Include(i => i.User)
                 .FirstOrDefaultAsync(i => i.Id == id);
+
+            // simple request logging for debugging mobile fetch issues
+            Console.WriteLine($"[API] GetItem requested id={id}, found={(item != null)}");
 
             if (item == null)
                 return NotFound();
@@ -108,7 +113,7 @@ namespace RentMate.Controllers
                 Price = sharedItem.Price,
                 IsListed = sharedItem.IsListed,
                 Category = sharedItem.Category,
-                Location = sharedItem.Location,
+                ImageUrl = sharedItem.ImageUrl,
                 UserId = userId, // Now 100% sure it's not null
                 CreatedAt = DateTime.UtcNow
             };

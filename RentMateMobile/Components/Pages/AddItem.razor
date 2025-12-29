@@ -1,12 +1,28 @@
 ﻿@page "/add-item"
 @using RentMate.Shared
+@using RentMateMobile.Services
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject IImageService ImageService
 
 <div class="container pb-5">
     <h3 class="my-4 fw-bold">Oddaj opremo</h3>
 
     <div class="card border-0 shadow-sm p-4">
+        <div class="mb-3">
+            <label class="form-label fw-bold">Slika predmeta</label>
+            @if (!string.IsNullOrEmpty(newItem.ImageUrl))
+            {
+                <div class="position-relative mb-2">
+                    <img src="@newItem.ImageUrl" class="rounded w-100" style="max-height:200px; object-fit:cover;" />
+                    <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2" @onclick="() => newItem.ImageUrl = null">X</button>
+                </div>
+            }
+            <button type="button" class="btn btn-outline-primary w-100" @onclick="HandleImageUpload" disabled="@isUploading">
+                @if (isUploading) { <span>Nalagam...</span> } else { <span>+ Dodaj sliko</span> }
+            </button>
+        </div>
+
         <div class="mb-3">
             <label class="form-label fw-bold">Naziv predmeta</label>
             <input @bind="newItem.Title" class="form-control" placeholder="npr. Gorsko kolo" />
@@ -22,14 +38,13 @@
             <input @bind="newItem.Price" type="number" class="form-control" />
         </div>
 
-        <button class="btn btn-primary w-100 mt-3 py-3" @onclick="SaveItem" disabled="@isSaving">
+        <button class="btn btn-primary w-100 mt-3 py-3" @onclick="SaveItem" disabled="@(isSaving || isUploading)">
             @if (isSaving)
             {
                 <span>Shranjujem...</span>
             }
             else
             {
-
                 <span>Objavi oglas</span>
             }
         </button>
@@ -38,14 +53,29 @@
 
 @code {
     private RentMate.Shared.Item newItem = new();
+    private List<string> uploadedImageUrls = new();
     private bool isSaving;
+    private bool isUploading;
+
+    private async Task HandleImageUpload()
+    {
+        isUploading = true;
+        var url = await ImageService.PickAndUploadImageAsync();
+        if (!string.IsNullOrEmpty(url))
+        {
+            uploadedImageUrls.Add(url);
+            // Predpostavljamo, da vaš model podpira ImageUrl (ali pa dodajte seznam v DTO)
+            newItem.ImageUrl = uploadedImageUrls.FirstOrDefault(); 
+        }
+        isUploading = false;
+    }
 
     async Task SaveItem()
     {
         isSaving = true;
         try
         {
-            // Kliče tvoj ItemsApiController
+            // Če vaš backend podpira seznam slik, jih dodajte tukaj
             var response = await Http.PostAsJsonAsync("api/itemsapi", newItem);
             if (response.IsSuccessStatusCode) Nav.NavigateTo("marketplace");
         }
@@ -53,3 +83,17 @@
         finally { isSaving = false; }
     }
 }
+
+<style>
+    .upload-placeholder {
+        width: 80px;
+        height: 80px;
+        border: 2px dashed #007bff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background: #f8f9fa;
+    }
+</style>

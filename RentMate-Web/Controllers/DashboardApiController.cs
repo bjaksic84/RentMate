@@ -53,9 +53,12 @@ namespace RentMate.Controllers
                     Description = i.Description,
                     Price = i.Price,
                     Category = i.Category,
+                    ImageUrl = i.ImageUrl,
                     Location = i.Location,
                     IsListed = i.IsListed,
-                    UserId = i.UserId
+                    UserId = i.UserId,
+                    AverageRating = i.AverageRating,
+                    ReviewCount = i.ReviewCount
                 }).ToListAsync();
 
             var myRentals = await _context.Rentals
@@ -68,7 +71,7 @@ namespace RentMate.Controllers
                     EndDate = r.EndDate,
                     TotalPrice = r.TotalPrice,
                     Status = (RentMate.Shared.RentalStatus)r.Status,
-                    Item = new RentMate.Shared.ItemDto { Title = r.Item.Title }
+                    Item = new RentMate.Shared.ItemDto { Title = r.Item.Title, Id = r.Item.Id, AverageRating = r.Item.AverageRating, ReviewCount = r.Item.ReviewCount }
                 }).ToListAsync();
 
             var ownerRentalsCount = await _context.Rentals.CountAsync(r => r.OwnerId == userId);
@@ -128,7 +131,7 @@ namespace RentMate.Controllers
                     EndDate = r.EndDate,
                     TotalPrice = r.TotalPrice,
                     Status = (RentMate.Shared.RentalStatus)r.Status,
-                    Item = new ItemDto { Title = r.Item.Title }
+                    Item = new ItemDto { Title = r.Item.Title, Id = r.Item.Id, AverageRating = r.Item.AverageRating, ReviewCount = r.Item.ReviewCount }
                 }).ToListAsync();
 
             return Ok(rentals);

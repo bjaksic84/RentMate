@@ -1,34 +1,69 @@
 ﻿@page "/marketplace"
 @using RentMate.Shared
+@using RentMateMobile.Services
+@inject AuthService Auth
 @inject HttpClient Http
 
-<div class="container pb-5">
-    <h3 class="my-4 fw-bold">Razišči opremo</h3>
 
-    @if (items == null)
-    {
-        <div class="d-flex justify-content-center">
+@inject NavigationManager Nav
+
+<div class="container pb-5">
+    <div class="d-flex justify-content-between align-items-center my-4">
+        <h3 class="fw-bold m-0">Razišči opremo</h3>
+        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">
+            @items?.Count oglasi
+        </span>
+    </div>
+
+    @if (items == null) {
+        <div class="d-flex justify-content-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
         </div>
-    }
-    else
-    {
-        <div class="row">
-            @foreach (var item in items)
-            {
+    } else {
+        <div class="row g-4">
+            @foreach (var item in items) {
                 <div class="col-12">
-                    <div class="item-card">
-                        @* Tukaj bi prišla slika, za zdaj placeholder *@
-                        <div style="height:200px; background:#ddd; display:flex; align-items:center; justify-content:center;">
-                            <i class="oi oi-image" style="font-size:3rem; color:#aaa;"></i>
-                        </div>
-                        <div class="item-card-body">
-                            <div class="d-flex justify-content-between">
-                                <span class="item-title">@item.Title</span>
-                                <span class="item-price">@item.Price € / dan</span>
+                    <div class="item-card shadow-sm border-0 rounded-4 overflow-hidden bg-white">
+                        <div class="position-relative" style="height:200px;">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl)) {
+                                <img src="@item.ImageUrl" class="w-100 h-100" style="object-fit: cover;" />
+                            } else {
+                                <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-light">
+                                    <i class="oi oi-image text-muted" style="font-size:3rem;"></i>
+                                </div>
+                            }
+                            <div class="position-absolute top-0 end-0 m-3">
+                                <span class="badge bg-white text-dark shadow-sm py-2 px-3 rounded-pill fw-bold">
+                                    @item.Price € / dan
+                                </span>
                             </div>
-                            <p class="text-muted small">@item.Description</p>
-                            <button class="btn btn-outline-primary btn-sm w-100">Podrobnosti</button>
+                        </div>
+
+                        <div class="p-3">
+                            <h5 class="fw-bold mb-1">@item.Title</h5>
+                            <div class="d-flex align-items-center text-muted small mb-3">
+                                <i class="oi oi-map-marker me-1 text-primary"></i> @item.Location
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-primary flex-grow-1 rounded-pill" 
+                                        @onclick='() => Nav.NavigateTo($"/item-details/{item.Id}")'>
+                                    Podrobnosti
+                                </button>
+                                
+                                @if (item.UserId == currentUserId)
+                                {
+                                    <button class="btn btn-secondary flex-grow-1 rounded-pill" disabled>
+                                        Vaš oglas
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-primary flex-grow-1 rounded-pill" @onclick="() => OpenBooking(item)">
+                                        Rezerviraj
+                                    </button>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -37,19 +72,96 @@
     }
 </div>
 
-@code {
-    private List<RentMate.Shared.ItemDto>? items;
+@* MODAL ZA REZERVACIJO (z intervalom datumov) *@
+@if (selectedItem != null) {
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered px-3">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold">Rezervacija</h5>
+                    <button type="button" class="btn-close" @onclick="() => selectedItem = null"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">Izberite obdobje najema za <strong>@selectedItem.Title</strong></p>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small fw-bold">Od:</label>
+                            <input type="date" class="form-control form-control-sm rounded-3" @bind="startDate" min="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold">Do:</label>
+                            <input type="date" class="form-control form-control-sm rounded-3" @bind="endDate" min="@startDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
 
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            // Kliče tvoj ItemsApiController
-            items = await Http.GetFromJsonAsync<List<RentMate.Shared.ItemDto>>("api/itemsapi");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Napaka pri nalaganju: {ex.Message}");
-        }
+                    <div class="bg-light p-3 rounded-3 d-flex justify-content-between align-items-center">
+                        <span class="small">Skupaj (@( (endDate - startDate).Days <= 0 ? 1 : (endDate - startDate).Days ) dni):</span>
+                        <span class="fw-bold text-primary">@CalculateTotal() €</span>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-primary w-100 rounded-pill py-3 fw-bold" @onclick="ConfirmBooking" disabled="@isBooking">
+                        @if (isBooking) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                        Potrdi rezervacijo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ItemDto>? items;
+    private ItemDto? selectedItem;
+    private DateTime startDate = DateTime.Now;
+    private DateTime endDate = DateTime.Now.AddDays(1);
+    private bool isBooking = false;
+    private string? currentUserName;
+    private string? currentUserId;
+    
+
+    protected override async Task OnInitializedAsync() {
+        try {
+            items = await Http.GetFromJsonAsync<List<ItemDto>>("api/itemsapi");
+            // load current user name once to avoid comparing to a Task<string?>
+            currentUserName = Auth.CurrentUser.Name;
+            currentUserId = await Auth.GetUserIdAsync();
+            
+        } catch (Exception ex) { Console.WriteLine(ex.Message); }
+    }
+
+    private void OpenBooking(ItemDto item) {
+        selectedItem = item;
+        startDate = DateTime.Now;
+        endDate = DateTime.Now.AddDays(1);
+    }
+
+    private decimal CalculateTotal() {
+        if (selectedItem == null) return 0;
+        int days = (endDate - startDate).Days;
+        return (days <= 0 ? 1 : days) * (selectedItem.Price ?? 0);
+    }
+
+    private async Task ConfirmBooking() {
+        if (selectedItem == null) return;
+        isBooking = true;
+        try {
+            var rental = new {
+                ItemId = selectedItem.Id,
+                StartDate = startDate,
+                EndDate = endDate,
+                TotalPrice = CalculateTotal()
+            };
+
+            var response = await Http.PostAsJsonAsync("api/rentalsapi", rental);
+            if (response.IsSuccessStatusCode) {
+                var title = selectedItem.Title;
+                selectedItem = null;
+                await App.Current.MainPage.DisplayAlert("Uspeh", $"Rezervacija za {title} je bila uspešna!", "V redu");
+            } else {
+                await App.Current.MainPage.DisplayAlert("Napaka", "Rezervacije ni bilo mogoče izvesti.", "Zapri");
+            }
+        } finally { isBooking = false; }
     }
 }

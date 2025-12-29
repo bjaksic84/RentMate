@@ -11,14 +11,9 @@ namespace RentMate.Shared
 
         // FK to Item
         public int ItemId { get; set; }
-        [JsonIgnore]
-        
 
         // FK to Reviewer
-
-        public string? ReviewerId { get; set; } = null!;
-        [JsonIgnore]
-        
+        public string? ReviewerId { get; set; }
 
         [Range(1, 5)]
         public int Rating { get; set; }

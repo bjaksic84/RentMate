@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 
 
 
+
 namespace RentMateMobile;
 
 public static class MauiProgram
@@ -39,6 +40,7 @@ public static class MauiProgram
 
         // Registracija HttpClienta za injiciranje v Razor komponente
         builder.Services.AddScoped(sp => sp.GetRequiredService<IHttpClientFactory>().CreateClient("RentMateApi"));
+        builder.Services.AddScoped<IImageService, ImageService>();
 
         builder.Services.AddMauiBlazorWebView();
 
