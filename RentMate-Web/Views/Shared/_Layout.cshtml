@@ -28,15 +28,19 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">@Localizer["Home"]</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">@Localizer["Privacy"]</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Items" asp-action="Index">@Localizer["Items"]</a>
-                        </li>
+                        @* Show Items only to admins *@
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Items" asp-action="Index">@Localizer["Items"]</a>
+                            </li>
+                        }
+
+                        @* Rentals (marketplace) visible to everyone *@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-controller="Rentals" asp-action="Index">@Localizer["Rentals"]</a>
                         </li>
+
                         @if (User.IsInRole("Admin"))
                         {
                             <li class="nav-item">
@@ -46,7 +50,7 @@
                                 <a class="nav-link" asp-controller="Dashboard" asp-action="AdminDashboard">@Localizer["Admin Dashboard"]</a>
                             </li>
                         }
-                        else
+                        else if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item">
                                 <a class="nav-link" asp-controller="Dashboard" asp-action="UserDashboard">@Localizer["My Dashboard"]</a>

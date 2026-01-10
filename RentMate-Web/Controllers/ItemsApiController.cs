@@ -80,6 +80,7 @@ namespace RentMate.Controllers
                 Description = item.Description,
                 Price = item.Price,
                 UserId = item.UserId,
+                Location = item.Location ?? item.User?.City,
                 User = item.User != null ? new UserDto { Id = item.User.Id, UserName = item.User.UserName } : null
             };
 

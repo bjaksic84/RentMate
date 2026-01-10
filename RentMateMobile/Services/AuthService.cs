@@ -10,25 +10,31 @@ namespace RentMateMobile.Services
         private const string UserIdKey = "user_id";
         private const string UserEmailKey = "user_email";
         private const string UserNameKey = "user_name";
+        private const string UserCityKey = "user_city"; // Novo
+        private const string UserPicKey = "user_profile_picture_url"; // Novo
 
         public UserModel? CurrentUser { get; private set; }
         
         // Dodamo TaskCompletionSource, da lahko komponente počakajo na inicializacijo
         private Task? _initializeTask;
 
-        public async Task LoginUser(string token, string userId, string email, string userName)
+        public async Task LoginUser(string token, string userId, string email, string userName, string city, string profilePictureUrl)
         {
             await SecureStorage.Default.SetAsync(TokenKey, token);
             await SecureStorage.Default.SetAsync(UserIdKey, userId);
             await SecureStorage.Default.SetAsync(UserEmailKey, email);
             await SecureStorage.Default.SetAsync(UserNameKey, userName);
+            await SecureStorage.Default.SetAsync(UserCityKey, city ?? "");
+            await SecureStorage.Default.SetAsync(UserPicKey, profilePictureUrl ?? "");
 
             CurrentUser = new UserModel
             {
                 Token = token,
                 Id = userId,
                 Email = email,
-                Name = userName
+                Name = userName,
+                City = city,
+                ProfilePictureUrl = profilePictureUrl
             };
         }
 
@@ -81,7 +87,9 @@ namespace RentMateMobile.Services
                 Token = token,
                 Id = await SecureStorage.Default.GetAsync(UserIdKey),
                 Email = await SecureStorage.Default.GetAsync(UserEmailKey),
-                Name = await SecureStorage.Default.GetAsync(UserNameKey)
+                Name = await SecureStorage.Default.GetAsync(UserNameKey),
+                City = await SecureStorage.Default.GetAsync(UserCityKey),   
+                ProfilePictureUrl = await SecureStorage.Default.GetAsync(UserPicKey)
             };
         }
     }
@@ -92,5 +100,7 @@ namespace RentMateMobile.Services
         public string? Email { get; set; }
         public string? Name { get; set; }
         public string? Token { get; set; }
+        public string? City { get; set; } // Novo
+        public string? ProfilePictureUrl { get; set; } // Novo
     }
 }

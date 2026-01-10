@@ -146,6 +146,184 @@ form .form-control-lg {
     transition: all 0.3s ease;
 }
 
+/* === Landing hero styles (production-ready) === */
+.hero-section {
+    background: linear-gradient(180deg, rgba(13,110,253,0.04), rgba(71,145,255,0.02));
+    padding-top: 3.5rem;
+    padding-bottom: 3.5rem;
+}
+
+.hero-section .display-4 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.05;
+}
+
+.hero-section .lead {
+    font-size: 1.125rem;
+}
+
+.hero-search-input .input-group-text {
+    border-radius: 50rem 0 0 50rem;
+}
+
+.hero-search-input .form-control {
+    border-radius: 0 50rem 50rem 0;
+}
+
+.hero-graphic {
+    width: 220px;
+    height: 220px;
+    border-radius: 1rem;
+    display: inline-grid;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(13,110,253,0.06), rgba(71,145,255,0.04));
+}
+
+/* Feature cards refinement */
+.card.h-100 {
+    border-radius: .85rem;
+}
+
+@media (max-width: 576px) {
+    .hero-graphic { width: 140px; height: 140px; }
+}
+
+/* Capsule search: remove group outline and make input visually lighter than button */
+.hero-search-field {
+    border-radius: 50rem !important;
+    padding: 0.75rem 1rem;
+    background-color: rgba(255,255,255,0.9);
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: none;
+}
+.hero-search-btn {
+    border-radius: 50rem !important;
+    padding: 0.7rem 1.25rem;
+}
+.hero-search-form .hero-search-field:focus,
+.hero-search-form .hero-search-btn:focus {
+    box-shadow: 0 0 0 0.125rem rgba(13,110,253,0.12) !important;
+    outline: none !important;
+}
+
+/* Dark mode for hero and new sections */
+[data-theme="dark"] .hero-section {
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+}
+[data-theme="dark"] .hero-search-field {
+    background-color: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+    color: var(--text) !important;
+}
+[data-theme="dark"] .hero-search-btn {
+    background: linear-gradient(135deg, rgba(217,119,6,0.12), rgba(217,119,6,0.06));
+    color: var(--text) !important;
+    box-shadow: none;
+}
+
+/* Carousel / categories */
+.category-carousel .hero-graphic {
+    width: 160px;
+    height: 160px;
+    border-radius: 1rem;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(13,110,253,0.06), rgba(71,145,255,0.04));
+}
+.category-carousel .carousel-item a { color: inherit; }
+.category-carousel .carousel-control-prev-icon,
+.category-carousel .carousel-control-next-icon { filter: none; }
+
+[data-theme="dark"] .category-carousel .hero-graphic {
+    background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+}
+
+/* How it works tweaks in dark mode */
+[data-theme="dark"] .hero-section + section {
+    background: transparent;
+}
+[data-theme="dark"] .hero-section + section .text-muted {
+    color: var(--muted-text) !important;
+}
+
+/* Hero actions and landing auth button styling */
+.hero-actions .btn { min-width: 150px; border-radius: 0.75rem; }
+.landing-auth-btn {
+    border-radius: 0.75rem;
+    padding: 0.6rem 1.1rem;
+}
+
+/* Carousel control visibility and contrast */
+.category-carousel .carousel-control-prev-icon,
+.category-carousel .carousel-control-next-icon {
+    background-color: rgba(0,0,0,0.62);
+    border-radius: 50%;
+    width: 2.2rem;
+    height: 2.2rem;
+    background-size: 1.05rem 1.05rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+[data-theme="dark"] .category-carousel .carousel-control-prev-icon,
+[data-theme="dark"] .category-carousel .carousel-control-next-icon {
+    background-color: rgba(255,255,255,0.08);
+    box-shadow: none;
+}
+
+/* How it works - dark mode friendly */
+[data-theme="dark"] .hero-section + section h3,
+[data-theme="dark"] .hero-section + section h5,
+[data-theme="dark"] .hero-section + section .bi {
+    color: var(--text) !important;
+}
+
+/* Ensure landing small text adapts */
+[data-theme="dark"] .category-carousel p.small,
+[data-theme="dark"] .hero-section .lead,
+[data-theme="dark"] .hero-section .text-muted {
+    color: var(--muted-text) !important;
+}
+
+/* Ensure the 'How RentMate Works' section (uses .bg-white) adapts cleanly to dark theme */
+[data-theme="dark"] .hero-section + section.bg-white {
+    background-color: var(--surface-soft) !important;
+    border-top: 1px solid var(--border) !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .hero-section + section.bg-white h3,
+[data-theme="dark"] .hero-section + section.bg-white h5,
+[data-theme="dark"] .hero-section + section.bg-white p,
+[data-theme="dark"] .hero-section + section.bg-white .bi {
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .hero-section + section.bg-white .text-muted {
+    color: var(--muted-text) !important;
+}
+
+/* Slight elevation in dark mode to visually separate the section */
+[data-theme="dark"] .hero-section + section.bg-white {
+    box-shadow: 0 6px 18px rgba(2,6,23,0.35);
+    border-radius: 0.5rem;
+    padding: 1.75rem 0.75rem;
+}
+
+/* How it works step icons */
+.hero-section + section .display-4 {
+    font-size: 2.4rem;
+}
+.hero-section + section .bi {
+    opacity: 0.95;
+}
+.hero-section + section h5 {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.hero-section + section p {
+    color: var(--muted-text);
+}
+
     .hero-search-input:focus {
         background: linear-gradient(135deg, #ffffff, #eef3ff);
         border-color: #80bdff;

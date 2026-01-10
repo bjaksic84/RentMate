@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using RentMate.Models;
 
 [Route("api/[controller]")]
@@ -47,6 +49,50 @@ public class AccountApiController : ControllerBase
         await _signInManager.SignOutAsync();
         return Ok();
     }
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [HttpPut("update-profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileModel model)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        user.Email = model.Email;
+        user.UserName = model.Email; // UserName je običajno email
+        user.City = model.City;
+        user.ProfilePictureUrl = model.ProfilePictureUrl; // Predpostavljam, da si to dodal v ApplicationUser
+
+        var result = await _userManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            return Ok(new { user.Id, user.Email, user.City, user.ProfilePictureUrl });
+        }
+        return BadRequest(result.Errors);
+    }
+
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel model)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        var result = await _userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
+        if (result.Succeeded) return Ok();
+
+        return BadRequest(result.Errors.FirstOrDefault()?.Description ?? "Napaka pri menjavi gesla.");
+    }
+
 }
 
 public class LoginModel { public string? Email { get; set; } public string? Password { get; set; } }
+// Modeli za prenos podatkov (DTO)
+public class UpdateProfileModel { 
+    public string Email { get; set; } 
+    public string City { get; set; } 
+    public string? ProfilePictureUrl { get; set; }
+}
+
+public class ChangePasswordModel { 
+    public string OldPassword { get; set; } 
+    public string NewPassword { get; set; } 
+}

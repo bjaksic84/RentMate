@@ -1,8 +1,152 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+        ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+<section class="py-5 hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <h1 class="display-4 fw-bold">Find, Rent, and Share with RentMate</h1>
+                <p class="lead text-muted mb-4">Search local items, list your own, and earn extra cash — fast, secure and community-driven.</p>
+
+                <form class="hero-search-form mb-3" asp-controller="Rentals" asp-action="Index" method="get">
+                    <div class="d-flex gap-2 align-items-center justify-content-center">
+                        <input name="q" type="search" class="form-control form-control-lg hero-search-field flex-grow-1" placeholder="What are you looking for?" aria-label="Search items">
+                        <button class="btn hero-search-btn btn-lg" type="submit">Search</button>
+                    </div>
+                </form>
+
+                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                {
+                    <div class="hero-actions d-flex justify-content-center gap-3 mt-3">
+                        <a asp-controller="Rentals" asp-action="Index" class="btn btn-outline-primary btn-lg">Browse Marketplace</a>
+                        <a asp-controller="Items" asp-action="Create" class="btn btn-primary btn-lg">List an Item</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="hero-actions d-flex justify-content-center gap-3 mt-3">
+                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-lg btn-primary landing-auth-btn">Login</a>
+                        <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-lg btn-outline-primary landing-auth-btn">Get Started</a>
+                    </div>
+                }
+            </div>
+
+            <div class="col-lg-5 text-center mt-4 mt-lg-0">
+                <div class="category-carousel">
+                    <div id="categoryCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-inner">
+                            <div class="carousel-item active">
+                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Cameras" class="d-block text-decoration-none text-center">
+                                    <div class="hero-graphic mx-auto mb-2">
+                                        <i class="bi bi-camera-fill display-4 text-primary"></i>
+                                    </div>
+                                    <p class="mb-0 small text-muted">Cameras</p>
+                                </a>
+                            </div>
+                            <div class="carousel-item">
+                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Tools" class="d-block text-decoration-none text-center">
+                                    <div class="hero-graphic mx-auto mb-2">
+                                        <i class="bi bi-wrench-adjustable display-4 text-primary"></i>
+                                    </div>
+                                    <p class="mb-0 small text-muted">Tools</p>
+                                </a>
+                            </div>
+                            <div class="carousel-item">
+                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Sports" class="d-block text-decoration-none text-center">
+                                    <div class="hero-graphic mx-auto mb-2">
+                                        <i class="bi bi-bicycle display-4 text-primary"></i>
+                                    </div>
+                                    <p class="mb-0 small text-muted">Sports</p>
+                                </a>
+                            </div>
+                            <div class="carousel-item">
+                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Electronics" class="d-block text-decoration-none text-center">
+                                    <div class="hero-graphic mx-auto mb-2">
+                                        <i class="bi bi-phone fill display-4 text-primary"></i>
+                                    </div>
+                                    <p class="mb-0 small text-muted">Electronics</p>
+                                </a>
+                            </div>
+                            <div class="carousel-item">
+                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Garden" class="d-block text-decoration-none text-center">
+                                    <div class="hero-graphic mx-auto mb-2">
+                                        <i class="bi bi-tree-fill display-4 text-primary"></i>
+                                    </div>
+                                    <p class="mb-0 small text-muted">Garden</p>
+                                </a>
+                            </div>
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#categoryCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#categoryCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                    <p class="mt-3 mb-0 small text-muted">Quickly find useful items near you — cameras, tools, sports gear and more.</p>
+                </div>
+            </div>
+        </div>
+
+        <hr class="my-5">
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Safe & Trusted</h5>
+                        <p class="card-text text-muted">Verified users, secure payments and transparent reviews to keep transactions worry-free.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Flexible Rentals</h5>
+                        <p class="card-text text-muted">Short-term or long-term rentals with calendar availability and easy messaging.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Earn From Your Stuff</h5>
+                        <p class="card-text text-muted">List items in minutes and get paid when others rent them.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="py-4 bg-white">
+    <div class="container">
+        <h3 class="h4 mb-3">How RentMate Works</h3>
+        <div class="row text-center">
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <i class="bi bi-search display-4 text-primary"></i>
+                </div>
+                <h5>1. Discover</h5>
+                <p class="text-muted">Search local listings or browse the marketplace to find what you need.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <i class="bi bi-calendar2-check display-4 text-primary"></i>
+                </div>
+                <h5>2. Reserve</h5>
+                <p class="text-muted">Choose dates, message the owner and book with calendar availability.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <i class="bi bi-currency-dollar display-4 text-primary"></i>
+                </div>
+                <h5>3. Enjoy & Earn</h5>
+                <p class="text-muted">Receive secure payments and leave reviews to build trust in the community.</p>
+            </div>
+        </div>
+    </div>
+</section>

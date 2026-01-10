@@ -32,18 +32,41 @@
     {
         isLoggingIn = true;
         errorMessage = null;
-        try {
-            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
-            if (response.IsSuccessStatusCode) {
+        try 
+        {
+            // Pozor: Preveri, če je pot do tvojega API-ja res "api/auth/login" ali morda "api/accountapi/login"
+            var response = await Http.PostAsJsonAsync("api/accountapi/login", loginModel);
+            
+            if (response.IsSuccessStatusCode) 
+            {
                 var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                if (result != null) {
-                    // SHRANIMO VSE PODATKE
-                    await Auth.LoginUser(result.Token, result.UserId, result.Email, result.UserName);
+                if (result != null) 
+                {
+                    // SHRANIMO VSE PODATKE V AUTH SERVICE
+                    await Auth.LoginUser(
+                        result.Token, 
+                        result.UserId, 
+                        result.Email, 
+                        result.UserName, 
+                        result.City, 
+                        result.ProfilePictureUrl
+                    );
                     Nav.NavigateTo("marketplace");
                 }
-            } else { errorMessage = "Napačni podatki za prijavo."; }
-        } catch { errorMessage = "Napaka pri povezavi s strežnikom."; }
-        finally { isLoggingIn = false; }
+            } 
+            else 
+            { 
+                errorMessage = "Napačni podatki za prijavo."; 
+            }
+        } 
+        catch (Exception ex) 
+        { 
+            errorMessage = "Napaka pri povezavi: " + ex.Message; 
+        }
+        finally 
+        { 
+            isLoggingIn = false; 
+        }
     }
 
     public class LoginDto { public string? Email { get; set; } public string? Password { get; set; } }
@@ -52,5 +75,7 @@
         public string UserId { get; set; } = ""; 
         public string Email { get; set; } = "";
         public string UserName { get; set; } = "";
+        public string City { get; set; } = "";
+        public string? ProfilePictureUrl { get; set; }
     }
 }

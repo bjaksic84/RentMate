@@ -23,14 +23,29 @@
                 <h3 class="fw-bold m-0">@item.Title</h3>
                 <span class="h4 fw-bold text-primary m-0">@item.Price €<small class="text-muted" style="font-size: 0.6em">/dan</small></span>
             </div>
-            
-            <div class="d-flex align-items-center text-muted mb-4">
-                <i class="oi oi-map-marker me-1 text-primary"></i> @item.Location
-            </div>
 
             <h6 class="fw-bold">Opis</h6>
             <p class="text-muted">@item.Description</p>
-
+            <h6 class="fw-bold mt-4">Lokacija prevzema</h6>
+            <div class="rounded-4 overflow-hidden shadow-sm mb-4" style="height: 200px;">
+                @if (!string.IsNullOrEmpty(item.Location))
+                {
+                    <iframe 
+                        width="100%" 
+                        height="100%" 
+                        frameborder="0" 
+                        style="border:0"
+                        src="https://maps.google.com/maps?q=@(Uri.EscapeDataString(item.Location))&t=&z=13&ie=UTF8&iwloc=&output=embed" 
+                        allowfullscreen>
+                    </iframe>
+                }
+                else
+                {
+                    <div class="bg-light d-flex align-items-center justify-content-center h-100">
+                        <span class="text-muted small">Lokacija ni podana</span>
+                    </div>
+                }
+            </div>
             <hr class="my-4 text-muted opacity-25" />
 
             <div class="d-flex align-items-center gap-3">
