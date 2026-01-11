@@ -31,6 +31,7 @@
     <div class="container py-3">
         <form asp-action="Index" method="get" id="filterForm">
             <div class="row g-2 align-items-end">
+                
                 <div class="col-md-3">
                     <label class="form-label small fw-bold text-muted">@Localizer["Search"]</label>
                     <input type="text" name="search" class="form-control" placeholder="@Localizer["What are you looking for?"]" value="@ViewBag.Search">
@@ -76,6 +77,19 @@
                          </div>
                          <div id="slider-price"></div>
                      </div>
+                </div>
+                @* Kategorije (Dropdown) *@
+                <div class="col-md-3 ms-auto">
+                    <label class="form-label fw-bold small text-muted">Kategorija</label>
+                    <select name="category" class="form-select shadow-none border-2" onchange="this.form.submit()">
+                        <option value="">Vse kategorije</option>
+                        <option value="Tools" selected='@(ViewBag.Category == "Tools")'>🛠️ Orodje</option>
+                        <option value="Electronics" selected='@(ViewBag.Category == "Electronics")'>💻 Elektronika</option>
+                        <option value="Sport" selected='@(ViewBag.Category == "Sport")'>⚽ Šport</option>
+                        <option value="Home" selected='@(ViewBag.Category == "Home")'>🏠 Dom & Vrt</option>
+                        <option value="Events" selected='@(ViewBag.Category == "Events")'>🎉 Zabava</option>
+                        <option value="Other" selected='@(ViewBag.Category == "Other")'>📦 Ostalo</option>
+                    </select>
                 </div>
                 <div class="col-md-3 ms-auto">
                      <label class="form-label small fw-bold text-muted">@Localizer["Sorting"]</label>

@@ -35,7 +35,7 @@
         try 
         {
             // Pozor: Preveri, če je pot do tvojega API-ja res "api/auth/login" ali morda "api/accountapi/login"
-            var response = await Http.PostAsJsonAsync("api/accountapi/login", loginModel);
+            var response = await Http.PostAsJsonAsync("api/auth/login", loginModel);
             
             if (response.IsSuccessStatusCode) 
             {

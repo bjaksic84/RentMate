@@ -35,6 +35,7 @@ namespace RentMate.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index(
             string? search,
+            string? category, // Dodano
             decimal? minPrice,
             decimal? maxPrice,
             string? city,
@@ -42,7 +43,7 @@ namespace RentMate.Controllers
             DateTime? endDate,
             string? sort)
         {
-            // Base query: only listed and not rented
+            // Base query
             var query = _context.Items
                 .Include(i => i.User)
                 .Include(i => i.Rentals)
@@ -58,6 +59,12 @@ namespace RentMate.Controllers
                     (i.Description != null && i.Description.ToLower().Contains(lower)));
             }
 
+            // 📂 Category filter
+            if (!string.IsNullOrEmpty(category))
+            {
+                query = query.Where(i => i.Category == category);
+            }
+
             // 💶 Price filters
             if (minPrice.HasValue)
                 query = query.Where(i => i.Price >= minPrice.Value);
@@ -68,7 +75,7 @@ namespace RentMate.Controllers
             if (!string.IsNullOrEmpty(city))
                 query = query.Where(i => i.User!.City == city);
 
-            // 🗓️ Availability filter (only if both dates given)
+            // 🗓️ Availability filter (izboljšana logika prekrivanja)
             if (startDate.HasValue && endDate.HasValue)
             {
                 query = query.Where(i =>
@@ -83,26 +90,25 @@ namespace RentMate.Controllers
                 "priceAsc" => query.OrderBy(i => i.Price),
                 "priceDesc" => query.OrderByDescending(i => i.Price),
                 "titleAsc" => query.OrderBy(i => i.Title),
-                _ => query.OrderByDescending(i => i.CreatedAt) // Default: newest first
+                _ => query.OrderByDescending(i => i.CreatedAt)
             };
 
-            // Execute query
-            var available = await query.ToListAsync();
+            var items = await query.ToListAsync();
 
-            // Populate dropdown data — use canonical list from CityData
-            var cities = RentMate.Helpers.CityData.Cities.Select(c => c.Name).ToList();
-
-            // Pass current filters to view (to persist values)
+            // Za dropdown v filtrih
+            ViewBag.Cities = RentMate.Helpers.CityData.Cities.Select(c => c.Name).ToList();
+            
+            // Shranjevanje trenutnih filtrov za UI
             ViewBag.Search = search;
+            ViewBag.Category = category;
             ViewBag.MinPrice = minPrice;
             ViewBag.MaxPrice = maxPrice;
             ViewBag.City = city;
             ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
             ViewBag.Sort = sort;
-            ViewBag.Cities = cities;
 
-            return View(available);
+            return View(items);
         }
 
         // 🔹 Step 1: Request a rental (Pending)

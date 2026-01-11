@@ -80,6 +80,13 @@ namespace RentMate.Controllers
                 .OrderByDescending(i => i.CreatedAt)
                 .ToListAsync();
 
+            // Debugging output: help identify why user's items may be missing
+            try
+            {
+                System.Console.WriteLine($"[DEBUG] Dashboard.UserDashboard - user.Id={user.Id}, foundItems={userItems.Count}");
+            }
+            catch { }
+
             // 2. Rentals where the user is the renter
             var myRentals = await _context.Rentals
                 .Include(r => r.Item)
@@ -117,6 +124,10 @@ namespace RentMate.Controllers
                 ActiveRentals = myRentals.Count(r => r.Status == RentalStatus.Active)
                     + ownerRentals.Count(r => r.Status == RentalStatus.Active)
             };
+
+            // Expose simple debug info to the view so it's visible in the UI if console logging isn't available
+            ViewData["DebugUserId"] = user.Id;
+            ViewData["FoundItems"] = userItems.Count;
 
             return View(viewModel);
         }

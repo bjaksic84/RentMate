@@ -323,6 +323,234 @@ form .form-control-lg {
 .hero-section + section p {
     color: var(--muted-text);
 }
+/* site.css */
+
+/* Kategorije hover efekt */
+.category-item {
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+.category-item:hover {
+    opacity: 1;
+    transform: translateY(-3px);
+    color: var(--bs-primary) !important;
+}
+/* Airbnb Style Categories */
+.category-link {
+    color: #6c757d;
+    transition: all 0.2s ease;
+    min-width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.category-link:hover {
+    color: #0d6efd;
+    transform: translateY(-2px);
+}
+
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+}
+
+.category-link:hover .icon-circle {
+    background: #0d6efd;
+    color: #fff;
+    border-color: #0d6efd;
+}
+
+/* Scrollbar hide for categories */
+.category-scroll::-webkit-scrollbar {
+    display: none;
+}
+.category-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+/* Iskalnik focus */
+.search-container:focus-within {
+    border-color: var(--bs-primary) !important;
+    box-shadow: 0 1rem 3rem rgba(0,0,0,0.175) !important;
+}
+
+/* Skrij scrollbar pri kategorijah na mobilnikih */
+.category-scroll::-webkit-scrollbar {
+    display: none;
+}
+.category-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Carousel višina */
+.carousel-inner {
+    height: 300px;
+}
+
+/* Adapt the page-specific hero (uses .bg-white.border-bottom) to dark mode */
+[data-theme="dark"] section.bg-white.border-bottom {
+    background-color: var(--surface-soft) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+}
+
+/* Search container in hero */
+[data-theme="dark"] .search-container {
+    background-color: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 6px 18px rgba(2,6,23,0.25) !important;
+}
+
+[data-theme="dark"] .search-container .form-control {
+    background: transparent !important;
+    color: var(--text) !important;
+}
+
+[data-theme="dark"] .search-container .bi {
+    color: var(--muted-text) !important;
+}
+
+/* Categories strip (bg-light) */
+[data-theme="dark"] section.bg-light,
+[data-theme="dark"] section .bg-light {
+    background-color: transparent !important;
+}
+
+[data-theme="dark"] .category-link {
+    color: var(--muted-text) !important;
+}
+
+[data-theme="dark"] .category-link:hover {
+    color: var(--primary) !important;
+}
+
+[data-theme="dark"] .icon-circle {
+    background: var(--card-bg) !important;
+    border-color: var(--border) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+}
+
+[data-theme="dark"] .category-link:hover .icon-circle {
+    background: var(--primary) !important;
+    color: var(--panel-white-text) !important;
+    border-color: transparent !important;
+}
+
+/* How it works: inner cards (they use bg-light) */
+[data-theme="dark"] .hero-section + section .bg-light,
+[data-theme="dark"] section.bg-white.border-top .bg-light {
+    background-color: var(--surface-soft) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+[data-theme="dark"] .hero-section + section .bg-primary,
+[data-theme="dark"] .hero-section + section .bg-success,
+[data-theme="dark"] .hero-section + section .bg-info {
+    opacity: 0.95;
+}
+
+/* Make carousel controls visible across themes */
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: rgba(0,0,0,0.55);
+    border-radius: 50%;
+}
+
+[data-theme="dark"] .carousel-control-prev-icon,
+[data-theme="dark"] .carousel-control-next-icon {
+    background-color: rgba(255,255,255,0.09);
+}
+
+/* Ensure text-muted in hero/how-it-works is readable in dark mode */
+[data-theme="dark"] .text-muted {
+    color: var(--muted-text) !important;
+}
+
+/* Remove thin white sticky row under navbar in dark mode */
+[data-theme="dark"] header.sticky-top {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Make navbar border softer in dark mode (remove harsh white line) */
+[data-theme="dark"] .navbar.border-bottom {
+    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+}
+
+/* Ensure section headers using .bg-white.border-top adapt */
+[data-theme="dark"] section.bg-white.border-top {
+    background-color: transparent !important;
+    border-color: transparent !important;
+}
+
+/* Make the 'How it works' inner cards (.bg-light) adapt to dark theme */
+[data-theme="dark"] section.bg-white.border-top .bg-light,
+[data-theme="dark"] .hero-section + section .bg-light,
+[data-theme="dark"] section .bg-light {
+    background-color: var(--surface-soft) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* More specific override to counter theme.css .sticky-top.bg-white rule */
+[data-theme="dark"] header.sticky-top.bg-white,
+[data-theme="dark"] header.sticky-top.bg-white .navbar,
+[data-theme="dark"] .sticky-top.bg-white.navbar {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+}
+
+/* Ensure how-it-works cards with inline bg classes are handled */
+[data-theme="dark"] section.bg-white.border-top .p-4.rounded-4.bg-light,
+[data-theme="dark"] section.bg-white.border-top .p-4.rounded-4 {
+    background-color: var(--surface-soft) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* Ensure the colored icon circles keep contrast in dark mode */
+[data-theme="dark"] .hero-section + section .bg-primary,
+[data-theme="dark"] .hero-section + section .bg-success,
+[data-theme="dark"] .hero-section + section .bg-info,
+[data-theme="dark"] .p-4 .bg-primary,
+[data-theme="dark"] .p-4 .bg-success,
+[data-theme="dark"] .p-4 .bg-info {
+    filter: brightness(1.05) !important;
+}
+
+/* CTA join: ensure the card uses site theme colors and buttons follow .btn rules */
+.cta-join {
+    background-color: var(--card-bg) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+}
+.cta-join .text-muted {
+    color: var(--muted-text) !important;
+}
+
+[data-theme="dark"] .cta-join {
+    background-color: var(--surface-soft) !important;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.28) !important;
+}
+
+[data-theme="dark"] .cta-join .btn.btn-outline-primary {
+    color: var(--text) !important;
+    border-color: rgba(255,255,255,0.06) !important;
+}
+
 
     .hero-search-input:focus {
         background: linear-gradient(135deg, #ffffff, #eef3ff);

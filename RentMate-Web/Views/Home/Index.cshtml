@@ -1,151 +1,152 @@
-﻿@{
-        ViewData["Title"] = "Home";
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@{
+    ViewData["Title"] = "Domov";
 }
 
-<section class="py-5 hero-section">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-7">
-                <h1 class="display-4 fw-bold">Find, Rent, and Share with RentMate</h1>
-                <p class="lead text-muted mb-4">Search local items, list your own, and earn extra cash — fast, secure and community-driven.</p>
+@* 1. HERO SECTION *@
+<section class="py-5 bg-white border-bottom">
+    <div class="container text-center py-5">
+        <h1 class="display-4 fw-bold mb-3 text-dark">Najemi karkoli, kjerkoli.</h1>
+        <p class="lead text-muted mb-5">Pozabi na nakupovanje stvari, ki jih potrebuješ le občasno.</p>
 
-                <form class="hero-search-form mb-3" asp-controller="Rentals" asp-action="Index" method="get">
-                    <div class="d-flex gap-2 align-items-center justify-content-center">
-                        <input name="q" type="search" class="form-control form-control-lg hero-search-field flex-grow-1" placeholder="What are you looking for?" aria-label="Search items">
-                        <button class="btn hero-search-btn btn-lg" type="submit">Search</button>
-                    </div>
-                </form>
-
-                @if (User.Identity != null && User.Identity.IsAuthenticated)
-                {
-                    <div class="hero-actions d-flex justify-content-center gap-3 mt-3">
-                        <a asp-controller="Rentals" asp-action="Index" class="btn btn-outline-primary btn-lg">Browse Marketplace</a>
-                        <a asp-controller="Items" asp-action="Create" class="btn btn-primary btn-lg">List an Item</a>
-                    </div>
-                }
-                else
-                {
-                    <div class="hero-actions d-flex justify-content-center gap-3 mt-3">
-                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-lg btn-primary landing-auth-btn">Login</a>
-                        <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-lg btn-outline-primary landing-auth-btn">Get Started</a>
-                    </div>
-                }
-            </div>
-
-            <div class="col-lg-5 text-center mt-4 mt-lg-0">
-                <div class="category-carousel">
-                    <div id="categoryCarousel" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-inner">
-                            <div class="carousel-item active">
-                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Cameras" class="d-block text-decoration-none text-center">
-                                    <div class="hero-graphic mx-auto mb-2">
-                                        <i class="bi bi-camera-fill display-4 text-primary"></i>
-                                    </div>
-                                    <p class="mb-0 small text-muted">Cameras</p>
-                                </a>
-                            </div>
-                            <div class="carousel-item">
-                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Tools" class="d-block text-decoration-none text-center">
-                                    <div class="hero-graphic mx-auto mb-2">
-                                        <i class="bi bi-wrench-adjustable display-4 text-primary"></i>
-                                    </div>
-                                    <p class="mb-0 small text-muted">Tools</p>
-                                </a>
-                            </div>
-                            <div class="carousel-item">
-                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Sports" class="d-block text-decoration-none text-center">
-                                    <div class="hero-graphic mx-auto mb-2">
-                                        <i class="bi bi-bicycle display-4 text-primary"></i>
-                                    </div>
-                                    <p class="mb-0 small text-muted">Sports</p>
-                                </a>
-                            </div>
-                            <div class="carousel-item">
-                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Electronics" class="d-block text-decoration-none text-center">
-                                    <div class="hero-graphic mx-auto mb-2">
-                                        <i class="bi bi-phone fill display-4 text-primary"></i>
-                                    </div>
-                                    <p class="mb-0 small text-muted">Electronics</p>
-                                </a>
-                            </div>
-                            <div class="carousel-item">
-                                <a asp-controller="Rentals" asp-action="Index" asp-route-category="Garden" class="d-block text-decoration-none text-center">
-                                    <div class="hero-graphic mx-auto mb-2">
-                                        <i class="bi bi-tree-fill display-4 text-primary"></i>
-                                    </div>
-                                    <p class="mb-0 small text-muted">Garden</p>
-                                </a>
-                            </div>
-                        </div>
-                        <button class="carousel-control-prev" type="button" data-bs-target="#categoryCarousel" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Previous</span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#categoryCarousel" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Next</span>
-                        </button>
-                    </div>
-                    <p class="mt-3 mb-0 small text-muted">Quickly find useful items near you — cameras, tools, sports gear and more.</p>
-                </div>
-            </div>
-        </div>
-
-        <hr class="my-5">
-
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Safe & Trusted</h5>
-                        <p class="card-text text-muted">Verified users, secure payments and transparent reviews to keep transactions worry-free.</p>
+        <div class="search-container mx-auto shadow-lg rounded-pill p-2 bg-white border" style="max-width: 800px;">
+            <form class="row g-0 align-items-center" asp-controller="Rentals" asp-action="Index" method="get">
+                <div class="col-md-5 border-end">
+                    <div class="d-flex align-items-center px-3">
+                        <i class="bi bi-search text-muted me-2"></i>
+                        <input name="search" class="form-control border-0 shadow-none" placeholder="Kaj iščeš? (npr. vrtalnik)" />
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Flexible Rentals</h5>
-                        <p class="card-text text-muted">Short-term or long-term rentals with calendar availability and easy messaging.</p>
+                <div class="col-md-4 border-end">
+                    <div class="d-flex align-items-center px-3">
+                        <i class="bi bi-geo-alt text-muted me-2"></i>
+                        <input name="city" class="form-control border-0 shadow-none" placeholder="Kraj (npr. Ljubljana)" />
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card h-100 border-0 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Earn From Your Stuff</h5>
-                        <p class="card-text text-muted">List items in minutes and get paid when others rent them.</p>
-                    </div>
+                <div class="col-md-3 ps-2 pe-1">
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold">Išči</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 </section>
 
-<section class="py-4 bg-white">
+@* 2. FIXED CATEGORIES SECTION *@
+<section class="py-4 bg-light shadow-sm">
     <div class="container">
-        <h3 class="h4 mb-3">How RentMate Works</h3>
-        <div class="row text-center">
-            <div class="col-md-4">
-                <div class="mb-3">
-                    <i class="bi bi-search display-4 text-primary"></i>
+        <div class="d-flex justify-content-center gap-4 gap-md-5 overflow-auto pb-2 category-scroll">
+            <a href="/Rentals?category=Tools" class="category-link text-center text-decoration-none">
+                <div class="icon-circle mb-2"><i class="bi bi-tools"></i></div>
+                <span class="small fw-bold">Orodje</span>
+            </a>
+            <a href="/Rentals?category=Electronics" class="category-link text-center text-decoration-none">
+                <div class="icon-circle mb-2"><i class="bi bi-laptop"></i></div>
+                <span class="small fw-bold">Elektronika</span>
+            </a>
+            <a href="/Rentals?category=Sport" class="category-link text-center text-decoration-none">
+                <div class="icon-circle mb-2"><i class="bi bi-bicycle"></i></div>
+                <span class="small fw-bold">Šport</span>
+            </a>
+            <a href="/Rentals?category=Home" class="category-link text-center text-decoration-none">
+                <div class="icon-circle mb-2"><i class="bi bi-house-door"></i></div>
+                <span class="small fw-bold">Dom & Vrt</span>
+            </a>
+            <a href="/Rentals?category=Events" class="category-link text-center text-decoration-none">
+                <div class="icon-circle mb-2"><i class="bi bi-balloon-heart"></i></div>
+                <span class="small fw-bold">Zabava</span>
+            </a>
+            <a href="/Rentals?category=Other" class="category-link text-center text-decoration-none">
+                <div class="icon-circle mb-2"><i class="bi bi-box-seam"></i></div>
+                <span class="small fw-bold">Ostalo</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+@* 3. FEATURED ITEMS (Placeholder Carousel) *@
+<section class="py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold m-0">Priljubljeno v tvoji bližini</h3>
+            <a href="/Rentals" class="text-primary text-decoration-none fw-bold">Vse <i class="bi bi-chevron-right"></i></a>
+        </div>
+
+        <div id="featuredCarousel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner rounded-4 shadow">
+                <div class="carousel-item active">
+                    <div class="row g-0 bg-dark text-white p-5 align-items-center">
+                        <div class="col-md-6">
+                            <span class="badge bg-warning text-dark mb-2">Top ocenjeno</span>
+                            <h2 class="display-6 fw-bold">Profesionalni DJI dron</h2>
+                            <p>Lastnik: Marko (⭐ 4.9) • Lokacija: Maribor</p>
+                            <h4 class="text-primary">25€ / dan</h4>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <i class="bi bi-camera-reels display-1 opacity-25"></i>
+                        </div>
+                    </div>
                 </div>
-                <h5>1. Discover</h5>
-                <p class="text-muted">Search local listings or browse the marketplace to find what you need.</p>
+                @* Tukaj bi dodal še 2-3 carousel-item-e *@
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#featuredCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#featuredCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+        </div>
+    </div>
+</section>
+@* 3. CALL TO ACTION (Če uporabnik ni vpisan) *@
+@if (!(User.Identity?.IsAuthenticated ?? false))
+{
+    <section class="py-5">
+        <div class="container">
+            <div class="card cta-join p-0 rounded-4 shadow-lg text-center">
+                <div class="card-body p-5">
+                    <h2 class="fw-bold mb-3">Postani del RentMate skupnosti</h2>
+                    <p class="mb-4 text-muted">Služi z oddajanjem svoje opreme ali prihradi z najemom.</p>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold">Registracija</a>
+                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary btn-lg px-4 rounded-pill">Prijava</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+@* 4. HOW IT WORKS *@
+<section class="py-5 bg-white border-top">
+    <div class="container">
+        <h3 class="fw-bold text-center mb-5">Kako deluje RentMate?</h3>
+        <div class="row text-center g-4">
+            <div class="col-md-4">
+                <div class="p-4 rounded-4 bg-light h-100">
+                    <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="bi bi-search h4 m-0"></i>
+                    </div>
+                    <h5 class="fw-bold">Poišči</h5>
+                    <p class="text-muted small">Prebrskaj tisoče predmetov v tvoji neposredni bližini.</p>
+                </div>
             </div>
             <div class="col-md-4">
-                <div class="mb-3">
-                    <i class="bi bi-calendar2-check display-4 text-primary"></i>
+                <div class="p-4 rounded-4 bg-light h-100">
+                    <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="bi bi-calendar-check h4 m-0"></i>
+                    </div>
+                    <h5 class="fw-bold">Rezerviraj</h5>
+                    <p class="text-muted small">Izberi datume, kontaktiraj lastnika in potrdi najem.</p>
                 </div>
-                <h5>2. Reserve</h5>
-                <p class="text-muted">Choose dates, message the owner and book with calendar availability.</p>
             </div>
             <div class="col-md-4">
-                <div class="mb-3">
-                    <i class="bi bi-currency-dollar display-4 text-primary"></i>
+                <div class="p-4 rounded-4 bg-light h-100">
+                    <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                        <i class="bi bi-stars h4 m-0"></i>
+                    </div>
+                    <h5 class="fw-bold">Uporabi & Prihrani</h5>
+                    <p class="text-muted small">Prevzemi predmet, ga uporabi in vrni. Enostavno!</p>
                 </div>
-                <h5>3. Enjoy & Earn</h5>
-                <p class="text-muted">Receive secure payments and leave reviews to build trust in the community.</p>
             </div>
         </div>
     </div>
