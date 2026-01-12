@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 
+
 // Čiščenje mapiranja claimov, da dobimo čiste "sub", "role" itd.
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
@@ -23,11 +24,24 @@ var builder = WebApplication.CreateBuilder(args);
 // ==========================================
 
 // --- Baza podatkov ---
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+
+var connectionString = builder.Configuration.GetConnectionString("AzureContext");
+if (string.IsNullOrEmpty(connectionString))
+{
+    // To pomaga pri debugiranju migracij
+    throw new InvalidOperationException("Connection string 'AzureContext' not found.");
+}
 
 builder.Services.AddDbContext<RentMateContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseSqlServer(connectionString, sqlOptions => 
+    {
+        // To prepreči napake pri kratkih prekinitvah povezave z Azure strežnikom
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null);
+    }));
 
 // --- Identity (Uporabniki in Role) ---
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => 
@@ -150,6 +164,11 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try 
     {
+        var context = services.GetRequiredService<RentMateContext>();
+        if (context.Database.GetPendingMigrations().Any())
+        {
+            await context.Database.MigrateAsync();
+        }
         // Dodan try-catch za varnost pri zagonu
         await DataSeeder.SeedRolesAndAdminAsync(services);
     }
