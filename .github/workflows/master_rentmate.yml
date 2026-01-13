@@ -23,7 +23,7 @@ jobs:
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '8.0.x'
 
       - name: Build with dotnet
         run: dotnet build RentMate-Web/RentMate.csproj --configuration Release
@@ -49,6 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
+          path: ./release
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -63,5 +64,5 @@ jobs:
         with:
           app-name: 'rentmate'
           slot-name: 'Production'
-          package: .
+          package: ./release
           
