@@ -27,13 +27,13 @@ jobs:
         run: dotnet build RentMate-Web/RentMate.csproj --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish RentMate-Web/RentMate.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish RentMate-Web/RentMate.csproj -c Release -o ./publish_output
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ./publish_output
 
   deploy:
     runs-on: windows-latest
@@ -47,6 +47,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
+          path: ./deployment_package
       
       - name: Login to Azure
         uses: azure/login@v2
@@ -61,5 +62,5 @@ jobs:
         with:
           app-name: 'rentmate'
           slot-name: 'Production'
-          package: .
+          package: ./deployment_package
           
