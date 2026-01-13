@@ -61,6 +61,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'rentmate'
-          slot-name: 'Production'
           package: ./deployment_package
           
