@@ -59,10 +59,13 @@
                         <li class="text-end mb-2 d-flex align-items-center px-2">
                             <span id="connectionIndicator" class="badge bg-secondary">@Localizer["Offline"]</span>
                         </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="langDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-globe me-1"></i> @Localizer["Language"]
-                            </a>
+
+                    </ul>
+                    <div class="d-flex align-items-center">
+                        <div class="dropdown me-2">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-globe"></i>
+                            </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="langDropdown">
                                 <li>
                                     <form asp-controller="Culture" asp-action="SetLanguage" 
@@ -83,9 +86,7 @@
                                     </form>
                                 </li>
                             </ul>
-                        </li>
-                    </ul>
-                    <div class="d-flex align-items-center">
+                        </div>
                         <button id="themeToggle" class="btn btn-sm btn-outline-secondary me-2" aria-label="@Localizer["Toggle theme"]">
                             <i id="themeIcon" class="bi bi-moon-fill"></i>
                         </button>

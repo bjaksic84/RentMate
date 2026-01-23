@@ -1,5 +1,28 @@
 ﻿// Site-wide helpers: toast, rent picker init, small UI utilities
 (function () {
+	// --- Client-Side Translation API ---
+	window.Translations = {}; // Global storage
+
+	async function loadTranslations() {
+		try {
+			const cached = sessionStorage.getItem('rentmate_translations');
+			if (cached) {
+				window.Translations = JSON.parse(cached);
+				return;
+			}
+
+			const response = await fetch('/api/translations');
+			if (response.ok) {
+				const data = await response.json();
+				window.Translations = data.translations;
+				sessionStorage.setItem('rentmate_translations', JSON.stringify(window.Translations));
+			}
+		} catch (err) {
+			console.error('Failed to load translations:', err);
+		}
+	}
+	loadTranslations(); // Trigger on load
+
 	function showToast(message, type = 'info') {
 		const toastContainerId = 'toastContainer';
 		let container = document.getElementById(toastContainerId);
@@ -94,7 +117,7 @@
 		window.showToast = showToast; // expose for inline scripts
 	});
 
-// (floating-label autofill handling reverted)
+	// (floating-label autofill handling reverted)
 })();
 
 /* Theme handling: setTheme / initTheme */

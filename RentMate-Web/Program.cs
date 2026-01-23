@@ -12,6 +12,8 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Localization;
+using RentMate.Resources;
 
 
 // Čiščenje mapiranja claimov, da dobimo čiste "sub", "role" itd.
@@ -94,10 +96,17 @@ builder.Services.AddAuthentication()
 // --- Lokalizacija ---
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
+// Register custom JSON localizer factory
+builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
+
 // --- MVC, Kontrolerji in SignalR ---
 builder.Services.AddControllersWithViews()
     .AddViewLocalization()
-    .AddDataAnnotationsLocalization()
+    .AddDataAnnotationsLocalization(options =>
+    {
+        options.DataAnnotationLocalizerProvider = (type, factory) =>
+            factory.Create(typeof(ValidationMessages));
+    })
     .AddJsonOptions(x =>
         x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles); // Prepreči krožne reference
 

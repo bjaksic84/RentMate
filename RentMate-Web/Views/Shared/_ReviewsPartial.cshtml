@@ -83,6 +83,7 @@
         const locAnonymous = "@Localizer["Anonymous"]";
         const locUser = "@Localizer["User"]";
         const locSuccess = "@Localizer["Review posted successfully!"]";
+        const locError = "@Localizer["Error"]";
 
         document.addEventListener("DOMContentLoaded", () => {
             loadReviews();
@@ -180,7 +181,7 @@
                     alert(locSuccess);
                 } else {
                     const text = await res.text();
-                    alert(`Error: ${text}`);
+                    alert(`${locError}: ${text}`);
                 }
             });
         }

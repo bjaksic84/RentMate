@@ -80,15 +80,15 @@
                 </div>
                 @* Kategorije (Dropdown) *@
                 <div class="col-md-3 ms-auto">
-                    <label class="form-label fw-bold small text-muted">Kategorija</label>
+                    <label class="form-label fw-bold small text-muted">@Localizer["Category"]</label>
                     <select name="category" class="form-select shadow-none border-2" onchange="this.form.submit()">
-                        <option value="">Vse kategorije</option>
-                        <option value="Tools" selected='@(ViewBag.Category == "Tools")'>🛠️ Orodje</option>
-                        <option value="Electronics" selected='@(ViewBag.Category == "Electronics")'>💻 Elektronika</option>
-                        <option value="Sport" selected='@(ViewBag.Category == "Sport")'>⚽ Šport</option>
-                        <option value="Home" selected='@(ViewBag.Category == "Home")'>🏠 Dom & Vrt</option>
-                        <option value="Events" selected='@(ViewBag.Category == "Events")'>🎉 Zabava</option>
-                        <option value="Other" selected='@(ViewBag.Category == "Other")'>📦 Ostalo</option>
+                        <option value="">@Localizer["All Categories"]</option>
+                        <option value="Tools" selected='@(ViewBag.Category == "Tools")'>🛠️ @Localizer["Tools"]</option>
+                        <option value="Electronics" selected='@(ViewBag.Category == "Electronics")'>💻 @Localizer["Electronics"]</option>
+                        <option value="Sport" selected='@(ViewBag.Category == "Sport")'>⚽ @Localizer["Sports"]</option>
+                        <option value="Home" selected='@(ViewBag.Category == "Home")'>🏠 @Localizer["Home & Garden"]</option>
+                        <option value="Events" selected='@(ViewBag.Category == "Events")'>🎉 @Localizer["Fun"]</option>
+                        <option value="Other" selected='@(ViewBag.Category == "Other")'>📦 @Localizer["Other"]</option>
                     </select>
                 </div>
                 <div class="col-md-3 ms-auto">
