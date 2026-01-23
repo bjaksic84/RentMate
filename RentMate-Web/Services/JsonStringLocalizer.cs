@@ -1,5 +1,5 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Localization;
-using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
 
@@ -7,12 +7,13 @@ namespace RentMate.Services
 {
     public class JsonStringLocalizer : IStringLocalizer
     {
-        private readonly ConcurrentDictionary<string, Dictionary<string, string>> _cache = new();
+        private readonly IMemoryCache _cache;
         private readonly string _resourcesPath;
 
-        public JsonStringLocalizer(string resourcesPath)
+        public JsonStringLocalizer(string resourcesPath, IMemoryCache cache)
         {
             _resourcesPath = resourcesPath;
+            _cache = cache;
         }
 
         public LocalizedString this[string name]
@@ -58,12 +59,25 @@ namespace RentMate.Services
             return null;
         }
 
+        public string GetVersion(string culture)
+        {
+            var fileName = $"{culture}.json";
+            var filePath = Path.Combine(_resourcesPath, fileName);
+            if (File.Exists(filePath))
+            {
+                return File.GetLastWriteTimeUtc(filePath).Ticks.ToString();
+            }
+            return "0";
+        }
+
         private Dictionary<string, string> GetDictionary(string culture)
         {
-            return _cache.GetOrAdd(culture, c =>
+            var cacheKey = $"locale_{culture}";
+            
+            if (!_cache.TryGetValue(cacheKey, out Dictionary<string, string>? dictionary))
             {
-                var dictionary = new Dictionary<string, string>();
-                var fileName = $"{c}.json";
+                dictionary = new Dictionary<string, string>();
+                var fileName = $"{culture}.json";
                 var filePath = Path.Combine(_resourcesPath, fileName);
 
                 if (File.Exists(filePath))
@@ -83,8 +97,14 @@ namespace RentMate.Services
                     }
                 }
 
-                return dictionary;
-            });
+                _cache.Set(cacheKey, dictionary, new MemoryCacheEntryOptions
+                {
+                    SlidingExpiration = TimeSpan.FromHours(1),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1)
+                });
+            }
+
+            return dictionary ?? new Dictionary<string, string>();
         }
     }
 }

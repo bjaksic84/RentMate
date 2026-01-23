@@ -1,5 +1,5 @@
-﻿@using Microsoft.AspNetCore.Mvc.Localization
-@inject IViewLocalizer Localizer
+﻿@inject IViewLocalizer Localizer
+@inject RentMate.Services.CurrencyService CurrencyService
 @{
     ViewData["Title"] = Localizer["Home"];
 }
@@ -80,7 +80,7 @@
                             <span class="badge bg-warning text-dark mb-2">@Localizer["Top rated"]</span>
                             <h2 class="display-6 fw-bold">Profesionalni DJI dron</h2>
                             <p>@Localizer["Owner"]: Marko (⭐ 4.9) • @Localizer["Location"]: Maribor</p>
-                            <h4 class="text-primary">25€ / @Localizer["day"]</h4>
+                            <h4 class="text-primary">@CurrencyService.Format(25) / @Localizer["day"]</h4>
                         </div>
                         <div class="col-md-6 text-center">
                             <i class="bi bi-camera-reels display-1 opacity-25"></i>

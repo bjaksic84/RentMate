@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
@@ -7,11 +8,13 @@ namespace RentMate.Services
     {
         private readonly string _resourcesPath;
         private readonly IWebHostEnvironment _env;
+        private readonly IMemoryCache _cache;
 
-        public JsonStringLocalizerFactory(IOptions<LocalizationOptions> localizationOptions, IWebHostEnvironment env)
+        public JsonStringLocalizerFactory(IOptions<LocalizationOptions> localizationOptions, IWebHostEnvironment env, IMemoryCache cache)
         {
             _resourcesPath = localizationOptions.Value.ResourcesPath ?? "Resources";
             _env = env;
+            _cache = cache;
         }
 
         public IStringLocalizer Create(Type resourceSource)
@@ -29,7 +32,7 @@ namespace RentMate.Services
         private IStringLocalizer CreateLocalizer()
         {
             var fullPath = Path.Combine(_env.ContentRootPath, _resourcesPath);
-            return new JsonStringLocalizer(fullPath);
+            return new JsonStringLocalizer(fullPath, _cache);
         }
     }
 }

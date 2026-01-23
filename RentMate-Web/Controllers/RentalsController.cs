@@ -18,17 +18,20 @@ namespace RentMate.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<RentMateHub> _hubContext;
         private readonly IStringLocalizer<RentalsController> _localizer;
+        private readonly Services.CurrencyService _currencyService;
 
         public RentalsController(
             RentMateContext context, 
             UserManager<ApplicationUser> userManager, 
             IHubContext<RentMateHub> hubContext,
-            IStringLocalizer<RentalsController> localizer)
+            IStringLocalizer<RentalsController> localizer,
+            Services.CurrencyService currencyService)
         {
             _context = context;
             _userManager = userManager;
             _hubContext = hubContext;
             _localizer = localizer;
+            _currencyService = currencyService;
         }
 
         // 🔹 Public listings: items available to rent
@@ -65,11 +68,17 @@ namespace RentMate.Controllers
                 query = query.Where(i => i.Category == category);
             }
 
-            // 💶 Price filters
+            // 💶 Price filters (Convert back to base currency if user has selected something else)
             if (minPrice.HasValue)
-                query = query.Where(i => i.Price >= minPrice.Value);
+            {
+                var minBase = _currencyService.ConvertToBase(minPrice.Value);
+                query = query.Where(i => i.Price >= minBase);
+            }
             if (maxPrice.HasValue)
-                query = query.Where(i => i.Price <= maxPrice.Value);
+            {
+                var maxBase = _currencyService.ConvertToBase(maxPrice.Value);
+                query = query.Where(i => i.Price <= maxBase);
+            }
 
             // 📍 City filter
             if (!string.IsNullOrEmpty(city))

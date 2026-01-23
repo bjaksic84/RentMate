@@ -2,6 +2,7 @@
 @using RentMate.Shared
 @model RentMate.Models.DashboardViewModel
 @inject IViewLocalizer Localizer
+@inject RentMate.Services.CurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Dashboard"];
@@ -72,7 +73,7 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label small fw-bold">@Localizer["Price per day (€)"]</label>
+                                    <label class="form-label small fw-bold">@Localizer["Price per day"] (@CurrencyService.GetCurrentCurrency().Code)</label>
                                     <input name="Price" type="number" step="0.01" class="form-control" required placeholder="0.00" />
                                 </div>
                                 <div class="col-12">
@@ -129,7 +130,7 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="fw-bold text-primary">@item.Price?.ToString("C")</td>
+                                        <td class="fw-bold text-primary">@CurrencyService.Format(item.Price)</td>
                                         <td>
                                             @if (item.IsListed)
                                             {
@@ -232,7 +233,7 @@
                                             <div>@rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")</div>
                                         </td>
                                         <td class="fw-bold text-success">
-                                            @rental.TotalPrice.ToString("C2", new System.Globalization.CultureInfo("de-DE"))
+                                            @CurrencyService.Format(rental.TotalPrice)
                                         </td>
                                         <td>
                                             @if (rental.Status == RentMate.Shared.RentalStatus.Pending)
@@ -350,7 +351,7 @@
                                             <div>@rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")</div>
                                         </td>
                                         <td class="fw-bold text-dark">
-                                            @rental.TotalPrice.ToString("C2", new System.Globalization.CultureInfo("de-DE"))
+                                            @CurrencyService.Format(rental.TotalPrice)
                                         </td>
                                         <td>
                                             @if(rental.Status == RentalStatus.Pending) { <span class="badge bg-warning text-dark">@Localizer["Pending Approval"]</span> }

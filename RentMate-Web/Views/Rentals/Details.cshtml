@@ -1,6 +1,7 @@
 ﻿@model RentMate.Models.Rental
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
+@inject RentMate.Services.CurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Rental Details"];
@@ -34,7 +35,7 @@
                         </div>
                         <div class="col-6 text-end">
                             <small class="text-muted text-uppercase">@Localizer["Price"]</small>
-                            <p class="fw-bold mb-0 text-success">@Model.TotalPrice.ToString("C2", new System.Globalization.CultureInfo("de-DE"))</p>
+                            <p class="fw-bold mb-0 text-success">@CurrencyService.Format(Model.TotalPrice)</p>
                         </div>
                     </div>
 

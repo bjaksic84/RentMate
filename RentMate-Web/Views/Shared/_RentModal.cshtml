@@ -2,6 +2,7 @@
 @using System.Text.Json
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
+@inject RentMate.Services.CurrencyService CurrencyService
 
 @{
     var blockedDates = (Model.Rentals ?? Enumerable.Empty<RentMate.Models.Rental>())
@@ -31,12 +32,12 @@
 
                     <div id="modalPriceCalculation-@Model.Id" class="d-none mb-3 bg-light p-3 rounded small">
                         <div class="d-flex justify-content-between mb-1">
-                            <span id="modalCalcDays-@Model.Id">0 @Localizer["days"] x @Model.Price €</span>
-                            <span id="modalCalcTotalBase-@Model.Id">0 €</span>
+                            <span id="modalCalcDays-@Model.Id">0 @Localizer["days"] x @CurrencyService.Format(Model.Price)</span>
+                            <span id="modalCalcTotalBase-@Model.Id">@CurrencyService.GetCurrentCurrency().Symbol 0.00</span>
                         </div>
                         <div class="d-flex justify-content-between fw-bold border-top pt-2 mt-2">
                             <span>@Localizer["Total"]</span>
-                            <span id="modalCalcFinalTotal-@Model.Id">0 €</span>
+                            <span id="modalCalcFinalTotal-@Model.Id">@CurrencyService.GetCurrentCurrency().Symbol 0.00</span>
                         </div>
                     </div>
                 </div>

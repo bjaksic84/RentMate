@@ -94,6 +94,7 @@ builder.Services.AddAuthentication()
     });
 
 // --- Lokalizacija ---
+builder.Services.AddMemoryCache();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 // Register custom JSON localizer factory
@@ -156,6 +157,8 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // --- Lastne storitve ---
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<CurrencyService>();
 builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
 
 // ==========================================

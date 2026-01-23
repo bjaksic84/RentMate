@@ -110,5 +110,10 @@
     "Passwords do not match.": "Passwords do not match.",
     "Search": "Search",
     "Privacy": "Privacy",
-    "Items": "Items"
+    "Items": "Items",
+    "Title_Required": "Title is required",
+    "Title_TooLong": "Title is too long (max 100 chars)",
+    "Description_TooLong": "Description is too long (max 2000 chars)",
+    "Price_Required": "Price is required",
+    "Price_Invalid": "Price must be between 0.01 and 1,000,000"
 }

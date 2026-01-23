@@ -437,5 +437,10 @@
     "Forgot your password?": "Ste pozabili geslo?",
     "Action failed: ": "Dejanje ni uspelo: ",
     "Ensure that \u0027{0}\u0027 is not an abstract class and has a parameterless constructor, or alternatively override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml": "Prepričajte se, da \u0027{0}\u0027 ni abstrakten razred in ima konstruktor brez parametrov, ali pa prepišite stran za zunanjo prijavo.",
-    "The password and confirmation password do not match.": "Geslo in potrditev gesla se ne ujemata."
+    "The password and confirmation password do not match.": "Geslo in potrditev gesla se ne ujemata.",
+    "Title_Required": "Naslov je obvezen",
+    "Title_TooLong": "Naslov je predolg (največ 100 znakov)",
+    "Description_TooLong": "Opis je predolg (največ 2000 znakov)",
+    "Price_Required": "Cena je obvezna",
+    "Price_Invalid": "Cena mora biti med 0.01 in 1.000.000"
 }

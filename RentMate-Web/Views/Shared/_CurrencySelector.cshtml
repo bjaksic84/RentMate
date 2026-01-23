@@ -1,0 +1,28 @@
+@using RentMate.Services
+@inject CurrencyService CurrencyService
+
+@{
+    var currentCurrency = CurrencyService.GetCurrentCurrency();
+    var returnUrl = string.IsNullOrEmpty(Context.Request.Path) ? "~/" : $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+
+<div class="dropdown me-3">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center" type="button" id="currencyDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="me-1">@currentCurrency.Flag</span>
+        <span class="small fw-bold">@currentCurrency.Code (@currentCurrency.Symbol)</span>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="currencyDropdown">
+        @foreach (var curr in CurrencyService.SupportedCurrencies)
+        {
+            <li>
+                <form asp-controller="Currency" asp-action="SetCurrency" asp-route-returnUrl="@returnUrl" method="post">
+                    <button type="submit" name="currency" value="@curr.Code" class="dropdown-item d-flex align-items-center @(curr.Code == currentCurrency.Code ? "active" : "")">
+                        <span class="me-2">@curr.Flag</span>
+                        <span class="flex-grow-1">@curr.Name (@curr.Code)</span>
+                        <span class="ms-2 text-muted small">@curr.Symbol</span>
+                    </button>
+                </form>
+            </li>
+        }
+    </ul>
+</div>

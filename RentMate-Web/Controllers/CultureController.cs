@@ -8,11 +8,13 @@ namespace RentMate.Controllers
 {
     public class CultureController : Controller
     {
-        private readonly IStringLocalizer<SharedResources> _sharedLocalizer;
+        private readonly IStringLocalizer _sharedLocalizer;
+        private readonly IStringLocalizerFactory _localizerFactory;
 
-        public CultureController(IStringLocalizer<SharedResources> sharedLocalizer)
+        public CultureController(IStringLocalizerFactory factory)
         {
-            _sharedLocalizer = sharedLocalizer;
+            _localizerFactory = factory;
+            _sharedLocalizer = factory.Create(typeof(SharedResources));
         }
 
         [HttpPost]
@@ -29,19 +31,31 @@ namespace RentMate.Controllers
 
         /// <summary>
         /// Returns all shared translations for the current culture as JSON.
-        /// Used by JavaScript to access localized strings on the client side.
+        /// Includes a version based on file modification time for client-side caching.
         /// </summary>
         [HttpGet]
         [Route("api/translations")]
-        public IActionResult GetTranslations()
+        public IActionResult GetTranslations(string? v)
         {
             var culture = CultureInfo.CurrentUICulture.Name;
+            
+            // Get version from the actual localizer
+            var localizer = _localizerFactory.Create(typeof(SharedResources)) as Services.JsonStringLocalizer;
+            var currentVersion = localizer?.GetVersion(culture) ?? "1";
+
+            // If client version matches, return 304 Not Modified
+            if (!string.IsNullOrEmpty(v) && v == currentVersion)
+            {
+                return StatusCode(304);
+            }
+
             var allStrings = _sharedLocalizer.GetAllStrings(includeParentCultures: true);
             var translations = allStrings.ToDictionary(x => x.Name, x => x.Value);
 
             return Ok(new 
             { 
                 culture, 
+                version = currentVersion,
                 translations 
             });
         }

@@ -4,6 +4,7 @@
 @using RentMate.Shared;
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
+@inject RentMate.Services.CurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Marketplace"];
@@ -205,7 +206,7 @@
                                 </div>
                             </div>
                             <p class="card-text fw-bold mb-0 mt-3 text-primary">
-                                @item.Price?.ToString("C2", new System.Globalization.CultureInfo("de-DE")) <span class="fw-normal text-muted small">@Localizer["/ day"]</span>
+                                @CurrencyService.Format(item.Price) <span class="fw-normal text-muted small">@Localizer["/ day"]</span>
                             </p>
                         </div> 
                         <div class="card-footer bg-white border-0 py-2 position-relative" style="z-index: 2;">

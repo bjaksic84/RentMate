@@ -6,16 +6,26 @@
 	async function loadTranslations() {
 		try {
 			const cached = sessionStorage.getItem('rentmate_translations');
-			if (cached) {
+			const cachedVersion = sessionStorage.getItem('rentmate_translations_version');
+
+			let url = '/api/translations';
+			if (cachedVersion) {
+				url += `?v=${cachedVersion}`;
+			}
+
+			const response = await fetch(url);
+			if (response.status === 304 && cached) {
 				window.Translations = JSON.parse(cached);
 				return;
 			}
 
-			const response = await fetch('/api/translations');
 			if (response.ok) {
 				const data = await response.json();
 				window.Translations = data.translations;
 				sessionStorage.setItem('rentmate_translations', JSON.stringify(window.Translations));
+				sessionStorage.setItem('rentmate_translations_version', data.version);
+			} else if (cached) {
+				window.Translations = JSON.parse(cached);
 			}
 		} catch (err) {
 			console.error('Failed to load translations:', err);
@@ -86,12 +96,25 @@
 							// calc days inclusive
 							const diffTime = Math.abs(end - start);
 							const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-							const total = diffDays * (isNaN(pricePerDay) ? 0 : pricePerDay);
+
+							const basePrice = (isNaN(pricePerDay) ? 0 : pricePerDay);
+							const exchangeRate = window.CurrentCurrency ? window.CurrentCurrency.ExchangeRate : 1.0;
+							const symbol = window.CurrentCurrency ? window.CurrentCurrency.Symbol : '€';
+
+							const totalConverted = diffDays * basePrice * exchangeRate;
+							const formattedPrice = window.CurrentCurrency ? (window.CurrentCurrency.Code === "CHF" ? `${(basePrice * exchangeRate).toFixed(2)} ${symbol}` : `${symbol}${(basePrice * exchangeRate).toFixed(2)}`) : `${basePrice}€`;
 
 							if (calcWrapper) {
-								if (calcDays) calcDays.innerText = `${diffDays} dni x ${pricePerDay}€`;
-								if (calcTotalBase) calcTotalBase.innerText = `${total.toFixed(2)}€`;
-								if (calcFinalTotal) calcFinalTotal.innerText = `${total.toFixed(2)}€`;
+								if (calcDays) {
+									const daysText = window.Translations && window.Translations["days"] ? window.Translations["days"] : "days";
+									calcDays.innerText = `${diffDays} ${daysText} x ${formattedPrice}`;
+								}
+								if (calcTotalBase) {
+									calcTotalBase.innerText = window.CurrentCurrency?.Code === "CHF" ? `${totalConverted.toFixed(2)} ${symbol}` : `${symbol}${totalConverted.toFixed(2)}`;
+								}
+								if (calcFinalTotal) {
+									calcFinalTotal.innerText = window.CurrentCurrency?.Code === "CHF" ? `${totalConverted.toFixed(2)} ${symbol}` : `${symbol}${totalConverted.toFixed(2)}`;
+								}
 								calcWrapper.classList.remove('d-none');
 							}
 						}

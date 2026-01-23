@@ -1,6 +1,7 @@
 ﻿@model IEnumerable<RentMate.Models.Item>
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
+@inject RentMate.Services.CurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Items List"];
@@ -39,7 +40,7 @@
                 @Html.DisplayFor(modelItem => item.Description)
             </td>
             <td>
-                @Html.DisplayFor(modelItem => item.Price)
+                @CurrencyService.Format(item.Price)
             </td>
             <td>
                 @(item.User?.Email ?? Localizer["No user assigned"].Value)
