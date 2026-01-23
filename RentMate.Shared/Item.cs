@@ -24,6 +24,7 @@ namespace RentMate.Shared
         
         public bool IsListed { get; set; }  // true = listed publicly for rent
         public bool IsRented { get; set; }  // true = currently being rented
+        public bool IsAdminHidden { get; set; } // true = hidden by admin
 
         // 🔹 Optional additions
         public string? Location { get; set; }  // City or pickup location

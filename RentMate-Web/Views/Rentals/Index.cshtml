@@ -9,7 +9,7 @@
 @{
     ViewData["Title"] = Localizer["Marketplace"];
     decimal currentMin = ViewBag.MinPrice ?? 0;
-    decimal currentMax = ViewBag.MaxPrice ?? 500;
+    decimal currentMax = ViewBag.MaxPrice ?? (ViewBag.AbsoluteMaxPrice ?? 500);
 }
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -299,11 +299,12 @@
         var inputMin = document.getElementById('input-min');
         var inputMax = document.getElementById('input-max');
         var startMin = parseInt(inputMin.value) || 0;
-        var startMax = parseInt(inputMax.value) || 500;
+        var startMax = parseInt(inputMax.value) || @((int)(ViewBag.AbsoluteMaxPrice ?? 500));
+        var absMax = @((int)(ViewBag.AbsoluteMaxPrice ?? 1000));
 
         noUiSlider.create(slider, {
             start: [startMin, startMax], connect: true,
-            range: { 'min': 0, 'max': 1000 }, step: 5,
+            range: { 'min': 0, 'max': absMax }, step: 5,
             format: { to: v => Math.round(v), from: v => Number(v) }
         });
         slider.noUiSlider.on('update', function (values, handle) {

@@ -254,5 +254,18 @@ namespace RentMate.Controllers
 
             return PartialView("~/Views/Shared/_ReviewsPartial.cshtml", reviews);
         }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AdminToggleHide(int id)
+        {
+            var item = await _context.Items.FindAsync(id);
+            if (item == null) return NotFound();
+
+            item.IsAdminHidden = !item.IsAdminHidden;
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true, isAdminHidden = item.IsAdminHidden });
+        }
     }
 }

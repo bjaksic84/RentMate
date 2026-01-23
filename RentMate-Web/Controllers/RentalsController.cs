@@ -57,7 +57,7 @@ namespace RentMate.Controllers
                 .Include(i => i.Rentals.Where(r => 
                     (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) && 
                     r.EndDate >= DateTime.Today))
-                .Where(i => i.IsListed)
+                .Where(i => i.IsListed && !i.IsAdminHidden)
                 .AsQueryable();
 
             // 🔍 Text search
@@ -114,6 +114,19 @@ namespace RentMate.Controllers
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            // Calculate absolute max price for the slider (in EUR)
+            var absMaxBase = await _context.Items.AnyAsync() 
+                ? await _context.Items.MaxAsync(i => i.Price) ?? 0 
+                : 1000;
+            
+            // Round up to nearest 10 for cleaner slider
+            absMaxBase = Math.Ceiling(absMaxBase / 10m) * 10m;
+            if (absMaxBase < 100) absMaxBase = 500; // Sensible minimum range
+
+            // Convert to current currency for the view
+            var absMaxConverted = _currencyService.Convert(absMaxBase);
+            ViewBag.AbsoluteMaxPrice = absMaxConverted;
 
             // Za dropdown v filtrih
             ViewBag.Cities = RentMate.Helpers.CityData.Cities.Select(c => c.Name).ToList();

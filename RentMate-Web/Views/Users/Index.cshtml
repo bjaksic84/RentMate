@@ -23,6 +23,7 @@
                             <th>@Localizer["Username"]</th>
                             <th>@Localizer["Email"]</th>
                             <th>@Localizer["Roles"]</th>
+                            <th>@Localizer["Status"]</th>
                             <th class="text-end">@Localizer["Actions"]</th>
                         </tr>
                     </thead>
@@ -33,13 +34,47 @@
                                 <td><span class="fw-bold">@user.UserName</span></td>
                                 <td>@user.Email</td>
                                 <td class="user-roles"><span class="badge bg-light text-dark">@Localizer["Loading..."]</span></td>
+                                <td>
+                                    @if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.Now)
+                                    {
+                                        <span class="badge bg-danger">@Localizer["Banned"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">@Localizer["Active"]</span>
+                                    }
+                                </td>
                                 <td class="text-end">
-                                    <button class="btn btn-sm btn-primary" onclick="openRoleModal('@user.Id', '@user.UserName')">
-                                        <i class="fas fa-shield-alt"></i> @Localizer["Roles"]
-                                    </button>
-                                    <button class="btn btn-sm btn-danger" onclick="confirmDelete('@user.Id', '@user.UserName')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-primary" onclick="openRoleModal('@user.Id', '@user.UserName')" title="@Localizer["Roles"]">
+                                            <i class="fas fa-shield-alt"></i>
+                                        </button>
+                                        
+                                        @if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.Now)
+                                        {
+                                            <form asp-action="UnbanUser" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                <button type="submit" class="btn btn-sm btn-success" title="@Localizer["Unban"]">
+                                                    <i class="fas fa-user-check"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="BanUser" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@user.Id" />
+                                                <button type="submit" class="btn btn-sm btn-warning" title="@Localizer["Ban"]" onclick="return confirm('@Localizer["Are you sure you want to ban this user?"]');">
+                                                    <i class="fas fa-user-slash"></i>
+                                                </button>
+                                            </form>
+                                        }
+
+                                        <button class="btn btn-sm btn-danger" onclick="confirmDelete('@user.Id', '@user.UserName')" title="@Localizer["Delete"]">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         }

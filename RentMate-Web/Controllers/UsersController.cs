@@ -153,12 +153,19 @@ namespace RentMate.Controllers
             return View(user);
         }
 
-        // POST: Users/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(string? id)
         {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            if (await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                TempData["ErrorMessage"] = _localizer["Cannot delete an administrative account."].Value;
+                return RedirectToAction(nameof(Index));
+            }
+
             if (user != null)
             {
                 _context.Users.Remove(user);
@@ -171,6 +178,46 @@ namespace RentMate.Controllers
         private bool UserExists(string? id)
         {
             return _context.Users.Any(e => e.Id == id);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BanUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            if (user.Id == _userManager.GetUserId(User))
+            {
+                TempData["ErrorMessage"] = _localizer["You cannot ban yourself."].Value;
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                TempData["ErrorMessage"] = _localizer["Cannot ban an administrative account."].Value;
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Lockout indefinitely (or for 100 years)
+            await _userManager.SetLockoutEnabledAsync(user, true);
+            await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+
+            TempData["SuccessMessage"] = string.Format(_localizer["User {0} has been banned."], user.Email);
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UnbanUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            await _userManager.SetLockoutEndDateAsync(user, null);
+
+            TempData["SuccessMessage"] = string.Format(_localizer["User {0} has been unbanned."], user.Email);
+            return RedirectToAction(nameof(Index));
         }
 
         public async Task<IActionResult> ManageRoles(string id)
