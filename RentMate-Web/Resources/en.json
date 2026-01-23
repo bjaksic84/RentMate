@@ -115,5 +115,6 @@
     "Title_TooLong": "Title is too long (max 100 chars)",
     "Description_TooLong": "Description is too long (max 2000 chars)",
     "Price_Required": "Price is required",
-    "Price_Invalid": "Price must be between 0.01 and 1,000,000"
+    "Price_Invalid": "Price must be between 0.01 and 1,000,000",
+    "days": "days"
 }

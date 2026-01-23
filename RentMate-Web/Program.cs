@@ -114,6 +114,12 @@ builder.Services.AddControllersWithViews()
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 
+// Performance: Response Compression
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
 // --- CORS ---
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowAll", b => b
@@ -215,6 +221,8 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+app.UseResponseCompression();
 
 app.UseRouting();
 

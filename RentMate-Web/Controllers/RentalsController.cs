@@ -38,18 +38,25 @@ namespace RentMate.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index(
             string? search,
-            string? category, // Dodano
+            string? category, 
             decimal? minPrice,
             decimal? maxPrice,
             string? city,
             DateTime? startDate,
             DateTime? endDate,
-            string? sort)
+            string? sort,
+            int page = 1)
         {
-            // Base query
+            int pageSize = 12;
+
+            // Base query with performance optimizations
             var query = _context.Items
+                .AsNoTracking()
                 .Include(i => i.User)
-                .Include(i => i.Rentals)
+                // Performance: Only include bookings that are active or pending and haven't ended yet
+                .Include(i => i.Rentals.Where(r => 
+                    (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) && 
+                    r.EndDate >= DateTime.Today))
                 .Where(i => i.IsListed)
                 .AsQueryable();
 
@@ -102,7 +109,11 @@ namespace RentMate.Controllers
                 _ => query.OrderByDescending(i => i.CreatedAt)
             };
 
-            var items = await query.ToListAsync();
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             // Za dropdown v filtrih
             ViewBag.Cities = RentMate.Helpers.CityData.Cities.Select(c => c.Name).ToList();
@@ -116,6 +127,11 @@ namespace RentMate.Controllers
             ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
             ViewBag.Sort = sort;
+            
+            // Pagination info
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            ViewBag.TotalItems = totalItems;
 
             return View(items);
         }

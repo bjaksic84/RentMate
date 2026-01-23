@@ -126,13 +126,6 @@
         {
             @foreach (var item in Model)
             {
-                var blockedDates = (item.Rentals ?? Enumerable.Empty<RentMate.Models.Rental>())
-                    .Where(r => r.Status == RentMate.Shared.RentalStatus.Active ||
-                        r.Status == RentMate.Shared.RentalStatus.Pending)
-                    .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
-                    .ToList();
-                string jsonBlocked = System.Text.Json.JsonSerializer.Serialize(blockedDates);
-
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0 product-card">
                         <div class="position-relative overflow-hidden bg-light rounded-top" style="height: 220px;">
@@ -178,7 +171,7 @@
                                     var ownerDisplayName = !string.IsNullOrEmpty(item.User?.FirstName) 
                                                             ? item.User.FirstName 
                                                             : (item.User?.UserName ?? Localizer["Unknown User"].Value);
-                                    var initials = ownerDisplayName.Substring(0, 1).ToUpper();
+                                    var initials = ownerDisplayName.Length > 0 ? ownerDisplayName.Substring(0, 1).ToUpper() : "?";
                                 }
                                 <div class="me-2 flex-shrink-0">
                                     @if(!string.IsNullOrEmpty(item.User?.ProfilePictureUrl))
@@ -232,6 +225,61 @@
             }
         }
     </div>
+
+    @if (ViewBag.TotalPages > 1)
+    {
+        <nav aria-label="Page navigation" class="mt-5">
+            <ul class="pagination justify-content-center">
+                <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { 
+                        page = ViewBag.CurrentPage - 1, 
+                        search = ViewBag.Search, 
+                        category = ViewBag.Category, 
+                        minPrice = ViewBag.MinPrice, 
+                        maxPrice = ViewBag.MaxPrice,
+                        city = ViewBag.City,
+                        startDate = ViewBag.StartDate,
+                        endDate = ViewBag.EndDate,
+                        sort = ViewBag.Sort
+                    })">@Localizer["Previous"]</a>
+                </li>
+
+                @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                {
+                    <li class="page-item @(ViewBag.CurrentPage == i ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { 
+                            page = i, 
+                            search = ViewBag.Search, 
+                            category = ViewBag.Category, 
+                            minPrice = ViewBag.MinPrice, 
+                            maxPrice = ViewBag.MaxPrice,
+                            city = ViewBag.City,
+                            startDate = ViewBag.StartDate,
+                            endDate = ViewBag.EndDate,
+                            sort = ViewBag.Sort
+                        })">@i</a>
+                    </li>
+                }
+
+                <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                    <a class="page-link" href="@Url.Action("Index", new { 
+                        page = ViewBag.CurrentPage + 1, 
+                        search = ViewBag.Search, 
+                        category = ViewBag.Category, 
+                        minPrice = ViewBag.MinPrice, 
+                        maxPrice = ViewBag.MaxPrice,
+                        city = ViewBag.City,
+                        startDate = ViewBag.StartDate,
+                        endDate = ViewBag.EndDate,
+                        sort = ViewBag.Sort
+                    })">@Localizer["Next"]</a>
+                </li>
+            </ul>
+        </nav>
+        <div class="text-center text-muted small mt-2">
+            @Localizer["Showing"] @Model.Count() @Localizer["out of"] @ViewBag.TotalItems @Localizer["items"]
+        </div>
+    }
 </div>
 
 <div class="modal fade" id="ownerInfoModal" tabindex="-1" aria-hidden="true">

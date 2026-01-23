@@ -24,7 +24,7 @@
     <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a asp-controller="Rentals" asp-action="Index">@Localizer["Marketplace"]</a></li>
-            <li class="breadcrumb-item"><a href="#">@Model.Category</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Rentals" asp-action="Index" asp-route-category="@Model.Category">@Model.Category</a></li>
             <li class="breadcrumb-item active" aria-current="page">@Model.Title</li>
         </ol>
     </nav>
@@ -181,45 +181,4 @@
 
     @* Use shared rent modal partial *@
     <partial name="_RentModal" model="Model" />
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const pricePerDay = @(Model.Price ?? 0);
-
-            document.querySelectorAll(".rent-daterange-picker").forEach(function (element) {
-                const blocked = JSON.parse(element.getAttribute('data-blocked')) || [];
-                const form = element.closest('form');
-                const startInput = form.querySelector('.start-date-input');
-                const endInput = form.querySelector('.end-date-input');
-                const calcWrapper = document.getElementById('modalPriceCalculation');
-                const calcDays = document.getElementById('modalCalcDays');
-                const calcTotalBase = document.getElementById('modalCalcTotalBase');
-                const calcFinalTotal = document.getElementById('modalCalcFinalTotal');
-
-                flatpickr(element, {
-                    mode: 'range', dateFormat: 'Y-m-d', minDate: 'today', disable: blocked, locale: { firstDayOfWeek: 1 },
-                    onChange: function(selectedDates, dateStr, instance) {
-                        if (selectedDates.length === 2) {
-                            const start = selectedDates[0];
-                            const end = selectedDates[1];
-
-                            startInput.value = instance.formatDate(start, 'Y-m-d');
-                            endInput.value = instance.formatDate(end, 'Y-m-d');
-
-                            const diffTime = Math.abs(end - start);
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                            const total = diffDays * pricePerDay;
-
-                            if (calcWrapper) {
-                                calcDays.innerText = `${diffDays} @Localizer["days x"] ${pricePerDay}€`;
-                                calcTotalBase.innerText = `${total.toFixed(2)}€`;
-                                calcFinalTotal.innerText = `${total.toFixed(2)}€`;
-                                calcWrapper.classList.remove('d-none');
-                            }
-                        }
-                    }
-                });
-            });
-        });
-    </script>
 }

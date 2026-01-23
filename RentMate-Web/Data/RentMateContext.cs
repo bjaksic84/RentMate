@@ -100,6 +100,28 @@ namespace RentMate.Data
                 .Property(r => r.Rating)
                 .HasDefaultValue(5);
 
+            // --- PERFORMANCE INDEXES ---
+            
+            // Items: Fast filtering by Listing status, Category, Price and User
+            modelBuilder.Entity<RentMate.Models.Item>()
+                .HasIndex(i => new { i.IsListed, i.Category, i.Price });
+            
+            modelBuilder.Entity<RentMate.Models.Item>()
+                .HasIndex(i => i.UserId);
+
+            // Rentals: Fast lookup for specific statuses and parties
+            modelBuilder.Entity<RentMate.Models.Rental>()
+                .HasIndex(r => new { r.Status, r.StartDate, r.EndDate });
+
+            modelBuilder.Entity<RentMate.Models.Rental>()
+                .HasIndex(r => r.OwnerId);
+
+            modelBuilder.Entity<RentMate.Models.Rental>()
+                .HasIndex(r => r.RenterId);
+
+            // User: Fast location search
+            modelBuilder.Entity<ApplicationUser>()
+                .HasIndex(u => u.City);
         }
     }
 }
