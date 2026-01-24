@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using RentMate.Models;
 using Microsoft.Extensions.Localization;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ namespace RentMate.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize(Roles = "Admin")]
+    [EnableRateLimiting("ApiPolicy")]
     public class UsersApiController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;

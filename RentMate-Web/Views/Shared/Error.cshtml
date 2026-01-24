@@ -6,21 +6,13 @@
     ViewData["Title"] = Localizer["Error"];
 }
 
-<h1 class="text-danger">@Localizer["Error"].</h1>
-<h2 class="text-danger">@Localizer["An error occurred while processing your request."]</h2>
-
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>@Localizer["Request ID"]:</strong> <code>@Model.RequestId</code>
-    </p>
-}
-
-<h3>@Localizer["Development Mode"]</h3>
-<p>
-    @Localizer["Swapping to Development environment will display more detailed information about the error that occurred."]
-</p>
-<p>
-    <strong>@Localizer["The Development environment shouldn't be enabled for deployed applications."]</strong>
-    @Localizer["It can result in displaying sensitive information from exceptions to end users. For local debugging, enable the Development environment by setting the ASPNETCORE_ENVIRONMENT environment variable to Development and restarting the app."]
-</p>
+<div class="container text-center py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <h1 class="display-1 text-primary">Oops!</h1>
+            <h2 class="mb-4">@Localizer["Something went wrong"]</h2>
+            <p class="text-muted mb-4">@Localizer["We're sorry, but something unexpected happened. Please try again later."]</p>
+            <a href="/" class="btn btn-primary">@Localizer["Back to Home"]</a>
+        </div>
+    </div>
+</div>

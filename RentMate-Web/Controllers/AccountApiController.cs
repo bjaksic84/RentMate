@@ -3,10 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using RentMate.Models;
 
 [Route("api/[controller]")]
 [ApiController]
+[EnableRateLimiting("AuthPolicy")]
 public class AccountApiController : ControllerBase
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
@@ -26,12 +28,19 @@ public class AccountApiController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginModel model)
     {
-        var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, isPersistent: true, lockoutOnFailure: false);
+        // Enable lockout on failed attempts for brute force protection
+        var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, isPersistent: true, lockoutOnFailure: true);
         if (result.Succeeded)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
             return Ok(new { UserId = user.Id, UserName = user.UserName, Email = user.Email });
         }
+        
+        if (result.IsLockedOut)
+        {
+            return Unauthorized(_localizer["Account is locked. Try again later."].Value);
+        }
+        
         return Unauthorized(_localizer["Invalid login credentials."].Value);
     }
 

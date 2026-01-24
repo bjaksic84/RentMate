@@ -45,6 +45,7 @@ namespace RentMate.Controllers
             DateTime? startDate,
             DateTime? endDate,
             string? sort,
+            int? minRating,
             int page = 1)
         {
             int pageSize = 12;
@@ -91,6 +92,12 @@ namespace RentMate.Controllers
             if (!string.IsNullOrEmpty(city))
                 query = query.Where(i => i.User!.City == city);
 
+            // ⭐ Rating filter
+            if (minRating.HasValue && minRating.Value > 0)
+            {
+                query = query.Where(i => i.AverageRating.HasValue && i.AverageRating >= minRating.Value);
+            }
+
             // 🗓️ Availability filter (izboljšana logika prekrivanja)
             if (startDate.HasValue && endDate.HasValue)
             {
@@ -106,6 +113,7 @@ namespace RentMate.Controllers
                 "priceAsc" => query.OrderBy(i => i.Price),
                 "priceDesc" => query.OrderByDescending(i => i.Price),
                 "titleAsc" => query.OrderBy(i => i.Title),
+                "ratingDesc" => query.OrderByDescending(i => i.AverageRating ?? 0).ThenByDescending(i => i.ReviewCount),
                 _ => query.OrderByDescending(i => i.CreatedAt)
             };
 
@@ -140,6 +148,7 @@ namespace RentMate.Controllers
             ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
             ViewBag.Sort = sort;
+            ViewBag.MinRating = minRating;
             
             // Pagination info
             ViewBag.CurrentPage = page;
@@ -238,7 +247,7 @@ namespace RentMate.Controllers
         // 🔹 Step 2: Owner approves rental
         [HttpPost]
         [Authorize]
-        [IgnoreAntiforgeryToken]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveRental(int rentalId)
         {
             var user = await _userManager.GetUserAsync(User);

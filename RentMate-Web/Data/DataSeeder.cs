@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Threading.Tasks;
 using RentMate.Models;
@@ -14,11 +15,12 @@ namespace RentMate.Data
             {
                 var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
 
                 // Define the roles you want in your app
                 string[] roleNames = { "Admin", "User", "Moderator" };
 
-                // Create roles if they don’t exist
+                // Create roles if they don't exist
                 foreach (var roleName in roleNames)
                 {
                     if (!await roleManager.RoleExistsAsync(roleName))
@@ -27,9 +29,15 @@ namespace RentMate.Data
                     }
                 }
 
-                // Create a default admin user if it doesn’t exist
-                var adminEmail = "admin@rentmate.com";
-                var adminPassword = "Admin123!"; // Change this before deployment
+                // Admin password MUST be set via User Secrets or environment variables
+                var adminEmail = configuration["AdminUser:Email"] ?? "admin@rentmate.com";
+                var adminPassword = configuration["AdminUser:Password"];
+                
+                // Skip admin seeding if no password configured (production safety)
+                if (string.IsNullOrEmpty(adminPassword))
+                {
+                    return;
+                }
 
                 var adminUser = await userManager.FindByEmailAsync(adminEmail);
                 if (adminUser == null)
@@ -54,5 +62,3 @@ namespace RentMate.Data
         }
     }
 }
-
-

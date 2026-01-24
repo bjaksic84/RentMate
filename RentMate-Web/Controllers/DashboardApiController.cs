@@ -6,6 +6,7 @@ using RentMate.Data;
 using RentMate.Models; // For ApplicationUser in the database
 using RentMate.Shared; // For Item, Rental, DashboardViewModelDto
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.Localization;
@@ -15,6 +16,7 @@ namespace RentMate.Controllers
     [Route("api/dashboard")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [EnableRateLimiting("ApiPolicy")]
     public class DashboardApiController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;

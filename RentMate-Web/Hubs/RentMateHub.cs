@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace RentMate.Hubs
 {
+    [Authorize]
     public class RentMateHub : Hub
     {
         // You can use this later to send specific notifications manually if needed.

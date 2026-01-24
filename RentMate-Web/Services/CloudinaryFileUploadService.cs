@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using RentMate.Services;
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -26,11 +27,34 @@ namespace RentMate.Services
             _cloudinary.Api.Secure = true; // Always use HTTPS
         }
 
+        private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        private const long MaxFileSize = 20 * 1024 * 1024; // 20MB max
+
         public async Task<string> UploadFileAsync(IFormFile file, string folderName)
         {
             if (file == null || file.Length == 0)
             {
                 return null;
+            }
+
+            // Security: Validate file size
+            if (file.Length > MaxFileSize)
+            {
+                throw new InvalidOperationException("File size exceeds maximum allowed (20MB).");
+            }
+
+            // Security: Validate file extension
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!AllowedExtensions.Contains(extension))
+            {
+                throw new InvalidOperationException("File type not allowed. Only images (jpg, png, gif, webp) are permitted.");
+            }
+
+            // Security: Validate content type
+            var allowedContentTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+            if (!allowedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
+            {
+                throw new InvalidOperationException("Invalid file content type.");
             }
 
             // Open stream to read the file

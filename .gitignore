@@ -364,3 +364,8 @@ FodyWeavers.xsd
 
 # IntelliJ related
 .idea/
+
+# Sensitive configuration files (secrets stored in User Secrets, not in files)
+**/appsettings.Production.json
+**/appsettings.Local.json
+**/secrets.json

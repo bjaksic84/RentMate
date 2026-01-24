@@ -73,5 +73,10 @@ namespace RentMate.Services
 
             return formattedNumber;
         }
+
+        public string GetSymbol()
+        {
+            return GetCurrentCurrency().Symbol;
+        }
     }
 }

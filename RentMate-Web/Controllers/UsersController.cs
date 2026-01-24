@@ -66,7 +66,7 @@ namespace RentMate.Controllers
         // POST: Users/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Username,Email,PasswordHash")] ApplicationUser user)
+        public async Task<IActionResult> Create([Bind("Id,UserName,Email,FirstName,LastName,City")] ApplicationUser user)
         {
             if (ModelState.IsValid)
             {
@@ -96,7 +96,7 @@ namespace RentMate.Controllers
         // POST: Users/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string? id, [Bind("Id,Username,Email,PasswordHash")] ApplicationUser user)
+        public async Task<IActionResult> Edit(string? id, [Bind("Id,UserName,Email,FirstName,LastName,City")] ApplicationUser user)
         {
             if (id != user.Id)
             {

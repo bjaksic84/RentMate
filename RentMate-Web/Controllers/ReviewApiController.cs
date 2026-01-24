@@ -6,6 +6,7 @@ using RentMate.Shared;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 
@@ -14,6 +15,7 @@ namespace RentMate.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [EnableRateLimiting("ApiPolicy")]
     public class ReviewApiController : ControllerBase
     {
         private readonly RentMateContext _context;

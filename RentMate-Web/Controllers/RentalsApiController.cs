@@ -4,6 +4,7 @@ using RentMate.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using RentMate.Shared; // Uporaba Shared modelov
 
 namespace RentMate.Controllers
@@ -11,6 +12,7 @@ namespace RentMate.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [EnableRateLimiting("ApiPolicy")]
     public class RentalsApiController : ControllerBase
     {
         private readonly RentMateContext _context;

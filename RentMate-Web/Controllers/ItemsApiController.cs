@@ -6,6 +6,7 @@ using RentMate.Shared; // For Shared models (ItemDto, UserDto)
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
@@ -13,20 +14,24 @@ namespace RentMate.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [EnableRateLimiting("ApiPolicy")]
     public class ItemsApiController : ControllerBase
     {
         private readonly RentMateContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IStringLocalizer<ItemsApiController> _localizer;
+        private readonly ILogger<ItemsApiController> _logger;
 
         public ItemsApiController(
             RentMateContext context, 
             UserManager<ApplicationUser> userManager,
-            IStringLocalizer<ItemsApiController> localizer)
+            IStringLocalizer<ItemsApiController> localizer,
+            ILogger<ItemsApiController> logger)
         {
             _context = context;
             _userManager = userManager;
             _localizer = localizer;
+            _logger = logger;
         }
 
         // GET: api/Items
@@ -127,8 +132,9 @@ namespace RentMate.Controllers
             }
             catch (Exception ex)
             {
-                string errorMessage = _localizer["Error while saving: {0}", ex.InnerException?.Message ?? ex.Message].Value;
-                return BadRequest(errorMessage);
+                // Log the actual error for debugging but don't expose to users
+                _logger.LogError(ex, "Error saving item for user {UserId}", webItem.UserId);
+                return BadRequest(_localizer["An error occurred while saving. Please try again."].Value);
             }
         }
 
