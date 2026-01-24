@@ -94,7 +94,9 @@ namespace RentMate.Controllers
                     token = token,
                     userId = user.Id,
                     email = user.Email,
-                    userName = user.UserName
+                    userName = user.UserName,
+                    city = user.City, 
+                    profilePictureUrl = user.ProfilePictureUrl
                 });
             }
             
