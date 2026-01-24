@@ -1,25 +1,39 @@
 ﻿@page
+@using Microsoft.AspNetCore.Mvc.Localization
 @model Disable2faModel
+@inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = "Disable two-factor authentication (2FA)";
+    ViewData["Title"] = Localizer["Disable 2FA"];
     ViewData["ActivePage"] = ManageNavPages.TwoFactorAuthentication;
 }
 
-<partial name="_StatusMessage" for="StatusMessage" />
-<h3>@ViewData["Title"]</h3>
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="border-b border-slate-200 pb-4">
+        <h2 class="font-heading text-xl font-bold text-slate-900">@Localizer["Disable Two-Factor Authentication"]</h2>
+        <p class="text-sm text-slate-500 mt-1">@Localizer["Remove the additional security layer from your account"]</p>
+    </div>
 
-<div class="alert alert-warning" role="alert">
-    <p>
-        <strong>This action only disables 2FA.</strong>
-    </p>
-    <p>
-        Disabling 2FA does not change the keys used in authenticator apps. If you wish to change the key
-        used in an authenticator app you should <a asp-page="./ResetAuthenticator">reset your authenticator keys.</a>
-    </p>
-</div>
+    <partial name="_StatusMessage" for="StatusMessage" />
 
-<div>
-    <form method="post">
-        <button class="btn btn-danger" type="submit">Disable 2FA</button>
+    <!-- Warning Box -->
+    <div class="p-4 bg-amber-50 border border-amber-200 rounded-xl" role="alert">
+        <div class="flex items-start gap-3">
+            <i class="bi bi-exclamation-triangle-fill text-amber-600 text-xl mt-0.5"></i>
+            <div>
+                <p class="font-semibold text-amber-800">@Localizer["This action only disables 2FA"]</p>
+                <p class="text-sm text-amber-600 mt-1">@Localizer["Disabling 2FA does not change the keys used in authenticator apps. If you wish to change the key used in an authenticator app, you should"] <a asp-page="./ResetAuthenticator" class="text-amber-700 hover:text-amber-800 underline">@Localizer["reset your authenticator keys"]</a>.</p>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" class="flex items-center gap-4 pt-4 border-t border-slate-200">
+        <a asp-page="./TwoFactorAuthentication" class="px-5 py-3 text-slate-600 hover:text-slate-800 font-medium">
+            @Localizer["Cancel"]
+        </a>
+        <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-sm transition-all">
+            <i class="bi bi-shield-x"></i>
+            @Localizer["Disable 2FA"]
+        </button>
     </form>
 </div>

@@ -54,23 +54,52 @@
     </script>
     
     <style>
+        /* Design Tokens - Trust Blue Theme */
+        :root {
+            /* Trust Blue Primary Colors */
+            --trust-blue-primary: #2563eb;
+            --trust-blue-dark: #1d4ed8;
+            --trust-blue-darker: #1e40af;
+            --trust-blue-light: #3b82f6;
+            --trust-blue-lighter: #60a5fa;
+            
+            /* Z-Index Scale (prevents collision) */
+            --z-dropdown: 100;
+            --z-sticky: 200;
+            --z-mobile-drawer: 300;
+            --z-modal-backdrop: 400;
+            --z-modal: 500;
+            --z-tooltip: 600;
+            --z-navbar: 50;
+            
+            /* WCAG Compliant Contrast Colors */
+            --text-on-dark: rgba(255, 255, 255, 0.92);
+            --text-muted-on-dark: rgba(255, 255, 255, 0.87);
+        }
+        
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Outfit', sans-serif;
         }
-        /* Glassmorphism utilities */
+        
+        /* Glassmorphism utilities with Safari compatibility */
         .glass {
             background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
         }
         .glass-dark {
             background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
         }
+        /* Flatpickr calendar z-index (above modals) */
+        .flatpickr-calendar {
+            z-index: var(--z-tooltip, 600) !important;
+        }
+        
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
@@ -101,11 +130,41 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+        
+        /* Accessibility: Focus indicators */
+        .focus-ring:focus,
+        .focus-ring:focus-visible {
+            outline: 3px solid var(--trust-blue-primary);
+            outline-offset: 2px;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+        }
+        
+        /* Accessibility: WCAG compliant touch targets (min 44x44px) */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Accessibility: Screen reader only */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
     </style>
 </head>
 <body class="bg-slate-50 font-body antialiased">
     <!-- Sticky Glassmorphic Navbar -->
-    <header class="fixed top-0 left-0 right-0 z-50">
+    <header class="fixed top-0 left-0 right-0" style="z-index: var(--z-navbar);">
         <nav class="glass border-b border-white/20 shadow-lg shadow-slate-900/5">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16 md:h-20">
@@ -148,8 +207,12 @@
                         
                         <!-- Language Dropdown -->
                         <div class="relative" x-data="{ open: false }">
-                            <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200">
-                                <i class="bi bi-globe text-lg"></i>
+                            <button onclick="this.nextElementSibling.classList.toggle('hidden')" 
+                                    class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring"
+                                    aria-label="@Localizer["Change language"]"
+                                    aria-haspopup="true">
+                                <i class="bi bi-globe text-lg" aria-hidden="true"></i>
+                                <span class="sr-only">@Localizer["Language selector"]</span>
                             </button>
                             <div class="hidden absolute right-0 mt-2 w-40 py-2 bg-white rounded-xl shadow-md border border-slate-100">
                                 <form asp-controller="Culture" asp-action="SetLanguage" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" method="post">
@@ -182,6 +245,9 @@
                                     <a asp-controller="Dashboard" asp-action="UserDashboard" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                                         <i class="bi bi-grid"></i> @Localizer["Dashboard"]
                                     </a>
+                                    <a asp-area="Identity" asp-page="/Account/Manage/Index" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                        <i class="bi bi-gear"></i> @Localizer["Settings"]
+                                    </a>
                                     <hr class="my-2 border-slate-100">
                                     <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
                                         <button type="submit" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
@@ -203,8 +269,13 @@
                         }
                         
                         <!-- Mobile menu button -->
-                        <button onclick="document.getElementById('mobileMenu').classList.toggle('hidden')" class="md:hidden p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200">
-                            <i class="bi bi-list text-xl"></i>
+                        <button onclick="document.getElementById('mobileMenu').classList.toggle('hidden')" 
+                                class="md:hidden p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring"
+                                aria-label="@Localizer["Open navigation menu"]"
+                                aria-expanded="false"
+                                aria-controls="mobileMenu">
+                            <i class="bi bi-list text-xl" aria-hidden="true"></i>
+                            <span class="sr-only">@Localizer["Menu"]</span>
                         </button>
                     </div>
                 </div>
@@ -221,8 +292,14 @@
                     </a>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
+                        <a asp-controller="Profile" asp-action="Index" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                            <i class="bi bi-person mr-2"></i>@Localizer["Profile"]
+                        </a>
                         <a asp-controller="Dashboard" asp-action="UserDashboard" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
-                            @Localizer["Dashboard"]
+                            <i class="bi bi-grid mr-2"></i>@Localizer["Dashboard"]
+                        </a>
+                        <a asp-area="Identity" asp-page="/Account/Manage/Index" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                            <i class="bi bi-gear mr-2"></i>@Localizer["Settings"]
                         </a>
                     }
                     else
@@ -282,14 +359,14 @@
             <div class="border-t border-slate-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                 <p class="text-sm">&copy; @DateTime.Now.Year RentMate. @Localizer["All rights reserved."]</p>
                 <div class="flex items-center gap-4">
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors">
-                        <i class="bi bi-facebook"></i>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors touch-target focus-ring" aria-label="@Localizer["Follow us on Facebook"]">
+                        <i class="bi bi-facebook" aria-hidden="true"></i>
                     </a>
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors">
-                        <i class="bi bi-twitter-x"></i>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors touch-target focus-ring" aria-label="@Localizer["Follow us on X (Twitter)"]">
+                        <i class="bi bi-twitter-x" aria-hidden="true"></i>
                     </a>
-                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors">
-                        <i class="bi bi-instagram"></i>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors touch-target focus-ring" aria-label="@Localizer["Follow us on Instagram"]">
+                        <i class="bi bi-instagram" aria-hidden="true"></i>
                     </a>
                 </div>
             </div>

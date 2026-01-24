@@ -35,24 +35,38 @@
         </div>
         
         <!-- Search Bar -->
-        <form asp-action="Index" method="get" class="max-w-3xl mx-auto">
+        <form asp-action="Index" method="get" class="max-w-4xl mx-auto">
             <div class="glass rounded-2xl p-2 shadow-lg">
-                <div class="flex items-center gap-2">
-                    <div class="flex-1 flex items-center gap-3 px-4 py-3 bg-white/50 rounded-xl">
-                        <i class="bi bi-search text-blue-600"></i>
+                <div class="flex flex-col sm:flex-row items-stretch gap-2">
+                    <div class="flex-1 flex items-center gap-3 px-4 py-3 bg-white/50 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 transition-all">
+                        <i class="bi bi-search text-blue-600" aria-hidden="true"></i>
                         <input type="text" name="search" value="@ViewBag.Search" 
                                placeholder="@Localizer["What are you looking for?"]"
+                               aria-label="@Localizer["Search items"]"
                                class="flex-1 bg-transparent border-none text-slate-900 placeholder-slate-400 focus:outline-none">
                     </div>
-                    <select name="city" class="px-4 py-3 bg-white/50 rounded-xl border-none text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select name="city" class="px-4 py-3 bg-white/50 rounded-xl border-none text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="@Localizer["City"]">
                         <option value="">@Localizer["All cities"]</option>
                         @foreach (var city in cities)
                         {
                             <option value="@city" selected="@(ViewBag.City == city)">@city</option>
                         }
                     </select>
-                    <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
-                        <i class="bi bi-search"></i>
+                    <div class="flex items-center gap-3 px-4 py-3 bg-white/50 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+                        <i class="bi bi-calendar-event text-blue-600" aria-hidden="true"></i>
+                        <input type="text" id="marketplaceDateRange" name="dates" 
+                               value="@(ViewBag.StartDate != null && ViewBag.EndDate != null ? $"{ViewBag.StartDate} - {ViewBag.EndDate}" : "")" 
+                               placeholder="@Localizer["Pick a date range"]"
+                               aria-label="@Localizer["When"]"
+                               readonly
+                               class="bg-transparent border-none text-slate-700 text-sm focus:outline-none cursor-pointer w-40 placeholder-slate-400">
+                        <input type="hidden" name="startDate" id="hiddenStartDate" value="@ViewBag.StartDate" />
+                        <input type="hidden" name="endDate" id="hiddenEndDate" value="@ViewBag.EndDate" />
+                    </div>
+                    <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
+                            aria-label="@Localizer["Search"]">
+                        <i class="bi bi-search" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -66,7 +80,7 @@
         
         <!-- Sidebar Filters (Desktop) -->
         <aside class="hidden lg:block w-80 flex-shrink-0">
-            <div class="sticky top-24 space-y-4">
+            <div class="sticky top-24 space-y-4" style="z-index: var(--z-sticky, 200);">
                 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <!-- Filter Header -->
                     <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
@@ -212,64 +226,6 @@
                             </div>
                         </details>
                         
-                        <!-- Location Filter with search -->
-                        <details class="group" open>
-                            <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors list-none">
-                                <div class="flex items-center gap-3">
-                                    <i class="bi bi-geo-alt text-slate-400"></i>
-                                    <span class="font-semibold text-slate-900">@Localizer["Location"]</span>
-                                </div>
-                                <i class="bi bi-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
-                            </summary>
-                            <div class="px-5 pb-5">
-                                <div class="relative mb-3">
-                                    <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                                    <input type="text" id="citySearch" placeholder="@Localizer["Search cities..."]"
-                                           class="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                                </div>
-                                <div id="cityList" class="max-h-48 overflow-y-auto space-y-1 scrollbar-thin">
-                                    @foreach (var city in cities)
-                                    {
-                                        var isCitySelected = ViewBag.City == city;
-                                        <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@ViewBag.Category" asp-route-city="@(isCitySelected ? "" : city)" asp-route-minRating="@ViewBag.MinRating"
-                                           class="city-option flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 @(isCitySelected ? "bg-blue-50 border border-blue-200" : "hover:bg-slate-50 border border-transparent")" data-city="@city.ToLower()">
-                                            <i class="bi bi-pin-map @(isCitySelected ? "text-blue-500" : "text-slate-400")"></i>
-                                            <span class="flex-1 @(isCitySelected ? "text-blue-700 font-medium" : "text-slate-600")">@city</span>
-                                            @if (isCitySelected)
-                                            {
-                                                <i class="bi bi-check-lg text-blue-600"></i>
-                                            }
-                                        </a>
-                                    }
-                                </div>
-                            </div>
-                        </details>
-                        
-                        <!-- Availability Filter -->
-                        <details class="group">
-                            <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors list-none">
-                                <div class="flex items-center gap-3">
-                                    <i class="bi bi-calendar-check text-slate-400"></i>
-                                    <span class="font-semibold text-slate-900">@Localizer["Availability"]</span>
-                                </div>
-                                <i class="bi bi-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
-                            </summary>
-                            <div class="px-5 pb-5">
-                                <div class="space-y-3">
-                                    <div>
-                                        <label class="text-xs text-slate-500 mb-1 block">@Localizer["From"]</label>
-                                        <input type="date" name="startDate" value="@ViewBag.StartDate"
-                                               class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-slate-500 mb-1 block">@Localizer["To"]</label>
-                                        <input type="date" name="endDate" value="@ViewBag.EndDate"
-                                               class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    </div>
-                                </div>
-                            </div>
-                        </details>
-                        
                         <!-- Apply Button -->
                         <div class="p-5">
                             <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm  transition-all duration-300 flex items-center justify-center gap-2">
@@ -284,29 +240,6 @@
         
         <!-- Main Grid -->
         <div class="flex-1">
-            <!-- Quick Filter Chips (visible on all screens) -->
-            <div class="flex flex-wrap gap-2 mb-6">
-                @foreach (var cat in categories)
-                {
-                    var isActive = ViewBag.Category == cat;
-                    <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@(isActive ? "" : cat)" asp-route-city="@ViewBag.City"
-                       class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 @(isActive ? "bg-blue-600 text-white shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600")">
-                        @{
-                            var chipIconMap = new Dictionary<string, string> {
-                                {"Tools", "bi-tools"},
-                                {"Electronics", "bi-laptop"},
-                                {"Sports", "bi-bicycle"},
-                                {"Home & Garden", "bi-house"},
-                                {"Fun", "bi-controller"},
-                                {"Other", "bi-three-dots"}
-                            };
-                        }
-                        <i class="bi @chipIconMap.GetValueOrDefault(cat, "bi-tag")"></i>
-                        @Localizer[cat]
-                    </a>
-                }
-            </div>
-            
             <!-- Active Filters & Sort -->
             <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
                 <!-- Active filter tags -->
@@ -381,8 +314,9 @@
             
             <!-- Mobile Filter Button -->
             <button onclick="openMobileFilters()" 
-                    class="lg:hidden w-full mb-6 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 transition-all">
-                <i class="bi bi-sliders"></i> @Localizer["Filters"]
+                    class="lg:hidden w-full mb-6 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 transition-all focus-ring"
+                    aria-label="@Localizer["Open filters"]">
+                <i class="bi bi-sliders" aria-hidden="true"></i> @Localizer["Filters"]
                 @if (hasActiveFilters)
                 {
                     <span class="w-6 h-6 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
@@ -399,8 +333,8 @@
             </button>
             
             <!-- Mobile Filters Drawer -->
-            <div id="mobileFiltersOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden lg:hidden" onclick="closeMobileFilters()"></div>
-            <div id="mobileFiltersDrawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 lg:hidden overflow-hidden flex flex-col">
+            <div id="mobileFiltersOverlay" class="fixed inset-0 bg-black/50 hidden lg:hidden" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); z-index: var(--z-modal-backdrop, 400);" onclick="closeMobileFilters()"></div>
+            <div id="mobileFiltersDrawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 lg:hidden overflow-hidden flex flex-col" style="z-index: var(--z-modal, 500);">
                 <!-- Drawer Header -->
                 <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                     <div class="flex items-center gap-3">
@@ -409,8 +343,10 @@
                         </div>
                         <h3 class="font-heading font-bold text-lg text-slate-900">@Localizer["Filters"]</h3>
                     </div>
-                    <button onclick="closeMobileFilters()" class="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors">
-                        <i class="bi bi-x-lg text-slate-500"></i>
+                    <button onclick="closeMobileFilters()" 
+                            class="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors touch-target focus-ring"
+                            aria-label="@Localizer["Close filters"]">
+                        <i class="bi bi-x-lg text-slate-500" aria-hidden="true"></i>
                     </button>
                 </div>
                 
@@ -527,14 +463,16 @@
                                     
                                     <!-- Favorite Button -->
                                     <button onclick="event.preventDefault(); event.stopPropagation();" 
-                                            class="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 group/fav">
-                                        <i class="bi bi-heart text-slate-600 group-hover/fav:text-red-500 transition-colors"></i>
+                                            class="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 group/fav touch-target focus-ring"
+                                            style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);"
+                                            aria-label="@Localizer["Add to favorites"]">
+                                        <i class="bi bi-heart text-slate-600 group-hover/fav:text-red-500 transition-colors" aria-hidden="true"></i>
                                     </button>
                                     
                                     <!-- Category Badge -->
                                     @if (!string.IsNullOrEmpty(item.Category))
                                     {
-                                        <div class="absolute top-3 left-3 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-full text-xs font-semibold text-slate-700">
+                                        <div class="absolute top-3 left-3 px-3 py-1 bg-white/90 rounded-full text-xs font-semibold text-slate-700 hidden md:block" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
                                             @Localizer[item.Category]
                                         </div>
                                     }
@@ -542,8 +480,8 @@
                                     <!-- Rating Badge -->
                                     @if (item.AverageRating.HasValue)
                                     {
-                                        <div class="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-sm font-semibold shadow-sm">
-                                            <i class="bi bi-star-fill text-amber-400"></i>
+                                        <div class="absolute flex items-center gap-1.5 px-2.5 py-1 bg-white/90 rounded-lg text-sm font-semibold shadow-sm" style="bottom: clamp(8px, 2vw, 12px); left: clamp(8px, 2vw, 12px); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+                                            <i class="bi bi-star-fill text-amber-400" aria-hidden="true"></i>
                                             <span class="text-slate-800">@item.AverageRating.Value.ToString("0.0")</span>
                                             <span class="text-slate-400">(@item.ReviewCount)</span>
                                         </div>
@@ -751,6 +689,29 @@
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeMobileFilters();
+            }
+        });
+
+        // Initialize Flatpickr date range picker for marketplace
+        flatpickr("#marketplaceDateRange", {
+            mode: "range",
+            minDate: "today",
+            dateFormat: "M d",
+            locale: {
+                rangeSeparator: " - "
+            },
+            disableMobile: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    // Format dates for form submission (yyyy-MM-dd)
+                    const startDate = selectedDates[0].toISOString().split('T')[0];
+                    const endDate = selectedDates[1].toISOString().split('T')[0];
+                    document.getElementById('hiddenStartDate').value = startDate;
+                    document.getElementById('hiddenEndDate').value = endDate;
+                } else {
+                    document.getElementById('hiddenStartDate').value = '';
+                    document.getElementById('hiddenEndDate').value = '';
+                }
             }
         });
     </script>

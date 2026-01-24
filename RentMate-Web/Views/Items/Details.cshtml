@@ -36,10 +36,10 @@
                 <span class="font-semibold text-slate-900">@avgRating.ToString("0.0")</span>
                 <span class="text-slate-500">(@Model.ReviewCount @Localizer["reviews"])</span>
             </div>
-            <span class="text-slate-300">�</span>
+            <span class="text-slate-300">·</span>
             <div class="flex items-center gap-1">
-                <i class="bi bi-geo-alt"></i>
-                <span>@Model.User?.City</span>
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                <span>@(Model.User?.City ?? Localizer["Location not specified"].Value)</span>
             </div>
             <span class="text-slate-300">�</span>
             <div class="flex items-center gap-1">
@@ -66,8 +66,10 @@
                     </div>
                 }
                 <!-- Favorite button -->
-                <button class="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-                    <i class="bi bi-heart text-slate-600 hover:text-red-500"></i>
+                <button class="absolute top-4 right-4 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform touch-target focus-ring"
+                        style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);"
+                        aria-label="@Localizer["Add to favorites"]">
+                    <i class="bi bi-heart text-slate-600 hover:text-red-500" aria-hidden="true"></i>
                 </button>
             </div>
 
@@ -80,8 +82,8 @@
                     </a>
                     <div>
                         <p class="text-sm text-slate-500">@Localizer["Hosted by"]</p>
-                        <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="font-semibold text-slate-900 hover:text-blue-600 transition-colors">
-                            @Model.User?.FirstName @Model.User?.LastName
+                        <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="font-semibold text-slate-900 hover:text-blue-600 transition-colors focus-ring">
+                            @(Model.User?.FirstName ?? Localizer["Unknown"].Value) @(Model.User?.LastName ?? "")
                         </a>
                     </div>
                 </div>
