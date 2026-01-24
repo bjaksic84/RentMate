@@ -52,6 +52,7 @@ namespace RentMate.Controllers
                     Location = i.Location ?? i.User.City,
                     ImageUrl = i.ImageUrl,
                     CreatedAt = i.CreatedAt,
+                    Category = i.Category,
                     User = i.User != null ? new UserDto
                     {
                         Id = i.User.Id,
