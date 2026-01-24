@@ -344,16 +344,18 @@ app.Use(async (context, next) =>
     // Content Security Policy (adjust as needed for your CDN/external resources)
     context.Response.Headers.Append("Content-Security-Policy", 
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+        "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
         "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; " +
         "img-src 'self' data: https: blob:; " +
         "connect-src 'self' https: wss:; " +
         "frame-ancestors 'none';");
     
-    // Permissions Policy
+    // Permissions Policy (GDPR compliant - browser will prompt user for consent)
+    // camera=(self) - Allow camera for taking item photos (requires user consent)
+    // geolocation=(self) - Allow location for pickup location (requires user consent)
     context.Response.Headers.Append("Permissions-Policy", 
-        "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()");
+        "accelerometer=(), camera=(self), geolocation=(self), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()");
     
     await next();
 });

@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.CurrencyService CurrencyService
 @{
@@ -6,761 +6,395 @@
     var popularItems = ViewBag.PopularItems as IEnumerable<RentMate.Models.Item> ?? Enumerable.Empty<RentMate.Models.Item>();
     var newItems = ViewBag.NewItems as IEnumerable<RentMate.Models.Item> ?? Enumerable.Empty<RentMate.Models.Item>();
     var cities = ViewBag.Cities as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var currency = CurrencyService.GetCurrentCurrency();
 }
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-
-<style>
-    /* Hero Section */
-    .hero-section {
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 50%, #0a58ca 100%);
-        min-height: 500px;
-        position: relative;
-        overflow: hidden;
-    }
-    .hero-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        pointer-events: none;
-    }
-    .hero-content {
-        position: relative;
-        z-index: 1;
-    }
-    .hero-title {
-        font-size: 3.5rem;
-        font-weight: 800;
-        color: white;
-        line-height: 1.1;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .hero-subtitle {
-        font-size: 1.25rem;
-        color: rgba(255,255,255,0.9);
-        max-width: 600px;
-        margin: 0 auto;
-    }
+<!-- Hero Section - Full viewport height -->
+<section class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center overflow-hidden">
+    <!-- Animated gradient background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900">
+        <!-- Decorative elements -->
+        <div class="absolute inset-0 opacity-30">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
+            <div class="absolute top-40 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+            <div class="absolute bottom-20 left-1/2 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style="animation-delay: 4s;"></div>
+        </div>
+        <!-- Grid pattern overlay -->
+        <div class="absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 40px 40px;"></div>
+    </div>
     
-    /* Search Box */
-    .hero-search-box {
-        background: white;
-        border-radius: 20px;
-        padding: 1rem;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-        max-width: 900px;
-        margin: 0 auto;
-    }
-    .hero-search-box .search-input-group {
-        display: flex;
-        align-items: stretch;
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        margin: 0 0.25rem;
-        flex: 1;
-        transition: all 0.2s ease;
-        border: 2px solid transparent;
-        cursor: pointer;
-    }
-    .hero-search-box .search-input-group:hover {
-        background: #f0f4f8;
-    }
-    .hero-search-box .search-input-group:focus-within {
-        background: white;
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 4px rgba(13,110,253,0.1);
-    }
-    .hero-search-box .search-input-group .icon-wrapper {
-        width: 40px;
-        height: 40px;
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-right: 0.75rem;
-        flex-shrink: 0;
-    }
-    .hero-search-box .search-input-group .icon-wrapper i {
-        color: white;
-        font-size: 1rem;
-    }
-    .hero-search-box .search-input-group label {
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #0d6efd;
-        display: block;
-        margin-bottom: 0.2rem;
-    }
-    .hero-search-box .form-control, .hero-search-box .form-select {
-        border: none;
-        padding: 0;
-        height: auto;
-        font-size: 0.95rem;
-        font-weight: 500;
-        background: transparent;
-        color: #333;
-    }
-    .hero-search-box .form-control::placeholder {
-        color: #999;
-        font-weight: 400;
-    }
-    .hero-search-box .form-control:focus, .hero-search-box .form-select:focus {
-        box-shadow: none;
-    }
-    .hero-search-box .input-hint {
-        font-size: 0.7rem;
-        color: #888;
-        margin-top: 0.15rem;
-    }
-    .hero-search-box .btn-search {
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-        border: none;
-        border-radius: 12px;
-        padding: 1rem 1.75rem;
-        font-weight: 600;
-        font-size: 1rem;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        transition: all 0.3s ease;
-        white-space: nowrap;
-        min-width: 130px;
-        margin-left: 0.5rem;
-    }
-    .hero-search-box .btn-search:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(13,110,253,0.4);
-    }
-    .hero-search-box .btn-search:active {
-        transform: translateY(0);
-    }
-    
-    @@media (max-width: 991px) {
-        .hero-title {
-            font-size: 2.5rem;
-        }
-        .hero-search-box {
-            border-radius: 16px;
-            padding: 0.75rem;
-        }
-        .hero-search-box .search-input-group {
-            margin: 0.35rem 0;
-            padding: 0.65rem 0.85rem;
-        }
-        .hero-search-box .search-input-group .icon-wrapper {
-            width: 36px;
-            height: 36px;
-        }
-        .hero-search-box .btn-search {
-            width: 100%;
-            margin: 0.5rem 0 0 0;
-            padding: 0.85rem;
-        }
-    }
-    
-    /* Category Icons */
-    .category-section {
-        background: #f8f9fa;
-        border-bottom: 1px solid #e9ecef;
-    }
-    .category-link {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-decoration: none;
-        color: #333;
-        padding: 1rem;
-        border-radius: 12px;
-        transition: all 0.3s ease;
-        min-width: 100px;
-    }
-    .category-link:hover {
-        background: white;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        transform: translateY(-3px);
-    }
-    .category-icon {
-        width: 56px;
-        height: 56px;
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 0.75rem;
-        color: white;
-        font-size: 1.5rem;
-        transition: all 0.3s ease;
-    }
-    .category-link:hover .category-icon {
-        transform: scale(1.1);
-    }
-    
-    /* Stats Section */
-    .stats-section {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        color: white;
-    }
-    .stat-item {
-        text-align: center;
-        padding: 2rem 1rem;
-    }
-    .stat-number {
-        font-size: 3rem;
-        font-weight: 800;
-        color: #0d6efd;
-        line-height: 1;
-        margin-bottom: 0.5rem;
-    }
-    .stat-label {
-        font-size: 0.9rem;
-        color: rgba(255,255,255,0.7);
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    /* Item Cards */
-    .item-card {
-        border: none;
-        border-radius: 16px;
-        overflow: hidden;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    }
-    .item-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 15px 40px rgba(0,0,0,0.12);
-    }
-    .item-card .card-img-top {
-        height: 180px;
-        object-fit: cover;
-        transition: transform 0.5s ease;
-    }
-    .item-card:hover .card-img-top {
-        transform: scale(1.05);
-    }
-    .item-card .card-img-wrapper {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
-    }
-    .item-card .badge-rating {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        background: rgba(0,0,0,0.7);
-        backdrop-filter: blur(10px);
-        color: white;
-        padding: 0.3rem 0.6rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    .item-card .badge-location {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background: rgba(255,255,255,0.95);
-        color: #333;
-        padding: 0.25rem 0.5rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-    .item-card .card-body {
-        padding: 1rem;
-    }
-    .item-card .card-title {
-        font-weight: 700;
-        font-size: 1rem;
-        margin-bottom: 0.25rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .item-card .price {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #0d6efd;
-    }
-    .item-card .price span {
-        font-size: 0.8rem;
-        font-weight: 400;
-        color: #888;
-    }
-    
-    /* Section Headers */
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-    .section-header h2 {
-        font-weight: 800;
-        font-size: 1.75rem;
-        margin: 0;
-    }
-    .section-header .view-all {
-        color: #0d6efd;
-        text-decoration: none;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-    .section-header .view-all:hover {
-        text-decoration: underline;
-    }
-    
-    /* How it Works */
-    .how-it-works-card {
-        text-align: center;
-        padding: 2rem;
-        background: white;
-        border-radius: 20px;
-        height: 100%;
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-    }
-    .how-it-works-card:hover {
-        border-color: #0d6efd;
-        transform: translateY(-5px);
-    }
-    .how-it-works-icon {
-        width: 80px;
-        height: 80px;
-        border-radius: 20px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2rem;
-        margin-bottom: 1.5rem;
-    }
-    .how-it-works-card h4 {
-        font-weight: 700;
-        margin-bottom: 0.75rem;
-    }
-    .how-it-works-card p {
-        color: #666;
-        font-size: 0.95rem;
-        margin: 0;
-    }
-    
-    /* CTA Section */
-    .cta-section {
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-        position: relative;
-        overflow: hidden;
-    }
-    .cta-section::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -20%;
-        width: 60%;
-        height: 200%;
-        background: rgba(255,255,255,0.05);
-        transform: rotate(15deg);
-    }
-    .cta-content {
-        position: relative;
-        z-index: 1;
-    }
-    
-    /* Testimonials */
-    .testimonial-card {
-        background: white;
-        border-radius: 20px;
-        padding: 2rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        height: 100%;
-    }
-    .testimonial-card .stars {
-        color: #ffc107;
-        margin-bottom: 1rem;
-    }
-    .testimonial-card .quote {
-        font-size: 1rem;
-        color: #555;
-        line-height: 1.7;
-        margin-bottom: 1.5rem;
-    }
-    .testimonial-card .author {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    .testimonial-card .author-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-    }
-    .testimonial-card .author-name {
-        font-weight: 700;
-        margin-bottom: 0;
-    }
-    .testimonial-card .author-location {
-        font-size: 0.85rem;
-        color: #888;
-    }
-</style>
-
-<!-- Hero Section -->
-<section class="hero-section py-5">
-    <div class="container hero-content">
-        <div class="text-center py-5">
-            <h1 class="hero-title mb-4">@Localizer["Rent anything, anywhere."]</h1>
-            <p class="hero-subtitle mb-5">@Localizer["Forget about buying things you only need occasionally."]</p>
-            
-            <!-- Search Box -->
-            <div class="hero-search-box">
-                <form class="d-lg-flex align-items-center" asp-controller="Rentals" asp-action="Index" method="get" id="heroSearchForm">
-                    <div class="search-input-group">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-box-seam"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <label>@Localizer["What"]</label>
-                            <input type="text" name="search" class="form-control" placeholder="@Localizer["e.g. Drill, Camera, Bike..."]">
+    <!-- Hero Content -->
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+        <!-- Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/90 text-sm font-medium mb-8">
+            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            @ViewBag.TotalItems+ @Localizer["items available near you"]
+        </div>
+        
+        <!-- Main heading -->
+        <h1 class="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+            @Localizer["Rent anything,"]<br>
+            <span class="bg-gradient-to-r from-sky-300 to-blue-300 bg-clip-text text-transparent">@Localizer["anywhere."]</span>
+        </h1>
+        
+        <p class="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto mb-12">
+            @Localizer["Forget about buying things you only need occasionally."] @Localizer["Save money, save space, save the planet."]
+        </p>
+        
+        <!-- Search Widget - Glassmorphic pill-shaped -->
+        <div class="max-w-4xl mx-auto">
+            <form asp-controller="Rentals" asp-action="Index" method="get" class="glass rounded-2xl sm:rounded-full p-2 shadow-lg border border-white/30">
+                <div class="flex flex-col sm:flex-row items-stretch gap-2">
+                    <!-- Location -->
+                    <div class="flex-1 group">
+                        <div class="flex items-center gap-3 px-5 py-3 sm:py-4 rounded-xl sm:rounded-full bg-white/50 hover:bg-white/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 transition-all duration-200">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
+                                <i class="bi bi-geo-alt-fill text-white"></i>
+                            </div>
+                            <div class="flex-1 text-left">
+                                <label class="block text-xs font-semibold text-blue-600 uppercase tracking-wide">@Localizer["Where"]</label>
+                                <select name="city" class="w-full bg-transparent border-none text-slate-900 font-medium focus:outline-none text-sm cursor-pointer">
+                                    <option value="">@Localizer["All cities"]</option>
+                                    @foreach (var city in cities)
+                                    {
+                                        <option value="@city">@city</option>
+                                    }
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="search-input-group">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-geo-alt"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <label>@Localizer["Where"]</label>
-                            <select name="city" class="form-select">
-                                <option value="">@Localizer["Any location"]</option>
-                                @foreach (var c in cities)
-                                {
-                                    <option value="@c">@c</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-                    <div class="search-input-group">
-                        <div class="icon-wrapper">
-                            <i class="bi bi-calendar-range"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <label>@Localizer["When"]</label>
-                            <input type="text" class="form-control hero-daterange-picker" placeholder="@Localizer["Pick a date range"]" readonly>
-                            <input type="hidden" name="startDate" id="heroStartDate">
-                            <input type="hidden" name="endDate" id="heroEndDate">
+                    
+                    <!-- Divider -->
+                    <div class="hidden sm:block w-px bg-slate-200 my-2"></div>
+                    
+                    <!-- What -->
+                    <div class="flex-1 group">
+                        <div class="flex items-center gap-3 px-5 py-3 sm:py-4 rounded-xl sm:rounded-full bg-white/50 hover:bg-white/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 transition-all duration-200">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
+                                <i class="bi bi-search text-white"></i>
+                            </div>
+                            <div class="flex-1 text-left">
+                                <label class="block text-xs font-semibold text-blue-600 uppercase tracking-wide">@Localizer["What"]</label>
+                                <input type="text" name="search" placeholder="@Localizer["e.g. Drill, Camera, Bike..."]" 
+                                       class="w-full bg-transparent border-none text-slate-900 font-medium placeholder-slate-400 focus:outline-none text-sm">
+                            </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-search mt-3 mt-lg-0">
-                        <i class="bi bi-search"></i>
-                        <span>@Localizer["Search"]</span>
+                    
+                    <!-- Divider -->
+                    <div class="hidden sm:block w-px bg-slate-200 my-2"></div>
+                    
+                    <!-- Date Range -->
+                    <div class="flex-1 group">
+                        <div class="flex items-center gap-3 px-5 py-3 sm:py-4 rounded-xl sm:rounded-full bg-white/50 hover:bg-white/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 transition-all duration-200">
+                            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
+                                <i class="bi bi-calendar-event text-white"></i>
+                            </div>
+                            <div class="flex-1 text-left">
+                                <label class="block text-xs font-semibold text-blue-600 uppercase tracking-wide">@Localizer["When"]</label>
+                                <input type="text" id="dateRange" name="dates" placeholder="@Localizer["Pick a date range"]" readonly
+                                       class="w-full bg-transparent border-none text-slate-900 font-medium placeholder-slate-400 focus:outline-none text-sm cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Button -->
+                    <button type="submit" class="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl sm:rounded-full shadow-sm  transition-all duration-300 flex items-center justify-center gap-2 group">
+                        <i class="bi bi-search text-lg group-hover:scale-110 transition-transform"></i>
+                        <span class="sm:hidden lg:inline">@Localizer["Search"]</span>
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Quick categories -->
+        <div class="flex flex-wrap justify-center gap-3 mt-8">
+            @{
+                var categories = new[] { ("Tools", "bi-tools", "Orodje"), ("Electronics", "bi-laptop", "Elektronika"), ("Sports", "bi-bicycle", "Šport"), ("Home & Garden", "bi-house", "Dom & Vrt"), ("Fun", "bi-controller", "Zabava") };
+            }
+            @foreach (var (cat, icon, slCat) in categories)
+            {
+                <a asp-controller="Rentals" asp-action="Index" asp-route-category="@cat" 
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/10 hover:border-white/30 transition-all duration-200">
+                    <i class="bi @icon"></i>
+                    @Localizer[cat]
+                </a>
+            }
+        </div>
+    </div>
+    
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 animate-bounce">
+        <i class="bi bi-chevron-double-down text-2xl"></i>
+    </div>
+</section>
+
+<!-- How it works section -->
+<section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="font-heading text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+                @Localizer["How does RentMate work?"]
+            </h2>
+            <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                @Localizer["Simple steps to rent what you need"]
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-8">
+            @{
+                var steps = new[] {
+                    ("bi-search", "Find", "Browse thousands of items in your immediate vicinity.", "blue"),
+                    ("bi-calendar-check", "Book", "Select dates, contact the owner and confirm the rental.", "sky"),
+                    ("bi-emoji-smile", "Use & Save", "Pick up the item, use it and return it. Simple!", "green")
+                };
+                var stepNum = 1;
+            }
+            @foreach (var (icon, title, desc, color) in steps)
+            {
+                <div class="relative group">
+                    <div class="bg-slate-50 rounded-2xl p-8 hover-lift border border-slate-100 h-full">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-@(color)-500 to-@(color)-600 flex items-center justify-center mb-6 shadow-lg shadow-@(color)-500/30 group-hover:scale-110 transition-transform duration-300">
+                            <i class="bi @icon text-white text-2xl"></i>
+                        </div>
+                        <div class="absolute top-6 right-6 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-500">
+                            @stepNum
+                        </div>
+                        <h3 class="font-heading text-xl font-bold text-slate-900 mb-3">@Localizer[title]</h3>
+                        <p class="text-slate-600">@Localizer[desc]</p>
+                    </div>
+                </div>
+                stepNum++;
+            }
         </div>
     </div>
 </section>
 
-<!-- Categories Section -->
-<section class="category-section py-4">
-    <div class="container">
-        <div class="d-flex justify-content-center flex-wrap gap-2 gap-md-4">
-            <a href="/Rentals?category=Tools" class="category-link">
-                <div class="category-icon"><i class="bi bi-tools"></i></div>
-                <span class="small fw-bold">@Localizer["Tools"]</span>
-            </a>
-            <a href="/Rentals?category=Electronics" class="category-link">
-                <div class="category-icon"><i class="bi bi-laptop"></i></div>
-                <span class="small fw-bold">@Localizer["Electronics"]</span>
-            </a>
-            <a href="/Rentals?category=Sport" class="category-link">
-                <div class="category-icon"><i class="bi bi-bicycle"></i></div>
-                <span class="small fw-bold">@Localizer["Sports"]</span>
-            </a>
-            <a href="/Rentals?category=Home" class="category-link">
-                <div class="category-icon"><i class="bi bi-house-door"></i></div>
-                <span class="small fw-bold">@Localizer["Home & Garden"]</span>
-            </a>
-            <a href="/Rentals?category=Events" class="category-link">
-                <div class="category-icon"><i class="bi bi-balloon-heart"></i></div>
-                <span class="small fw-bold">@Localizer["Fun"]</span>
-            </a>
-            <a href="/Rentals?category=Other" class="category-link">
-                <div class="category-icon"><i class="bi bi-box-seam"></i></div>
-                <span class="small fw-bold">@Localizer["Other"]</span>
-            </a>
-        </div>
-    </div>
-</section>
-
-<!-- Stats Section -->
-<section class="stats-section py-4">
-    <div class="container">
-        <div class="row">
-            <div class="col-4">
-                <div class="stat-item">
-                    <div class="stat-number">@ViewBag.TotalItems+</div>
-                    <div class="stat-label">@Localizer["Items"]</div>
-                </div>
-            </div>
-            <div class="col-4">
-                <div class="stat-item">
-                    <div class="stat-number">@ViewBag.TotalUsers+</div>
-                    <div class="stat-label">@Localizer["Users"]</div>
-                </div>
-            </div>
-            <div class="col-4">
-                <div class="stat-item">
-                    <div class="stat-number">@ViewBag.TotalRentals+</div>
-                    <div class="stat-label">@Localizer["Rentals"]</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Most Popular Section -->
+<!-- Popular Items Section -->
 @if (popularItems.Any())
 {
-    <section class="py-5">
-        <div class="container">
-            <div class="section-header">
-                <h2><i class="bi bi-fire text-danger me-2"></i>@Localizer["Most Popular"]</h2>
-                <a href="/Rentals?sort=ratingDesc" class="view-all">
-                    @Localizer["View all"] <i class="bi bi-chevron-right"></i>
-                </a>
+<section class="py-20 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-end justify-between mb-10">
+            <div>
+                <h2 class="font-heading text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+                    @Localizer["Popular near you"]
+                </h2>
+                <p class="text-slate-600">@Localizer["Top rated items loved by renters"]</p>
             </div>
-            
-            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4">
-                @foreach (var item in popularItems.Take(4))
-                {
-                    <div class="col">
-                        <a href="/Items/Details/@item.Id" class="text-decoration-none">
-                            <div class="card item-card h-100">
-                                <div class="card-img-wrapper">
-                                    @if (!string.IsNullOrEmpty(item.ImageUrl))
-                                    {
-                                        var imgUrl = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_300,q_auto,f_auto/");
-                                        <img src="@imgUrl" class="card-img-top" alt="@item.Title" loading="lazy">
-                                    }
-                                    else
-                                    {
-                                        <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px;">
-                                            <i class="bi bi-box-seam display-4 text-muted opacity-25"></i>
-                                        </div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(item.User?.City))
-                                    {
-                                        <span class="badge-location"><i class="bi bi-geo-alt-fill text-danger"></i> @item.User.City</span>
-                                    }
-                                    @if (item.AverageRating.HasValue)
-                                    {
-                                        <span class="badge-rating"><i class="bi bi-star-fill text-warning"></i> @item.AverageRating?.ToString("0.0")</span>
-                                    }
-                                </div>
-                                <div class="card-body">
-                                    <h5 class="card-title text-dark">@item.Title</h5>
-                                    <div class="price">@CurrencyService.Format(item.Price) <span>@Localizer["/ day"]</span></div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                }
-            </div>
+            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="rating" 
+               class="hidden sm:inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+                @Localizer["View all"] <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
-    </section>
+        
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            @foreach (var item in popularItems.Take(4))
+            {
+                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="group">
+                    <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-100">
+                        <!-- Image -->
+                        <div class="aspect-[4/3] relative overflow-hidden">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            }
+                            else
+                            {
+                                <div class="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                                    <i class="bi bi-image text-4xl text-slate-300"></i>
+                                </div>
+                            }
+                            <!-- Favorite button -->
+                            <button onclick="event.preventDefault();" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110">
+                                <i class="bi bi-heart text-slate-600 hover:text-red-500"></i>
+                            </button>
+                            <!-- Rating badge -->
+                            @if (item.AverageRating.HasValue)
+                            {
+                                <div class="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-sm font-semibold">
+                                    <i class="bi bi-star-fill text-amber-400"></i>
+                                    <span>@item.AverageRating.Value.ToString("0.0")</span>
+                                </div>
+                            }
+                        </div>
+                        <!-- Content -->
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-2 mb-2">
+                                <h3 class="font-heading font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                                    @item.Title
+                                </h3>
+                            </div>
+                            @if (!string.IsNullOrEmpty(item.Location))
+                            {
+                                <p class="text-sm text-slate-500 flex items-center gap-1 mb-3">
+                                    <i class="bi bi-geo-alt"></i> @item.Location
+                                </p>
+                            }
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-xl font-bold text-slate-900">@currency.Symbol@item.Price</span>
+                                <span class="text-sm text-slate-500">/ @Localizer["day"]</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+        
+        <div class="mt-8 text-center sm:hidden">
+            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="rating" 
+               class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full transition-colors">
+                @Localizer["View all"] <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</section>
 }
 
 <!-- New Additions Section -->
 @if (newItems.Any())
 {
-    <section class="py-5 bg-light">
-        <div class="container">
-            <div class="section-header">
-                <h2><i class="bi bi-stars text-primary me-2"></i>@Localizer["New Additions"]</h2>
-                <a href="/Rentals" class="view-all">
-                    @Localizer["View all"] <i class="bi bi-chevron-right"></i>
-                </a>
+<section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-end justify-between mb-10">
+            <div>
+                <h2 class="font-heading text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+                    @Localizer["New Additions"]
+                </h2>
+                <p class="text-slate-600">@Localizer["Fresh items just listed"]</p>
             </div>
-            
-            <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-3 g-md-4">
-                @foreach (var item in newItems.Take(4))
-                {
-                    <div class="col">
-                        <a href="/Items/Details/@item.Id" class="text-decoration-none">
-                            <div class="card item-card h-100">
-                                <div class="card-img-wrapper">
-                                    @if (!string.IsNullOrEmpty(item.ImageUrl))
-                                    {
-                                        var imgUrl = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_300,q_auto,f_auto/");
-                                        <img src="@imgUrl" class="card-img-top" alt="@item.Title" loading="lazy">
-                                    }
-                                    else
-                                    {
-                                        <div class="card-img-top d-flex align-items-center justify-content-center" style="height: 180px;">
-                                            <i class="bi bi-box-seam display-4 text-muted opacity-25"></i>
-                                        </div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(item.User?.City))
-                                    {
-                                        <span class="badge-location"><i class="bi bi-geo-alt-fill text-danger"></i> @item.User.City</span>
-                                    }
-                                    <span class="badge-rating bg-success"><i class="bi bi-clock-history"></i> @Localizer["New"]</span>
-                                </div>
-                                <div class="card-body">
-                                    <h5 class="card-title text-dark">@item.Title</h5>
-                                    <div class="price">@CurrencyService.Format(item.Price) <span>@Localizer["/ day"]</span></div>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                }
-            </div>
-        </div>
-    </section>
-}
-
-<!-- How It Works -->
-<section class="py-5">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="fw-bold">@Localizer["How does RentMate work?"]</h2>
-            <p class="text-muted">@Localizer["Simple steps to rent what you need"]</p>
+            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="newest" 
+               class="hidden sm:inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+                @Localizer["View all"] <i class="bi bi-arrow-right"></i>
+            </a>
         </div>
         
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="how-it-works-card">
-                    <div class="how-it-works-icon bg-primary bg-opacity-10 text-primary">
-                        <i class="bi bi-search"></i>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            @foreach (var item in newItems.Take(4))
+            {
+                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="group">
+                    <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-200">
+                        <!-- Image -->
+                        <div class="aspect-[4/3] relative overflow-hidden">
+                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            }
+                            else
+                            {
+                                <div class="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                                    <i class="bi bi-image text-4xl text-slate-300"></i>
+                                </div>
+                            }
+                            <!-- New badge -->
+                            <div class="absolute top-3 left-3 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                                @Localizer["New"]
+                            </div>
+                            <!-- Favorite button -->
+                            <button onclick="event.preventDefault();" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110">
+                                <i class="bi bi-heart text-slate-600 hover:text-red-500"></i>
+                            </button>
+                        </div>
+                        <!-- Content -->
+                        <div class="p-4">
+                            <h3 class="font-heading font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-2">
+                                @item.Title
+                            </h3>
+                            @if (!string.IsNullOrEmpty(item.Location))
+                            {
+                                <p class="text-sm text-slate-500 flex items-center gap-1 mb-3">
+                                    <i class="bi bi-geo-alt"></i> @item.Location
+                                </p>
+                            }
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-xl font-bold text-slate-900">@currency.Symbol@item.Price</span>
+                                <span class="text-sm text-slate-500">/ @Localizer["day"]</span>
+                            </div>
+                        </div>
                     </div>
-                    <h4>@Localizer["Find"]</h4>
-                    <p>@Localizer["Browse thousands of items in your immediate vicinity."]</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="how-it-works-card">
-                    <div class="how-it-works-icon bg-success bg-opacity-10 text-success">
-                        <i class="bi bi-calendar-check"></i>
-                    </div>
-                    <h4>@Localizer["Book"]</h4>
-                    <p>@Localizer["Select dates, contact the owner and confirm the rental."]</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="how-it-works-card">
-                    <div class="how-it-works-icon bg-info bg-opacity-10 text-info">
-                        <i class="bi bi-emoji-smile"></i>
-                    </div>
-                    <h4>@Localizer["Use & Save"]</h4>
-                    <p>@Localizer["Pick up the item, use it and return it. Simple!"]</p>
-                </div>
-            </div>
+                </a>
+            }
         </div>
     </div>
 </section>
+}
 
 <!-- Testimonials Section -->
-<section class="py-5 bg-light">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2 class="fw-bold">@Localizer["What our users say"]</h2>
+<section class="py-20 bg-gradient-to-br from-blue-600 to-slate-900 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16">
+            <h2 class="font-heading text-3xl sm:text-4xl font-bold mb-4">
+                @Localizer["What our users say"]
+            </h2>
         </div>
         
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p class="quote">"@Localizer["RentMate saved me so much money! I needed a power drill for one project and found one nearby for just a few euros."]"</p>
-                    <div class="author">
-                        <div class="author-avatar">M</div>
+        <div class="grid md:grid-cols-3 gap-8">
+            @{
+                var testimonials = new[] {
+                    ("RentMate saved me so much money! I needed a power drill for one project and found one nearby for just a few euros.", "Sarah M.", "Ljubljana"),
+                    ("I've been renting out my camping gear and it basically pays for itself now. Great way to earn passive income!", "Mark T.", "Maribor"),
+                    ("The booking process is so smooth. Found a projector for my party in minutes!", "Ana K.", "Celje")
+                };
+            }
+            @foreach (var (quote, name, loc) in testimonials)
+            {
+                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                    <div class="flex gap-1 mb-4">
+                        @for (int i = 0; i < 5; i++)
+                        {
+                            <i class="bi bi-star-fill text-amber-400"></i>
+                        }
+                    </div>
+                    <p class="text-blue-100 mb-6 leading-relaxed">"@Localizer[quote]"</p>
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center font-bold text-white">
+                            @name[0]
+                        </div>
                         <div>
-                            <p class="author-name">Marko P.</p>
-                            <p class="author-location">Ljubljana</p>
+                            <p class="font-semibold">@name</p>
+                            <p class="text-sm text-blue-200">@loc</p>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p class="quote">"@Localizer["I've been renting out my camping gear and it basically pays for itself now. Great way to earn passive income!"]"</p>
-                    <div class="author">
-                        <div class="author-avatar">A</div>
-                        <div>
-                            <p class="author-name">Ana K.</p>
-                            <p class="author-location">Maribor</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="testimonial-card">
-                    <div class="stars">★★★★★</div>
-                    <p class="quote">"@Localizer["The booking process is so smooth. Found a projector for my party in minutes!"]"</p>
-                    <div class="author">
-                        <div class="author-avatar">L</div>
-                        <div>
-                            <p class="author-name">Luka S.</p>
-                            <p class="author-location">Celje</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            }
         </div>
     </div>
 </section>
 
 <!-- CTA Section -->
-@if (!(User.Identity?.IsAuthenticated ?? false))
-{
-    <section class="cta-section py-5 text-white">
-        <div class="container cta-content text-center py-4">
-            <h2 class="fw-bold mb-3">@Localizer["Become part of the RentMate community"]</h2>
-            <p class="mb-4 opacity-75">@Localizer["Earn by renting out your equipment or save by renting."]</p>
-            <div class="d-flex justify-content-center gap-3 flex-wrap">
-                <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-light btn-lg px-5 rounded-pill fw-bold">
-                    <i class="bi bi-person-plus me-2"></i>@Localizer["Register"]
-                </a>
-                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-light btn-lg px-4 rounded-pill">
-                    @Localizer["Login"]
-                </a>
-            </div>
+<section class="py-20 bg-slate-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="font-heading text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+            @Localizer["Become part of the RentMate community"]
+        </h2>
+        <p class="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+            @Localizer["Earn by renting out your equipment or save by renting."]
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a asp-controller="Items" asp-action="Create" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-full shadow-sm  transition-all duration-300">
+                <i class="bi bi-plus-circle"></i>
+                @Localizer["List your first item"]
+            </a>
+            <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-slate-50 text-slate-900 font-semibold rounded-full border-2 border-slate-200 hover:border-blue-300 transition-all duration-300">
+                <i class="bi bi-search"></i>
+                @Localizer["Browse marketplace"]
+            </a>
         </div>
-    </section>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        // Initialize Flatpickr date range picker
+        flatpickr("#dateRange", {
+            mode: "range",
+            minDate: "today",
+            dateFormat: "M d",
+            locale: {
+                rangeSeparator: " - "
+            },
+            disableMobile: true
+        });
+    </script>
 }
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Initialize date range picker for hero search
-        flatpickr(".hero-daterange-picker", {
-            mode: "range",
-            dateFormat: "Y-m-d",
-            minDate: "today",
-            locale: { firstDayOfWeek: 1 },
-            onChange: function(selectedDates, dateStr) {
-                if (selectedDates.length === 2) {
-                    document.getElementById('heroStartDate').value = this.formatDate(selectedDates[0], "Y-m-d");
-                    document.getElementById('heroEndDate').value = this.formatDate(selectedDates[1], "Y-m-d");
-                }
-            }
-        });
-    });
-</script>

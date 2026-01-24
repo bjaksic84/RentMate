@@ -1,68 +1,104 @@
-﻿@model RentMate.Models.Rental
+@model RentMate.Models.Rental
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.CurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Rental Details"];
-    var statusColor = Model.Status.ToString() switch
+    var statusClass = Model.Status.ToString() switch
     {
-        "Active" => "success",
-        "Pending" => "warning",
-        "Completed" => "secondary",
-        "Cancelled" => "danger",
-        _ => "primary"
+        "Active" => "bg-green-100 text-green-700 border-green-200",
+        "Pending" => "bg-amber-100 text-amber-700 border-amber-200",
+        "Completed" => "bg-slate-100 text-slate-600 border-slate-200",
+        "Cancelled" => "bg-red-100 text-red-700 border-red-200",
+        _ => "bg-blue-100 text-blue-700 border-blue-200"
     };
+    var days = (Model.EndDate - Model.StartDate).Days + 1;
 }
 
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-@statusColor text-white text-center py-3">
-                    <h5 class="mb-0 text-uppercase ls-1">@Localizer[Model.Status.ToString()]</h5> 
-                </div>
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <h2 class="fw-bold">@Model.Item.Title</h2> 
-                        <p class="text-muted">@Localizer["Rental ID"]: #@Model.Id</p>
-                    </div>
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <a asp-controller="Rentals" asp-action="MyRentals" class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors mb-4">
+            <i class="bi bi-arrow-left"></i>
+            @Localizer["Back to My Rentals"]
+        </a>
+    </div>
 
-                    <div class="row mb-3 border-bottom pb-3">
-                        <div class="col-6">
-                            <small class="text-muted text-uppercase">@Localizer["Renter"]</small>
-                            <p class="fw-bold mb-0">@Model.Renter.Email</p> 
-                        </div>
-                        <div class="col-6 text-end">
-                            <small class="text-muted text-uppercase">@Localizer["Price"]</small>
-                            <p class="fw-bold mb-0 text-success">@CurrencyService.Format(Model.TotalPrice)</p>
-                        </div>
-                    </div>
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <!-- Status Header -->
+        <div class="@statusClass border-b px-6 py-4 text-center">
+            <span class="text-sm font-semibold uppercase tracking-wider">@Localizer[Model.Status.ToString()]</span>
+        </div>
 
-                    <div class="row text-center mb-4">
-                        <div class="col-5">
-                            <div class="p-2 bg-light rounded">
-                                <small class="d-block text-muted">@Localizer["From"]</small>
-                                <strong>@Model.StartDate.ToString("dd. MM. yyyy")</strong> 
-                            </div>
-                        </div>
-                        <div class="col-2 align-self-center">
-                            <i class="bi bi-arrow-right text-muted"></i>
-                        </div>
-                        <div class="col-5">
-                            <div class="p-2 bg-light rounded">
-                                <small class="d-block text-muted">@Localizer["To"]</small>
-                                <strong>@Model.EndDate.ToString("dd. MM. yyyy")</strong>
-                            </div>
-                        </div>
+        <div class="p-6">
+            <!-- Item Info -->
+            <div class="flex gap-4 items-start mb-6">
+                @if(!string.IsNullOrEmpty(Model.Item?.ImageUrl)) {
+                    <img src="@Model.Item.ImageUrl" class="w-20 h-20 rounded-xl object-cover shrink-0" />
+                } else {
+                    <div class="w-20 h-20 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                        <i class="bi bi-image text-slate-300 text-xl"></i>
                     </div>
-
-                    <div class="d-grid gap-2 mt-4">
-                        <a asp-action="Edit" asp-route-id="@Model?.Id" class="btn btn-primary">@Localizer["Edit data"]</a>
-                        <a asp-action="Index" class="btn btn-outline-secondary">@Localizer["Back to rentals"]</a> 
-                    </div>
+                }
+                <div class="flex-1 min-w-0">
+                    <h1 class="font-heading text-2xl font-bold text-slate-900">@Model.Item?.Title</h1>
+                    <p class="text-slate-400 text-sm mt-1">@Localizer["Rental ID"]: #@Model.Id</p>
                 </div>
             </div>
+
+            <!-- Details Grid -->
+            <div class="grid sm:grid-cols-2 gap-4 mb-6">
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">@Localizer["Renter"]</p>
+                    <p class="font-semibold text-slate-900">@Model.Renter?.Email</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">@Localizer["Total Price"]</p>
+                    <p class="font-semibold text-green-600 text-lg">@CurrencyService.Format(Model.TotalPrice)</p>
+                </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="flex items-center justify-between py-4 px-6 bg-slate-50 rounded-xl mb-6">
+                <div class="text-center">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide">@Localizer["From"]</p>
+                    <p class="font-bold text-slate-900 text-lg">@Model.StartDate.ToString("dd MMM yyyy")</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <div class="w-12 h-0.5 bg-slate-200"></div>
+                    <span class="text-xs text-slate-400 mt-1">@days @Localizer["days"]</span>
+                </div>
+                <div class="text-center">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide">@Localizer["To"]</p>
+                    <p class="font-bold text-slate-900 text-lg">@Model.EndDate.ToString("dd MMM yyyy")</p>
+                </div>
+            </div>
+
+            <!-- Owner Contact -->
+            @if(Model.Item?.User != null)
+            {
+                <div class="border border-slate-200 rounded-xl p-4 mb-6">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-3">@Localizer["Item Owner"]</p>
+                    <div class="flex items-center gap-3">
+                        <img src="@(Model.Item.User.ProfilePictureUrl ?? "https://via.placeholder.com/40")" class="w-10 h-10 rounded-full object-cover" />
+                        <div>
+                            <p class="font-semibold text-slate-900">@Model.Item.User.FirstName @Model.Item.User.LastName</p>
+                            <p class="text-sm text-slate-500">@Model.Item.User.Email</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Actions -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
+            <a asp-controller="Items" asp-action="Details" asp-route-id="@Model.ItemId" class="flex-1 py-3 text-center border border-slate-200 bg-white text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors">
+                @Localizer["View Item"]
+            </a>
+            <a asp-controller="Rentals" asp-action="MyRentals" class="flex-1 py-3 text-center bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                @Localizer["Back to rentals"]
+            </a>
         </div>
     </div>
 </div>

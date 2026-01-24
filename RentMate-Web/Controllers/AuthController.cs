@@ -144,7 +144,7 @@ namespace RentMate.Controllers
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(24), // Shorter token lifetime for security
+                expires: DateTime.UtcNow.AddDays(7), // 1 week token lifetime
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

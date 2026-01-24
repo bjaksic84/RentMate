@@ -1,125 +1,307 @@
-﻿@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - RentMate</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/zephyr/bootstrap.min.css">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'heading': ['Outfit', 'sans-serif'],
+                        'body': ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        'trust-blue': {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <!-- Flatpickr for date pickers -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/RentMate.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+    
     @inject RentMate.Services.CurrencyService CurrencyService
     <script>
         window.CurrentCurrency = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(CurrencyService.GetCurrentCurrency()));
     </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Outfit', sans-serif;
+        }
+        /* Glassmorphism utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Smooth transitions */
+        .hover-lift {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.25);
+        }
+        /* Gradient text */
+        .gradient-text {
+            background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
 </head>
-<body>
-    <header class="sticky-top bg-white shadow-sm">
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">RentMate</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="@Localizer["Toggle navigation"]">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">@Localizer["Home"]</a>
-                        </li>
-                        @* Show Items only to admins *@
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Items" asp-action="Index">@Localizer["Items"]</a>
-                            </li>
-                        }
-
-                        @* Rentals (marketplace) visible to everyone *@
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Rentals" asp-action="Index">@Localizer["Rentals"]</a>
-                        </li>
-
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Users" asp-action="Index">@Localizer["Users"]</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Dashboard" asp-action="AdminDashboard">@Localizer["Admin Dashboard"]</a>
-                            </li>
-                        }
-                        else if (User.Identity != null && User.Identity.IsAuthenticated)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" asp-controller="Dashboard" asp-action="UserDashboard">@Localizer["My Dashboard"]</a>
-                            </li>
-                        }
-                        <li class="text-end mb-2 d-flex align-items-center px-2">
-                            <span id="connectionIndicator" class="badge bg-secondary">@Localizer["Offline"]</span>
-                        </li>
-
-                    </ul>
-                    <div class="d-flex align-items-center">
-                        <partial name="_CurrencySelector" />
-                        <div class="dropdown me-2">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="langDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-globe"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="langDropdown">
-                                <li>
-                                    <form asp-controller="Culture" asp-action="SetLanguage" 
-                                          asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" 
-                                          method="post">
-                                        <button type="submit" name="culture" value="en" class="dropdown-item">
-                                            🇺🇸 English
-                                        </button>
-                                    </form>
-                                </li>
-                                <li>
-                                    <form asp-controller="Culture" asp-action="SetLanguage" 
-                                          asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" 
-                                          method="post">
-                                        <button type="submit" name="culture" value="sl" class="dropdown-item">
-                                            🇸🇮 Slovenščina
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
+<body class="bg-slate-50 font-body antialiased">
+    <!-- Sticky Glassmorphic Navbar -->
+    <header class="fixed top-0 left-0 right-0 z-50">
+        <nav class="glass border-b border-white/20 shadow-lg shadow-slate-900/5">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16 md:h-20">
+                    <!-- Logo -->
+                    <a asp-controller="Home" asp-action="Index" class="flex items-center gap-2 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center shadow-sm group- transition-all duration-300">
+                            <i class="bi bi-house-heart text-white text-lg"></i>
                         </div>
-                        <button id="themeToggle" class="btn btn-sm btn-outline-secondary me-2" aria-label="@Localizer["Toggle theme"]">
-                            <i id="themeIcon" class="bi bi-moon-fill"></i>
-                        </button>
-                        <partial name="_LoginPartial" />
+                        <span class="font-heading font-bold text-xl text-slate-900">Rent<span class="gradient-text">Mate</span></span>
+                    </a>
+                    
+                    <!-- Desktop Navigation -->
+                    <div class="hidden md:flex items-center gap-1">
+                        <a asp-controller="Home" asp-action="Index" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                            @Localizer["Home"]
+                        </a>
+                        <a asp-controller="Rentals" asp-action="Index" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                            @Localizer["Marketplace"]
+                        </a>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <a asp-controller="Dashboard" asp-action="UserDashboard" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                                @Localizer["Dashboard"]
+                            </a>
+                        }
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-controller="Dashboard" asp-action="AdminDashboard" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                                @Localizer["Admin"]
+                            </a>
+                        }
                     </div>
+                    
+                    <!-- Right side actions -->
+                    <div class="flex items-center gap-3">
+                        <!-- Currency Selector -->
+                        <div class="hidden sm:block">
+                            <partial name="_CurrencySelector" />
+                        </div>
+                        
+                        <!-- Language Dropdown -->
+                        <div class="relative" x-data="{ open: false }">
+                            <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200">
+                                <i class="bi bi-globe text-lg"></i>
+                            </button>
+                            <div class="hidden absolute right-0 mt-2 w-40 py-2 bg-white rounded-xl shadow-md border border-slate-100">
+                                <form asp-controller="Culture" asp-action="SetLanguage" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" method="post">
+                                    <button type="submit" name="culture" value="en" class="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                        🇺🇸 English
+                                    </button>
+                                </form>
+                                <form asp-controller="Culture" asp-action="SetLanguage" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" method="post">
+                                    <button type="submit" name="culture" value="sl" class="w-full px-4 py-2 text-left text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                        🇸🇮 Slovenščina
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <!-- User Menu -->
+                            <div class="relative">
+                                <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 p-1.5 pr-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-all duration-200">
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center">
+                                        <i class="bi bi-person-fill text-white text-sm"></i>
+                                    </div>
+                                    <i class="bi bi-chevron-down text-xs text-slate-500"></i>
+                                </button>
+                                <div class="hidden absolute right-0 mt-2 w-48 py-2 bg-white rounded-xl shadow-md border border-slate-100">
+                                    <a asp-controller="Profile" asp-action="Index" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                        <i class="bi bi-person"></i> @Localizer["Profile"]
+                                    </a>
+                                    <a asp-controller="Dashboard" asp-action="UserDashboard" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                        <i class="bi bi-grid"></i> @Localizer["Dashboard"]
+                                    </a>
+                                    <hr class="my-2 border-slate-100">
+                                    <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
+                                        <button type="submit" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                            <i class="bi bi-box-arrow-right"></i> @Localizer["Logout"]
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <a asp-area="Identity" asp-page="/Account/Login" class="hidden sm:inline-flex px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+                                @Localizer["Login"]
+                            </a>
+                            <a asp-controller="Items" asp-action="Create" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-full shadow-sm  transition-all duration-300">
+                                <i class="bi bi-plus-lg"></i>
+                                <span class="hidden sm:inline">@Localizer["Become a Host"]</span>
+                            </a>
+                        }
+                        
+                        <!-- Mobile menu button -->
+                        <button onclick="document.getElementById('mobileMenu').classList.toggle('hidden')" class="md:hidden p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200">
+                            <i class="bi bi-list text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="hidden md:hidden border-t border-slate-100 bg-white">
+                <div class="px-4 py-3 space-y-1">
+                    <a asp-controller="Home" asp-action="Index" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                        @Localizer["Home"]
+                    </a>
+                    <a asp-controller="Rentals" asp-action="Index" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                        @Localizer["Marketplace"]
+                    </a>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-controller="Dashboard" asp-action="UserDashboard" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                            @Localizer["Dashboard"]
+                        </a>
+                    }
+                    else
+                    {
+                        <a asp-area="Identity" asp-page="/Account/Login" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                            @Localizer["Login"]
+                        </a>
+                    }
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - RentMate - <a asp-area="" asp-controller="Home" asp-action="Privacy">@Localizer["Privacy"]</a>
+    
+    <!-- Main Content with top padding for fixed navbar -->
+    <main class="pt-16 md:pt-20 min-h-screen">
+        @RenderBody()
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div class="col-span-2 md:col-span-1">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center">
+                            <i class="bi bi-house-heart text-white text-lg"></i>
+                        </div>
+                        <span class="font-heading font-bold text-xl text-white">RentMate</span>
+                    </div>
+                    <p class="text-sm text-slate-500">@Localizer["Rent anything, anywhere."]</p>
+                </div>
+                <div>
+                    <h4 class="font-heading font-semibold text-white mb-4">@Localizer["Explore"]</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a asp-controller="Rentals" asp-action="Index" class="hover:text-blue-400 transition-colors">@Localizer["Marketplace"]</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">@Localizer["Categories"]</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">@Localizer["How it works"]</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-heading font-semibold text-white mb-4">@Localizer["Host"]</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a asp-controller="Items" asp-action="Create" class="hover:text-blue-400 transition-colors">@Localizer["List your item"]</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">@Localizer["Host resources"]</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">@Localizer["Community"]</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-heading font-semibold text-white mb-4">@Localizer["Support"]</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">@Localizer["Help Center"]</a></li>
+                        <li><a asp-controller="Home" asp-action="Privacy" class="hover:text-blue-400 transition-colors">@Localizer["Privacy Policy"]</a></li>
+                        <li><a href="#" class="hover:text-blue-400 transition-colors">@Localizer["Terms of Service"]</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-slate-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-sm">&copy; @DateTime.Now.Year RentMate. @Localizer["All rights reserved."]</p>
+                <div class="flex items-center gap-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors">
+                        <i class="bi bi-facebook"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors">
+                        <i class="bi bi-twitter-x"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-blue-600 flex items-center justify-center transition-colors">
+                        <i class="bi bi-instagram"></i>
+                    </a>
+                </div>
+            </div>
         </div>
     </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="~/js/translations.js" asp-append-version="true"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/lib/signalr/signalr.min.js"></script>
-
+    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

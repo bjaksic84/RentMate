@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
 @using RentMate.Shared
 @model RentMate.Models.DashboardViewModel
 @inject IViewLocalizer Localizer
@@ -8,947 +8,424 @@
     ViewData["Title"] = Localizer["Dashboard"];
 }
 
-<div class="container mt-5 pb-5">
-    
-    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-            <h2 class="fw-bold mb-0">@Localizer["👋 Hello, {0}", User.Identity?.Name]</h2>
-            <p class="text-muted mb-0">@Localizer["Manage your items, rentals, and borrowings in one place."]</p>
-            
+            <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["👋 Hello, {0}", User.Identity?.Name]</h1>
+            <p class="text-slate-500 mt-1">@Localizer["Manage your items, rentals, and borrowings in one place."]</p>
         </div>
-        <div>
-            <span id="connectionIndicator" class="badge bg-secondary rounded-pill px-3 py-2">@Localizer["Offline"]</span>
+        <div class="flex items-center gap-3">
+            <span id="connectionIndicator" class="px-3 py-1.5 bg-slate-200 text-slate-600 text-sm font-medium rounded-full">
+                @Localizer["Offline"]
+            </span>
+            <a asp-controller="Items" asp-action="Create" 
+               class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm  transition-all">
+                <i class="bi bi-plus-lg"></i>
+                @Localizer["Add Item"]
+            </a>
         </div>
     </div>
 
-    <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3"></div>
+    <!-- Toast Container -->
+    <div id="toastContainer" class="fixed top-20 right-4 z-50 space-y-2"></div>
+
+    <!-- Alerts -->
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+            <i class="bi bi-check-circle-fill text-green-600 text-xl"></i>
+            <span class="text-green-800">@TempData["SuccessMessage"]</span>
+            <button type="button" class="ml-auto text-green-600 hover:text-green-800" onclick="this.parentElement.remove()">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
     }
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+            <i class="bi bi-exclamation-triangle-fill text-red-600 text-xl"></i>
+            <span class="text-red-800">@TempData["ErrorMessage"]</span>
+            <button type="button" class="ml-auto text-red-600 hover:text-red-800" onclick="this.parentElement.remove()">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
     }
 
-    <div class="row g-5">
-
-        @* --- My Items Section --- *@
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-box-seam me-2"></i>@Localizer["My Items"]</h5>
-                    <button class="btn btn-primary btn-sm rounded-pill px-3" type="button" data-bs-toggle="collapse" data-bs-target="#createItemForm">
-                        <i class="bi bi-plus-lg"></i> @Localizer["Add Item"]
-                    </button>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <i class="bi bi-box-seam text-blue-600 text-xl"></i>
                 </div>
-
-                <div class="collapse px-4 pb-3" id="createItemForm">
-                    <div class="bg-light p-4 rounded-3 border">
-                        <h6 class="fw-bold mb-3">@Localizer["New Item"]</h6>
-                        <form asp-controller="Items" asp-action="Create" method="post" enctype="multipart/form-data">
-                            <div class="modal-body p-4">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">@Localizer["Title"]</label>
-                                    <input name="Title" class="form-control" required placeholder="@Localizer["e.g. Electric Drill"]" />
-                                </div>
-                                @* NOVA FIKSNA KATEGORIJA *@
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">@Localizer["Category"]</label>
-                                    <select name="Category" class="form-select py-2" required>
-                                        <option value="" disabled selected>@Localizer["Choose..."]</option>
-                                        <option value="Tools">🛠️ @Localizer["Tools"]</option>
-                                        <option value="Electronics">💻 @Localizer["Electronics"]</option>
-                                        <option value="Sport">⚽ @Localizer["Sports"]</option>
-                                        <option value="Home">🏠 @Localizer["Home & Garden"]</option>
-                                        <option value="Events">🎉 @Localizer["Fun"]</option>
-                                        <option value="Other">📦 @Localizer["Other"]</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">@Localizer["Price per day"] (@CurrencyService.GetCurrentCurrency().Code)</label>
-                                    <input name="Price" type="number" step="0.01" class="form-control" required placeholder="0.00" />
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">@Localizer["Main Image"]</label>
-                                    <input type="file" name="image" class="form-control" accept="image/*" required />
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label small fw-bold">@Localizer["Description"]</label>
-                                    <textarea name="Description" class="form-control" rows="2" placeholder="@Localizer["Short description of the item..."]"></textarea>
-                                </div>
-                            </div>
-                            <div class="mt-3 text-end">
-                                <button type="button" class="btn btn-link text-muted text-decoration-none me-2" data-bs-toggle="collapse" data-bs-target="#createItemForm">@Localizer["Cancel"]</button>
-                                <button type="submit" class="btn btn-success px-4">@Localizer["Publish Item"]</button>
-                            </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="table-responsive">
-                    @if (Model.ListingsOwned?.Any() ?? false)
-                    {
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="bg-light text-muted small text-uppercase">
-                                <tr>
-                                    <th class="ps-4">@Localizer["Item"]</th>
-                                    <th>@Localizer["Price/Day"]</th>
-                                    <th>@Localizer["Status"]</th>
-                                    <th>@Localizer["Statistics"]</th>
-                                    <th class="text-end pe-4">@Localizer["Actions"]</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in Model.ListingsOwned)
-                                {
-                                    <tr>
-                                        <td class="ps-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="me-3" style="width: 48px; height: 48px;">
-                                                    @if(!string.IsNullOrEmpty(item.ImageUrl)) {
-                                                        // Thumbnail transformation: 100x100, focus on face/center, round
-                                                        var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_100,h_100,g_face,q_auto/");
-                                                        <img src="@thumbUrl" class="rounded bg-light border" style="width:100%; height:100%; object-fit:cover;" />
-                                                    } else {
-                                                        <div class="bg-light rounded border d-flex align-items-center justify-content-center w-100 h-100">
-                                                            <i class="bi bi-image text-muted opacity-50"></i>
-                                                        </div>
-                                                    }
-                                                </div>
-                                                <div>
-                                                    <div class="fw-bold text-dark">@item.Title</div>
-                                                    <div class="small text-muted">@item.Category</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="fw-bold text-primary">@CurrencyService.Format(item.Price)</td>
-                                        <td>
-                                            @if (item.IsListed)
-                                            {
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">@Localizer["Listed"]</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">@Localizer["Hidden"]</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            <div class="d-flex gap-3 small text-muted">
-                                                <span title="@Localizer["Rating"]"><i class="bi bi-star-fill text-warning"></i> @(item.AverageRating?.ToString("0.0") ?? "-")</span>
-                                                <span title="@Localizer["Number of reviews"]"><i class="bi bi-chat-left-text"></i> @item.ReviewCount</span>
-                                            </div>
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <div class="btn-group">
-                                                <button class="btn btn-sm btn-outline-secondary" onclick="toggleListing(@item.Id, this)" title="@Localizer["Change visibility"]">
-                                                    @if(item.IsListed) { <i class="bi bi-eye-slash"></i> } else { <i class="bi bi-eye"></i> }
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#reviewsModal"
-                                                        data-itemid="@item.Id" data-title="@item.Title" title="@Localizer["View reviews"]">
-                                                    <i class="bi bi-chat-dots"></i>
-                                                </button>
-                                                <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="@Localizer["Edit"]">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger" title="@Localizer["Delete"]">
-                                                    <i class="bi bi-trash"></i>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                    else
-                    {
-                        <div class="text-center py-5">
-                            <i class="bi bi-box-seam display-1 text-muted opacity-25"></i>
-                            <h5 class="mt-3 text-muted">@Localizer["You have no listed items yet."]</h5>
-                            <button class="btn btn-primary mt-2" type="button" data-bs-toggle="collapse" data-bs-target="#createItemForm">@Localizer["Add First Item"]</button>
-                        </div>
-                    }
+                <div>
+                    <p class="text-2xl font-bold text-slate-900">@(Model.ListingsOwned?.Count() ?? 0)</p>
+                    <p class="text-sm text-slate-500">@Localizer["My Items"]</p>
                 </div>
             </div>
         </div>
-
-        @* --- Rentals (Owner) Section --- *@
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white border-0 py-3">
-                    <h5 class="fw-bold mb-0 text-success"><i class="bi bi-graph-up-arrow me-2"></i>@Localizer["Renting Out (Owner)"]</h5>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                    <i class="bi bi-graph-up-arrow text-green-600 text-xl"></i>
                 </div>
-                <div class="table-responsive">
-                    @if (Model.OwnerRentals?.Any() ?? false)
-                    {
-                        <table class="table table-hover align-middle mb-0" id="ownerRentalsTable">
-                            <thead class="bg-light text-muted small text-uppercase">
-                                <tr>
-                                    <th class="ps-4">@Localizer["Item"]</th>
-                                    <th>@Localizer["Renter"]</th>
-                                    <th>@Localizer["Term"]</th>
-                                    <th>@Localizer["Earnings"]</th>
-                                    <th>@Localizer["Status"]</th>
-                                    <th class="text-end pe-4">@Localizer["Actions"]</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var rental in Model.OwnerRentals)
-                                {
-                                    <tr>
-                                        <td class="ps-4">
-                                            <div class="fw-bold">@rental.Item?.Title</div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <div class="me-2">
-                                                    @if (!string.IsNullOrEmpty(rental.Renter?.ProfilePictureUrl))
-                                                    {
-                                                        <img src="@rental.Renter.ProfilePictureUrl"
-                                                             class="rounded-circle border border-secondary shadow-sm"
-                                                             style="width: 32px; height: 32px; object-fit: cover;"
-                                                             alt="Renter" />
-                                                    }
-                                                    else
-                                                    {
-                                                        <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center shadow-sm"
-                                                             style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                                            <i class="bi bi-person"></i>
-                                                        </div>
-                                                    }
-                                                </div>
-                                                <span class="small">@rental.Renter?.Email</span>
-                                            </div>
-                                        </td>
-                                        <td class="small text-muted">
-                                            <div>@rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")</div>
-                                        </td>
-                                        <td class="fw-bold text-success">
-                                            @CurrencyService.Format(rental.TotalPrice)
-                                        </td>
-                                        <td>
-                                            @if (rental.Status == RentMate.Shared.RentalStatus.Pending)
-                                            { <span class="badge bg-warning text-dark">@Localizer["Pending Approval"]</span> }
-                                            else if (rental.Status == RentMate.Shared.RentalStatus.Active)
-                                            { <span class="badge bg-primary">@Localizer["Active"]</span> }
-                                            else if (rental.Status == RentMate.Shared.RentalStatus.Completed)
-                                            { <span class="badge bg-success">@Localizer["Completed"]</span> }
-                                            else
-                                            { <span class="badge bg-danger">@Localizer["Cancelled"]</span> }
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            @if (rental.Status == RentMate.Shared.RentalStatus.Pending)
-                                            {
-                                                <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="d-inline">
-                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                    <button class="btn btn-sm btn-success rounded-pill px-3"><i class="bi bi-check-lg"></i> @Localizer["Approve"]</button>
-                                                </form>
-                                                <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline ms-1">
-                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                    <button class="btn btn-sm btn-outline-danger rounded-pill px-3"><i class="bi bi-x-lg"></i> @Localizer["Reject"]</button>
-                                                </form>
-                                            }
-                                            else if (rental.Status == RentMate.Shared.RentalStatus.Active)
-                                            {
-                                                <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
-                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                    <button class="btn btn-sm btn-primary rounded-pill px-3">@Localizer["Mark Returned"]</button>
-                                                </form>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted small">—</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                    else
-                    {
-                        <div class="text-center py-5">
-                            <i class="bi bi-calendar-x display-1 text-muted opacity-25"></i>
-                            <h5 class="mt-3 text-muted">@Localizer["No rental requests at the moment."]</h5>
-                        </div>
-                    }
+                <div>
+                    <p class="text-2xl font-bold text-slate-900">@(Model.OwnerRentals?.Count() ?? 0)</p>
+                    <p class="text-sm text-slate-500">@Localizer["Renting Out"]</p>
                 </div>
             </div>
         </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <i class="bi bi-bag text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-slate-900">@(Model.MyRentals?.Count() ?? 0)</p>
+                    <p class="text-sm text-slate-500">@Localizer["My Rentals"]</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <i class="bi bi-star text-amber-600 text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-slate-900">@(Model.ListingsOwned?.Sum(i => i.ReviewCount) ?? 0)</p>
+                    <p class="text-sm text-slate-500">@Localizer["Reviews"]</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        @* --- My Rentals (From Others) Section --- *@
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="fw-bold mb-0 text-secondary"><i class="bi bi-bag me-2"></i>@Localizer["My Rentals (From Others)"]</h5>
-                    <a asp-controller="Rentals" asp-action="Index" class="btn btn-outline-primary btn-sm rounded-pill">
-                        <i class="bi bi-search me-1"></i> @Localizer["Search Marketplace"]
+    <div class="space-y-8">
+        <!-- My Items Section -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="bi bi-box-seam text-blue-600"></i>
+                    @Localizer["My Items"]
+                </h2>
+            </div>
+
+            @if (Model.ListingsOwned?.Any() ?? false)
+            {
+                <div class="divide-y divide-slate-100">
+                    @foreach (var item in Model.ListingsOwned)
+                    {
+                        <div class="p-4 hover:bg-slate-50 transition-colors">
+                            <div class="flex items-center gap-4">
+                                <!-- Image -->
+                                <div class="w-16 h-16 shrink-0">
+                                    @if(!string.IsNullOrEmpty(item.ImageUrl)) {
+                                        var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_100,h_100,g_face,q_auto/");
+                                        <img src="@thumbUrl" class="w-full h-full rounded-xl object-cover" />
+                                    } else {
+                                        <div class="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center">
+                                            <i class="bi bi-image text-slate-400"></i>
+                                        </div>
+                                    }
+                                </div>
+                                
+                                <!-- Info -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="font-semibold text-slate-900 truncate">@item.Title</h3>
+                                        @if (item.IsListed)
+                                        {
+                                            <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">@Localizer["Listed"]</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">@Localizer["Hidden"]</span>
+                                        }
+                                    </div>
+                                    <p class="text-sm text-slate-500">@Localizer[item.Category]</p>
+                                    <div class="flex items-center gap-4 mt-1 text-sm">
+                                        <span class="font-semibold text-blue-600">@CurrencyService.Format(item.Price)/@Localizer["day"]</span>
+                                        <span class="text-slate-400">•</span>
+                                        <span class="text-slate-500"><i class="bi bi-star-fill text-amber-400"></i> @(item.AverageRating?.ToString("0.0") ?? "-")</span>
+                                        <span class="text-slate-400">•</span>
+                                        <span class="text-slate-500">@item.ReviewCount @Localizer["reviews"]</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Actions -->
+                                <div class="flex items-center gap-2">
+                                    <button onclick="toggleListing(@item.Id, this)" 
+                                            class="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" 
+                                            title="@Localizer["Change visibility"]">
+                                        @if(item.IsListed) { <i class="bi bi-eye-slash"></i> } else { <i class="bi bi-eye"></i> }
+                                    </button>
+                                    <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" 
+                                       class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                       title="@Localizer["Edit"]">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" 
+                                       class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                       title="@Localizer["Delete"]">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="py-12 text-center">
+                    <i class="bi bi-box-seam text-6xl text-slate-200"></i>
+                    <h3 class="mt-4 text-lg font-semibold text-slate-900">@Localizer["You have no listed items yet."]</h3>
+                    <p class="text-slate-500 mt-1">@Localizer["Start earning by listing your first item"]</p>
+                    <a asp-controller="Items" asp-action="Create" class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
+                        <i class="bi bi-plus-lg"></i>
+                        @Localizer["Add First Item"]
                     </a>
                 </div>
+            }
+        </div>
 
-                <div class="table-responsive">
-                    @if (Model.MyRentals?.Any() ?? false)
+        <!-- Renting Out (Owner) Section -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200">
+                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="bi bi-graph-up-arrow text-green-600"></i>
+                    @Localizer["Renting Out (Owner)"]
+                </h2>
+            </div>
+
+            @if (Model.OwnerRentals?.Any() ?? false)
+            {
+                <div class="divide-y divide-slate-100">
+                    @foreach (var rental in Model.OwnerRentals)
                     {
-                        <table class="table table-hover align-middle mb-0" id="myRentalsTable">
-                            <thead class="bg-light text-muted small text-uppercase">
-                                <tr>
-                                    <th class="ps-4">@Localizer["Item"]</th>
-                                    <th>@Localizer["Owner"]</th>
-                                    <th>@Localizer["Term"]</th>
-                                    <th>@Localizer["Price"]</th>
-                                    <th>@Localizer["Status"]</th>
-                                    <th class="text-end pe-4">@Localizer["Actions"]</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var rental in Model.MyRentals)
-                                {
-                                    <tr>
-                                        <td class="ps-4">
-                                            <div class="d-flex align-items-center">
-                                                <div class="bg-light rounded d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                                                     @if(!string.IsNullOrEmpty(rental.Item?.ImageUrl)) {
-                                                         <img src="@rental.Item.ImageUrl" class="rounded" style="width:100%; height:100%; object-fit:cover;" />
-                                                     } else {
-                                                          <i class="bi bi-box text-muted opacity-50"></i>
-                                                     }
-                                                </div>
-                                                <div class="fw-bold text-dark">@rental.Item?.Title</div>
+                        <div class="p-4 hover:bg-slate-50 transition-colors">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-slate-900">@rental.Item?.Title</h3>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        @if (!string.IsNullOrEmpty(rental.Renter?.ProfilePictureUrl))
+                                        {
+                                            <img src="@rental.Renter.ProfilePictureUrl" class="w-6 h-6 rounded-full object-cover" />
+                                        }
+                                        else
+                                        {
+                                            <div class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">
+                                                <i class="bi bi-person"></i>
                                             </div>
-                                        </td>
-                                        <td class="small">
-                                            <div class="d-flex align-items-center">
-                                                @* Profile picture spot *@
-                                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" 
-                                                     style="width: 32px; height: 32px; overflow: hidden; flex-shrink: 0;">
-                                                    @if(!string.IsNullOrEmpty(rental.Owner?.ProfilePictureUrl))
-                                                    {
-                                                        <img src="@rental.Owner.ProfilePictureUrl" 
-                                                             class="rounded-circle" 
-                                                             style="width:100%; height:100%; object-fit:cover;" 
-                                                             alt="Profile Picture"/>
-                                                    }
-                                                    else
-                                                    {
-                                                        @* Fallback icon if no picture (assuming Bootstrap icons) *@
-                                                        <i class="bi bi-person-circle text-muted opacity-75" style="font-size: 1.2rem;"></i>
-                                                    }
-                                                </div>
-                                                @* Email/Owner Name *@
-                                                <span class="text-dark text-truncate">@rental.Owner?.Email</span>
-                                            </div>
-                                        </td>
-                                        <td class="small">
-                                            <div>@rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")</div>
-                                        </td>
-                                        <td class="fw-bold text-dark">
-                                            @CurrencyService.Format(rental.TotalPrice)
-                                        </td>
-                                        <td>
-                                            @if(rental.Status == RentalStatus.Pending) { <span class="badge bg-warning text-dark">@Localizer["Pending Approval"]</span> }
-                                            else if(rental.Status == RentalStatus.Active) { <span class="badge bg-secondary">@Localizer["In Progress"]</span> }
-                                            else if(rental.Status == RentalStatus.Completed) { <span class="badge bg-success">@Localizer["Returned"]</span> }
-                                            else { <span class="badge bg-danger">@Localizer["Cancelled"]</span> }
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            @if (rental.Status == RentalStatus.Pending)
-                                            {
-                                                <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="d-inline">
-                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                    <button class="btn btn-sm btn-outline-danger">@Localizer["Cancel"]</button>
-                                                </form>
-                                            }
-                                            else if (rental.Status == RentalStatus.Active)
-                                            {
-                                                 <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="d-inline">
-                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                    <button class="btn btn-sm btn-primary">@Localizer["Return Item"]</button>
-                                                </form>
-                                            }
-                                            else if (rental.Status == RentalStatus.Completed)
-                                            {
-                                                <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#writeReviewModal"
-                                                        data-itemid="@rental.ItemId" data-itemtitle="@rental.Item?.Title">
-                                                    <i class="bi bi-star"></i> @Localizer["Rate"]
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-secondary d-none" id="editBtn-@rental.ItemId"
-                                                        data-bs-toggle="modal" data-bs-target="#editReviewModal"
-                                                        data-itemid="@rental.ItemId" data-itemtitle="@rental.Item?.Title">
-                                                    <i class="bi bi-pencil"></i>
-                                                </button>
-                                                <button class="btn btn-sm btn-outline-danger d-none" id="deleteBtn-@rental.ItemId"
-                                                        onclick="deleteReview(@rental.ItemId)">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted small">—</span>
-                                            }
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
-                    else
-                    {
-                        <div class="text-center py-5">
-                            <i class="bi bi-cart-x display-1 text-muted opacity-25"></i>
-                            <h5 class="mt-3 text-muted">@Localizer["You have no active rentals."]</h5>
-                            <a asp-controller="Rentals" asp-action="Index" class="btn btn-primary mt-2">@Localizer["Go to Marketplace"]</a>
+                                        }
+                                        <span class="text-sm text-slate-500">@rental.Renter?.Email</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex flex-wrap items-center gap-4 text-sm">
+                                    <div class="text-slate-500">
+                                        @rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")
+                                    </div>
+                                    <div class="font-bold text-green-600">@CurrencyService.Format(rental.TotalPrice)</div>
+                                    
+                                    @if (rental.Status == RentalStatus.Pending)
+                                    {
+                                        <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">@Localizer["Pending"]</span>
+                                    }
+                                    else if (rental.Status == RentalStatus.Active)
+                                    {
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">@Localizer["Active"]</span>
+                                    }
+                                    else if (rental.Status == RentalStatus.Completed)
+                                    {
+                                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">@Localizer["Completed"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">@Localizer["Cancelled"]</span>
+                                    }
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    @if (rental.Status == RentalStatus.Pending)
+                                    {
+                                        <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="inline">
+                                            <input type="hidden" name="rentalId" value="@rental.Id" />
+                                            <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                                <i class="bi bi-check-lg"></i> @Localizer["Approve"]
+                                            </button>
+                                        </form>
+                                        <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
+                                            <input type="hidden" name="rentalId" value="@rental.Id" />
+                                            <button class="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 text-sm font-medium rounded-lg transition-colors">
+                                                <i class="bi bi-x-lg"></i> @Localizer["Reject"]
+                                            </button>
+                                        </form>
+                                    }
+                                    else if (rental.Status == RentalStatus.Active)
+                                    {
+                                        <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="inline">
+                                            <input type="hidden" name="rentalId" value="@rental.Id" />
+                                            <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                                                @Localizer["Mark Returned"]
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
                         </div>
                     }
                 </div>
-            </div>
-        </div>
-    </div>
-
-    @* --- Modals --- *@
-    <div class="modal fade" id="writeReviewModal" tabindex="-1" aria-labelledby="writeReviewLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="writeReviewForm">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="writeReviewLabel">@Localizer["Write a Review"]</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="ItemId" id="reviewItemId" />
-                        <div class="mb-3">
-                            <label class="form-label">@Localizer["Rating"]</label>
-                            <div id="reviewStars" class="text-warning fs-4"></div>
-                            <input type="hidden" name="Rating" id="reviewRating" required />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">@Localizer["Title"]</label>
-                            <input name="Title" maxlength="200" class="form-control" placeholder="@Localizer["Optional"]" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">@Localizer["Review"]</label>
-                            <textarea name="Body" maxlength="2000" class="form-control" rows="4"
-                                      placeholder="@Localizer["Describe your experience"]"></textarea>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="IsAnonymous" id="reviewAnon">
-                            <label class="form-check-label" for="reviewAnon">@Localizer["Post anonymously"]</label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary w-100">@Localizer["Submit Review"]</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="editReviewModal" tabindex="-1" aria-labelledby="editReviewLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="editReviewForm">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editReviewLabel">@Localizer["Edit Review"]</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" name="Id" id="editReviewId" />
-                        <input type="hidden" name="ItemId" id="editItemId" />
-
-                        <div class="mb-3">
-                            <label class="form-label">@Localizer["Rating"]</label>
-                            <div id="editReviewStars" class="text-warning fs-4"></div>
-                            <input type="hidden" name="Rating" id="editReviewRating" required />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">@Localizer["Title"]</label>
-                            <input name="Title" id="editReviewTitle" maxlength="200" class="form-control" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">@Localizer["Review"]</label>
-                            <textarea name="Body" id="editReviewBody" maxlength="2000" class="form-control" rows="4"></textarea>
-                        </div>
-
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="IsAnonymous" id="editReviewAnon">
-                            <label class="form-check-label" for="editReviewAnon">@Localizer["Post anonymously"]</label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn btn-primary w-100">@Localizer["Save Changes"]</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="reviewsModal" tabindex="-1" aria-labelledby="reviewsModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="reviewsModalLabel">@Localizer["Reviews"]</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            }
+            else
+            {
+                <div class="py-12 text-center">
+                    <i class="bi bi-calendar-x text-6xl text-slate-200"></i>
+                    <h3 class="mt-4 text-lg font-semibold text-slate-900">@Localizer["No rental requests at the moment."]</h3>
+                    <p class="text-slate-500 mt-1">@Localizer["When someone wants to rent your items, you'll see them here"]</p>
                 </div>
-                <div class="modal-body" id="reviewsModalBody">
-                    <div class="text-center text-muted">@Localizer["Loading..."]</div>
-                </div>
+            }
+        </div>
+
+        <!-- My Rentals (From Others) Section -->
+        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <i class="bi bi-bag text-purple-600"></i>
+                    @Localizer["My Rentals (From Others)"]
+                </h2>
+                <a asp-controller="Rentals" asp-action="Index" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    <i class="bi bi-search me-1"></i> @Localizer["Browse Marketplace"]
+                </a>
             </div>
+
+            @if (Model.MyRentals?.Any() ?? false)
+            {
+                <div class="divide-y divide-slate-100">
+                    @foreach (var rental in Model.MyRentals)
+                    {
+                        <div class="p-4 hover:bg-slate-50 transition-colors">
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                                <div class="flex-1">
+                                    <h3 class="font-semibold text-slate-900">@rental.Item?.Title</h3>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        @if (!string.IsNullOrEmpty(rental.Item?.User?.ProfilePictureUrl))
+                                        {
+                                            <img src="@rental.Item.User.ProfilePictureUrl" class="w-6 h-6 rounded-full object-cover" />
+                                        }
+                                        else
+                                        {
+                                            <div class="w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-xs">
+                                                <i class="bi bi-person"></i>
+                                            </div>
+                                        }
+                                        <span class="text-sm text-slate-500">@Localizer["From"] @rental.Item?.User?.FirstName</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex flex-wrap items-center gap-4 text-sm">
+                                    <div class="text-slate-500">
+                                        @rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")
+                                    </div>
+                                    <div class="font-bold text-slate-900">@CurrencyService.Format(rental.TotalPrice)</div>
+                                    
+                                    @if (rental.Status == RentalStatus.Pending)
+                                    {
+                                        <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">@Localizer["Pending"]</span>
+                                    }
+                                    else if (rental.Status == RentalStatus.Active)
+                                    {
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">@Localizer["Active"]</span>
+                                    }
+                                    else if (rental.Status == RentalStatus.Completed)
+                                    {
+                                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">@Localizer["Completed"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">@Localizer["Cancelled"]</span>
+                                    }
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    @{
+                                        // Check if this rental already has a review from the current user
+                                        var hasReview = rental.Item?.Reviews?.Any(r => r.RentalId == rental.Id && !r.IsDeleted) ?? false;
+                                    }
+                                    @if (rental.Status == RentalStatus.Completed && !hasReview)
+                                    {
+                                        <button class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors"
+                                                data-bs-toggle="modal" data-bs-target="#reviewModal" data-rentalid="@rental.Id">
+                                            <i class="bi bi-star"></i> @Localizer["Leave Review"]
+                                        </button>
+                                    }
+                                    else if (rental.Status == RentalStatus.Pending)
+                                    {
+                                        <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
+                                            <input type="hidden" name="rentalId" value="@rental.Id" />
+                                            <button class="px-4 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium rounded-lg transition-colors">
+                                                @Localizer["Cancel Request"]
+                                            </button>
+                                        </form>
+                                    }
+                                    <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId" 
+                                       class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="py-12 text-center">
+                    <i class="bi bi-bag text-6xl text-slate-200"></i>
+                    <h3 class="mt-4 text-lg font-semibold text-slate-900">@Localizer["You haven't rented anything yet."]</h3>
+                    <p class="text-slate-500 mt-1">@Localizer["Explore the marketplace to find items to rent"]</p>
+                    <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
+                        <i class="bi bi-search"></i>
+                        @Localizer["Browse Marketplace"]
+                    </a>
+                </div>
+            }
         </div>
     </div>
+</div>
 
-    @section Scripts {
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js"></script>
     <script>
-         // --- SignalR: Listen for live rental requests ---
+        // Toggle listing visibility
+        async function toggleListing(itemId, btn) {
+            try {
+                const response = await fetch(`/api/items/${itemId}/toggle-listing`, { method: 'POST' });
+                if (response.ok) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Error toggling listing:', error);
+            }
+        }
+
+        // SignalR connection
         const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/RentMateHub")
+            .withUrl("/rentMateHub")
+            .withAutomaticReconnect()
             .build();
 
-        connection.on("RentalRequested", (data) => {
-            console.log("🔔 New rental request:", data);
+        connection.on("RentalRequested", () => location.reload());
+        connection.on("RentalApproved", () => location.reload());
+        connection.on("RentalCompleted", () => location.reload());
+        connection.on("RentalCancelled", () => location.reload());
 
-            showToast(`@Localizer["🔔 New rental request for your item \""]${data.itemTitle}@Localizer["\" from "]${data.renterEmail}`, "info");
-
-            // Optionally, add the new rental row dynamically:
-            const tableBody = document.querySelector("#ownerRentalsTable tbody");
-            if (tableBody) {
-                const newRow = document.createElement("tr");
-                // Note: Badge and buttons here are static strings injected into HTML, so we localize them.
-                newRow.innerHTML = `
-                    <td>${data.itemTitle}</td>
-                    <td>${data.renterEmail}</td>
-                    <td><span class="badge bg-warning">${data.status}</span></td>
-                    <td>${data.startDate}</td>
-                    <td>${data.endDate}</td>
-                    <td>
-                        <form action="/Rentals/ApproveRental" method="post" class="d-inline">
-                            <input type="hidden" name="rentalId" value="${data.rentalId}" />
-                            <button class="btn btn-sm btn-success">@Localizer["Approve"]</button>
-                        </form>
-                        <form action="/Rentals/CancelRental" method="post" class="d-inline">
-                            <input type="hidden" name="rentalId" value="${data.rentalId}" />
-                            <button class="btn btn-sm btn-danger">@Localizer["Reject"]</button>
-                        </form>
-                    </td>
-                `;
-                tableBody.prepend(newRow);
-                newRow.classList.add("flash");
-                setTimeout(() => newRow.classList.remove("flash"), 1000);
-                bindRentalActionHandlers();
-            }
-        });
-
-        // --- Toast helper (shared from Rentals page) ---
-        function showToast(message, type = 'info') {
-            const toastContainerId = 'toastContainer';
-            let container = document.getElementById(toastContainerId);
-            if (!container) {
-                container = document.createElement('div');
-                container.id = toastContainerId;
-                container.className = 'toast-container position-fixed top-0 end-0 p-3';
-                document.body.appendChild(container);
-            }
-
-            const toastEl = document.createElement('div');
-            toastEl.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
-            toastEl.setAttribute('role', 'alert');
-            toastEl.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">${message}</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                </div>
-            `;
-            container.appendChild(toastEl);
-
-            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-            toast.show();
-            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-        }
-
-        const indicator = document.getElementById("connectionIndicator");
-        indicator.classList.add("visible");
-        function pulseIndicator() {
-            indicator.classList.add("flash");
-            setTimeout(() => indicator.classList.remove("flash"), 500);
-        }
-
-        connection.onreconnected(() => {
-            indicator.textContent = "@Localizer["Online"]";
-            indicator.classList.remove("bg-secondary", "bg-warning");
-            indicator.classList.add("bg-success");
-            pulseIndicator();
-            showToast("@Localizer["✅ Connected to live updates"]", "success");
-        });
-
-        connection.onreconnecting(() => {
-            indicator.textContent = "@Localizer["Reconnecting..."]";
-            indicator.classList.remove("bg-success", "bg-secondary");
-            indicator.classList.add("bg-warning");
-            pulseIndicator();
-        });
-
-        connection.onclose(() => {
-            indicator.textContent = "@Localizer["Offline"]";
-            indicator.classList.remove("bg-success", "bg-warning");
-            indicator.classList.add("bg-secondary");
-            pulseIndicator();
-        });
-
-        connection.start().then(() => {
-            indicator.textContent = "@Localizer["Online"]";
-            indicator.classList.remove("bg-secondary");
-            indicator.classList.add("bg-success");
-            bindRentalActionHandlers();
-        }).catch(err => console.error("SignalR connection failed:", err));
-
-        connection.on("RentalStatusChanged", (data) => {
-            console.log("📦 Rental status update:", data);
-
-            showToast(data.message, "success");
-
-            // Update the renter's "My Rentals from Others" table
-            const table = document.querySelector("#myRentalsTable");
-            if (!table) return;
-
-            const row = [...table.querySelectorAll("tr")].find(r =>
-                r.innerHTML.includes(data.itemTitle)
-            );
-
-            if (row) {
-                row.classList.add("flash");
-                const statusCell = row.querySelector("td:nth-child(3)");
-                // Assuming data.newStatus comes in English or Technical ID from backend.
-                if (statusCell) statusCell.innerHTML = `<span class="badge bg-info">${data.newStatus}</span>`;
-                setTimeout(() => row.classList.remove("flash"), 1000);
-            }
-        });
-
-        // --- Handle action buttons (Approve / Reject / Complete) ---
-        function bindRentalActionHandlers() {
-            document.querySelectorAll('form[action*="Rentals"]').forEach(form => {
-                // Skip if already bound
-                if (form.dataset.bound === "true") return;
-                form.dataset.bound = "true";
-
-                form.addEventListener('submit', async e => {
-                    e.preventDefault();
-                    const formData = new FormData(form);
-                    const action = form.getAttribute('action');
-                    const row = form.closest('tr');
-
-                    try {
-                        const response = await fetch(action, { method: 'POST', body: formData });
-                        if (response.ok) {
-                            if (action.includes('ApproveRental')) {
-                                updateRow(row, '@Localizer["Active"]', 'primary', '@Localizer["Rental approved."]');
-                            } else if (action.includes('CancelRental')) {
-                                updateRow(row, '@Localizer["Cancelled"]', 'secondary', '@Localizer["Rental cancelled."]');
-                            } else if (action.includes('CompleteRental')) {
-                                updateRow(row, '@Localizer["Completed"]', 'success', '@Localizer["Rental completed."]');
-                            }
-                        } else {
-                            const err = await response.text();
-                            showToast('@Localizer["❌ Action failed: "]' + err, 'danger');
-                        }
-                    } catch (err) {
-                        console.error(err);
-                        showToast('@Localizer["❌ Network error performing action."]', 'danger');
-                    }
-                });
-            });
-        }
-
-        // --- Update the table row visually ---
-        function updateRow(row, newStatus, color, toastMessage) {
-            const statusCell = row.querySelector('td:nth-child(3)');
-            const actionsCell = row.querySelector('td:last-child');
-
-            if (statusCell) {
-                statusCell.innerHTML = `<span class="badge bg-${color}">${newStatus}</span>`;
-            }
-            if (actionsCell) {
-                actionsCell.innerHTML = `<span class="text-muted">—</span>`;
-            }
-
-            row.classList.add('opacity-75');
-            showToast(`✅ ${toastMessage}`, color);
-        }
-
-        // --- Toggle listing: only update badge content and button icon ---
-        async function toggleListing(itemId, button) {
-            try {
-                const res = await fetch(`/Items/ToggleListing/${itemId}`, { method: "POST" });
-                if (!res.ok) throw new Error("Failed to toggle listing");
-
-                const data = await res.json();
-                const row = button.closest("tr");
-                const listedCell = row.querySelector("td:nth-child(3)");
-                const isListed = data.isListed === true || data.isListed === "true";
-
-                if (data.success) {
-                    // update button classes (keep layout classes intact)
-                    button.classList.toggle("btn-success", !isListed);
-                    button.classList.toggle("btn-warning", isListed);
-
-                    // update icon inside button
-                    const icon = button.querySelector('i');
-                    if (icon) {
-                        icon.className = isListed ? 'bi bi-eye-slash' : 'bi bi-eye';
-                    } else {
-                        button.innerHTML = isListed ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
-                    }
-
-                    // replace only the inner HTML of the status cell with a proper badge
-                    if (listedCell) {
-                        if (isListed) {
-                            listedCell.innerHTML = '<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2">@Localizer["Listed"]</span>';
-                        } else {
-                            listedCell.innerHTML = '<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2">@Localizer["Hidden"]</span>';
-                        }
-                    }
-
-                    showToast(isListed ? "@Localizer["✅ Item listed successfully!"]" : "@Localizer["🔕 Item unlisted."]", isListed ? "success" : "secondary");
-                    row.classList.add("flash");
-                    setTimeout(() => row.classList.remove("flash"), 1000);
-                } else {
-                    showToast("@Localizer["❌ Could not update listing status."]", "danger");
-                }
-            } catch (err) {
-                console.error(err);
-                showToast("@Localizer["❌ Network error while updating listing."]", "danger");
-            }
-        }
+        connection.start()
+            .then(() => {
+                document.getElementById('connectionIndicator').className = 'px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-full';
+                document.getElementById('connectionIndicator').textContent = '@Localizer["Live"]';
+            })
+            .catch(err => console.error('SignalR Error:', err));
     </script>
-    <script>
-        document.getElementById('reviewsModal')
-        .addEventListener('show.bs.modal', async event => {
-            const button = event.relatedTarget;
-            const itemId = button.getAttribute('data-itemid');
-            const title  = button.getAttribute('data-title');
-            const modalTitle = document.getElementById('reviewsModalLabel');
-            const modalBody  = document.getElementById('reviewsModalBody');
+}
 
-            modalTitle.textContent = `@Localizer["Reviews for \""]${title}"`;
-            modalBody.innerHTML = `<div class="text-center text-muted p-3">@Localizer["Loading reviews..."]</div>`;
-
-            try {
-                const res = await fetch(`/api/Reviews/item/${itemId}?page=1&pageSize=20`);
-                if (!res.ok) throw new Error(await res.text());
-                const data = await res.json();
-
-                modalBody.innerHTML = "";
-                if (!data.reviews?.length) {
-                    modalBody.innerHTML = `<div class="text-center text-muted p-3">@Localizer["No reviews yet."]</div>`;
-                    return;
-                }
-
-                data.reviews.forEach(r => {
-                    const stars = Array.from({ length: 5 }, (_, i) =>
-                        `<i class="fa${i < r.rating ? 's' : 'r'} fa-star text-warning"></i>`
-                    ).join("");
-
-                    const block = document.createElement("div");
-                    block.className = "border-bottom pb-3 mb-3";
-                    block.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>${r.isAnonymous ? "@Localizer["Anonymous"]" : (r.reviewer?.userName ?? "@Localizer["User"]")}</strong>
-                            <span>${stars}</span>
-                        </div>
-                        ${r.title ? `<div class="fw-bold mt-1">${r.title}</div>` : ""}
-                        ${r.body ? `<p class="mb-0 mt-1">${r.body}</p>` : ""}
-                        <small class="text-muted">${new Date(r.createdAt).toLocaleString()}</small>
-                    `;
-                    modalBody.appendChild(block);
-                });
-            } catch (err) {
-                console.error(err);
-                modalBody.innerHTML = `<div class="text-danger text-center p-3">@Localizer["Failed to load reviews."]</div>`;
-            }
-        });
-
-        // === Review Edit/Delete Logic ===
-        document.addEventListener("DOMContentLoaded", async () => {
-            // --- Helper: Star builder ---
-            function buildStarPicker(containerId, inputId, val = 0) {
-                const container = document.getElementById(containerId);
-                const input = document.getElementById(inputId);
-                if (!container || !input) return;
-                container.innerHTML = "";
-
-                for (let i = 1; i <= 5; i++) {
-                    const star = document.createElement("i");
-                    star.className = i <= val ? "bi bi-star-fill text-warning" : "bi bi-star text-muted";
-                    star.dataset.value = i;
-                    star.style.cursor = "pointer";
-                    star.addEventListener("mouseenter", () => highlight(i));
-                    star.addEventListener("mouseleave", () => highlight(input.value));
-                    star.addEventListener("click", () => {
-                        input.value = i;
-                        highlight(i);
-                    });
-                    container.appendChild(star);
-                }
-
-                function highlight(v) {
-                    container.querySelectorAll("i").forEach((s, idx) => {
-                        s.className = idx < v ? "bi bi-star-fill text-warning" : "bi bi-star text-muted";
-                    });
-                }
-
-                highlight(val);
-            }
-
-            // --- Write Review Modal setup ---
-            const writeModal = document.getElementById("writeReviewModal");
-            const writeForm = document.getElementById("writeReviewForm");
-
-            if (writeModal && writeForm) {
-                writeModal.addEventListener("shown.bs.modal", event => {
-                    const btn = event.relatedTarget;
-                    const itemId = btn.getAttribute("data-itemid");
-                    const title = btn.getAttribute("data-itemtitle");
-
-                    document.getElementById("writeReviewLabel").textContent = `@Localizer["Review: "]${title}`;
-                    document.getElementById("reviewItemId").value = itemId;
-                    document.getElementById("reviewRating").value = 0;
-
-                    buildStarPicker("reviewStars", "reviewRating", 0);
-                });
-
-                // --- Write Review Submit ---
-                if (!window.writeReviewBound) {
-                    window.writeReviewBound = true; // ✅ prevents duplicate binding
-                    writeForm.addEventListener("submit", async e => {
-                        e.preventDefault();
-                        const data = Object.fromEntries(new FormData(writeForm).entries());
-                        data.Rating = parseInt(data.Rating);
-
-                        const res = await fetch(`/api/Reviews`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(data)
-                        });
-
-                        if (res.ok) {
-                            bootstrap.Modal.getInstance(writeModal)?.hide();
-                            showToast("@Localizer["✅ Review posted successfully!"]", "success");
-
-                            const itemId = data.ItemId;
-                            const writeBtn = document.querySelector(`[data-bs-target="#writeReviewModal"][data-itemid="${itemId}"]`);
-                            const editBtn = document.getElementById(`editBtn-${itemId}`);
-                            const delBtn = document.getElementById(`deleteBtn-${itemId}`);
-                            if (writeBtn) writeBtn.classList.add("d-none");
-                            if (editBtn) editBtn.classList.remove("d-none");
-                            if (delBtn) delBtn.classList.remove("d-none");
-
-                            setTimeout(() => {
-                                document.body.classList.remove("modal-open");
-                                document.querySelector(".modal-backdrop")?.remove();
-                            }, 400);
-                            writeForm.reset();
-                        } else {
-                            const err = await res.text();
-                            showToast(`@Localizer["❌ "]${err}`, "danger");
-                        }
-                    });
-                }
-            }
-
-            // --- Check existing reviews to toggle buttons ---
-            document.querySelectorAll('[data-bs-target="#writeReviewModal"]').forEach(async btn => {
-                const itemId = btn.getAttribute("data-itemid");
-                const editBtn = document.getElementById(`editBtn-${itemId}`);
-                const delBtn = document.getElementById(`deleteBtn-${itemId}`);
-
-                try {
-                    const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
-                    if (res.ok) {
-                        btn.classList.add("d-none");
-                        editBtn?.classList.remove("d-none");
-                        delBtn?.classList.remove("d-none");
-                    } else {
-                        btn.classList.remove("d-none");
-                        editBtn?.classList.add("d-none");
-                        delBtn?.classList.add("d-none");
-                    }
-                } catch (err) {
-                    console.error("Error checking user reviews:", err);
-                }
-            });
-
-            // --- Delete Review ---
-            window.deleteReview = async itemId => {
-                if (!confirm("@Localizer["Are you sure you want to delete your review?"]")) return;
-                const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
-                if (!res.ok) return showToast("@Localizer["❌ You haven't reviewed this item yet."]", "danger");
-
-                const review = await res.json();
-                const delRes = await fetch(`/api/Reviews/${review.id}`, { method: "DELETE" });
-                if (delRes.ok) {
-                    showToast("@Localizer["🗑️ Review deleted."]", "secondary");
-                    setTimeout(() => location.reload(), 700);
-                } else {
-                    showToast("@Localizer["❌ Failed to delete review."]", "danger");
-                }
-            };
-
-            // --- Edit Modal setup + submit ---
-            const editModal = document.getElementById('editReviewModal');
-            const editForm = document.getElementById('editReviewForm');
-
-            if (editModal && editForm) {
-                editModal.addEventListener('show.bs.modal', async event => {
-                    const btn = event.relatedTarget;
-                    const itemId = btn.getAttribute('data-itemid');
-                    const title = btn.getAttribute('data-itemtitle');
-
-                    document.getElementById('editReviewLabel').textContent = `@Localizer["Edit Review: "]${title}`;
-                    document.getElementById('editItemId').value = itemId;
-
-                    const res = await fetch(`/api/Reviews/mine/item/${itemId}`);
-                    if (!res.ok) return showToast("@Localizer["Failed to load review"]", "danger");
-                    const r = await res.json();
-
-                    document.getElementById('editReviewId').value = r.id;
-                    document.getElementById('editReviewTitle').value = r.title ?? "";
-                    document.getElementById('editReviewBody').value = r.body ?? "";
-                    document.getElementById('editReviewAnon').checked = r.isAnonymous;
-                    document.getElementById('editReviewRating').value = r.rating;
-
-                    buildStarPicker("editReviewStars", "editReviewRating", r.rating);
-                });
-
-                editForm.addEventListener('submit', async e => {
-                    e.preventDefault();
-                    const data = Object.fromEntries(new FormData(editForm).entries());
-                    data.Rating = parseInt(data.Rating);
-
-                    const res = await fetch(`/api/Reviews/${data.Id}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(data)
-                    });
-
-                    if (res.ok) {
-                        bootstrap.Modal.getInstance(editModal)?.hide();
-                        showToast("@Localizer["✅ Review updated!"]", "success");
-                        setTimeout(() => location.reload(), 700);
-                    } else {
-                        const err = await res.text();
-                        showToast(`@Localizer["❌ "]${err}`, "danger");
-                    }
-                });
-            }
-        });
-    </script>
-    }
-</div>
