@@ -86,6 +86,9 @@ namespace RentMate.Controllers
                 Price = item.Price,
                 UserId = item.UserId,
                 Location = item.Location ?? item.User?.City,
+                IsListed = item.IsListed,
+                ImageUrl = item.ImageUrl,
+                Category = item.Category,
                 User = item.User != null ? new UserDto { Id = item.User.Id, UserName = item.User.UserName } : null
             };
 
@@ -153,6 +156,8 @@ namespace RentMate.Controllers
             webItem.Description = sharedItem.Description;
             webItem.Price = sharedItem.Price;
             webItem.IsListed = sharedItem.IsListed;
+            webItem.ImageUrl = sharedItem.ImageUrl;
+            webItem.Category = sharedItem.Category;
 
             try
             {
@@ -193,7 +198,11 @@ namespace RentMate.Controllers
                     Title = i.Title,
                     Description = i.Description,
                     Price = i.Price,
-                    UserId = i.UserId
+                    UserId = i.UserId,
+                    IsListed = i.IsListed,
+                    ImageUrl = i.ImageUrl,
+                    Category = i.Category,
+                    Location = i.Location
                 })
                 .ToListAsync();
         }
