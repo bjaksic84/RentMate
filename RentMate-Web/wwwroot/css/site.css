@@ -1,25 +1,30 @@
 html {
-  font-size: 14px;
+    font-size: 14px;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+    html {
+        font-size: 16px;
+    }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
 html {
-  position: relative;
-  min-height: 100%;
+    position: relative;
+    min-height: 100%;
 }
 
 body {
-  margin-bottom: 60px;
+    margin-bottom: 60px;
 }
+
 /* ===============================
    Custom UI Enhancements (RentMate)
    =============================== */
@@ -28,32 +33,46 @@ body {
 tr.flash {
     animation: flashFade 0.8s ease-in-out;
 }
+
 @keyframes flashFade {
-    0% { background-color: #d1e7dd; }  /* Bootstrap success-light green */
-    100% { background-color: transparent; }
+    0% {
+        background-color: #d1e7dd;
+    }
+
+    /* Bootstrap success-light green */
+    100% {
+        background-color: transparent;
+    }
 }
 
 /* Slight opacity for disabled or pending cards */
 .card.opacity-50 {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
+
 .card.opacity-50:hover {
     transform: scale(1.01);
 }
 
 /* Optional: Toast spacing consistency */
 .toast-container {
-    z-index: 1100; /* keeps it above modals */
+    z-index: 1100;
+    /* keeps it above modals */
 }
+
 /* --- Connection Indicator Styles --- */
 #connectionIndicator.online {
-    background-color: #28a745; /* Bootstrap success green */
+    background-color: #28a745;
+    /* Bootstrap success green */
     color: white;
 }
+
 #connectionIndicator.offline {
-    background-color: #dc3545; /* Bootstrap danger red */
+    background-color: #dc3545;
+    /* Bootstrap danger red */
     color: white;
 }
+
 /* --- Connection Indicator Animation --- */
 #connectionIndicator {
     transition: background-color 0.4s ease, color 0.4s ease, transform 0.3s ease;
@@ -76,22 +95,27 @@ tr.flash {
         transform: scale(1);
         opacity: 0.8;
     }
+
     50% {
         transform: scale(1.15);
         opacity: 1;
     }
+
     100% {
         transform: scale(1);
         opacity: 1;
     }
 }
+
 .modal-backdrop.fade {
     opacity: 0.4;
     transition: opacity 0.3s ease;
 }
+
 .modal-backdrop.fade.show {
-        opacity: 0.4;
- }
+    opacity: 0.4;
+}
+
 /* Filter layout tweaks */
 @media (min-width: 992px) {
     .col-lg-1-5 {
@@ -99,6 +123,7 @@ tr.flash {
         max-width: 12%;
     }
 }
+
 /* Rotate arrow when expanded */
 button[aria-expanded="true"] .bi-chevron-down {
     transform: rotate(180deg);
@@ -111,17 +136,18 @@ button[aria-expanded="false"] .bi-chevron-down {
 
 /* Slight glow on hero input focus */
 .input-group-lg .form-control:focus {
-    box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .25);
 }
+
 /* keep consistent height and smooth focus outline */
 form .form-control-lg {
     min-width: 250px;
     transition: box-shadow 0.25s ease;
 }
 
-    form .form-control-lg:focus {
-        box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
-    }
+form .form-control-lg:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+}
 
 /* responsive alignment */
 @media (max-width: 576px) {
@@ -130,12 +156,13 @@ form .form-control-lg {
         align-items: center;
     }
 
-        form.d-flex.gap-2 .form-control-lg,
-        form.d-flex.gap-2 .btn-lg {
-            width: 100%;
-            max-width: none;
-        }
+    form.d-flex.gap-2 .form-control-lg,
+    form.d-flex.gap-2 .btn-lg {
+        width: 100%;
+        max-width: none;
+    }
 }
+
 /* === Hero Search Styling === */
 
 /* subtle gradient background for input */
@@ -148,7 +175,7 @@ form .form-control-lg {
 
 /* === Landing hero styles (production-ready) === */
 .hero-section {
-    background: linear-gradient(180deg, rgba(13,110,253,0.04), rgba(71,145,255,0.02));
+    background: linear-gradient(180deg, rgba(13, 110, 253, 0.04), rgba(71, 145, 255, 0.02));
     padding-top: 3.5rem;
     padding-bottom: 3.5rem;
 }
@@ -176,7 +203,7 @@ form .form-control-lg {
     border-radius: 1rem;
     display: inline-grid;
     place-items: center;
-    background: linear-gradient(135deg, rgba(13,110,253,0.06), rgba(71,145,255,0.04));
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.06), rgba(71, 145, 255, 0.04));
 }
 
 /* Feature cards refinement */
@@ -185,41 +212,32 @@ form .form-control-lg {
 }
 
 @media (max-width: 576px) {
-    .hero-graphic { width: 140px; height: 140px; }
+    .hero-graphic {
+        width: 140px;
+        height: 140px;
+    }
 }
 
 /* Capsule search: remove group outline and make input visually lighter than button */
 .hero-search-field {
     border-radius: 50rem !important;
     padding: 0.75rem 1rem;
-    background-color: rgba(255,255,255,0.9);
-    border: 1px solid rgba(0,0,0,0.06);
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     box-shadow: none;
 }
+
 .hero-search-btn {
     border-radius: 50rem !important;
     padding: 0.7rem 1.25rem;
 }
+
 .hero-search-form .hero-search-field:focus,
 .hero-search-form .hero-search-btn:focus {
-    box-shadow: 0 0 0 0.125rem rgba(13,110,253,0.12) !important;
+    box-shadow: 0 0 0 0.125rem rgba(13, 110, 253, 0.12) !important;
     outline: none !important;
 }
 
-/* Dark mode for hero and new sections */
-[data-theme="dark"] .hero-section {
-    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
-}
-[data-theme="dark"] .hero-search-field {
-    background-color: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.04);
-    color: var(--text) !important;
-}
-[data-theme="dark"] .hero-search-btn {
-    background: linear-gradient(135deg, rgba(217,119,6,0.12), rgba(217,119,6,0.06));
-    color: var(--text) !important;
-    box-shadow: none;
-}
 
 /* Carousel / categories */
 .category-carousel .hero-graphic {
@@ -228,26 +246,26 @@ form .form-control-lg {
     border-radius: 1rem;
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg, rgba(13,110,253,0.06), rgba(71,145,255,0.04));
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.06), rgba(71, 145, 255, 0.04));
 }
-.category-carousel .carousel-item a { color: inherit; }
+
+.category-carousel .carousel-item a {
+    color: inherit;
+}
+
 .category-carousel .carousel-control-prev-icon,
-.category-carousel .carousel-control-next-icon { filter: none; }
-
-[data-theme="dark"] .category-carousel .hero-graphic {
-    background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+.category-carousel .carousel-control-next-icon {
+    filter: none;
 }
 
-/* How it works tweaks in dark mode */
-[data-theme="dark"] .hero-section + section {
-    background: transparent;
-}
-[data-theme="dark"] .hero-section + section .text-muted {
-    color: var(--muted-text) !important;
-}
+
 
 /* Hero actions and landing auth button styling */
-.hero-actions .btn { min-width: 150px; border-radius: 0.75rem; }
+.hero-actions .btn {
+    min-width: 150px;
+    border-radius: 0.75rem;
+}
+
 .landing-auth-btn {
     border-radius: 0.75rem;
     padding: 0.6rem 1.1rem;
@@ -256,73 +274,36 @@ form .form-control-lg {
 /* Carousel control visibility and contrast */
 .category-carousel .carousel-control-prev-icon,
 .category-carousel .carousel-control-next-icon {
-    background-color: rgba(0,0,0,0.62);
+    background-color: rgba(0, 0, 0, 0.62);
     border-radius: 50%;
     width: 2.2rem;
     height: 2.2rem;
     background-size: 1.05rem 1.05rem;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
 }
 
-[data-theme="dark"] .category-carousel .carousel-control-prev-icon,
-[data-theme="dark"] .category-carousel .carousel-control-next-icon {
-    background-color: rgba(255,255,255,0.08);
-    box-shadow: none;
-}
 
-/* How it works - dark mode friendly */
-[data-theme="dark"] .hero-section + section h3,
-[data-theme="dark"] .hero-section + section h5,
-[data-theme="dark"] .hero-section + section .bi {
-    color: var(--text) !important;
-}
-
-/* Ensure landing small text adapts */
-[data-theme="dark"] .category-carousel p.small,
-[data-theme="dark"] .hero-section .lead,
-[data-theme="dark"] .hero-section .text-muted {
-    color: var(--muted-text) !important;
-}
 
 /* Ensure the 'How RentMate Works' section (uses .bg-white) adapts cleanly to dark theme */
-[data-theme="dark"] .hero-section + section.bg-white {
-    background-color: var(--surface-soft) !important;
-    border-top: 1px solid var(--border) !important;
-    color: var(--text) !important;
-}
-
-[data-theme="dark"] .hero-section + section.bg-white h3,
-[data-theme="dark"] .hero-section + section.bg-white h5,
-[data-theme="dark"] .hero-section + section.bg-white p,
-[data-theme="dark"] .hero-section + section.bg-white .bi {
-    color: var(--text) !important;
-}
-
-[data-theme="dark"] .hero-section + section.bg-white .text-muted {
-    color: var(--muted-text) !important;
-}
-
-/* Slight elevation in dark mode to visually separate the section */
-[data-theme="dark"] .hero-section + section.bg-white {
-    box-shadow: 0 6px 18px rgba(2,6,23,0.35);
-    border-radius: 0.5rem;
-    padding: 1.75rem 0.75rem;
-}
 
 /* How it works step icons */
-.hero-section + section .display-4 {
+.hero-section+section .display-4 {
     font-size: 2.4rem;
 }
-.hero-section + section .bi {
+
+.hero-section+section .bi {
     opacity: 0.95;
 }
-.hero-section + section h5 {
+
+.hero-section+section h5 {
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
 }
-.hero-section + section p {
+
+.hero-section+section p {
     color: var(--muted-text);
 }
+
 /* site.css */
 
 /* Kategorije hover efekt */
@@ -331,11 +312,13 @@ form .form-control-lg {
     transition: all 0.2s ease;
     min-width: 80px;
 }
+
 .category-item:hover {
     opacity: 1;
     transform: translateY(-3px);
     color: var(--bs-primary) !important;
 }
+
 /* Airbnb Style Categories */
 .category-link {
     color: #6c757d;
@@ -360,7 +343,7 @@ form .form-control-lg {
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border: 1px solid #eee;
 }
 
@@ -374,20 +357,23 @@ form .form-control-lg {
 .category-scroll::-webkit-scrollbar {
     display: none;
 }
+
 .category-scroll {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
+
 /* Iskalnik focus */
 .search-container:focus-within {
     border-color: var(--bs-primary) !important;
-    box-shadow: 0 1rem 3rem rgba(0,0,0,0.175) !important;
+    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
 }
 
 /* Skrij scrollbar pri kategorijah na mobilnikih */
 .category-scroll::-webkit-scrollbar {
     display: none;
 }
+
 .category-scroll {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -398,138 +384,37 @@ form .form-control-lg {
     height: 300px;
 }
 
-/* Adapt the page-specific hero (uses .bg-white.border-bottom) to dark mode */
-[data-theme="dark"] section.bg-white.border-bottom {
-    background-color: var(--surface-soft) !important;
-    border-color: var(--border) !important;
-    color: var(--text) !important;
-}
 
 /* Search container in hero */
-[data-theme="dark"] .search-container {
-    background-color: var(--card-bg) !important;
-    border: 1px solid var(--border) !important;
-    box-shadow: 0 6px 18px rgba(2,6,23,0.25) !important;
-}
 
-[data-theme="dark"] .search-container .form-control {
-    background: transparent !important;
-    color: var(--text) !important;
-}
 
-[data-theme="dark"] .search-container .bi {
-    color: var(--muted-text) !important;
-}
-
-/* Categories strip (bg-light) */
-[data-theme="dark"] section.bg-light,
-[data-theme="dark"] section .bg-light {
-    background-color: transparent !important;
-}
-
-[data-theme="dark"] .category-link {
-    color: var(--muted-text) !important;
-}
-
-[data-theme="dark"] .category-link:hover {
-    color: var(--primary) !important;
-}
-
-[data-theme="dark"] .icon-circle {
-    background: var(--card-bg) !important;
-    border-color: var(--border) !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-}
-
-[data-theme="dark"] .category-link:hover .icon-circle {
+.category-link:hover .icon-circle {
     background: var(--primary) !important;
     color: var(--panel-white-text) !important;
     border-color: transparent !important;
 }
 
-/* How it works: inner cards (they use bg-light) */
-[data-theme="dark"] .hero-section + section .bg-light,
-[data-theme="dark"] section.bg-white.border-top .bg-light {
-    background-color: var(--surface-soft) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-}
-
-[data-theme="dark"] .hero-section + section .bg-primary,
-[data-theme="dark"] .hero-section + section .bg-success,
-[data-theme="dark"] .hero-section + section .bg-info {
-    opacity: 0.95;
-}
 
 /* Make carousel controls visible across themes */
 .carousel-control-prev-icon,
 .carousel-control-next-icon {
-    background-color: rgba(0,0,0,0.55);
+    background-color: rgba(0, 0, 0, 0.55);
     border-radius: 50%;
 }
 
-[data-theme="dark"] .carousel-control-prev-icon,
-[data-theme="dark"] .carousel-control-next-icon {
-    background-color: rgba(255,255,255,0.09);
-}
 
-/* Ensure text-muted in hero/how-it-works is readable in dark mode */
-[data-theme="dark"] .text-muted {
-    color: var(--muted-text) !important;
-}
 
 /* Remove thin white sticky row under navbar in dark mode */
-[data-theme="dark"] header.sticky-top {
-    background-color: transparent !important;
-    box-shadow: none !important;
-}
 
 /* Make navbar border softer in dark mode (remove harsh white line) */
-[data-theme="dark"] .navbar.border-bottom {
-    border-bottom: 1px solid rgba(255,255,255,0.04) !important;
-}
 
 /* Ensure section headers using .bg-white.border-top adapt */
-[data-theme="dark"] section.bg-white.border-top {
-    background-color: transparent !important;
-    border-color: transparent !important;
-}
 
 /* Make the 'How it works' inner cards (.bg-light) adapt to dark theme */
-[data-theme="dark"] section.bg-white.border-top .bg-light,
-[data-theme="dark"] .hero-section + section .bg-light,
-[data-theme="dark"] section .bg-light {
-    background-color: var(--surface-soft) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-}
 
 /* More specific override to counter theme.css .sticky-top.bg-white rule */
-[data-theme="dark"] header.sticky-top.bg-white,
-[data-theme="dark"] header.sticky-top.bg-white .navbar,
-[data-theme="dark"] .sticky-top.bg-white.navbar {
-    background-color: transparent !important;
-    box-shadow: none !important;
-    border-bottom: none !important;
-}
-
-/* Ensure how-it-works cards with inline bg classes are handled */
-[data-theme="dark"] section.bg-white.border-top .p-4.rounded-4.bg-light,
-[data-theme="dark"] section.bg-white.border-top .p-4.rounded-4 {
-    background-color: var(--surface-soft) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-}
 
 /* Ensure the colored icon circles keep contrast in dark mode */
-[data-theme="dark"] .hero-section + section .bg-primary,
-[data-theme="dark"] .hero-section + section .bg-success,
-[data-theme="dark"] .hero-section + section .bg-info,
-[data-theme="dark"] .p-4 .bg-primary,
-[data-theme="dark"] .p-4 .bg-success,
-[data-theme="dark"] .p-4 .bg-info {
-    filter: brightness(1.05) !important;
-}
 
 /* CTA join: ensure the card uses site theme colors and buttons follow .btn rules */
 .cta-join {
@@ -537,26 +422,17 @@ form .form-control-lg {
     color: var(--text) !important;
     border: 1px solid var(--border) !important;
 }
+
 .cta-join .text-muted {
     color: var(--muted-text) !important;
 }
 
-[data-theme="dark"] .cta-join {
-    background-color: var(--surface-soft) !important;
-    box-shadow: 0 10px 30px rgba(2,6,23,0.28) !important;
+
+.hero-search-input:focus {
+    background: linear-gradient(135deg, #ffffff, #eef3ff);
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
-
-[data-theme="dark"] .cta-join .btn.btn-outline-primary {
-    color: var(--text) !important;
-    border-color: rgba(255,255,255,0.06) !important;
-}
-
-
-    .hero-search-input:focus {
-        background: linear-gradient(135deg, #ffffff, #eef3ff);
-        border-color: #80bdff;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
 
 /* premium gradient button */
 .hero-search-btn {
@@ -567,16 +443,16 @@ form .form-control-lg {
     box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
 }
 
-    .hero-search-btn:hover {
-        background: linear-gradient(135deg, #2b7cff, #64a2ff);
-        transform: translateY(-1px);
-        box-shadow: 0 6px 14px rgba(13, 110, 253, 0.45);
-    }
+.hero-search-btn:hover {
+    background: linear-gradient(135deg, #2b7cff, #64a2ff);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(13, 110, 253, 0.45);
+}
 
-    .hero-search-btn:active {
-        transform: translateY(0);
-        box-shadow: 0 3px 8px rgba(13, 110, 253, 0.35);
-    }
+.hero-search-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 3px 8px rgba(13, 110, 253, 0.35);
+}
 
 /* keep smooth spacing & responsive layout */
 .hero-search-form {
@@ -586,10 +462,10 @@ form .form-control-lg {
     gap: 0.75rem;
 }
 
-    .hero-search-form input,
-    .hero-search-form button {
-        border-radius: 50rem !important;
-    }
+.hero-search-form input,
+.hero-search-form button {
+    border-radius: 50rem !important;
+}
 
 @media (max-width: 576px) {
     .hero-search-form {
@@ -597,33 +473,28 @@ form .form-control-lg {
         align-items: center;
     }
 
-        .hero-search-form input,
-        .hero-search-form button {
-            width: 100%;
-            max-width: none;
-        }
+    .hero-search-form input,
+    .hero-search-form button {
+        width: 100%;
+        max-width: none;
+    }
 }
 
 /* PRISILNO skrij placeholder tekst, če polje ni v fokusu */
-    .form-floating input.form-control::placeholder {
-        color: transparent !important;
-        opacity: 0 !important;
-    }
+.form-floating input.form-control::placeholder {
+    color: transparent !important;
+    opacity: 0 !important;
+}
 
-    /* Pokaži placeholder tekst SAMO, ko uporabnik klikne v polje (fokus) */
-    .form-floating input.form-control:focus::placeholder {
-        color: #a0a0a0 !important;
-        opacity: 1 !important;
-    }
+/* Pokaži placeholder tekst SAMO, ko uporabnik klikne v polje (fokus) */
+.form-floating input.form-control:focus::placeholder {
+    color: #a0a0a0 !important;
+    opacity: 1 !important;
+}
 
-    /* Popravek za Auto-fill (ko Chrome sam izpolni geslo in ga obarva rumeno) */
-    .form-floating input:-webkit-autofill + label,
-    .form-floating input:-webkit-autofill:focus + label {
-        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
-        opacity: 0.65;
-    }
-
-
-
-
-
+/* Popravek za Auto-fill (ko Chrome sam izpolni geslo in ga obarva rumeno) */
+.form-floating input:-webkit-autofill+label,
+.form-floating input:-webkit-autofill:focus+label {
+    transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+    opacity: 0.65;
+}

@@ -136,42 +136,8 @@
 	document.addEventListener('DOMContentLoaded', function () {
 		initRentPickers();
 		enableLazyImages();
-		initTheme();
 		window.showToast = showToast; // expose for inline scripts
 	});
 
 	// (floating-label autofill handling reverted)
 })();
-
-/* Theme handling: setTheme / initTheme */
-function setTheme(theme) {
-	try {
-		document.documentElement.setAttribute('data-theme', theme);
-		localStorage.setItem('theme', theme);
-		const icon = document.getElementById('themeIcon');
-		if (icon) icon.className = theme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-	} catch (e) {
-		console.error('setTheme error', e);
-	}
-}
-
-function initTheme() {
-	try {
-		const stored = localStorage.getItem('theme');
-		let theme = stored;
-		if (!theme) {
-			theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-		}
-		setTheme(theme);
-
-		const toggle = document.getElementById('themeToggle');
-		if (toggle) {
-			toggle.addEventListener('click', function () {
-				const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-				setTheme(current === 'dark' ? 'light' : 'dark');
-			});
-		}
-	} catch (e) {
-		console.error('initTheme error', e);
-	}
-}
