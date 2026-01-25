@@ -76,22 +76,43 @@ namespace RentMate.Controllers
         [HttpGet("my-rentals")]
         public async Task<ActionResult<IEnumerable<RentalDto>>> GetMyRentals() {
             var userId = _userManager.GetUserId(User);
-            return await _context.Rentals
-                .Where(r => r.RenterId == userId)
-                .Select(r => new RentalDto {
-                    Id = r.Id,
-                    ItemId = r.ItemId,
-                    Item = r.Item != null ? new ItemDto { Id = r.Item.Id, Title = r.Item.Title } : null,
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate,
-                    TotalPrice = r.TotalPrice,
-                    Status = r.Status, // Enum se avtomatsko prenese
-                    Owner = r.Item != null && r.Item.User != null ? new UserDto { UserName = r.Item.User.UserName } : null,
-                    ExistingReview = _context.Reviews
-                        .Where(rv => rv.RentalId == r.Id && rv.ReviewerId == userId && !rv.IsDeleted)
-                        .Select(rv => new ReviewDto { Id = rv.Id, Rating = rv.Rating, Title = rv.Title, Body = rv.Body, CreatedAt = rv.CreatedAt })
-                        .FirstOrDefault()
-                }).ToListAsync();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            // Fetch rentals with a left join to reviews (avoids N+1 query)
+            var rentalsWithReviews = await (
+                from r in _context.Rentals
+                where r.RenterId == userId
+                join rv in _context.Reviews.Where(rv => rv.ReviewerId == userId && !rv.IsDeleted)
+                    on r.Id equals rv.RentalId into reviews
+                from review in reviews.DefaultIfEmpty()
+                select new {
+                    Rental = r,
+                    r.Item,
+                    ItemUser = r.Item != null ? r.Item.User : null,
+                    Review = review
+                }
+            ).ToListAsync();
+
+            var result = rentalsWithReviews.Select(x => new RentalDto {
+                Id = x.Rental.Id,
+                ItemId = x.Rental.ItemId,
+                Item = x.Item != null ? new ItemDto { Id = x.Item.Id, Title = x.Item.Title } : null,
+                StartDate = x.Rental.StartDate,
+                EndDate = x.Rental.EndDate,
+                TotalPrice = x.Rental.TotalPrice,
+                Status = x.Rental.Status,
+                Owner = x.ItemUser != null ? new UserDto { UserName = x.ItemUser.UserName } : null,
+                ExistingReview = x.Review != null ? new ReviewDto { 
+                    Id = x.Review.Id, 
+                    Rating = x.Review.Rating, 
+                    Title = x.Review.Title, 
+                    Body = x.Review.Body, 
+                    CreatedAt = x.Review.CreatedAt 
+                } : null
+            }).ToList();
+
+            return Ok(result);
         }
 
         [HttpGet("owner-rentals")]

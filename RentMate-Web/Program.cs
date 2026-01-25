@@ -217,7 +217,9 @@ builder.Services.AddCors(options => {
         .AllowAnyMethod()
         .AllowCredentials());
     
-    // Development policy (only in dev environment)
+    // Development policy - ONLY available in DEBUG builds AND Development environment
+    // This double-guard prevents accidental permissive CORS in production
+    #if DEBUG
     if (builder.Environment.IsDevelopment())
     {
         options.AddPolicy("Development", b => b
@@ -226,6 +228,7 @@ builder.Services.AddCors(options => {
             .AllowAnyMethod()
             .AllowCredentials());
     }
+    #endif
 });
 
 // --- Swagger / OpenAPI ---
@@ -266,6 +269,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CurrencyService>();
 builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
+builder.Services.AddScoped<IReviewAggregationService, ReviewAggregationService>();
 
 // ==========================================
 // 2. BUILD APP
@@ -307,12 +311,16 @@ var localizationOptions = new RequestLocalizationOptions
 };
 app.UseRequestLocalization(localizationOptions);
 
-// Error handling in HSTS
+// Error handling and HSTS
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    #if DEBUG
     app.UseCors("Development");
+    #else
+    app.UseCors("SecurePolicy"); // Fallback if somehow in Dev without DEBUG
+    #endif
 }
 else
 {

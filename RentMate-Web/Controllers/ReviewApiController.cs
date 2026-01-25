@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
 using RentMate.Shared;
+using RentMate.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -21,12 +22,18 @@ namespace RentMate.Controllers
         private readonly RentMateContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<ReviewApiController> _logger;
+        private readonly IReviewAggregationService _reviewAggregation;
 
-        public ReviewApiController(RentMateContext context, UserManager<ApplicationUser> userManager, ILogger<ReviewApiController> logger)
+        public ReviewApiController(
+            RentMateContext context, 
+            UserManager<ApplicationUser> userManager, 
+            ILogger<ReviewApiController> logger,
+            IReviewAggregationService reviewAggregation)
         {
             _context = context;
             _userManager = userManager;
             _logger = logger;
+            _reviewAggregation = reviewAggregation;
         }
 
         [HttpPost]
@@ -91,8 +98,8 @@ namespace RentMate.Controllers
                 _context.Reviews.Update(existing);
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Updated existing review {ReviewId} by user {UserId}", existing.Id, userId);
-                // Update item aggregates
-                await UpdateItemAggregates(existing.ItemId);
+                // Update item aggregates using centralized service
+                await _reviewAggregation.UpdateItemAggregatesAsync(existing.ItemId);
                 return Ok(new { updated = true });
             }
 
@@ -113,34 +120,10 @@ namespace RentMate.Controllers
             await _context.SaveChangesAsync();
             _logger.LogInformation("Created new review {ReviewId} for Item {ItemId} by user {UserId}", dbReview.Id, dbReview.ItemId, userId);
 
-            // Update item aggregates
-            await UpdateItemAggregates(dbReview.ItemId);
+            // Update item aggregates using centralized service
+            await _reviewAggregation.UpdateItemAggregatesAsync(dbReview.ItemId);
 
             return Ok(new { created = true });
-        }
-
-        // Helper: Update averages after review changes (duplicated from ReviewsController)
-        private async Task UpdateItemAggregates(int itemId)
-        {
-            var item = await _context.Items.FindAsync(itemId);
-            if (item == null) return;
-
-            var activeReviews = await _context.Reviews
-                .Where(r => r.ItemId == itemId && !r.IsDeleted)
-                .ToListAsync();
-
-            if (activeReviews.Count == 0)
-            {
-                item.ReviewCount = 0;
-                item.AverageRating = null;
-            }
-            else
-            {
-                item.ReviewCount = activeReviews.Count;
-                item.AverageRating = Math.Round(activeReviews.Average(r => (double)r.Rating), 2);
-            }
-
-            await _context.SaveChangesAsync();
         }
 
         [HttpGet("item/{itemId}")]
@@ -157,7 +140,12 @@ namespace RentMate.Controllers
                     Title = r.Title,
                     Body = r.Body,
                     CreatedAt = r.CreatedAt,
-                    Reviewer = new UserDto { UserName = r.ReviewerId } // Ali pa pravi join na User tabelo
+                    Reviewer = r.Reviewer != null ? new UserDto 
+                    { 
+                        Id = r.Reviewer.Id,
+                        UserName = r.Reviewer.UserName,
+                        Email = r.Reviewer.Email
+                    } : null
                 })
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();

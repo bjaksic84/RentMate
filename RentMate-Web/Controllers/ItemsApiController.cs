@@ -72,9 +72,6 @@ namespace RentMate.Controllers
                 .Include(i => i.User)
                 .FirstOrDefaultAsync(i => i.Id == id);
 
-            // simple request logging for debugging mobile fetch issues
-            Console.WriteLine($"[API] GetItem requested id={id}, found={(item != null)}");
-
             if (item == null)
                 return NotFound();
 
@@ -143,16 +140,31 @@ namespace RentMate.Controllers
         public async Task<IActionResult> PutItem(int id, RentMate.Shared.Item sharedItem)
         {
             if (id != sharedItem.Id)
-                return BadRequest();
+                return BadRequest(_localizer["ID mismatch."].Value);
+
+            // Get current user ID for authorization
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             var webItem = await _context.Items.FindAsync(id);
-            if (webItem == null) return NotFound();
+            if (webItem == null) 
+                return NotFound();
+
+            // Authorization: Only the owner can modify their item
+            if (webItem.UserId != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to modify item {ItemId} owned by {OwnerId}", 
+                    userId, id, webItem.UserId);
+                return Forbid();
+            }
 
             // Update Web model values
             webItem.Title = sharedItem.Title;
             webItem.Description = sharedItem.Description;
             webItem.Price = sharedItem.Price;
             webItem.IsListed = sharedItem.IsListed;
+            webItem.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -171,13 +183,27 @@ namespace RentMate.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteItem(int id)
         {
+            // Get current user ID for authorization
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
             var item = await _context.Items.FindAsync(id);
             if (item == null)
                 return NotFound();
 
+            // Authorization: Only the owner can delete their item
+            if (item.UserId != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to delete item {ItemId} owned by {OwnerId}", 
+                    userId, id, item.UserId);
+                return Forbid();
+            }
+
             _context.Items.Remove(item);
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation("User {UserId} deleted item {ItemId}", userId, id);
             return NoContent();
         }
 

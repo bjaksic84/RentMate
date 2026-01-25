@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
+using RentMate.Services;
 using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
@@ -16,15 +17,18 @@ namespace RentMate.Controllers
         private readonly RentMateContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IStringLocalizer<ReviewsController> _localizer;
+        private readonly IReviewAggregationService _reviewAggregation;
 
         public ReviewsController(
             RentMateContext context, 
             UserManager<ApplicationUser> userManager,
-            IStringLocalizer<ReviewsController> localizer)
+            IStringLocalizer<ReviewsController> localizer,
+            IReviewAggregationService reviewAggregation)
         {
             _context = context;
             _userManager = userManager;
             _localizer = localizer;
+            _reviewAggregation = reviewAggregation;
         }
 
         // ===========================
@@ -119,20 +123,11 @@ namespace RentMate.Controllers
             review.ReviewerId = userId;
             review.CreatedAt = DateTime.UtcNow;
 
-            using var tx = await _context.Database.BeginTransactionAsync();
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
 
-            // Update item aggregates
-            var all = _context.Reviews.Where(r => r.ItemId == review.ItemId && !r.IsDeleted);
-            var count = await all.CountAsync();
-            var avg = await all.AverageAsync(r => (double)r.Rating);
-
-            item.ReviewCount = count;
-            item.AverageRating = Math.Round(avg, 2);
-            await _context.SaveChangesAsync();
-
-            await tx.CommitAsync();
+            // Update item aggregates using the centralized service
+            await _reviewAggregation.UpdateItemAggregatesAsync(review.ItemId);
 
             return CreatedAtAction(nameof(GetItemReviews), new { itemId = review.ItemId }, review);
         }
@@ -158,7 +153,7 @@ namespace RentMate.Controllers
             review.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            await UpdateItemAggregates(review.ItemId);
+            await _reviewAggregation.UpdateItemAggregatesAsync(review.ItemId);
 
             return Ok(new
             {
@@ -187,35 +182,9 @@ namespace RentMate.Controllers
 
             review.IsDeleted = true;
             await _context.SaveChangesAsync();
-            await UpdateItemAggregates(review.ItemId);
+            await _reviewAggregation.UpdateItemAggregatesAsync(review.ItemId);
 
             return NoContent();
-        }
-
-        // ===========================
-        // Helper: Update averages after review changes
-        // ===========================
-        private async Task UpdateItemAggregates(int itemId)
-        {
-            var item = await _context.Items.FindAsync(itemId);
-            if (item == null) return;
-
-            var activeReviews = await _context.Reviews
-                .Where(r => r.ItemId == itemId && !r.IsDeleted)
-                .ToListAsync();
-
-            if (activeReviews.Count == 0)
-            {
-                item.ReviewCount = 0;
-                item.AverageRating = null;
-            }
-            else
-            {
-                item.ReviewCount = activeReviews.Count;
-                item.AverageRating = Math.Round(activeReviews.Average(r => (double)r.Rating), 2);
-            }
-
-            await _context.SaveChangesAsync();
         }
     }
 }

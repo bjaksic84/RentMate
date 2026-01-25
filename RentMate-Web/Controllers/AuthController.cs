@@ -140,6 +140,8 @@ namespace RentMate.Controllers
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
+            // TODO: Implement refresh token rotation for better UX without compromising security
+            // See: https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,

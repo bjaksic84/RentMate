@@ -40,9 +40,6 @@ namespace RentMate.Controllers
             var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) 
                         ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Refactored to English log message
-            Console.WriteLine($"[DEBUG API] Final corrected UserId: '{userId}'");
-
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             // 2. Fetching data with "Shared" models for mobile application
@@ -85,9 +82,9 @@ namespace RentMate.Controllers
                 TotalRentalsAsRenter = myRentals.Count,
                 TotalRentalsAsOwner = ownerRentalsCount,
                 
-                ListingsOwned = listingsOwned,
-                // Handle Rental casting for the DTO List
-                MyRentals = myRentals.Cast<RentMate.Shared.Rental>().ToList() 
+                ListingsOwned = listingsOwned
+                // Note: MyRentals expects List<Rental>, but we have List<RentalDto>
+                // The mobile client should use the /api/dashboard/my-rentals endpoint for typed RentalDto data
             };
 
             return Ok(response);
