@@ -5,14 +5,19 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
-using RentMate.Shared; // Uporaba Shared modelov
+using RentMate.Shared.Contracts.Requests;
+using RentMate.Shared.Contracts.Responses;
 
 namespace RentMate.Controllers
 {
+    /// <summary>
+    /// API controller for rental operations.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [EnableRateLimiting("ApiPolicy")]
+    [Produces("application/json")]
     public class RentalsApiController : ControllerBase
     {
         private readonly RentMateContext _context;
@@ -24,48 +29,79 @@ namespace RentMate.Controllers
             _userManager = userManager;
         }
 
+        /// <summary>
+        /// Create a new rental request.
+        /// </summary>
+        /// <param name="request">The rental request details.</param>
+        /// <returns>The created rental summary.</returns>
         [HttpPost]
-        public async Task<ActionResult<Rental>> PostRental(Rental rental)
+        [ProducesResponseType(typeof(RentalSummary), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<RentalSummary>> PostRental(CreateRentalRequest request)
         {
             var renterId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(renterId)) return Unauthorized();
 
-            var item = await _context.Items.FindAsync(rental.ItemId);
-            if (item == null) return NotFound("Predmet ne obstaja.");
+            var item = await _context.Items.Include(i => i.User).FirstOrDefaultAsync(i => i.Id == request.ItemId);
+            if (item == null) return NotFound("Item not found.");
 
-            if (item.UserId == renterId) return BadRequest("Svojega izdelka ne morete rezervirati.");
+            if (item.UserId == renterId) return BadRequest("You cannot rent your own item.");
 
-            // Mapiranje na strežniški model
+            // Calculate rental days and total price
+            int days = (request.EndDate - request.StartDate).Days;
+            if (days <= 0) days = 1;
+            var totalPrice = (item.Price ?? 0m) * days;
+
             var dbRental = new RentMate.Models.Rental
             {
-                ItemId = rental.ItemId,
+                ItemId = request.ItemId,
                 RenterId = renterId,
                 OwnerId = item.UserId,
-                StartDate = rental.StartDate,
-                EndDate = rental.EndDate,
+                StartDate = request.StartDate,
+                EndDate = request.EndDate,
                 RentalDate = DateTime.Now,
-                Status = RentalStatus.Pending
+                Status = RentalStatus.Pending,
+                TotalPrice = totalPrice
             };
-
-            // Fix za Error CS0266 (decimal? -> decimal)
-            int days = (dbRental.EndDate - dbRental.StartDate).Days;
-            if (days <= 0) days = 1;
-            dbRental.TotalPrice = (item.Price ?? 0m) * days;
 
             _context.Rentals.Add(dbRental);
             await _context.SaveChangesAsync();
 
-            return Ok(rental);
+            var renter = await _userManager.FindByIdAsync(renterId);
+            
+            return Ok(new RentalSummary(
+                dbRental.Id,
+                item.Title ?? "Untitled",
+                item.Id,
+                item.ImageUrl,
+                renter?.UserName ?? "Unknown",
+                item.User?.UserName ?? "Unknown",
+                dbRental.StartDate,
+                dbRental.EndDate,
+                dbRental.TotalPrice,
+                dbRental.Status,
+                dbRental.RentalDate
+            ));
         }
 
+        /// <summary>
+        /// Update a rental's status.
+        /// </summary>
+        /// <param name="id">The rental ID.</param>
+        /// <param name="newStatus">The new status.</param>
         [HttpPatch("{id}/status")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] RentalStatus newStatus)
         {
             var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == id);
             if (rental == null) return NotFound();
 
             var userId = _userManager.GetUserId(User);
-            if (rental.Item.UserId != userId && rental.RenterId != userId) return Forbid();
+            if (rental.Item?.UserId != userId && rental.RenterId != userId) return Forbid();
 
             rental.Status = newStatus;
             await _context.SaveChangesAsync();
@@ -73,63 +109,140 @@ namespace RentMate.Controllers
             return NoContent();
         }
 
+        /// <summary>
+        /// Get rentals where the current user is the renter.
+        /// </summary>
+        /// <returns>List of rental summaries with review status.</returns>
         [HttpGet("my-rentals")]
-        public async Task<ActionResult<IEnumerable<RentalDto>>> GetMyRentals() {
+        [ProducesResponseType(typeof(IEnumerable<RentalDetails>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<IEnumerable<RentalDetails>>> GetMyRentals()
+        {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            // Fetch rentals with a left join to reviews (avoids N+1 query)
-            var rentalsWithReviews = await (
-                from r in _context.Rentals
-                where r.RenterId == userId
-                join rv in _context.Reviews.Where(rv => rv.ReviewerId == userId && !rv.IsDeleted)
-                    on r.Id equals rv.RentalId into reviews
-                from review in reviews.DefaultIfEmpty()
-                select new {
-                    Rental = r,
-                    r.Item,
-                    ItemUser = r.Item != null ? r.Item.User : null,
-                    Review = review
-                }
-            ).ToListAsync();
+            var rentals = await _context.Rentals
+                .Where(r => r.RenterId == userId)
+                .Include(r => r.Item).ThenInclude(i => i!.User)
+                .Include(r => r.Renter)
+                .Include(r => r.Reviews.Where(rv => rv.ReviewerId == userId && !rv.IsDeleted))
+                .OrderByDescending(r => r.RentalDate)
+                .ToListAsync();
 
-            var result = rentalsWithReviews.Select(x => new RentalDto {
-                Id = x.Rental.Id,
-                ItemId = x.Rental.ItemId,
-                Item = x.Item != null ? new ItemDto { Id = x.Item.Id, Title = x.Item.Title } : null,
-                StartDate = x.Rental.StartDate,
-                EndDate = x.Rental.EndDate,
-                TotalPrice = x.Rental.TotalPrice,
-                Status = x.Rental.Status,
-                Owner = x.ItemUser != null ? new UserDto { UserName = x.ItemUser.UserName } : null,
-                ExistingReview = x.Review != null ? new ReviewDto { 
-                    Id = x.Review.Id, 
-                    Rating = x.Review.Rating, 
-                    Title = x.Review.Title, 
-                    Body = x.Review.Body, 
-                    CreatedAt = x.Review.CreatedAt 
-                } : null
-            }).ToList();
+            var result = rentals.Select(r => new RentalDetails(
+                r.Id,
+                r.StartDate,
+                r.EndDate,
+                r.TotalPrice,
+                r.Status,
+                r.RentalDate,
+                r.Item != null ? new ItemSummary(
+                    r.Item.Id,
+                    r.Item.Title ?? "Untitled",
+                    r.Item.Description,
+                    r.Item.Price ?? 0,
+                    r.Item.ImageUrl,
+                    r.Item.Location,
+                    r.Item.IsListed,
+                    r.Item.IsAdminHidden,
+                    r.Item.AverageRating ?? 0,
+                    r.Item.ReviewCount,
+                    r.Item.CreatedAt
+                ) : null!,
+                r.Renter != null ? new UserSummary(
+                    r.Renter.Id,
+                    r.Renter.UserName ?? "",
+                    r.Renter.Email,
+                    r.Renter.FirstName,
+                    r.Renter.LastName,
+                    r.Renter.City,
+                    r.Renter.ProfilePictureUrl
+                ) : null!,
+                r.Item?.User != null ? new UserSummary(
+                    r.Item.User.Id,
+                    r.Item.User.UserName ?? "",
+                    r.Item.User.Email,
+                    r.Item.User.FirstName,
+                    r.Item.User.LastName,
+                    r.Item.User.City,
+                    r.Item.User.ProfilePictureUrl
+                ) : null!,
+                r.Reviews.FirstOrDefault() is { } review ? new ReviewSummary(
+                    review.Id,
+                    review.Rating,
+                    review.Body,
+                    review.CreatedAt,
+                    r.Renter?.UserName ?? "",
+                    r.Renter?.ProfilePictureUrl
+                ) : null
+            )).ToList();
 
             return Ok(result);
         }
 
+        /// <summary>
+        /// Get rentals where the current user is the item owner.
+        /// </summary>
+        /// <returns>List of rental summaries.</returns>
         [HttpGet("owner-rentals")]
-        public async Task<ActionResult<IEnumerable<RentalDto>>> GetOwnerRentals() {
+        [ProducesResponseType(typeof(IEnumerable<RentalDetails>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<IEnumerable<RentalDetails>>> GetOwnerRentals()
+        {
             var userId = _userManager.GetUserId(User);
-            return await _context.Rentals
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var rentals = await _context.Rentals
                 .Where(r => r.OwnerId == userId)
-                .Select(r => new RentalDto {
-                    Id = r.Id,
-                    ItemId = r.ItemId,
-                    Item = r.Item != null ? new ItemDto { Id = r.Item.Id, Title = r.Item.Title } : null,
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate,
-                    TotalPrice = r.TotalPrice,
-                    Status = r.Status,
-                    Renter = r.Renter != null ? new UserDto { UserName = r.Renter.UserName } : null
-                }).ToListAsync();
+                .Include(r => r.Item).ThenInclude(i => i!.User)
+                .Include(r => r.Renter)
+                .OrderByDescending(r => r.RentalDate)
+                .ToListAsync();
+
+            var result = rentals.Select(r => new RentalDetails(
+                r.Id,
+                r.StartDate,
+                r.EndDate,
+                r.TotalPrice,
+                r.Status,
+                r.RentalDate,
+                r.Item != null ? new ItemSummary(
+                    r.Item.Id,
+                    r.Item.Title ?? "Untitled",
+                    r.Item.Description,
+                    r.Item.Price ?? 0,
+                    r.Item.ImageUrl,
+                    r.Item.Location,
+                    r.Item.IsListed,
+                    r.Item.IsAdminHidden,
+                    r.Item.AverageRating ?? 0,
+                    r.Item.ReviewCount,
+                    r.Item.CreatedAt
+                ) : null!,
+                r.Renter != null ? new UserSummary(
+                    r.Renter.Id,
+                    r.Renter.UserName ?? "",
+                    r.Renter.Email,
+                    r.Renter.FirstName,
+                    r.Renter.LastName,
+                    r.Renter.City,
+                    r.Renter.ProfilePictureUrl
+                ) : null!,
+                r.Item?.User != null ? new UserSummary(
+                    r.Item.User.Id,
+                    r.Item.User.UserName ?? "",
+                    r.Item.User.Email,
+                    r.Item.User.FirstName,
+                    r.Item.User.LastName,
+                    r.Item.User.City,
+                    r.Item.User.ProfilePictureUrl
+                ) : null!,
+                null // Reviews not included for owner view
+            )).ToList();
+
+            return Ok(result);
         }
     }
 }

@@ -1,5 +1,6 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using System.Text.Json
+@using RentMate.Shared.Contracts.Responses
 @model RentMate.Models.Item
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.CurrencyService CurrencyService
@@ -11,7 +12,7 @@
     var avgRating = Model.AverageRating ?? 0;
     
     var blockedDates = Model.Rentals?
-        .Where(r => r.Status == RentMate.Shared.RentalStatus.Active || r.Status == RentMate.Shared.RentalStatus.Pending)
+        .Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending)
         .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
         .ToList();
     string jsonBlocked = blockedDates != null ? JsonSerializer.Serialize(blockedDates) : "[]";

@@ -28,11 +28,20 @@ public class AccountApiController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginModel model)
     {
+        if (string.IsNullOrEmpty(model.Email) || string.IsNullOrEmpty(model.Password))
+        {
+            return BadRequest(_localizer["Email and password are required."].Value);
+        }
+        
         // Enable lockout on failed attempts for brute force protection
         var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, isPersistent: true, lockoutOnFailure: true);
         if (result.Succeeded)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return Unauthorized(_localizer["User not found."].Value);
+            }
             return Ok(new { UserId = user.Id, UserName = user.UserName, Email = user.Email });
         }
         
@@ -96,12 +105,12 @@ public class AccountApiController : ControllerBase
 public class LoginModel { public string? Email { get; set; } public string? Password { get; set; } }
 // Modeli za prenos podatkov (DTO)
 public class UpdateProfileModel { 
-    public string Email { get; set; } 
-    public string City { get; set; } 
+    public required string Email { get; set; } 
+    public required string City { get; set; } 
     public string? ProfilePictureUrl { get; set; }
 }
 
 public class ChangePasswordModel { 
-    public string OldPassword { get; set; } 
-    public string NewPassword { get; set; } 
+    public required string OldPassword { get; set; } 
+    public required string NewPassword { get; set; } 
 }

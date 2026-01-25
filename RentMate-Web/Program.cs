@@ -270,6 +270,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CurrencyService>();
 builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
 builder.Services.AddScoped<IReviewAggregationService, ReviewAggregationService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // ==========================================
 // 2. BUILD APP

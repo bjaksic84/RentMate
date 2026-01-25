@@ -6,45 +6,39 @@
     ViewData["Title"] = Localizer["Check email"];
 }
 
-<div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
-    <div class="card shadow-lg border-0 rounded-4 text-center" style="width: 100%; max-width: 500px;">
-        <div class="card-body p-4 p-md-5">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 text-center">
             
-            <div class="mb-4">
-                <div class="bg-light text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                    <i class="bi bi-envelope-check-fill" style="font-size: 2.5rem;"></i>
-                </div>
-                <h2 class="fw-bold text-dark">@Localizer["Almost there!"]</h2>
-                <p class="text-muted">@Localizer["We have sent an account confirmation link to your email address."]</p>
+            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="bi bi-envelope-check-fill text-4xl text-blue-600"></i>
+            </div>
+            <h2 class="font-heading text-2xl font-bold text-slate-900 mb-2">@Localizer["Almost there!"]</h2>
+            <p class="text-slate-500 mb-4">@Localizer["We have sent an account confirmation link to your email address."]</p>
+
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl mb-4">
+                <strong class="text-blue-700">@Model.Email</strong>
             </div>
 
-            <div class="alert alert-info border-0 shadow-sm rounded-3 mb-4">
-                <strong>@Model.Email</strong>
-            </div>
-
-            <p class="small text-muted mb-4">
+            <p class="text-sm text-slate-500 mb-6">
                 @Localizer["Please click on the link in the message to activate your account. If you cannot find the email, check your"] <strong>@Localizer["Spam"]</strong> @Localizer["folder"].
             </p>
 
-            @{
-                if (Model.DisplayConfirmAccountLink)
-                {
-                    <div class="bg-warning bg-opacity-10 p-3 rounded-3 mb-4">
-                        <p class="small text-warning-emphasis mb-2">@Localizer["Development mode: Email was not actually sent."]</p>
-                        <a id="confirm-link" href="@Model.EmailConfirmationUrl" class="btn btn-outline-warning fw-bold rounded-pill px-4">
-                            @Localizer["Click here to confirm your account"]
-                        </a>
-                    </div>
-                }
+            @if (Model.DisplayConfirmAccountLink)
+            {
+                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-xl mb-6">
+                    <p class="text-sm text-yellow-700 mb-3">@Localizer["Development mode: Email was not actually sent."]</p>
+                    <a id="confirm-link" href="@Model.EmailConfirmationUrl" class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-xl transition-colors">
+                        @Localizer["Click here to confirm your account"]
+                    </a>
+                </div>
             }
 
-            <hr class="my-4 opacity-25">
+            <hr class="my-6 border-slate-200" />
 
-            <div class="d-grid">
-                <a href="/" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
-                    @Localizer["Back to home page"]
-                </a>
-            </div>
+            <a href="/" class="block w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
+                @Localizer["Back to home page"]
+            </a>
         </div>
     </div>
 </div>

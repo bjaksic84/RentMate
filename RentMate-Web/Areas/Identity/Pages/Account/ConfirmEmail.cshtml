@@ -6,25 +6,20 @@
     ViewData["Title"] = Localizer["Email Confirmed"];
 }
 
-<div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
-    <div class="card shadow-lg border-0 rounded-4 text-center" style="width: 100%; max-width: 450px;">
-        <div class="card-body p-4 p-md-5">
-            
-            <div class="mb-4">
-                <div class="bg-success bg-opacity-10 text-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
-                    <i class="bi bi-patch-check-fill" style="font-size: 2.5rem;"></i>
-                </div>
-                <h2 class="fw-bold text-dark">@Localizer["Success!"]</h2>
-                <p class="text-muted">@Model.StatusMessage</p>
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-lg p-8 text-center">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="bi bi-patch-check-fill text-4xl text-green-600"></i>
             </div>
-
-            <p class="mb-4">@Localizer["Your account is now active. You can now start renting or listing your equipment."]</p>
-
-            <div class="d-grid gap-2">
-                <a asp-page="./Login" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+            <h2 class="font-heading text-2xl font-bold text-slate-900 mb-2">@Localizer["Success!"]</h2>
+            <p class="text-slate-500 mb-4">@Model.StatusMessage</p>
+            <p class="text-slate-600 mb-6">@Localizer["Your account is now active. You can now start renting or listing your equipment."]</p>
+            <div class="space-y-3">
+                <a asp-page="./Login" class="block w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
                     @Localizer["Log in now"]
                 </a>
-                <a href="/" class="btn btn-link text-decoration-none text-muted small">@Localizer["Home"]</a>
+                <a href="/" class="block text-slate-500 hover:text-blue-600 text-sm">@Localizer["Home"]</a>
             </div>
         </div>
     </div>

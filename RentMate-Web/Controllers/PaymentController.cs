@@ -6,7 +6,7 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using RentMate.Data;
 using RentMate.Models;
-using RentMate.Shared;
+using RentMate.Shared.Contracts.Responses;
 
 namespace RentMate.Controllers
 {

@@ -6,63 +6,63 @@
     ViewData["Title"] = Localizer["Registration"];
 }
 
-<div class="container d-flex justify-content-center align-items-center min-vh-100 py-5">
-    <div class="card shadow-lg border-0 rounded-4" style="width: 100%; max-width: 500px;">
-        <div class="card-body p-4 p-md-5">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-lg p-8">
             
-            <div class="text-center mb-4">
-                <h2 class="fw-bold text-dark">@Localizer["Create account"]</h2>
-                <p class="text-muted small">@Localizer["The password must be safe and strong."]</p>
+            <div class="text-center mb-8">
+                <h2 class="font-heading text-2xl font-bold text-slate-900">@Localizer["Create account"]</h2>
+                <p class="text-slate-500 mt-2 text-sm">@Localizer["The password must be safe and strong."]</p>
             </div>
 
-            <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-                <div asp-validation-summary="ModelOnly" class="alert alert-danger shadow-sm" role="alert"></div>
+            <form id="registerForm" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="space-y-5">
+                <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700" role="alert"></div>
 
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Email" class="form-control rounded-3" placeholder="name@example.com" />
-                    <label asp-for="Input.Email">@Localizer["Email address"]</label>
-                    <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                <div>
+                    <label asp-for="Input.Email" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Email address"]</label>
+                    <input asp-for="Input.Email" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="name@example.com" />
+                    <span asp-validation-for="Input.Email" class="text-sm text-red-600"></span>
                 </div>
 
-                <div class="form-floating mb-2">
+                <div>
+                    <label asp-for="Input.Password" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Password"]</label>
                     <input asp-for="Input.Password" 
                            id="passwordInput"
                            type="password"
-                           class="form-control rounded-3" 
-                           placeholder="password" />
-                    <label asp-for="Input.Password">@Localizer["Password"]</label>
-                    <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                           class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                           placeholder="••••••••" />
+                    <span asp-validation-for="Input.Password" class="text-sm text-red-600"></span>
                 </div>
 
-                <div class="password-strength-wrapper mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span id="strength-text" class="small fw-bold text-muted">@Localizer["Enter password"]</span>
-                        <span id="strength-percent" class="small text-muted">0%</span>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span id="strength-text" class="text-sm font-medium text-slate-500">@Localizer["Enter password"]</span>
+                        <span id="strength-percent" class="text-sm text-slate-500">0%</span>
                     </div>
-                    <div class="d-flex gap-2" style="height: 8px;">
-                        <div class="strength-segment flex-fill rounded-pill"></div>
-                        <div class="strength-segment flex-fill rounded-pill"></div>
-                        <div class="strength-segment flex-fill rounded-pill"></div>
-                        <div class="strength-segment flex-fill rounded-pill"></div>
+                    <div class="flex gap-2 h-2">
+                        <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-all duration-300"></div>
+                        <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-all duration-300"></div>
+                        <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-all duration-300"></div>
+                        <div class="strength-segment flex-1 rounded-full bg-slate-200 transition-all duration-300"></div>
                     </div>
                 </div>
 
-                <div class="password-requirements p-3 bg-light rounded-3 border mb-4">
-                    <ul class="list-unstyled mb-0" style="font-size: 0.85rem;">
-                        <li id="req-length" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>@Localizer["At least 6 characters"]</li>
-                        <li id="req-upper" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>@Localizer["At least one uppercase letter"]</li>
-                        <li id="req-number" class="text-muted mb-1"><i class="bi bi-circle me-2"></i>@Localizer["At least one number"]</li>
-                        <li id="req-special" class="text-muted"><i class="bi bi-circle me-2"></i>@Localizer["At least one special character (!?#$)"]</li>
+                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <ul class="space-y-2 text-sm">
+                        <li id="req-length" class="flex items-center gap-2 text-slate-500"><i class="bi bi-circle text-xs"></i>@Localizer["At least 6 characters"]</li>
+                        <li id="req-upper" class="flex items-center gap-2 text-slate-500"><i class="bi bi-circle text-xs"></i>@Localizer["At least one uppercase letter"]</li>
+                        <li id="req-number" class="flex items-center gap-2 text-slate-500"><i class="bi bi-circle text-xs"></i>@Localizer["At least one number"]</li>
+                        <li id="req-special" class="flex items-center gap-2 text-slate-500"><i class="bi bi-circle text-xs"></i>@Localizer["At least one special character (!?#$)"]</li>
                     </ul>
                 </div>
 
-                <div class="form-floating mb-4">
-                    <input asp-for="Input.ConfirmPassword" class="form-control rounded-3" placeholder="password" />
-                    <label asp-for="Input.ConfirmPassword">@Localizer["Confirm password"]</label>
-                    <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
+                <div>
+                    <label asp-for="Input.ConfirmPassword" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Confirm password"]</label>
+                    <input asp-for="Input.ConfirmPassword" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="••••••••" />
+                    <span asp-validation-for="Input.ConfirmPassword" class="text-sm text-red-600"></span>
                 </div>
 
-                <button id="registerSubmit" type="submit" class="w-100 btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                <button id="registerSubmit" type="submit" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
                     @Localizer["Register"]
                 </button>
             </form>
@@ -116,68 +116,45 @@
         function updateRequirement(element, isValid) {
             const icon = element.querySelector('i');
             if (isValid) {
-                element.classList.remove('text-muted');
-                element.classList.add('text-success');
+                element.classList.remove('text-slate-500');
+                element.classList.add('text-green-600');
                 icon.classList.remove('bi-circle');
                 icon.classList.add('bi-check-circle-fill');
             } else {
-                element.classList.remove('text-success');
-                element.classList.add('text-muted');
+                element.classList.remove('text-green-600');
+                element.classList.add('text-slate-500');
                 icon.classList.remove('bi-check-circle-fill');
                 icon.classList.add('bi-circle');
             }
         }
 
         function updateStrengthBar(score) {
-            segments.forEach(s => {
-                s.style.backgroundColor = "#e9ecef";
-                s.style.border = "1px solid #dee2e6";
-            });
+            segments.forEach(s => s.className = 'strength-segment flex-1 rounded-full bg-slate-200 transition-all duration-300');
 
             const val = passwordInput.value;
             if (val.length === 0) {
                 strengthText.innerText = translations.enter;
-                strengthText.style.color = "#6c757d";
+                strengthText.className = 'text-sm font-medium text-slate-500';
                 strengthPercent.innerText = "0%";
                 return;
             }
 
             const config = {
-                0: { color: "#dc3545", text: translations.veryWeak, count: 1 },
-                1: { color: "#fd7e14", text: translations.weak, count: 2 },
-                2: { color: "#fd7e14", text: translations.weak, count: 2 },
-                3: { color: "#ffc107", text: translations.medium, count: 3 },
-                4: { color: "#198754", text: translations.strong, count: 4 }
+                0: { bgClass: 'bg-red-500', textClass: 'text-red-600', text: translations.veryWeak, count: 1 },
+                1: { bgClass: 'bg-orange-500', textClass: 'text-orange-600', text: translations.weak, count: 2 },
+                2: { bgClass: 'bg-orange-500', textClass: 'text-orange-600', text: translations.weak, count: 2 },
+                3: { bgClass: 'bg-yellow-500', textClass: 'text-yellow-600', text: translations.medium, count: 3 },
+                4: { bgClass: 'bg-green-500', textClass: 'text-green-600', text: translations.strong, count: 4 }
             };
 
             const current = config[score];
             strengthText.innerText = current.text;
-            strengthText.style.color = current.color;
+            strengthText.className = 'text-sm font-medium ' + current.textClass;
             strengthPercent.innerText = (score * 25) + "%";
 
             for (let i = 0; i < current.count; i++) {
-                segments[i].style.backgroundColor = current.color;
-                segments[i].style.border = "none";
+                segments[i].className = 'strength-segment flex-1 rounded-full transition-all duration-300 ' + current.bgClass;
             }
         }
     </script>
 }
-
-<style>
-    .form-floating .form-control::placeholder { color: transparent !important; opacity: 0 !important; }
-    .form-floating .form-control:focus::placeholder { color: #a0a0a0 !important; opacity: 1 !important; }
-    .strength-segment {
-        height: 8px;
-        background-color: #e9ecef;
-        transition: all 0.3s ease-in-out;
-        border: 1px solid #dee2e6;
-    }
-    .min-vh-100 { min-height: 85vh !important; }
-    .text-success i {
-        color: #198754 !important;
-        transform: scale(1.1);
-    }
-    .password-requirements i {
-        transition: all 0.2s ease;
-    }
-</style>
