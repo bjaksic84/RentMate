@@ -1,5 +1,16 @@
 @using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Localization
+@using RentMate.Models
 @inject IViewLocalizer Localizer
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var userProfilePic = currentUser?.ProfilePictureUrl;
+    var userDisplayName = currentUser?.FirstName ?? currentUser?.UserName ?? "User";
+    var requestCulture = Context.Features.Get<IRequestCultureFeature>();
+    var currentCulture = requestCulture?.RequestCulture.Culture.TwoLetterISOLanguageName ?? "en";
+}
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
@@ -233,9 +244,16 @@
                             <!-- User Menu -->
                             <div class="relative">
                                 <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 p-1.5 pr-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-all duration-200">
-                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center">
-                                        <i class="bi bi-person-fill text-white text-sm"></i>
-                                    </div>
+                                    @if (!string.IsNullOrEmpty(userProfilePic))
+                                    {
+                                        <img src="@userProfilePic" alt="@userDisplayName" class="w-8 h-8 rounded-full object-cover ring-2 ring-white" />
+                                    }
+                                    else
+                                    {
+                                        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center">
+                                            <i class="bi bi-person-fill text-white text-sm"></i>
+                                        </div>
+                                    }
                                     <i class="bi bi-chevron-down text-xs text-slate-500"></i>
                                 </button>
                                 <div class="hidden absolute right-0 mt-2 w-48 py-2 bg-white rounded-xl shadow-md border border-slate-100">
@@ -375,6 +393,11 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    @if (currentCulture == "sl")
+    {
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/sl.js"></script>
+        <script>flatpickr.localize(flatpickr.l10ns.sl);</script>
+    }
     <script src="~/js/translations.js" asp-append-version="true"></script>
     <script src="~/lib/signalr/signalr.min.js"></script>
     

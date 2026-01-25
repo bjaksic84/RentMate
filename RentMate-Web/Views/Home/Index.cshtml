@@ -85,8 +85,10 @@
                             <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
                                 <i class="bi bi-calendar-event text-white text-sm"></i>
                             </div>
-                            <input type="text" id="dateRange" name="dates" placeholder="@Localizer["When? (Pick dates)"]" readonly
+                            <input type="text" id="dateRange" placeholder="@Localizer["When? (Pick dates)"]" readonly
                                    class="flex-1 min-w-0 bg-transparent border-none text-slate-900 font-medium placeholder-slate-400 focus:outline-none text-sm cursor-pointer">
+                            <input type="hidden" name="startDate" id="heroStartDate" />
+                            <input type="hidden" name="endDate" id="heroEndDate" />
                         </div>
                     </div>
                     
@@ -104,16 +106,15 @@
         <!-- Quick categories - clickable pills that populate search -->
         <div class="flex flex-wrap justify-center gap-3 mt-8">
             @{
-                var categories = new[] { ("Tools", "bi-tools", "Orodje"), ("Electronics", "bi-laptop", "Elektronika"), ("Sports", "bi-bicycle", "Šport"), ("Home & Garden", "bi-house", "Dom & Vrt"), ("Fun", "bi-controller", "Zabava") };
+                var categories = new[] { ("Tools", "bi-tools"), ("Electronics", "bi-laptop"), ("Sports", "bi-bicycle"), ("Home & Garden", "bi-house"), ("Fun", "bi-controller") };
             }
-            @foreach (var (cat, icon, slCat) in categories)
+            @foreach (var (cat, icon) in categories)
             {
-                <button type="button" 
-                        onclick="setSearchCategory('@cat')"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/10 hover:border-white/30 transition-all duration-200 cursor-pointer focus-ring">
+                <a href="@Url.Action("Index", "Rentals", new { category = cat })"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/10 hover:border-white/30 transition-all duration-200 cursor-pointer focus-ring">
                     <i class="bi @icon" aria-hidden="true"></i>
                     @Localizer[cat]
-                </button>
+                </a>
             }
         </div>
     </div>
@@ -386,15 +387,46 @@
 
 @section Scripts {
     <script>
-        // Initialize Flatpickr date range picker
+        // Helper function to format date as yyyy-MM-dd in local timezone
+        function formatLocalDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+
+        // Determine language and date format for Flatpickr
+        var lang = document.documentElement.lang || 'en';
+        var flatpickrFormat = (lang.startsWith('sl')) ? 'd. M' : 'd M';
+        var flatpickrLocale = {
+            rangeSeparator: ' - '
+        };
+        if (lang.startsWith('sl')) {
+            flatpickrLocale.weekdays = {
+                shorthand: ['Ned', 'Pon', 'Tor', 'Sre', 'Čet', 'Pet', 'Sob'],
+                longhand: ['Nedelja', 'Ponedeljek', 'Torek', 'Sreda', 'Četrtek', 'Petek', 'Sobota']
+            };
+            flatpickrLocale.months = {
+                shorthand: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'avg', 'sep', 'okt', 'nov', 'dec'],
+                longhand: ['januar', 'februar', 'marec', 'april', 'maj', 'junij', 'julij', 'avgust', 'september', 'oktober', 'november', 'december']
+            };
+        }
         flatpickr("#dateRange", {
             mode: "range",
             minDate: "today",
-            dateFormat: "M d",
-            locale: {
-                rangeSeparator: " - "
-            },
-            disableMobile: true
+            dateFormat: flatpickrFormat,
+            locale: flatpickrLocale,
+            disableMobile: true,
+            onChange: function(selectedDates, dateStr, instance) {
+                if (selectedDates.length === 2) {
+                    document.getElementById('heroStartDate').value = formatLocalDate(selectedDates[0]);
+                    document.getElementById('heroEndDate').value = formatLocalDate(selectedDates[1]);
+                } else {
+                    document.getElementById('heroStartDate').value = '';
+                    document.getElementById('heroEndDate').value = '';
+                }
+            }
         });
 
         // Category pill click handler - populates search and focuses input
