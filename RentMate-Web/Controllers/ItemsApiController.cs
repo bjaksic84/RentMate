@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
-using RentMate.Models; // For Web models (including ApplicationUser)
-using RentMate.Shared; // For Shared models (ItemDto, UserDto)
+using RentMate.Models;
+using RentMate.Shared.Contracts.Requests;
+using RentMate.Shared.Contracts.Responses;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -11,10 +12,14 @@ using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
+    /// <summary>
+    /// API controller for item operations.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [EnableRateLimiting("ApiPolicy")]
+    [Produces("application/json")]
     public class ItemsApiController : ControllerBase
     {
         private readonly RentMateContext _context;
@@ -36,30 +41,36 @@ namespace RentMate.Controllers
 
         // GET: api/Items
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<RentMate.Shared.ItemDto>>> GetItems()
+        public async Task<ActionResult<IEnumerable<ItemWithOwner>>> GetItems()
         {
-            // Map Web models from database to Shared DTOs
+            // Map Web models from database to new shared contracts
             var items = await _context.Items
                 .Include(i => i.User)
-                .Select(i => new RentMate.Shared.ItemDto
-                {
-                    Id = i.Id,
-                    Title = i.Title,
-                    Description = i.Description,
-                    Price = i.Price,
-                    UserId = i.UserId,
-                    IsListed = i.IsListed,
-                    Location = i.Location ?? i.User.City,
-                    ImageUrl = i.ImageUrl,
-                    CreatedAt = i.CreatedAt,
-                    Category = i.Category,
-                    User = i.User != null ? new UserDto
-                    {
-                        Id = i.User.Id,
-                        UserName = i.User.UserName,
-                        Email = i.User.Email
-                    } : null
-                })
+                .Include(i => i.Reviews)
+                .Where(i => i.IsListed && !i.IsAdminHidden)
+                .Select(i => new ItemWithOwner(
+                    i.Id,
+                    i.Title,
+                    i.Description,
+                    i.Price ?? 0,
+                    i.ImageUrl,
+                    i.Location ?? i.User.City,
+                    i.IsListed,
+                    i.IsAdminHidden,
+                    i.Reviews.Any() ? i.Reviews.Average(r => r.Rating) : 0,
+                    i.Reviews.Count,
+                    i.CreatedAt,
+                    i.UpdatedAt,
+                    new UserSummary(
+                        i.User.Id,
+                        i.User.UserName ?? "",
+                        i.User.Email,
+                        i.User.FirstName,
+                        i.User.LastName,
+                        i.User.City,
+                        i.User.ProfilePictureUrl
+                    )
+                ))
                 .ToListAsync();
 
             return Ok(items);
@@ -67,41 +78,49 @@ namespace RentMate.Controllers
 
         // GET: api/Items/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<RentMate.Shared.ItemDto>> GetItem(int id)
+        public async Task<ActionResult<ItemWithOwner>> GetItem(int id)
         {
             var item = await _context.Items
                 .Include(i => i.User)
+                .Include(i => i.Reviews)
                 .FirstOrDefaultAsync(i => i.Id == id);
-
-            // simple request logging for debugging mobile fetch issues
-            Console.WriteLine($"[API] GetItem requested id={id}, found={(item != null)}");
 
             if (item == null)
                 return NotFound();
 
-            var itemDto = new RentMate.Shared.ItemDto
-            {
-                Id = item.Id,
-                Title = item.Title,
-                Description = item.Description,
-                Price = item.Price,
-                UserId = item.UserId,
-                Location = item.Location ?? item.User?.City,
-                IsListed = item.IsListed,
-                ImageUrl = item.ImageUrl,
-                Category = item.Category,
-                User = item.User != null ? new UserDto { Id = item.User.Id, UserName = item.User.UserName } : null
-            };
+            var itemWithOwner = new ItemWithOwner(
+                item.Id,
+                item.Title,
+                item.Description,
+                item.Price ?? 0,
+                item.ImageUrl,
+                item.Location ?? item.User?.City,
+                item.IsListed,
+                item.IsAdminHidden,
+                item.Reviews.Any() ? item.Reviews.Average(r => r.Rating) : 0,
+                item.Reviews.Count,
+                item.CreatedAt,
+                item.UpdatedAt,
+                item.User != null ? new UserSummary(
+                    item.User.Id,
+                    item.User.UserName ?? "",
+                    item.User.Email,
+                    item.User.FirstName,
+                    item.User.LastName,
+                    item.User.City,
+                    item.User.ProfilePictureUrl
+                ) : null!
+            );
 
-            return Ok(itemDto);
+            return Ok(itemWithOwner);
         }
 
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<ActionResult<RentMate.Models.Item>> PostItem(RentMate.Shared.Item sharedItem)
+        public async Task<ActionResult<ItemWithOwner>> PostItem(CreateItemRequest request)
         {
             // 1. Attempt to get ID in two ways
-            string? userId = _userManager.GetUserId(User) ?? sharedItem.UserId;
+            string? userId = _userManager.GetUserId(User);
             
             // If UserManager failed, try directly from Claims
             if (string.IsNullOrEmpty(userId))
@@ -118,13 +137,13 @@ namespace RentMate.Controllers
 
             var webItem = new RentMate.Models.Item
             {
-                Title = sharedItem.Title,
-                Description = sharedItem.Description,
-                Price = sharedItem.Price,
-                IsListed = sharedItem.IsListed,
-                Category = sharedItem.Category,
-                ImageUrl = sharedItem.ImageUrl,
-                UserId = userId, // Now 100% sure it's not null
+                Title = request.Title,
+                Description = request.Description,
+                Price = request.PricePerDay,
+                IsListed = request.IsListed,
+                Location = request.City,
+                ImageUrl = request.ImageUrl,
+                UserId = userId,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -132,7 +151,35 @@ namespace RentMate.Controllers
             {
                 _context.Items.Add(webItem);
                 await _context.SaveChangesAsync();
-                return CreatedAtAction("GetItem", new { id = webItem.Id }, webItem);
+                
+                // Reload with user to return full ItemWithOwner
+                await _context.Entry(webItem).Reference(i => i.User).LoadAsync();
+                
+                var result = new ItemWithOwner(
+                    webItem.Id,
+                    webItem.Title,
+                    webItem.Description,
+                    webItem.Price ?? 0,
+                    webItem.ImageUrl,
+                    webItem.Location ?? webItem.User?.City,
+                    webItem.IsListed,
+                    webItem.IsAdminHidden,
+                    0, // New item has no reviews
+                    0,
+                    webItem.CreatedAt,
+                    null,
+                    new UserSummary(
+                        webItem.User!.Id,
+                        webItem.User.UserName ?? "",
+                        webItem.User.Email,
+                        webItem.User.FirstName,
+                        webItem.User.LastName,
+                        webItem.User.City,
+                        webItem.User.ProfilePictureUrl
+                    )
+                );
+                
+                return CreatedAtAction("GetItem", new { id = webItem.Id }, result);
             }
             catch (Exception ex)
             {
@@ -144,21 +191,33 @@ namespace RentMate.Controllers
 
         // PUT: api/Items/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutItem(int id, RentMate.Shared.Item sharedItem)
+        public async Task<IActionResult> PutItem(int id, UpdateItemRequest request)
         {
-            if (id != sharedItem.Id)
-                return BadRequest();
+            // Get current user ID for authorization
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
 
             var webItem = await _context.Items.FindAsync(id);
-            if (webItem == null) return NotFound();
+            if (webItem == null) 
+                return NotFound();
 
-            // Update Web model values
-            webItem.Title = sharedItem.Title;
-            webItem.Description = sharedItem.Description;
-            webItem.Price = sharedItem.Price;
-            webItem.IsListed = sharedItem.IsListed;
-            webItem.ImageUrl = sharedItem.ImageUrl;
-            webItem.Category = sharedItem.Category;
+            // Authorization: Only the owner can modify their item
+            if (webItem.UserId != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to modify item {ItemId} owned by {OwnerId}", 
+                    userId, id, webItem.UserId);
+                return Forbid();
+            }
+
+            // Update Web model values from request
+            webItem.Title = request.Title;
+            webItem.Description = request.Description;
+            webItem.Price = request.PricePerDay;
+            webItem.Location = request.City;
+            webItem.ImageUrl = request.ImageUrl;
+            webItem.IsListed = request.IsListed;
+            webItem.UpdatedAt = DateTime.UtcNow;
 
             try
             {
@@ -177,35 +236,164 @@ namespace RentMate.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteItem(int id)
         {
+            // Get current user ID for authorization
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
             var item = await _context.Items.FindAsync(id);
             if (item == null)
                 return NotFound();
 
+            // Authorization: Only the owner can delete their item
+            if (item.UserId != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to delete item {ItemId} owned by {OwnerId}", 
+                    userId, id, item.UserId);
+                return Forbid();
+            }
+
             _context.Items.Remove(item);
             await _context.SaveChangesAsync();
 
+            _logger.LogInformation("User {UserId} deleted item {ItemId}", userId, id);
             return NoContent();
         }
 
+        /// <summary>
+        /// Get items owned by the current user.
+        /// </summary>
+        /// <returns>List of item summaries.</returns>
         [HttpGet("myitems")]
-        public async Task<ActionResult<IEnumerable<RentMate.Shared.Item>>> GetMyItems()
+        [ProducesResponseType(typeof(IEnumerable<ItemSummary>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<IEnumerable<ItemSummary>>> GetMyItems()
         {
             var userId = _userManager.GetUserId(User);
-            return await _context.Items
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var items = await _context.Items
                 .Where(i => i.UserId == userId)
-                .Select(i => new RentMate.Shared.Item // Return Shared version
-                {
-                    Id = i.Id,
-                    Title = i.Title,
-                    Description = i.Description,
-                    Price = i.Price,
-                    UserId = i.UserId,
-                    IsListed = i.IsListed,
-                    ImageUrl = i.ImageUrl,
-                    Category = i.Category,
-                    Location = i.Location
-                })
+                .Include(i => i.Reviews)
+                .Select(i => new ItemSummary(
+                    i.Id,
+                    i.Title ?? "Untitled",
+                    i.Description,
+                    i.Price ?? 0,
+                    i.ImageUrl,
+                    i.Location,
+                    i.IsListed,
+                    i.IsAdminHidden,
+                    i.Reviews.Any() ? i.Reviews.Average(r => r.Rating) : 0,
+                    i.Reviews.Count,
+                    i.CreatedAt
+                ))
                 .ToListAsync();
+
+            return Ok(items);
+        }
+
+        /// <summary>
+        /// Search items with optional filters.
+        /// </summary>
+        /// <param name="request">Search parameters.</param>
+        /// <returns>Paginated list of items.</returns>
+        [HttpPost("search")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(PaginatedResponse<ItemWithOwner>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<PaginatedResponse<ItemWithOwner>>> SearchItems([FromBody] SearchItemsRequest request)
+        {
+            var query = _context.Items
+                .Include(i => i.User)
+                .Include(i => i.Reviews)
+                .Where(i => i.IsListed && !i.IsAdminHidden);
+
+            // Apply filters
+            if (!string.IsNullOrWhiteSpace(request.SearchQuery))
+            {
+                var searchTerm = request.SearchQuery.ToLower();
+                query = query.Where(i => 
+                    (i.Title != null && i.Title.ToLower().Contains(searchTerm)) ||
+                    (i.Description != null && i.Description.ToLower().Contains(searchTerm)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Category))
+            {
+                query = query.Where(i => i.Category == request.Category);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.City))
+            {
+                query = query.Where(i => i.Location == request.City || i.User!.City == request.City);
+            }
+
+            if (request.MinPrice.HasValue)
+            {
+                query = query.Where(i => i.Price >= request.MinPrice.Value);
+            }
+
+            if (request.MaxPrice.HasValue)
+            {
+                query = query.Where(i => i.Price <= request.MaxPrice.Value);
+            }
+
+            if (request.MinRating.HasValue)
+            {
+                query = query.Where(i => i.AverageRating >= request.MinRating.Value);
+            }
+
+            // Apply sorting
+            query = request.SortBy?.ToLower() switch
+            {
+                "price_asc" => query.OrderBy(i => i.Price),
+                "price_desc" => query.OrderByDescending(i => i.Price),
+                "rating" => query.OrderByDescending(i => i.AverageRating),
+                "newest" => query.OrderByDescending(i => i.CreatedAt),
+                _ => query.OrderByDescending(i => i.CreatedAt)
+            };
+
+            // Get total count for pagination
+            var totalCount = await query.CountAsync();
+
+            // Apply pagination
+            var page = request.Page ?? 1;
+            var pageSize = request.PageSize ?? 20;
+            
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(i => new ItemWithOwner(
+                    i.Id,
+                    i.Title,
+                    i.Description,
+                    i.Price ?? 0,
+                    i.ImageUrl,
+                    i.Location ?? i.User!.City,
+                    i.IsListed,
+                    i.IsAdminHidden,
+                    i.Reviews.Any() ? i.Reviews.Average(r => r.Rating) : 0,
+                    i.Reviews.Count,
+                    i.CreatedAt,
+                    i.UpdatedAt,
+                    new UserSummary(
+                        i.User!.Id,
+                        i.User.UserName ?? "",
+                        i.User.Email,
+                        i.User.FirstName,
+                        i.User.LastName,
+                        i.User.City,
+                        i.User.ProfilePictureUrl
+                    )
+                ))
+                .ToListAsync();
+
+            return Ok(new PaginatedResponse<ItemWithOwner>(
+                items,
+                totalCount,
+                page,
+                pageSize
+            ));
         }
     }
 }

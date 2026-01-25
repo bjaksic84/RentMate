@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using RentMate.Data;
 using RentMate.Models;
 using Microsoft.Extensions.Localization;
 using System.Collections.Generic;
@@ -19,15 +21,18 @@ namespace RentMate.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IStringLocalizer<UsersApiController> _localizer;
+        private readonly RentMateContext _context;
 
         public UsersApiController(
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            IStringLocalizer<UsersApiController> localizer)
+            IStringLocalizer<UsersApiController> localizer,
+            RentMateContext context)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _localizer = localizer;
+            _context = context;
         }
 
         // Assign a role to a user
@@ -76,25 +81,31 @@ namespace RentMate.Controllers
         }
 
         // List all users with their roles (handy for admin UI / Swagger)
+        // Optimized: Single query with joins instead of N+1 queries
         [HttpGet]
         public async Task<IActionResult> GetAllUsersWithRoles()
         {
-            var users = _userManager.Users.ToList();
-            var result = new List<object>();
-
-            foreach (var user in users)
-            {
-                var roles = await _userManager.GetRolesAsync(user);
-                result.Add(new
+            // Efficient single query using joins to avoid N+1 problem
+            var usersWithRoles = await (
+                from user in _context.Users
+                select new
                 {
-                    Id = user.Id,
-                    UserName = user.UserName,
-                    Email = user.Email,
-                    Roles = roles
-                });
-            }
+                    user.Id,
+                    user.UserName,
+                    user.Email,
+                    user.FirstName,
+                    user.LastName,
+                    user.City,
+                    Roles = (
+                        from userRole in _context.UserRoles
+                        join role in _context.Roles on userRole.RoleId equals role.Id
+                        where userRole.UserId == user.Id
+                        select role.Name
+                    ).ToList()
+                }
+            ).ToListAsync();
 
-            return Ok(result);
+            return Ok(usersWithRoles);
         }
 
         [HttpPost("{userId}/roles/manage")]

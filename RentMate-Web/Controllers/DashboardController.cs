@@ -4,26 +4,34 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
-using RentMate.Shared;
-using System.Linq;
-using System.Threading.Tasks;
-
+using RentMate.Services;
+using RentMate.Shared.Contracts.Responses;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace RentMate.Controllers
 {
+    /// <summary>
+    /// MVC Controller for dashboard views.
+    /// Uses IDashboardService for business logic, with legacy mapping for views.
+    /// </summary>
     [Authorize]
     public class DashboardController : Controller
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RentMateContext _context;
-        private readonly IMemoryCache _cache;
+        private readonly IDashboardService _dashboardService;
+        private readonly ILogger<DashboardController> _logger;
 
-        public DashboardController(UserManager<ApplicationUser> userManager, RentMateContext context, IMemoryCache cache)
+        public DashboardController(
+            UserManager<ApplicationUser> userManager, 
+            RentMateContext context,
+            IDashboardService dashboardService,
+            ILogger<DashboardController> logger)
         {
             _userManager = userManager;
             _context = context;
-            _cache = cache;
+            _dashboardService = dashboardService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
@@ -39,43 +47,39 @@ namespace RentMate.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminDashboard()
         {
-            const string cacheKey = "AdminStats";
-            if (!_cache.TryGetValue(cacheKey, out RentMate.Models.DashboardViewModel? stats))
+            try
             {
-                stats = new RentMate.Models.DashboardViewModel
-                {
-                    TotalUsers = _userManager.Users.Count(),
-                    TotalListings = _context.Items.Count(),
-                    ActiveListings = _context.Items.Count(i => i.IsListed),
-                    TotalRentals = _context.Rentals.Count(),
-                    ActiveRentals = _context.Rentals.Count(r => r.Status == RentalStatus.Active),
-                    TotalRevenue = await _context.Payments
-                        .Where(p => p.Status == PaymentStatus.Success)
-                        .SumAsync(p => p.Amount)
-                };
+                // Get statistics from service (uses caching internally)
+                var response = await _dashboardService.GetAdminDashboardAsync();
+                
+                // Convert to legacy ViewModel for the view
+                var viewModel = response.ToLegacyViewModel();
+                
+                // Populate the entity lists needed by the view
+                // (The view uses navigation properties that DTOs don't have)
+                viewModel.Users = await _userManager.Users.AsNoTracking().Take(10).ToListAsync();
+                viewModel.Listings = await _context.Items.AsNoTracking()
+                    .Include(i => i.User)
+                    .OrderByDescending(i => i.CreatedAt)
+                    .Take(10).ToListAsync();
+                viewModel.Rentals = await _context.Rentals.AsNoTracking()
+                    .Include(r => r.Item)
+                    .Include(r => r.Renter)
+                    .Include(r => r.Owner)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Take(10).ToListAsync();
 
-                _cache.Set(cacheKey, stats, TimeSpan.FromMinutes(15));
+                return View(viewModel);
             }
-
-            // Fresh data for the recent lists (don't cache these as they change often)
-            stats!.Users = await _userManager.Users.AsNoTracking().Take(10).ToListAsync();
-            stats.Listings = await _context.Items.AsNoTracking()
-                .Include(i => i.User)
-                .OrderByDescending(i => i.CreatedAt)
-                .Take(10).ToListAsync();
-            
-            stats.Rentals = await _context.Rentals.AsNoTracking()
-                .Include(r => r.Item)
-                .Include(r => r.Renter)
-                .Include(r => r.Owner)
-                .OrderByDescending(r => r.CreatedAt)
-                .Take(10).ToListAsync();
-
-            return View(stats);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading admin dashboard");
+                TempData["ErrorMessage"] = "An error occurred while loading the dashboard.";
+                return RedirectToAction("Index", "Home");
+            }
         }
 
         // --- USER DASHBOARD ---
-        
         [Authorize]
         public async Task<IActionResult> UserDashboard()
         {
@@ -83,58 +87,49 @@ namespace RentMate.Controllers
             if (user == null)
                 return RedirectToAction("Index", "Home");
 
-            // 1. Items owned by the user
-            var userItems = await _context.Items
-                .AsNoTracking()
-                .Where(i => i.UserId == user.Id)
-                .OrderByDescending(i => i.CreatedAt)
-                .ToListAsync();
-
-            // 2. Rentals where the user is the renter
-            var myRentals = await _context.Rentals
-                .AsNoTracking()
-                .Include(r => r.Item)
-                .Include(r => r.Owner)
-                .Where(r => r.RenterId == user.Id)
-                .OrderByDescending(r => r.StartDate)
-                .ToListAsync();
-
-            // 3. Rentals where the user is the owner
-            var ownerRentals = await _context.Rentals
-                .AsNoTracking()
-                .Include(r => r.Item)
-                .Include(r => r.Renter)
-                .Where(r => r.OwnerId == user.Id)
-                .OrderByDescending(r => r.StartDate)
-                .ToListAsync();
-
-            // Build view model
-            var viewModel = new RentMate.Models.DashboardViewModel
+            try
             {
-                ListingsOwned = userItems,
-                MyRentals = myRentals,
-                OwnerRentals = ownerRentals,
+                // Get statistics from service
+                var response = await _dashboardService.GetUserDashboardAsync(user.Id);
+                
+                // Convert to legacy ViewModel for the view
+                var viewModel = response.ToLegacyViewModel();
+                
+                // Populate the entity lists needed by the view
+                // (The view uses navigation properties that DTOs don't have)
+                viewModel.ListingsOwned = await _context.Items
+                    .AsNoTracking()
+                    .Where(i => i.UserId == user.Id)
+                    .OrderByDescending(i => i.CreatedAt)
+                    .ToListAsync();
 
-                // Counts
-                TotalListingsOwned = userItems.Count,
-                ActiveListingsOwned = userItems.Count(i => i.IsListed && !i.IsRented),
+                viewModel.MyRentals = await _context.Rentals
+                    .AsNoTracking()
+                    .Include(r => r.Item)
+                    .Include(r => r.Owner)
+                    .Where(r => r.RenterId == user.Id)
+                    .OrderByDescending(r => r.StartDate)
+                    .ToListAsync();
 
-                TotalRentalsAsRenter = myRentals.Count,
-                TotalRentalsAsOwner = ownerRentals.Count,
+                viewModel.OwnerRentals = await _context.Rentals
+                    .AsNoTracking()
+                    .Include(r => r.Item)
+                    .Include(r => r.Renter)
+                    .Where(r => r.OwnerId == user.Id)
+                    .OrderByDescending(r => r.StartDate)
+                    .ToListAsync();
 
-                // (Optional global summaries for display)
-                TotalListings = userItems.Count,
-                ActiveListings = userItems.Count(i => i.IsListed),
-                TotalRentals = myRentals.Count + ownerRentals.Count,
-                ActiveRentals = myRentals.Count(r => r.Status == RentalStatus.Active)
-                    + ownerRentals.Count(r => r.Status == RentalStatus.Active)
-            };
+                ViewData["DebugUserId"] = user.Id;
+                ViewData["FoundItems"] = viewModel.ListingsOwned?.Count ?? 0;
 
-            // Expose simple debug info to the view so it's visible in the UI if console logging isn't available
-            ViewData["DebugUserId"] = user.Id;
-            ViewData["FoundItems"] = userItems.Count;
-
-            return View(viewModel);
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading user dashboard for {UserId}", user.Id);
+                TempData["ErrorMessage"] = "An error occurred while loading the dashboard.";
+                return RedirectToAction("Index", "Home");
+            }
         }
     }
 }

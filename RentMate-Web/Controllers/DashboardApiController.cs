@@ -1,142 +1,157 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using RentMate.Data;
-using RentMate.Models; // For ApplicationUser in the database
-using RentMate.Shared; // For Item, Rental, DashboardViewModelDto
+using RentMate.Models;
+using RentMate.Services;
+using RentMate.Shared.Contracts.Responses;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
-using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
+    /// <summary>
+    /// API controller for dashboard data.
+    /// Uses IDashboardService for all business logic - same service as MVC controller.
+    /// </summary>
     [Route("api/dashboard")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [EnableRateLimiting("ApiPolicy")]
     public class DashboardApiController : ControllerBase
     {
+        private readonly IDashboardService _dashboardService;
         private readonly UserManager<ApplicationUser> _userManager;
-        private readonly RentMateContext _context;
-        private readonly IStringLocalizer<DashboardApiController> _localizer;
+        private readonly ILogger<DashboardApiController> _logger;
 
         public DashboardApiController(
-            UserManager<ApplicationUser> userManager, 
-            RentMateContext context,
-            IStringLocalizer<DashboardApiController> localizer)
+            IDashboardService dashboardService,
+            UserManager<ApplicationUser> userManager,
+            ILogger<DashboardApiController> logger)
         {
+            _dashboardService = dashboardService;
             _userManager = userManager;
-            _context = context;
-            _localizer = localizer;
+            _logger = logger;
         }
 
+        /// <summary>
+        /// Get the current user's dashboard data.
+        /// </summary>
         [HttpGet("userdashboard")]
-        public async Task<IActionResult> GetUserDashboard()
+        [ProducesResponseType(typeof(UserDashboardResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<UserDashboardResponse>> GetUserDashboard()
         {
-            // Since mapping was cleared in Program.cs, "sub" will contain the ID
-            var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) 
-                        ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            // Refactored to English log message
-            Console.WriteLine($"[DEBUG API] Final corrected UserId: '{userId}'");
-
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            // 2. Fetching data with "Shared" models for mobile application
-            var listingsOwned = await _context.Items
-                .Where(i => i.UserId == userId)
-                .Select(i => new RentMate.Shared.Item 
-                {
-                    Id = i.Id,
-                    Title = i.Title,
-                    Description = i.Description,
-                    Price = i.Price,
-                    Category = i.Category,
-                    ImageUrl = i.ImageUrl,
-                    Location = i.Location,
-                    IsListed = i.IsListed,
-                    UserId = i.UserId,
-                    AverageRating = i.AverageRating,
-                    ReviewCount = i.ReviewCount
-                }).ToListAsync();
-
-            var myRentals = await _context.Rentals
-                .Include(r => r.Item)
-                .Where(r => r.RenterId == userId)
-                .Select(r => new RentMate.Shared.RentalDto
-                {
-                    Id = r.Id,
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate,
-                    TotalPrice = r.TotalPrice,
-                    Status = (RentMate.Shared.RentalStatus)r.Status,
-                    Item = new RentMate.Shared.ItemDto { Title = r.Item.Title, Id = r.Item.Id, AverageRating = r.Item.AverageRating, ReviewCount = r.Item.ReviewCount }
-                }).ToListAsync();
-
-            var ownerRentalsCount = await _context.Rentals.CountAsync(r => r.OwnerId == userId);
-
-            // 3. Construct the final DTO
-            var response = new DashboardViewModelDto
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
             {
-                TotalListingsOwned = listingsOwned.Count,
-                TotalRentalsAsRenter = myRentals.Count,
-                TotalRentalsAsOwner = ownerRentalsCount,
-                
-                ListingsOwned = listingsOwned,
-                // Handle Rental casting for the DTO List
-                MyRentals = myRentals.Cast<RentMate.Shared.Rental>().ToList() 
-            };
+                return Unauthorized();
+            }
 
+            try
+            {
+                var response = await _dashboardService.GetUserDashboardAsync(userId);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user dashboard for {UserId}", userId);
+                return StatusCode(500, "An error occurred while retrieving dashboard data");
+            }
+        }
+
+        /// <summary>
+        /// Get rentals where the current user is the renter.
+        /// </summary>
+        [HttpGet("my-rentals")]
+        [ProducesResponseType(typeof(List<RentalSummary>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<List<RentalSummary>>> GetMyRentals()
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var rentals = await _dashboardService.GetMyRentalsAsync(userId);
+            return Ok(rentals);
+        }
+
+        /// <summary>
+        /// Get rentals where the current user is the owner (their items being rented).
+        /// </summary>
+        [HttpGet("owner-rentals")]
+        [ProducesResponseType(typeof(List<RentalSummary>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<List<RentalSummary>>> GetOwnerRentals()
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var rentals = await _dashboardService.GetOwnerRentalsAsync(userId);
+            return Ok(rentals);
+        }
+
+        /// <summary>
+        /// Get admin dashboard data. Requires Admin role.
+        /// </summary>
+        [HttpGet("admin")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(AdminDashboardResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<ActionResult<AdminDashboardResponse>> GetAdminDashboard()
+        {
+            try
+            {
+                var response = await _dashboardService.GetAdminDashboardAsync();
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting admin dashboard");
+                return StatusCode(500, "An error occurred while retrieving admin dashboard data");
+            }
+        }
+
+        /// <summary>
+        /// Get combined dashboard for users who may also be admins.
+        /// </summary>
+        [HttpGet("combined")]
+        [ProducesResponseType(typeof(CombinedDashboardResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<CombinedDashboardResponse>> GetCombinedDashboard()
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+            var response = await _dashboardService.GetCombinedDashboardAsync(userId, isAdmin);
+            
             return Ok(response);
         }
 
-        [HttpGet("my-rentals")]
-        public async Task<IActionResult> GetMyRentals()
+        /// <summary>
+        /// Extract user ID from JWT claims.
+        /// </summary>
+        private string? GetCurrentUserId()
         {
-            var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            // Rentals where I am the Renter
-            var rentals = await _context.Rentals
-                .Include(r => r.Item)
-                .Where(r => r.RenterId == userId)
-                .Select(r => new RentalDto
-                {
-                    Id = r.Id,
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate,
-                    TotalPrice = r.TotalPrice,
-                    Status = (RentMate.Shared.RentalStatus)r.Status,
-                    Item = new ItemDto { Title = r.Item.Title }
-                }).ToListAsync();
-
-            return Ok(rentals);
-        }
-
-        [HttpGet("owner-rentals")]
-        public async Task<IActionResult> GetOwnerRentals()
-        {
-            var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId)) return Unauthorized();
-
-            // Rentals where others borrowed MY equipment (Owner)
-            var rentals = await _context.Rentals
-                .Include(r => r.Item)
-                .Where(r => r.OwnerId == userId)
-                .Select(r => new RentalDto
-                {
-                    Id = r.Id,
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate,
-                    TotalPrice = r.TotalPrice,
-                    Status = (RentMate.Shared.RentalStatus)r.Status,
-                    Item = new ItemDto { Title = r.Item.Title, Id = r.Item.Id, AverageRating = r.Item.AverageRating, ReviewCount = r.Item.ReviewCount }
-                }).ToListAsync();
-
-            return Ok(rentals);
+            return User.FindFirstValue(JwtRegisteredClaimNames.Sub) 
+                   ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
     }
 }

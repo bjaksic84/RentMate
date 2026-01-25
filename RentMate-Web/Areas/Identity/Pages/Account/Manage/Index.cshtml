@@ -1,81 +1,87 @@
 ﻿@page
+@using Microsoft.AspNetCore.Mvc.Localization
 @model IndexModel
+@inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = "Profil";
+    ViewData["Title"] = Localizer["Profile"];
     ViewData["ActivePage"] = ManageNavPages.Index;
 }
 
-<h3 class="mb-4">@ViewData["Title"]</h3>
-<partial name="_StatusMessage" model="Model.StatusMessage" />
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="border-b border-slate-200 pb-4">
+        <h2 class="font-heading text-xl font-bold text-slate-900">@Localizer["Profile Information"]</h2>
+        <p class="text-sm text-slate-500 mt-1">@Localizer["Update your personal information and profile picture"]</p>
+    </div>
 
-<div class="row">
-    <div class="col-md-9">
-        <form id="profile-form" method="post" enctype="multipart/form-data">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            
-            <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-4 text-center border-end">
-                            <div class="position-relative d-inline-block">
-                                <img id="profilePreview" 
-                                     src="@(string.IsNullOrEmpty(Model.Input.ProfilePictureUrl) ? "https://via.placeholder.com/150?text=No+Image" : Model.Input.ProfilePictureUrl)" 
-                                     class="rounded-circle img-thumbnail shadow-sm object-fit-cover" 
-                                     style="width: 160px; height: 160px;" 
-                                     alt="Profile Picture" />
-                                
-                                <label for="fileUpload" class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle shadow" style="width: 40px; height: 40px; line-height: 28px;">
-                                    <i class="bi bi-camera-fill"></i>
-                                </label>
-                                <input type="file" id="fileUpload" asp-for="Input.NewProfilePicture" class="d-none" accept="image/*" onchange="previewImage(this)" />
-                            </div>
-                            <p class="text-muted small mt-3">Kliknite ikono kamere za zamenjavo slike.</p>
-                        </div>
+    <partial name="_StatusMessage" model="Model.StatusMessage" />
 
-                        <div class="col-md-8 ps-md-4">
-                            <div class="form-floating mb-3">
-                                <input asp-for="Username" class="form-control" disabled />
-                                <label asp-for="Username" class="form-label"></label>
-                            </div>
+    <form id="profile-form" method="post" enctype="multipart/form-data" class="space-y-8">
+        <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"></div>
+        
+        <!-- Profile Picture Section -->
+        <div class="flex flex-col sm:flex-row items-start gap-6">
+            <div class="flex-shrink-0">
+                <div class="relative">
+                    <img id="profilePreview" 
+                         src="@(string.IsNullOrEmpty(Model.Input.ProfilePictureUrl) ? "https://via.placeholder.com/150?text=No+Image" : Model.Input.ProfilePictureUrl)" 
+                         class="w-32 h-32 rounded-2xl object-cover border-2 border-slate-200 shadow-sm" 
+                         alt="Profile Picture" />
+                    <label for="fileUpload" class="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-lg transition-colors">
+                        <i class="bi bi-camera-fill"></i>
+                    </label>
+                    <input type="file" id="fileUpload" asp-for="Input.NewProfilePicture" class="hidden" accept="image/*" onchange="previewImage(this)" />
+                </div>
+                <p class="text-xs text-slate-500 mt-3 text-center">@Localizer["Click to change"]</p>
+            </div>
 
-                            <div class="row g-2 mb-3">
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input asp-for="Input.FirstName" class="form-control" placeholder="Ime" />
-                                        <label asp-for="Input.FirstName">Ime</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-floating">
-                                        <input asp-for="Input.LastName" class="form-control" placeholder="Priimek" />
-                                        <label asp-for="Input.LastName">Priimek</label>
-                                    </div>
-                                </div>
-                            </div>
+            <div class="flex-1 space-y-4 w-full">
+                <!-- Username (readonly) -->
+                <div>
+                    <label asp-for="Username" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Username"]</label>
+                    <input asp-for="Username" class="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed" disabled />
+                    <p class="text-xs text-slate-400 mt-1">@Localizer["Username cannot be changed"]</p>
+                </div>
 
-                            <div class="form-floating mb-3">
-                                <select asp-for="Input.City" asp-items="Model.CityOptions" class="form-select">
-                                    <option value="">-- Izberite mesto --</option>
-                                </select>
-                                <label asp-for="Input.City">Lokacija (Mesto)</label>
-                                <span asp-validation-for="Input.City" class="text-danger"></span>
-                            </div>
-
-                            <div class="form-floating mb-3">
-                                <input asp-for="Input.PhoneNumber" class="form-control" placeholder="Telefon" />
-                                <label asp-for="Input.PhoneNumber">Telefonska številka</label>
-                                <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
-                            </div>
-
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                <button id="update-profile-button" type="submit" class="btn btn-lg btn-success px-5">Shrani spremembe</button>
-                            </div>
-                        </div>
+                <!-- Name Fields -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label asp-for="Input.FirstName" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["First Name"]</label>
+                        <input asp-for="Input.FirstName" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="@Localizer["Enter your first name"]" />
+                    </div>
+                    <div>
+                        <label asp-for="Input.LastName" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Last Name"]</label>
+                        <input asp-for="Input.LastName" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="@Localizer["Enter your last name"]" />
                     </div>
                 </div>
             </div>
-        </form>
-    </div>
+        </div>
+
+        <!-- Location & Phone -->
+        <div class="space-y-4">
+            <div>
+                <label asp-for="Input.City" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Location (City)"]</label>
+                <select asp-for="Input.City" asp-items="Model.CityOptions" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+                    <option value="">@Localizer["-- Select a city --"]</option>
+                </select>
+                <span asp-validation-for="Input.City" class="text-red-500 text-sm"></span>
+            </div>
+
+            <div>
+                <label asp-for="Input.PhoneNumber" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Phone Number"]</label>
+                <input asp-for="Input.PhoneNumber" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="@Localizer["Enter your phone number"]" />
+                <span asp-validation-for="Input.PhoneNumber" class="text-red-500 text-sm"></span>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end pt-4 border-t border-slate-200">
+            <button id="update-profile-button" type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
+                <i class="bi bi-check-lg"></i>
+                @Localizer["Save Changes"]
+            </button>
+        </div>
+    </form>
 </div>
 
 @section Scripts {

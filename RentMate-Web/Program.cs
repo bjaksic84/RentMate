@@ -217,7 +217,9 @@ builder.Services.AddCors(options => {
         .AllowAnyMethod()
         .AllowCredentials());
     
-    // Development policy (only in dev environment)
+    // Development policy - ONLY available in DEBUG builds AND Development environment
+    // This double-guard prevents accidental permissive CORS in production
+    #if DEBUG
     if (builder.Environment.IsDevelopment())
     {
         options.AddPolicy("Development", b => b
@@ -226,6 +228,7 @@ builder.Services.AddCors(options => {
             .AllowAnyMethod()
             .AllowCredentials());
     }
+    #endif
 });
 
 // --- Swagger / OpenAPI ---
@@ -266,6 +269,8 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<CurrencyService>();
 builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
+builder.Services.AddScoped<IReviewAggregationService, ReviewAggregationService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // ==========================================
 // 2. BUILD APP
@@ -307,12 +312,16 @@ var localizationOptions = new RequestLocalizationOptions
 };
 app.UseRequestLocalization(localizationOptions);
 
-// Error handling in HSTS
+// Error handling and HSTS
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    #if DEBUG
     app.UseCors("Development");
+    #else
+    app.UseCors("SecurePolicy"); // Fallback if somehow in Dev without DEBUG
+    #endif
 }
 else
 {
@@ -344,16 +353,18 @@ app.Use(async (context, next) =>
     // Content Security Policy (adjust as needed for your CDN/external resources)
     context.Response.Headers.Append("Content-Security-Policy", 
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+        "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
         "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; " +
         "img-src 'self' data: https: blob:; " +
         "connect-src 'self' https: wss:; " +
         "frame-ancestors 'none';");
     
-    // Permissions Policy
+    // Permissions Policy (GDPR compliant - browser will prompt user for consent)
+    // camera=(self) - Allow camera for taking item photos (requires user consent)
+    // geolocation=(self) - Allow location for pickup location (requires user consent)
     context.Response.Headers.Append("Permissions-Policy", 
-        "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()");
+        "accelerometer=(), camera=(self), geolocation=(self), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()");
     
     await next();
 });

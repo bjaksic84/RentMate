@@ -1,4 +1,4 @@
-﻿@model IEnumerable<RentMate.Models.ApplicationUser>
+@model IEnumerable<RentMate.Models.ApplicationUser>
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 
@@ -6,113 +6,135 @@
     ViewData["Title"] = Localizer["User Management"];
 }
 
-<div class="container-fluid px-4 mt-4">
-    <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center bg-dark text-white">
-            <h6 class="m-0 font-weight-bold">@Localizer["List of all users"]</h6>
-            <div class="input-group w-25">
-                <input type="text" id="userSearch" class="form-control form-control-sm" placeholder="@Localizer["Search users..."]">
-                <span class="input-group-text"><i class="fas fa-search"></i></span>
-            </div>
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+            <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["User Management"]</h1>
+            <p class="text-slate-500 mt-1">@Localizer["List of all users"]</p>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>@Localizer["Username"]</th>
-                            <th>@Localizer["Email"]</th>
-                            <th>@Localizer["Roles"]</th>
-                            <th>@Localizer["Status"]</th>
-                            <th class="text-end">@Localizer["Actions"]</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTable">
-                        @foreach (var user in Model)
-                        {
-                            <tr data-user-id="@user.Id">
-                                <td><span class="fw-bold">@user.UserName</span></td>
-                                <td>@user.Email</td>
-                                <td class="user-roles"><span class="badge bg-light text-dark">@Localizer["Loading..."]</span></td>
-                                <td>
+        <div class="relative">
+            <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" id="userSearch" class="pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors w-64" placeholder="@Localizer["Search users..."]">
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Username"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Email"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Roles"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Status"]</th>
+                        <th class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable" class="divide-y divide-slate-100">
+                    @foreach (var user in Model)
+                    {
+                        <tr data-user-id="@user.Id" class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <img src="@(user.ProfilePictureUrl ?? "https://via.placeholder.com/40")" class="w-10 h-10 rounded-full object-cover" />
+                                    <span class="font-semibold text-slate-900">@user.UserName</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-slate-500">@user.Email</td>
+                            <td class="px-6 py-4 user-roles">
+                                <span class="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-full">@Localizer["Loading..."]</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                @if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.Now)
+                                {
+                                    <span class="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">@Localizer["Banned"]</span>
+                                }
+                                else
+                                {
+                                    <span class="px-2.5 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">@Localizer["Active"]</span>
+                                }
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" onclick="openRoleModal('@user.Id', '@user.UserName')" title="@Localizer["Roles"]">
+                                        <i class="bi bi-shield"></i>
+                                    </button>
+                                    
                                     @if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.Now)
                                     {
-                                        <span class="badge bg-danger">@Localizer["Banned"]</span>
+                                        <form asp-action="UnbanUser" method="post" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <button type="submit" class="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="@Localizer["Unban"]">
+                                                <i class="bi bi-person-check"></i>
+                                            </button>
+                                        </form>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-success">@Localizer["Active"]</span>
+                                        <form asp-action="BanUser" method="post" class="inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@user.Id" />
+                                            <button type="submit" class="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="@Localizer["Ban"]" onclick="return confirm('@Localizer["Are you sure you want to ban this user?"]');">
+                                                <i class="bi bi-person-slash"></i>
+                                            </button>
+                                        </form>
                                     }
-                                </td>
-                                <td class="text-end">
-                                    <div class="btn-group">
-                                        <button class="btn btn-sm btn-primary" onclick="openRoleModal('@user.Id', '@user.UserName')" title="@Localizer["Roles"]">
-                                            <i class="fas fa-shield-alt"></i>
-                                        </button>
-                                        
-                                        @if (user.LockoutEnd != null && user.LockoutEnd > DateTimeOffset.Now)
-                                        {
-                                            <form asp-action="UnbanUser" method="post" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="id" value="@user.Id" />
-                                                <button type="submit" class="btn btn-sm btn-success" title="@Localizer["Unban"]">
-                                                    <i class="fas fa-user-check"></i>
-                                                </button>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <form asp-action="BanUser" method="post" class="d-inline">
-                                                @Html.AntiForgeryToken()
-                                                <input type="hidden" name="id" value="@user.Id" />
-                                                <button type="submit" class="btn btn-sm btn-warning" title="@Localizer["Ban"]" onclick="return confirm('@Localizer["Are you sure you want to ban this user?"]');">
-                                                    <i class="fas fa-user-slash"></i>
-                                                </button>
-                                            </form>
-                                        }
 
-                                        <button class="btn btn-sm btn-danger" onclick="confirmDelete('@user.Id', '@user.UserName')" title="@Localizer["Delete"]">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                                    <button class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" onclick="confirmDelete('@user.Id', '@user.UserName')" title="@Localizer["Delete"]">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
+        
+        @if(!Model.Any())
+        {
+            <div class="p-12 text-center">
+                <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="bi bi-people text-2xl text-slate-300"></i>
+                </div>
+                <p class="text-slate-500">@Localizer["No users found"]</p>
+            </div>
+        }
     </div>
 </div>
 
-<div class="modal fade" id="roleModal" tabindex="-1" aria-labelledby="roleModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg">
-      <div class="modal-header bg-dark text-white">
-        <h5 class="modal-title" id="roleModalLabel">@Localizer["Manage Roles"]</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <div class="modal-body">
-        <div id="rolesCheckboxList" class="mb-3"></div>
-
-        <div class="d-flex justify-content-end">
-            <button class="btn btn-primary" type="button" onclick="saveRoles()">@Localizer["Save Changes"]</button>
+<!-- Role Management Modal -->
+<div id="roleModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeRoleModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
+        <div class="bg-white rounded-2xl shadow-2xl m-4">
+            <div class="flex items-center justify-between p-6 border-b border-slate-200">
+                <h3 class="font-heading text-xl font-bold text-slate-900" id="roleModalLabel">@Localizer["Manage Roles"]</h3>
+                <button type="button" onclick="closeRoleModal()" class="p-2 text-slate-400 hover:text-slate-600 rounded-lg">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div id="rolesCheckboxList" class="space-y-3"></div>
+            </div>
+            <div class="flex gap-3 p-6 border-t border-slate-200">
+                <button onclick="closeRoleModal()" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
+                    @Localizer["Close"]
+                </button>
+                <button onclick="saveRoles()" class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                    @Localizer["Save Changes"]
+                </button>
+            </div>
         </div>
-
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">@Localizer["Close"]</button>
-      </div>
     </div>
-  </div>
 </div>
 
 @section Scripts {
 <script>
 let currentUserId = null;
-let modalInstance = null;
 
 // Localized strings for JavaScript
 const locConfirmDelete = "@Localizer["Are you sure you want to delete user"]";
@@ -125,7 +147,6 @@ const locErrorSaving = "@Localizer["Error saving roles"]";
 
 document.addEventListener("DOMContentLoaded", async () => {
     await loadRolesForAllUsers();
-    modalInstance = new bootstrap.Modal(document.getElementById('roleModal'));
 });
 
 async function confirmDelete(userId, userName) {
@@ -158,18 +179,26 @@ async function loadRolesForAllUsers() {
         try {
             const res = await fetch(`/api/UsersApi/${userId}/roles`);
             const roles = await res.json();
-            rolesCell.innerHTML = roles.length ? roles.join(", ") : `<i>${locNoRoles}</i>`;
+            if (roles.length) {
+                rolesCell.innerHTML = roles.map(r => `<span class="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full mr-1">${r}</span>`).join("");
+            } else {
+                rolesCell.innerHTML = `<span class="text-slate-400 text-sm italic">${locNoRoles}</span>`;
+            }
         } catch {
             rolesCell.innerText = locErrorRoles;
         }
     });
 }
 
-async function openRoleModal(userId, userName) {
+function openRoleModal(userId, userName) {
     currentUserId = userId;
     document.getElementById("roleModalLabel").innerText = `${locManageRolesFor} ${userName}`;
-    await loadCheckboxRoles();
-    modalInstance.show();
+    loadCheckboxRoles();
+    document.getElementById("roleModal").classList.remove("hidden");
+}
+
+function closeRoleModal() {
+    document.getElementById("roleModal").classList.add("hidden");
 }
 
 async function loadCheckboxRoles() {
@@ -183,12 +212,10 @@ async function loadCheckboxRoles() {
 
     const container = document.getElementById("rolesCheckboxList");
     container.innerHTML = allRoles.map(role => `
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="${role}" id="role-${role}" ${userRoles.includes(role) ? "checked" : ""}>
-            <label class="form-check-label" for="role-${role}">
-                ${role}
-            </label>
-        </div>
+        <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+            <input type="checkbox" value="${role}" class="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500" ${userRoles.includes(role) ? "checked" : ""}>
+            <span class="font-medium text-slate-700">${role}</span>
+        </label>
     `).join("");
 }
 
@@ -203,7 +230,7 @@ async function saveRoles() {
     });
 
     if (res.ok) {
-        modalInstance.hide();
+        closeRoleModal();
         await loadRolesForAllUsers();
     } else {
         alert(locErrorSaving);

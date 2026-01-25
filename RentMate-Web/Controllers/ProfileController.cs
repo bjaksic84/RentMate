@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
 using RentMate.Models;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace RentMate.Controllers
@@ -14,6 +15,18 @@ namespace RentMate.Controllers
         public ProfileController(RentMateContext context)
         {
             _context = context;
+        }
+
+        // GET: /Profile - Shows current user's profile
+        public IActionResult Index()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return RedirectToPage("/Account/Login", new { area = "Identity" });
+            }
+
+            return RedirectToAction("Details", new { id = userId });
         }
 
         // GET: /Profile/Details/{userId}

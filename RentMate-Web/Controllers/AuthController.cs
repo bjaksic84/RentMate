@@ -7,8 +7,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.Extensions.Localization;
 using RentMate.Models;
-using RentMate.Shared;
-using RentMate.Models.Auth; // adjust namespace to your DTOs
+using RentMate.Models.Auth;
+using RentMate.Shared.Contracts.Requests;
+using RentMate.Shared.Contracts.Responses;
 
 
 namespace RentMate.Controllers
@@ -68,7 +69,7 @@ namespace RentMate.Controllers
 
         [HttpPost("login")]
         [EnableRateLimiting("AuthPolicy")]
-        public async Task<IActionResult> Login([FromBody] LoginDto model)
+        public async Task<ActionResult<AuthResponse>> Login([FromBody] LoginRequest model)
         {
             var user = await _userManager.FindByEmailAsync(model.Email);
             
@@ -86,18 +87,21 @@ namespace RentMate.Controllers
                 await _userManager.ResetAccessFailedCountAsync(user);
                 
                 var token = await GenerateJwtTokenAsync(user);
+                var roles = await _userManager.GetRolesAsync(user);
                 
                 _logger.LogInformation("User {Email} logged in successfully", model.Email);
                 
-                return Ok(new 
-                { 
-                    token = token,
-                    userId = user.Id,
-                    email = user.Email,
-                    userName = user.UserName,
-                    city = user.City, 
-                    profilePictureUrl = user.ProfilePictureUrl
-                });
+                var userSummary = new UserSummary(
+                    user.Id,
+                    user.UserName ?? "",
+                    user.Email,
+                    user.FirstName,
+                    user.LastName,
+                    user.City,
+                    user.ProfilePictureUrl
+                );
+                
+                return Ok(AuthResponse.Successful(token, DateTime.UtcNow.AddDays(7), userSummary, roles.ToList()));
             }
             
             // Record failed login attempt
@@ -109,13 +113,13 @@ namespace RentMate.Controllers
             _logger.LogWarning("Failed login attempt for {Email} from IP {IP}", 
                 model.Email, HttpContext.Connection.RemoteIpAddress);
 
-            return Unauthorized(new { message = _localizer["Invalid email or password."].Value });
+            return Ok(AuthResponse.Failed(_localizer["Invalid email or password."].Value));
         }
 
         private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
         {
             var jwtSection = _configuration.GetSection("Jwt");
-            var key = jwtSection["Key"];
+            var key = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key not configured");
             var issuer = jwtSection["Issuer"];
             var audience = jwtSection["Audience"];
             
@@ -140,11 +144,13 @@ namespace RentMate.Controllers
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
+            // TODO: Implement refresh token rotation for better UX without compromising security
+            // See: https://auth0.com/blog/refresh-tokens-what-are-they-and-when-to-use-them/
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(24), // Shorter token lifetime for security
+                expires: DateTime.UtcNow.AddDays(7), // 1 week token lifetime
                 signingCredentials: creds);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

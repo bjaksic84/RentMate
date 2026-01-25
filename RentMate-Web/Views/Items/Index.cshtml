@@ -1,4 +1,4 @@
-﻿@model IEnumerable<RentMate.Models.Item>
+@model IEnumerable<RentMate.Models.Item>
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.CurrencyService CurrencyService
@@ -7,50 +7,85 @@
     ViewData["Title"] = Localizer["Items List"];
 }
 
-<h1>@Localizer["Items"]</h1>
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+            <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["Items"]</h1>
+            <p class="text-slate-500 mt-1">@Localizer["Manage all items in the system"]</p>
+        </div>
+        <a asp-action="Create" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-md transition-all">
+            <i class="bi bi-plus-lg"></i>
+            @Localizer["Create New Item"]
+        </a>
+    </div>
 
-<p>
-    <a asp-action="Create" class="btn btn-primary">@Localizer["Create New Item"]</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Localizer["Title"]
-            </th>
-            <th>
-                @Localizer["Description"]
-            </th>
-            <th>
-                @Localizer["Price"]
-            </th>
-            <th>
-                @Localizer["Owner"]
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Title)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Description)
-            </td>
-            <td>
-                @CurrencyService.Format(item.Price)
-            </td>
-            <td>
-                @(item.User?.Email ?? Localizer["No user assigned"].Value)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">@Localizer["Edit"]</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">@Localizer["Details"]</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">@Localizer["Delete"]</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    <!-- Items Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Item"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">@Localizer["Description"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Price"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">@Localizer["Owner"]</th>
+                        <th class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach (var item in Model)
+                    {
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    @if(!string.IsNullOrEmpty(item.ImageUrl)) {
+                                        var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_80,h_80,q_auto/");
+                                        <img src="@thumbUrl" class="w-10 h-10 rounded-lg object-cover" />
+                                    } else {
+                                        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                                            <i class="bi bi-image text-slate-300"></i>
+                                        </div>
+                                    }
+                                    <span class="font-medium text-slate-900">@item.Title</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 hidden sm:table-cell">
+                                <p class="text-slate-500 text-sm truncate max-w-xs">@item.Description</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="font-semibold text-green-600">@CurrencyService.Format(item.Price)</span>
+                            </td>
+                            <td class="px-6 py-4 hidden md:table-cell">
+                                <span class="text-slate-500 text-sm">@(item.User?.Email ?? Localizer["No user"].Value)</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="@Localizer["Details"]">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="@Localizer["Edit"]">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="@Localizer["Delete"]">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        @if(!Model.Any())
+        {
+            <div class="p-12 text-center">
+                <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="bi bi-box-seam text-2xl text-slate-300"></i>
+                </div>
+                <p class="text-slate-500">@Localizer["No items found"]</p>
+            </div>
+        }
+    </div>
+</div>

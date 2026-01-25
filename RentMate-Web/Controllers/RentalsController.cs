@@ -6,7 +6,7 @@ using RentMate.Data;
 using RentMate.Models;
 using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
-using RentMate.Shared;
+using RentMate.Shared.Contracts.Responses;
 using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers

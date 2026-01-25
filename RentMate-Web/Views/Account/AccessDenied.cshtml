@@ -1,12 +1,20 @@
-﻿@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 
 @{
     ViewData["Title"] = Localizer["Access Denied"];
 }
 
-<div class="container text-center mt-5">
-    <h1 class="text-danger mb-3">🚫 @Localizer["Access Denied"]</h1>
-    <p class="lead">@Localizer["You do not have permission to view this page."]</p>
-    <a class="btn btn-primary mt-3" href="/">@Localizer["Return to Home"]</a>
+<div class="min-h-[60vh] flex items-center justify-center px-4">
+    <div class="text-center max-w-md">
+        <div class="w-24 h-24 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+            <i class="bi bi-shield-x text-5xl text-red-500"></i>
+        </div>
+        <h1 class="font-heading text-3xl font-bold text-slate-900 mb-3">@Localizer["Access Denied"]</h1>
+        <p class="text-slate-500 mb-8">@Localizer["You do not have permission to view this page."]</p>
+        <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-md transition-all">
+            <i class="bi bi-house"></i>
+            @Localizer["Return to Home"]
+        </a>
+    </div>
 </div>

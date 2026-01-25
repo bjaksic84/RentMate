@@ -1,47 +1,78 @@
-﻿@model RentMate.Models.Item
+@model RentMate.Models.Item
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
+@inject RentMate.Services.CurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Delete item"];
 }
 
-<h1>@Localizer["Delete"]</h1>
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <a asp-controller="Dashboard" asp-action="UserDashboard" class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors mb-4">
+            <i class="bi bi-arrow-left"></i>
+            @Localizer["Back to Dashboard"]
+        </a>
+    </div>
 
-<h3>@Localizer["Are you sure you want to delete this?"]</h3>
-<div>
-    <h4>@Localizer["Item"]</h4>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-2">
-            @Localizer["Title"]
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Title)
-        </dd>
-        <dt class="col-sm-2">
-            @Localizer["Description"]
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
-        <dt class="col-sm-2">
-            @Localizer["Price"]
-        </dt>
-        <dd class="col-sm-10">
-            @Html.DisplayFor(model => model.Price)
-        </dd>
-        <dt class="col-sm-2">
-            @Localizer["Owner"]
-        </dt>
-        <dd class="col-sm-10">
-            @(Model.User != null ? Html.DisplayFor(model => model.User.Email) : "")
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="Id" />
-        <input type="submit" value="@Localizer["Delete"]" class="btn btn-danger" /> |
-        <a asp-controller="Dashboard" asp-action="UserDashboard">@Localizer["Back to Dashboard"]</a>
-    </form>
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <!-- Warning Header -->
+        <div class="bg-red-50 border-b border-red-100 px-6 py-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <i class="bi bi-exclamation-triangle text-red-600 text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-heading text-xl font-bold text-red-900">@Localizer["Delete Item"]</h1>
+                    <p class="text-red-600 text-sm">@Localizer["Are you sure you want to delete this?"]</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Item Preview -->
+        <div class="p-6">
+            <div class="flex gap-4 items-start">
+                @if(!string.IsNullOrEmpty(Model.ImageUrl)) {
+                    <img src="@Model.ImageUrl" class="w-24 h-24 rounded-xl object-cover shrink-0" />
+                } else {
+                    <div class="w-24 h-24 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                        <i class="bi bi-image text-slate-300 text-2xl"></i>
+                    </div>
+                }
+                <div class="flex-1 min-w-0">
+                    <h2 class="font-heading text-xl font-bold text-slate-900">@Model.Title</h2>
+                    <p class="text-slate-500 text-sm mt-1 line-clamp-2">@Model.Description</p>
+                    <div class="flex items-center gap-4 mt-3">
+                        <span class="text-lg font-bold text-green-600">@CurrencyService.Format(Model.Price)/@Localizer["day"]</span>
+                        <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">@Localizer[Model.Category]</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div class="flex items-start gap-3">
+                    <i class="bi bi-info-circle text-amber-600 mt-0.5"></i>
+                    <div class="text-sm text-amber-700">
+                        <p class="font-medium">@Localizer["This action cannot be undone."]</p>
+                        <p class="mt-1">@Localizer["All associated rentals and reviews will remain but the item will no longer be available."]</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">
+            <a asp-controller="Dashboard" asp-action="UserDashboard" class="px-6 py-3 border border-slate-200 bg-white rounded-xl text-slate-600 hover:bg-slate-50 transition-colors text-center font-medium">
+                @Localizer["Cancel"]
+            </a>
+            <form asp-action="Delete" class="inline">
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
+                    <i class="bi bi-trash"></i>
+                    @Localizer["Delete"]
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
