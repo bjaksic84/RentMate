@@ -1,5 +1,6 @@
 @model IEnumerable<RentMate.Models.Item>
 @using System.Text.Json;
+@using System.Globalization;
 @using RentMate.Helpers;
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
@@ -22,6 +23,22 @@
     
     var categories = new[] { "Tools", "Electronics", "Sports", "Home & Garden", "Fun", "Other" };
     var cities = CityData.Cities.Select(c => c.Name).ToList();
+    
+    // Format dates for display (booking.com style: '26 Jan' or '26. jan')
+    string FormatShortDate(string dateStr) {
+        if (DateTime.TryParse(dateStr, out var date)) {
+            var culture = CultureInfo.CurrentUICulture;
+            string format = (culture.TwoLetterISOLanguageName == "sl") ? "d. MMM" : "d MMM";
+            return date.ToString(format, culture);
+        }
+        return dateStr ?? "";
+    }
+    
+    var formattedStartDate = FormatShortDate(ViewBag.StartDate as string);
+    var formattedEndDate = FormatShortDate(ViewBag.EndDate as string);
+    var displayDateRange = !string.IsNullOrEmpty(ViewBag.StartDate as string) && !string.IsNullOrEmpty(ViewBag.EndDate as string)
+        ? $"{formattedStartDate} - {formattedEndDate}"
+        : "";
 }
 
 <!-- Mini Hero with Search -->
@@ -56,7 +73,7 @@
                     <div class="flex items-center gap-3 px-4 py-3 bg-white/50 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 transition-all">
                         <i class="bi bi-calendar-event text-blue-600" aria-hidden="true"></i>
                         <input type="text" id="marketplaceDateRange" name="dates" 
-                               value="@(ViewBag.StartDate != null && ViewBag.EndDate != null ? $"{ViewBag.StartDate} - {ViewBag.EndDate}" : "")" 
+                               value="@displayDateRange" 
                                placeholder="@Localizer["Pick a date range"]"
                                aria-label="@Localizer["When"]"
                                readonly
@@ -277,7 +294,7 @@
                     @if (!string.IsNullOrEmpty(ViewBag.MinRating?.ToString()))
                     {
                         <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-amber-700 rounded-full text-sm font-medium">
-                            <i class="bi bi-star-fill"></i> @ViewBag.MinRating+ stars
+                            <i class="bi bi-star-fill"></i> @ViewBag.MinRating+ @Localizer["stars"]
                             <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@ViewBag.Category" asp-route-city="@ViewBag.City"
                                class="w-5 h-5 rounded-full bg-amber-200 hover:bg-amber-300 flex items-center justify-center transition-colors">
                                 <i class="bi bi-x text-xs"></i>
@@ -518,9 +535,18 @@
                                         @if (item.User != null)
                                         {
                                             <div class="flex items-center gap-2">
-                                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold">
-                                                    @(item.User.UserName?.Substring(0, 1).ToUpper() ?? "?")
-                                                </div>
+                                                @if (!string.IsNullOrEmpty(item.User.ProfilePictureUrl))
+                                                {
+                                                    <img src="@item.User.ProfilePictureUrl" 
+                                                         alt="@(item.User.FirstName ?? item.User.UserName)" 
+                                                         class="w-8 h-8 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold">
+                                                        @(item.User.UserName?.Substring(0, 1).ToUpper() ?? "?")
+                                                    </div>
+                                                }
                                             </div>
                                         }
                                     </div>
@@ -693,21 +719,31 @@
         });
 
         // Initialize Flatpickr date range picker for marketplace
+        // Helper function to format date as yyyy-MM-dd in local timezone
+        function formatLocalDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         flatpickr("#marketplaceDateRange", {
             mode: "range",
             minDate: "today",
-            dateFormat: "M d",
+            dateFormat: "M j",
             locale: {
                 rangeSeparator: " - "
             },
             disableMobile: true,
+            @if (!string.IsNullOrEmpty(ViewBag.StartDate as string) && !string.IsNullOrEmpty(ViewBag.EndDate as string))
+            {
+                <text>defaultDate: ["@ViewBag.StartDate", "@ViewBag.EndDate"],</text>
+            }
             onChange: function(selectedDates, dateStr, instance) {
                 if (selectedDates.length === 2) {
-                    // Format dates for form submission (yyyy-MM-dd)
-                    const startDate = selectedDates[0].toISOString().split('T')[0];
-                    const endDate = selectedDates[1].toISOString().split('T')[0];
-                    document.getElementById('hiddenStartDate').value = startDate;
-                    document.getElementById('hiddenEndDate').value = endDate;
+                    // Format dates for form submission (yyyy-MM-dd) in local timezone
+                    document.getElementById('hiddenStartDate').value = formatLocalDate(selectedDates[0]);
+                    document.getElementById('hiddenEndDate').value = formatLocalDate(selectedDates[1]);
                 } else {
                     document.getElementById('hiddenStartDate').value = '';
                     document.getElementById('hiddenEndDate').value = '';
