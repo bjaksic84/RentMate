@@ -55,6 +55,7 @@ namespace RentMate.Controllers
                     i.Price ?? 0,
                     i.ImageUrl,
                     i.Location ?? i.User.City,
+                    i.Category,
                     i.IsListed,
                     i.IsAdminHidden,
                     i.Reviews.Any() ? i.Reviews.Average(r => r.Rating) : 0,
@@ -95,6 +96,7 @@ namespace RentMate.Controllers
                 item.Price ?? 0,
                 item.ImageUrl,
                 item.Location ?? item.User?.City,
+                item.Category,
                 item.IsListed,
                 item.IsAdminHidden,
                 item.Reviews.Any() ? item.Reviews.Average(r => r.Rating) : 0,
@@ -142,6 +144,7 @@ namespace RentMate.Controllers
                 Price = request.PricePerDay,
                 IsListed = request.IsListed,
                 Location = request.City,
+                Category = request.Category,
                 ImageUrl = request.ImageUrl,
                 UserId = userId,
                 CreatedAt = DateTime.UtcNow
@@ -162,6 +165,7 @@ namespace RentMate.Controllers
                     webItem.Price ?? 0,
                     webItem.ImageUrl,
                     webItem.Location ?? webItem.User?.City,
+                    webItem.Category,
                     webItem.IsListed,
                     webItem.IsAdminHidden,
                     0, // New item has no reviews
@@ -215,6 +219,7 @@ namespace RentMate.Controllers
             webItem.Description = request.Description;
             webItem.Price = request.PricePerDay;
             webItem.Location = request.City;
+            webItem.Category = request.Category;
             webItem.ImageUrl = request.ImageUrl;
             webItem.IsListed = request.IsListed;
             webItem.UpdatedAt = DateTime.UtcNow;
@@ -283,6 +288,7 @@ namespace RentMate.Controllers
                     i.Price ?? 0,
                     i.ImageUrl,
                     i.Location,
+                    i.Category,
                     i.IsListed,
                     i.IsAdminHidden,
                     i.Reviews.Any() ? i.Reviews.Average(r => r.Rating) : 0,
@@ -370,6 +376,7 @@ namespace RentMate.Controllers
                     i.Price ?? 0,
                     i.ImageUrl,
                     i.Location ?? i.User!.City,
+                    i.Category,
                     i.IsListed,
                     i.IsAdminHidden,
                     i.Reviews.Any() ? i.Reviews.Average(r => r.Rating) : 0,

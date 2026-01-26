@@ -28,6 +28,7 @@ public record CreateItemRequest
     public string? ImageUrl { get; init; }
     public string? City { get; init; }
     public bool IsListed { get; init; } = true;
+    public string? Category { get; init; }
 }
 
 /// <summary>
@@ -41,6 +42,7 @@ public record UpdateItemRequest
     public string? ImageUrl { get; init; }
     public string? City { get; init; }
     public bool IsListed { get; init; }
+    public string? Category { get; init; }
 }
 
 /// <summary>
