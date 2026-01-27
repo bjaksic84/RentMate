@@ -20,6 +20,7 @@ using RentMate.Resources;
 
 // Čiščenje mapiranja claimov, da dobimo čiste "sub", "role" itd.
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +31,7 @@ var builder = WebApplication.CreateBuilder(args);
 // --- Baza podatkov ---
 
 
-var connectionString = builder.Configuration.GetConnectionString("AzureContext");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
     // To pomaga pri debugiranju migracij
@@ -38,13 +39,13 @@ if (string.IsNullOrEmpty(connectionString))
 }
 
 builder.Services.AddDbContext<RentMateContext>(options =>
-    options.UseSqlServer(connectionString, sqlOptions => 
+    options.UseNpgsql(connectionString, sqlOptions => 
     {
         // To prepreči napake pri kratkih prekinitvah povezave z Azure strežnikom
         sqlOptions.EnableRetryOnFailure(
             maxRetryCount: 5,
             maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null);
+            errorCodesToAdd: null);
     }));
 
 // --- Identity (Uporabniki in Role) ---
@@ -282,6 +283,7 @@ var app = builder.Build();
 // ==========================================
 
 // Seeding podatkov (Admin role itd.)
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -301,6 +303,7 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while seeding the database.");
     }
 }
+
 
 // Lokalizacija (Mora biti pred Routing in Auth)
 var supportedCultures = new[] { new CultureInfo("sl"), new CultureInfo("en") };
