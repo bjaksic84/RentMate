@@ -473,6 +473,7 @@
   "Unable to load two-factor authentication user.": "Uporabnika za dvofaktorsko avtentikacijo ni mogoče naložiti.",
   "Unable to load user with ID '{0}'.": "Ni mogoče naložiti uporabnika z ID-jem '{0}'.",
   "Unable to load user with email '{0}'.": "Uporabnika z e-poštnim naslovom '{0}' ni mogoče naložiti.",
+  "Uncategorized": "Neuvrščeno",
   "Unknown": "Neznano",
   "Unknown User": "Neznan uporabnik",
   "Use & Save": "Uporabi in prihrani",

@@ -27,6 +27,8 @@
         </div>
     </div>
 
+    @Html.AntiForgeryToken()
+
     <!-- Toast Container -->
     <div id="toastContainer" class="fixed top-20 right-4 z-50 space-y-2"></div>
 
@@ -141,8 +143,14 @@
                                         {
                                             <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">@Localizer["Hidden"]</span>
                                         }
+                                        @if (item.IsAdminHidden)
+                                        {
+                                            <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full" title="@Localizer["Hidden by moderator"]">
+                                                <i class="bi bi-shield-exclamation"></i> @Localizer["Moderated"]
+                                            </span>
+                                        }
                                     </div>
-                                    <p class="text-sm text-slate-500">@Localizer[item.Category]</p>
+                                    <p class="text-sm text-slate-500">@Localizer[item.Category ?? "Uncategorized"]</p>
                                     <div class="flex items-center gap-4 mt-1 text-sm">
                                         <span class="font-semibold text-blue-600">@CurrencyService.Format(item.Price)/@Localizer["day"]</span>
                                         <span class="text-slate-400">•</span>
@@ -156,7 +164,7 @@
                                 <div class="flex items-center gap-2">
                                     <button onclick="toggleListing(@item.Id, this)" 
                                             class="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" 
-                                            title="@Localizer["Change visibility"]">
+                                            title="@(item.IsListed ? Localizer["Hide from marketplace"] : Localizer["List on marketplace"])">
                                         @if(item.IsListed) { <i class="bi bi-eye-slash"></i> } else { <i class="bi bi-eye"></i> }
                                     </button>
                                     <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" 
@@ -400,9 +408,17 @@
         // Toggle listing visibility
         async function toggleListing(itemId, btn) {
             try {
-                const response = await fetch(`/api/items/${itemId}/toggle-listing`, { method: 'POST' });
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                const response = await fetch(`/Items/ToggleListing/${itemId}`, { 
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': token
+                    }
+                });
                 if (response.ok) {
                     location.reload();
+                } else {
+                    console.error('Failed to toggle listing:', response.statusText);
                 }
             } catch (error) {
                 console.error('Error toggling listing:', error);

@@ -45,7 +45,7 @@
                     <p class="text-slate-500 text-sm mt-1 line-clamp-2">@Model.Description</p>
                     <div class="flex items-center gap-4 mt-3">
                         <span class="text-lg font-bold text-green-600">@CurrencyService.Format(Model.Price)/@Localizer["day"]</span>
-                        <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">@Localizer[Model.Category]</span>
+                        <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">@Localizer[Model.Category ?? "Uncategorized"]</span>
                     </div>
                 </div>
             </div>

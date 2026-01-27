@@ -216,6 +216,7 @@ namespace RentMate.Controllers
 
         [HttpPost]
         [Authorize]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleListing(int id)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -223,6 +224,7 @@ namespace RentMate.Controllers
             if (item == null || item.UserId != user.Id) return Unauthorized();
 
             item.IsListed = !item.IsListed;
+            item.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             // Broadcast real-time update

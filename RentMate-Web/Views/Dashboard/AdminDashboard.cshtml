@@ -205,7 +205,7 @@ async function adminToggleHide(itemId, button) {
         const res = await fetch(`/Items/AdminToggleHide/${itemId}`, {
             method: "POST",
             headers: {
-                "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
+                "X-CSRF-TOKEN": document.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
             }
         });
 

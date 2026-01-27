@@ -38,7 +38,7 @@ namespace RentMate.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index(
             string? search,
-            string? category, 
+            string[]? category, 
             decimal? minPrice,
             decimal? maxPrice,
             string? city,
@@ -71,9 +71,9 @@ namespace RentMate.Controllers
             }
 
             // 📂 Category filter
-            if (!string.IsNullOrEmpty(category))
+            if (category != null && category.Length > 0)
             {
-                query = query.Where(i => i.Category == category);
+                query = query.Where(i => category.Contains(i.Category));
             }
 
             // 💶 Price filters (Convert back to base currency if user has selected something else)
@@ -114,7 +114,7 @@ namespace RentMate.Controllers
                 "priceDesc" => query.OrderByDescending(i => i.Price),
                 "titleAsc" => query.OrderBy(i => i.Title),
                 "ratingDesc" => query.OrderByDescending(i => i.AverageRating ?? 0).ThenByDescending(i => i.ReviewCount),
-                _ => query.OrderByDescending(i => i.CreatedAt)
+                _ => query.OrderByDescending(i => i.UpdatedAt ?? i.CreatedAt)
             };
 
             var totalItems = await query.CountAsync();
