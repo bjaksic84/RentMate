@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace RentMate.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialPostGresDb : Migration
+    public partial class NeonInitDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

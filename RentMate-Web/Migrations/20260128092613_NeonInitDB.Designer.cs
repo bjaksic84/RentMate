@@ -12,8 +12,8 @@ using RentMate.Data;
 namespace RentMate.Migrations
 {
     [DbContext(typeof(RentMateContext))]
-    [Migration("20260127110627_InitialPostGresDb")]
-    partial class InitialPostGresDb
+    [Migration("20260128092613_NeonInitDB")]
+    partial class NeonInitDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
