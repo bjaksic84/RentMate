@@ -27,6 +27,7 @@ namespace RentMate.Areas.Identity.Pages.Account
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IUserStore<ApplicationUser> _userStore;
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
@@ -35,6 +36,7 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
             ILogger<RegisterModel> logger,
@@ -42,6 +44,7 @@ namespace RentMate.Areas.Identity.Pages.Account
             IStringLocalizer<RegisterModel> localizer)
         {
             _userManager = userManager;
+            _roleManager = roleManager;
             _userStore = userStore;
             _emailStore = GetEmailStore();
             _signInManager = signInManager;
@@ -97,6 +100,13 @@ namespace RentMate.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User created a new account with password.");
+
+                    // Ensure "User" role exists and assign it to the new user
+                    if (!await _roleManager.RoleExistsAsync("User"))
+                    {
+                        await _roleManager.CreateAsync(new IdentityRole("User"));
+                    }
+                    await _userManager.AddToRoleAsync(user, "User");
 
                     var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);

@@ -373,10 +373,20 @@
             @Localizer["Earn by renting out your equipment or save by renting."]
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a asp-controller="Items" asp-action="Create" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-full shadow-sm  transition-all duration-300">
-                <i class="bi bi-plus-circle"></i>
-                @Localizer["List your first item"]
-            </a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <a asp-controller="Items" asp-action="Create" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-full shadow-sm  transition-all duration-300">
+                    <i class="bi bi-plus-circle"></i>
+                    @Localizer["List your first item"]
+                </a>
+            }
+            else
+            {
+                <a asp-area="Identity" asp-page="/Account/Register" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-full shadow-sm  transition-all duration-300">
+                    <i class="bi bi-person-plus"></i>
+                    @Localizer["Register now"]
+                </a>
+            }
             <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-slate-50 text-slate-900 font-semibold rounded-full border-2 border-slate-200 hover:border-blue-300 transition-all duration-300">
                 <i class="bi bi-search"></i>
                 @Localizer["Browse marketplace"]
