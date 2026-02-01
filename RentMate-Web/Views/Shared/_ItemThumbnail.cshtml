@@ -19,11 +19,12 @@
 *@
 
 @{
-    var imageUrl = (string?)(Model?.ImageUrl ?? ViewData["ImageUrl"]);
-    var size = (string)(Model?.Size ?? ViewData["Size"] ?? "md");
-    var alt = (string)(Model?.Alt ?? ViewData["Alt"] ?? "Item image");
-    var customClass = (string?)(Model?.CssClass ?? ViewData["CssClass"]);
-    var hoverZoom = (bool?)(Model?.HoverZoom ?? ViewData["HoverZoom"]) ?? false;
+    var modelType = Model?.GetType();
+    var imageUrl = (string?)(modelType?.GetProperty("ImageUrl")?.GetValue(Model) ?? ViewData["ImageUrl"]);
+    var size = (string)(modelType?.GetProperty("Size")?.GetValue(Model) ?? ViewData["Size"] ?? "md");
+    var alt = (string)(modelType?.GetProperty("Alt")?.GetValue(Model) ?? ViewData["Alt"] ?? "Item image");
+    var customClass = (string?)(modelType?.GetProperty("CssClass")?.GetValue(Model) ?? ViewData["CssClass"]);
+    var hoverZoom = (bool?)(modelType?.GetProperty("HoverZoom")?.GetValue(Model) ?? ViewData["HoverZoom"]) ?? false;
     
     // Size configurations: (default CSS class, Cloudinary transform)
     var (defaultSizeClass, thumbTransform) = size.ToLower() switch

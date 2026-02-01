@@ -13,10 +13,11 @@
 @inject IViewLocalizer Localizer
 
 @{
-    var icon = (string)(Model?.Icon ?? ViewData["Icon"] ?? "bi-inbox");
-    var message = (string)(Model?.Message ?? ViewData["Message"] ?? "No data found");
-    var actionLink = (string?)(Model?.ActionLink ?? ViewData["ActionLink"]);
-    var actionText = (string?)(Model?.ActionText ?? ViewData["ActionText"]);
+    var modelType = Model?.GetType();
+    var icon = (string)(modelType?.GetProperty("Icon")?.GetValue(Model) ?? ViewData["Icon"] ?? "bi-inbox");
+    var message = (string)(modelType?.GetProperty("Message")?.GetValue(Model) ?? ViewData["Message"] ?? "No data found");
+    var actionLink = (string?)(modelType?.GetProperty("ActionLink")?.GetValue(Model) ?? ViewData["ActionLink"]);
+    var actionText = (string?)(modelType?.GetProperty("ActionText")?.GetValue(Model) ?? ViewData["ActionText"]);
 }
 
 <div class="p-12 text-center">

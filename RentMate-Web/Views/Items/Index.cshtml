@@ -1,7 +1,7 @@
-@model IEnumerable<RentMate.Models.Item>
+@model IEnumerable<RentMate.Models.Domain.Item>
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Items List"];

@@ -1,10 +1,10 @@
-@model IEnumerable<RentMate.Models.Item>
+@model IEnumerable<RentMate.Models.Domain.Item>
 @using System.Text.Json;
 @using System.Globalization;
 @using RentMate.Helpers;
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Marketplace"];
@@ -98,11 +98,11 @@
                             if (!string.IsNullOrEmpty(ViewBag.StartDate as string) && DateOnly.TryParse((string)ViewBag.StartDate, out var ps)) marketStartDate = ps;
                             if (!string.IsNullOrEmpty(ViewBag.EndDate as string) && DateOnly.TryParse((string)ViewBag.EndDate, out var pe)) marketEndDate = pe;
                         }
-                        @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.SmartCalendarModel {
+                        @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.ViewModels.SmartCalendarModel {
                             Id = "marketplaceDateRange",
                             StartDateField = "startDate",
                             EndDateField = "endDate",
-                            Mode = RentMate.Models.CalendarMode.Range,
+                            Mode = RentMate.Models.ViewModels.CalendarMode.Range,
                             MinDate = DateOnly.FromDateTime(DateTime.Today),
                             InitialStart = marketStartDate,
                             InitialEnd = marketEndDate,
@@ -221,7 +221,7 @@
                                 <!-- Price display -->
                                 <div class="flex items-center justify-between mb-4">
                                     <div class="px-3 py-1.5 bg-slate-100 rounded-lg">
-                                        <span id="minPriceDisplay" class="font-semibold text-slate-900">@currency.Symbol@((int)currentMin)</span>
+                                        <span id="minPriceDisplay" class="font-semibold text-slate-900">@currency.Symbol@((int)CurrencyService.Convert(currentMin))</span>
                                     </div>
                                     <div class="flex-1 mx-3 flex items-center">
                                         <div class="flex-1 border-t-2 border-dashed border-slate-200"></div>
@@ -229,7 +229,7 @@
                                         <div class="flex-1 border-t-2 border-dashed border-slate-200"></div>
                                     </div>
                                     <div class="px-3 py-1.5 bg-slate-100 rounded-lg">
-                                        <span id="maxPriceDisplay" class="font-semibold text-slate-900">@currency.Symbol@((int)currentMax)</span>
+                                        <span id="maxPriceDisplay" class="font-semibold text-slate-900">@currency.Symbol@((int)CurrencyService.Convert(currentMax))</span>
                                     </div>
                                 </div>
                                 
@@ -355,7 +355,7 @@
                     @if (ViewBag.MinPrice != null || ViewBag.MaxPrice != null)
                     {
                         <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 text-purple-700 rounded-full text-sm font-medium">
-                            <i class="bi bi-currency-euro"></i> @currency.Symbol@(ViewBag.MinPrice ?? 0) - @currency.Symbol@(ViewBag.MaxPrice ?? ViewBag.AbsoluteMaxPrice)
+                            <i class="bi bi-currency-euro"></i> @currency.Symbol@((int)CurrencyService.Convert(ViewBag.MinPrice ?? 0)) - @currency.Symbol@((int)CurrencyService.Convert(ViewBag.MaxPrice ?? ViewBag.AbsoluteMaxPrice))
                             <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" asp-route-city="@ViewBag.City"
                                class="w-5 h-5 rounded-full bg-purple-200 hover:bg-purple-300 flex items-center justify-center transition-colors">
                                 <i class="bi bi-x text-xs"></i>
@@ -551,7 +551,7 @@
                                     
                                     <!-- Favorite Button -->
                                     <div class="absolute top-3 right-3">
-                                        @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.FavoriteButtonViewModel {
+                                        @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel {
                                             ItemId = item.Id,
                                             IsFavorited = item.FavoritedBy?.Any(f => f.AccountId == ViewBag.CurrentUserId) ?? false
                                         })
@@ -598,7 +598,7 @@
                                     <!-- Price & Owner -->
                                     <div class="flex items-end justify-between mt-auto pt-4 border-t border-slate-100">
                                         <div>
-                                            <span class="text-2xl font-bold text-slate-900">@currency.Symbol@item.Price</span>
+                                            <span class="text-2xl font-bold text-slate-900">@CurrencyService.Format(item.Price)</span>
                                             <span class="text-slate-500 text-sm">/ @Localizer["day"]</span>
                                         </div>
                                         @if (item.User != null)

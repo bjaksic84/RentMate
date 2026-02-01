@@ -12,10 +12,11 @@
 @inject IViewLocalizer Localizer
 
 @{
-    var currentImageUrl = (string?)(Model?.CurrentImageUrl ?? ViewData["CurrentImageUrl"]);
-    var previewId = (string)(Model?.PreviewId ?? ViewData["PreviewId"] ?? "imgPreview");
-    var label = (string)(Model?.Label ?? ViewData["Label"] ?? "Photo");
-    var inputName = (string)(Model?.InputName ?? ViewData["InputName"] ?? "image");
+    var modelType = Model?.GetType();
+    var currentImageUrl = (string?)(modelType?.GetProperty("CurrentImageUrl")?.GetValue(Model) ?? ViewData["CurrentImageUrl"]);
+    var previewId = (string)(modelType?.GetProperty("PreviewId")?.GetValue(Model) ?? ViewData["PreviewId"] ?? "imgPreview");
+    var label = (string)(modelType?.GetProperty("Label")?.GetValue(Model) ?? ViewData["Label"] ?? "Photo");
+    var inputName = (string)(modelType?.GetProperty("InputName")?.GetValue(Model) ?? ViewData["InputName"] ?? "image");
     var placeholderUrl = "https://via.placeholder.com/200x200?text=No+Image";
     var displayUrl = string.IsNullOrEmpty(currentImageUrl) ? placeholderUrl : currentImageUrl;
 }

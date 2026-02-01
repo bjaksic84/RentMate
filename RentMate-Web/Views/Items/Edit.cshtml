@@ -1,7 +1,7 @@
-@model RentMate.Models.Item
+@model RentMate.Models.Domain.Item
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Edit item"];
@@ -63,7 +63,7 @@
                 <div class="grid sm:grid-cols-2 gap-4">
                     <div>
                         <label asp-for="Category" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Category"]</label>
-                        @await Html.PartialAsync("_CategorySelect", new { Name = "Category", SelectedValue = Model.Category })
+                        @await Html.PartialAsync("_CategorySelect", new { Name = "Category", SelectedValue = Model?.Category })
                         <span asp-validation-for="Category" class="text-red-500 text-sm mt-1"></span>
                     </div>
                     <div>

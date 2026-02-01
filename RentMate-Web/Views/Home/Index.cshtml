@@ -1,10 +1,10 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 @{
     ViewData["Title"] = Localizer["Home"];
-    var popularItems = ViewBag.PopularItems as IEnumerable<RentMate.Models.Item> ?? Enumerable.Empty<RentMate.Models.Item>();
-    var newItems = ViewBag.NewItems as IEnumerable<RentMate.Models.Item> ?? Enumerable.Empty<RentMate.Models.Item>();
+    var popularItems = ViewBag.PopularItems as IEnumerable<RentMate.Models.Domain.Item> ?? Enumerable.Empty<RentMate.Models.Domain.Item>();
+    var newItems = ViewBag.NewItems as IEnumerable<RentMate.Models.Domain.Item> ?? Enumerable.Empty<RentMate.Models.Domain.Item>();
     var cities = ViewBag.Cities as IEnumerable<string> ?? Enumerable.Empty<string>();
     var currency = CurrencyService.GetCurrentCurrency();
 }
@@ -108,11 +108,11 @@
                     
                     <!-- Date Range - SmartCalendar Component (CENTER position) -->
                     <div class="flex-1 min-w-0">
-                        @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.SmartCalendarModel {
+                        @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.ViewModels.SmartCalendarModel {
                             Id = "heroDateRange",
                             StartDateField = "startDate",
                             EndDateField = "endDate",
-                            Mode = RentMate.Models.CalendarMode.Range,
+                            Mode = RentMate.Models.ViewModels.CalendarMode.Range,
                             MinDate = DateOnly.FromDateTime(DateTime.Today),
                             Placeholder = Localizer["When? (Pick dates)"].Value
                         })
@@ -273,7 +273,7 @@
                                 </p>
                             }
                             <div class="flex items-baseline gap-1">
-                                <span class="text-xl font-bold text-slate-900">@currency.Symbol@item.Price</span>
+                                <span class="text-xl font-bold text-slate-900">@CurrencyService.Format(item.Price)</span>
                                 <span class="text-sm text-slate-500">/ @Localizer["day"]</span>
                             </div>
                         </div>
@@ -351,7 +351,7 @@
                                 </p>
                             }
                             <div class="flex items-baseline gap-1">
-                                <span class="text-xl font-bold text-slate-900">@currency.Symbol@item.Price</span>
+                                <span class="text-xl font-bold text-slate-900">@CurrencyService.Format(item.Price)</span>
                                 <span class="text-sm text-slate-500">/ @Localizer["day"]</span>
                             </div>
                         </div>

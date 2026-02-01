@@ -1,9 +1,9 @@
-@model RentMate.Models.SmartCalendarModel
+@model RentMate.Models.ViewModels.SmartCalendarModel
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 @{
     var calId = Model.Id ?? "smartCalendar";
-    var mode = Model.Mode == RentMate.Models.CalendarMode.Range ? "range" : "single";
+    var mode = Model.Mode == RentMate.Models.ViewModels.CalendarMode.Range ? "range" : "single";
     var minDate = Model.MinDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
     var maxDate = Model.MaxDate?.ToString("yyyy-MM-dd") ?? "";
     var initialStart = Model.InitialStart?.ToString("yyyy-MM-dd") ?? "";
@@ -11,7 +11,7 @@
     var disabledJson = Model.DisabledDates != null 
         ? System.Text.Json.JsonSerializer.Serialize(Model.DisabledDates.Select(d => d.ToString("yyyy-MM-dd")))
         : "[]";
-    var isRangeMode = Model.Mode == RentMate.Models.CalendarMode.Range;
+    var isRangeMode = Model.Mode == RentMate.Models.ViewModels.CalendarMode.Range;
     var weekdaysShort = new[] { "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" };
 }
 

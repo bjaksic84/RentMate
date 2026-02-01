@@ -5,18 +5,20 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using RentMate.Data;
-using RentMate.Hubs;
-using RentMate.Models;
-using RentMate.Services;
+using Microsoft.Extensions.Localization;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
-using Microsoft.Extensions.Localization;
-using RentMate.Middleware;
+using RentMate.Hubs;
 using RentMate.Resources;
+using RentMate.Infrastructure.Data;
+using RentMate.Infrastructure.Middleware;
+using RentMate.Models.Domain;
+using RentMate.Services.Interfaces;
+using RentMate.Services.Implementations;
+using RentMate.Services.Localization;
 
 
 // Clear default claim type mappings to use standard "sub", "role" etc.

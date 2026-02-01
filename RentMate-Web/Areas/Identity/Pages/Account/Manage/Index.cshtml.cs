@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using RentMate.Models;
-using RentMate.Services;
+using RentMate.Models.Domain;
+using RentMate.Services.Interfaces;
 using RentMate.Helpers;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage

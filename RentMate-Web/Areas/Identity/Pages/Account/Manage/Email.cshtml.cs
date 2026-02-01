@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
-using RentMate.Models;
+using RentMate.Models.Domain;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {

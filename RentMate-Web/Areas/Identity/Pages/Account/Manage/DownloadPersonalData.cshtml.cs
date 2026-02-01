@@ -6,7 +6,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using RentMate.Models;
+using RentMate.Models.Domain;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {

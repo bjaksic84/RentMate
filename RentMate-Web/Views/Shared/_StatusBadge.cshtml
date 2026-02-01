@@ -19,11 +19,12 @@
 @inject IViewLocalizer Localizer
 
 @{
-    var badgeType = (string)(Model?.Type ?? ViewData["Type"] ?? "info");
-    var text = (string)(Model?.Text ?? ViewData["Text"] ?? "");
+    var modelType = Model?.GetType();
+    var badgeType = (string)(modelType?.GetProperty("Type")?.GetValue(Model) ?? ViewData["Type"] ?? "info");
+    var text = (string)(modelType?.GetProperty("Text")?.GetValue(Model) ?? ViewData["Text"] ?? "");
     var localizedText = !string.IsNullOrEmpty(text) ? Localizer[text].Value : "";
-    var showIcon = (bool?)(Model?.ShowIcon ?? ViewData["ShowIcon"]) ?? false;
-    var smallPadding = (bool?)(Model?.SmallPadding ?? ViewData["SmallPadding"]) ?? false;
+    var showIcon = (bool?)(modelType?.GetProperty("ShowIcon")?.GetValue(Model) ?? ViewData["ShowIcon"]) ?? false;
+    var smallPadding = (bool?)(modelType?.GetProperty("SmallPadding")?.GetValue(Model) ?? ViewData["SmallPadding"]) ?? false;
     
     // Badge color and icon configurations
     var (bgColor, textColor, icon) = badgeType.ToLower() switch

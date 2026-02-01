@@ -9,7 +9,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using RentMate.Models;
+using RentMate.Models.Domain;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {

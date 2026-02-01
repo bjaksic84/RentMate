@@ -1,7 +1,7 @@
-@model RentMate.Models.Rental
+@model RentMate.Models.Domain.Rental
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Rental Details"];

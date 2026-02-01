@@ -8,9 +8,10 @@
 *@
 
 @{
-    var itemId = Model?.ItemId ?? ViewData["ItemId"];
-    var isFavorited = Model?.IsFavorited ?? ViewData["IsFavorited"] ?? false;
-    var size = Model?.Size ?? ViewData["Size"] ?? "md"; // sm, md, lg
+    var modelType = Model?.GetType();
+    var itemId = modelType?.GetProperty("ItemId")?.GetValue(Model) ?? ViewData["ItemId"];
+    var isFavorited = modelType?.GetProperty("IsFavorited")?.GetValue(Model) ?? ViewData["IsFavorited"] ?? false;
+    var size = modelType?.GetProperty("Size")?.GetValue(Model) ?? ViewData["Size"] ?? "md"; // sm, md, lg
     
     var sizeClasses = size switch
     {

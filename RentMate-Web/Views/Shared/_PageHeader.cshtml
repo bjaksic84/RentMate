@@ -14,13 +14,14 @@
 @inject IViewLocalizer Localizer
 
 @{
-    var title = (string)(Model?.Title ?? ViewData["Title"] ?? "Page Title");
-    var subtitle = (string?)(Model?.Subtitle ?? ViewData["Subtitle"]);
-    var actionText = (string?)(Model?.ActionText ?? ViewData["ActionText"]);
-    var actionLink = (string?)(Model?.ActionLink ?? ViewData["ActionLink"]);
-    var actionIcon = (string?)(Model?.ActionIcon ?? ViewData["ActionIcon"]);
-    var actionController = (string?)(Model?.ActionController ?? ViewData["ActionController"]);
-    var actionAction = (string?)(Model?.ActionAction ?? ViewData["ActionAction"]);
+    var modelType = Model?.GetType();
+    var title = (string)(modelType?.GetProperty("Title")?.GetValue(Model) ?? ViewData["Title"] ?? "Page Title");
+    var subtitle = (string?)(modelType?.GetProperty("Subtitle")?.GetValue(Model) ?? ViewData["Subtitle"]);
+    var actionText = (string?)(modelType?.GetProperty("ActionText")?.GetValue(Model) ?? ViewData["ActionText"]);
+    var actionLink = (string?)(modelType?.GetProperty("ActionLink")?.GetValue(Model) ?? ViewData["ActionLink"]);
+    var actionIcon = (string?)(modelType?.GetProperty("ActionIcon")?.GetValue(Model) ?? ViewData["ActionIcon"]);
+    var actionController = (string?)(modelType?.GetProperty("ActionController")?.GetValue(Model) ?? ViewData["ActionController"]);
+    var actionAction = (string?)(modelType?.GetProperty("ActionAction")?.GetValue(Model) ?? ViewData["ActionAction"]);
 }
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">

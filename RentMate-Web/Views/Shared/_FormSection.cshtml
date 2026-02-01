@@ -14,9 +14,10 @@
 @inject IViewLocalizer Localizer
 
 @{
-    var title = (string)(Model?.Title ?? ViewData["Title"] ?? "");
-    var subtitle = (string?)(Model?.Subtitle ?? ViewData["Subtitle"]);
-    var icon = (string?)(Model?.Icon ?? ViewData["Icon"]);
+    var modelType = Model?.GetType();
+    var title = (string)(modelType?.GetProperty("Title")?.GetValue(Model) ?? ViewData["Title"] ?? "");
+    var subtitle = (string?)(modelType?.GetProperty("Subtitle")?.GetValue(Model) ?? ViewData["Subtitle"]);
+    var icon = (string?)(modelType?.GetProperty("Icon")?.GetValue(Model) ?? ViewData["Icon"]);
 }
 
 <div class="bg-white rounded-2xl border border-slate-200 p-6">

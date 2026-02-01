@@ -4,7 +4,8 @@
     Usage: @await Html.PartialAsync("_BackLink", new { 
         Controller = "Dashboard", 
         Action = "UserDashboard", 
-        Text = "Back to Dashboard" 
+        Text = "Back to Dashboard",
+        RouteId = optionalId  // optional
     })
 *@
 
@@ -12,10 +13,12 @@
 @inject IViewLocalizer Localizer
 
 @{
-    var controller = (string?)(Model?.Controller ?? ViewData["Controller"]);
-    var action = (string)(Model?.Action ?? ViewData["Action"] ?? "Index");
-    var text = (string)(Model?.Text ?? ViewData["Text"] ?? "Back");
-    var routeId = Model?.RouteId ?? ViewData["RouteId"];
+    // Use reflection to safely get properties from anonymous types
+    var modelType = Model?.GetType();
+    var controller = (string?)(modelType?.GetProperty("Controller")?.GetValue(Model) ?? ViewData["Controller"]);
+    var action = (string)(modelType?.GetProperty("Action")?.GetValue(Model) ?? ViewData["Action"] ?? "Index");
+    var text = (string)(modelType?.GetProperty("Text")?.GetValue(Model) ?? ViewData["Text"] ?? "Back");
+    var routeId = modelType?.GetProperty("RouteId")?.GetValue(Model) ?? ViewData["RouteId"];
 }
 
 <a asp-controller="@controller" asp-action="@action" asp-route-id="@routeId"

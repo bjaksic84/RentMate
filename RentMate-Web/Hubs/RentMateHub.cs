@@ -33,3 +33,4 @@ public class RentMateHub : Hub
 
     #endregion
 }
+

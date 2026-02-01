@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Localization;
-using RentMate.Models;
+using RentMate.Models.Domain;
 
 namespace RentMate.Areas.Identity.Pages.Account
 {

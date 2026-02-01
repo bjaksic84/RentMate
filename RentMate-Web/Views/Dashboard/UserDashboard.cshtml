@@ -1,8 +1,8 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using RentMate.Shared.Contracts.Responses
-@model RentMate.Models.DashboardViewModel
+@model RentMate.Models.ViewModels.DashboardViewModel
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Dashboard"];
@@ -416,7 +416,7 @@
                             
                             <!-- Favorite Button (positioned absolutely) -->
                             <div class="absolute top-2 right-2">
-                                @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.FavoriteButtonViewModel {
+                                @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel {
                                     ItemId = item.Id,
                                     IsFavorited = true,
                                     Size = "sm"

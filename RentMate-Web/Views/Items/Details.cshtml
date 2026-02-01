@@ -1,9 +1,9 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using System.Text.Json
 @using RentMate.Shared.Contracts.Responses
-@model RentMate.Models.Item
+@model RentMate.Models.Domain.Item
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
 
@@ -68,7 +68,7 @@
                 }
                 <!-- Favorite button -->
                 <div class="absolute top-4 right-4">
-                    @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.FavoriteButtonViewModel {
+                    @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel {
                         ItemId = Model.Id,
                         IsFavorited = Model.FavoritedBy?.Any(f => f.AccountId == ViewBag.CurrentUserId) ?? false,
                         Size = "lg"

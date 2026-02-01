@@ -17,12 +17,13 @@
 @inject IViewLocalizer Localizer
 
 @{
-    var icon = (string)(Model?.Icon ?? ViewData["Icon"] ?? "bi-info-circle");
-    var iconColor = (string)(Model?.IconColor ?? ViewData["IconColor"] ?? "blue");
-    var value = Model?.Value ?? ViewData["Value"] ?? 0;
-    var label = (string)(Model?.Label ?? ViewData["Label"] ?? "");
-    var link = (string?)(Model?.Link ?? ViewData["Link"]);
-    var linkText = (string?)(Model?.LinkText ?? ViewData["LinkText"]);
+    var modelType = Model?.GetType();
+    var icon = (string)(modelType?.GetProperty("Icon")?.GetValue(Model) ?? ViewData["Icon"] ?? "bi-info-circle");
+    var iconColor = (string)(modelType?.GetProperty("IconColor")?.GetValue(Model) ?? ViewData["IconColor"] ?? "blue");
+    var value = modelType?.GetProperty("Value")?.GetValue(Model) ?? ViewData["Value"] ?? 0;
+    var label = (string)(modelType?.GetProperty("Label")?.GetValue(Model) ?? ViewData["Label"] ?? "");
+    var link = (string?)(modelType?.GetProperty("Link")?.GetValue(Model) ?? ViewData["Link"]);
+    var linkText = (string?)(modelType?.GetProperty("LinkText")?.GetValue(Model) ?? ViewData["LinkText"]);
     
     // Icon background and text color
     var (bgColor, textColor) = iconColor.ToLower() switch

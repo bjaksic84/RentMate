@@ -1,12 +1,12 @@
-@model RentMate.Models.Item
+@model RentMate.Models.Domain.Item
 @using System.Text.Json
 @using Microsoft.AspNetCore.Mvc.Localization
 @using RentMate.Shared.Contracts.Responses
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
-    var blockedDates = (Model.Rentals ?? Enumerable.Empty<RentMate.Models.Rental>())
+    var blockedDates = (Model.Rentals ?? Enumerable.Empty<RentMate.Models.Domain.Rental>())
         .Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending)
         .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
         .ToList();
@@ -35,9 +35,9 @@
 
                 <div class="mb-5">
                     <label class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Choose dates"]</label>
-                    @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.SmartCalendarModel {
+                    @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.ViewModels.SmartCalendarModel {
                         Id = calendarId,
-                        Mode = RentMate.Models.CalendarMode.Range,
+                        Mode = RentMate.Models.ViewModels.CalendarMode.Range,
                         StartDateField = "startDate",
                         EndDateField = "endDate",
                         Placeholder = Localizer["Click to select dates..."].Value

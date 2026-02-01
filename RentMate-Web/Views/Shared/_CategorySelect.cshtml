@@ -13,10 +13,11 @@
 @inject IViewLocalizer Localizer
 
 @{
-    var name = (string)(Model?.Name ?? ViewData["Name"] ?? "Category");
-    var selectedValue = (string?)(Model?.SelectedValue ?? ViewData["SelectedValue"]);
-    var includeUncategorized = (bool?)(Model?.IncludeUncategorized ?? ViewData["IncludeUncategorized"]) ?? true;
-    var cssClass = (string)(Model?.CssClass ?? ViewData["CssClass"] ?? ViewConstants.InputClass + " bg-white");
+    var modelType = Model?.GetType();
+    var name = (string)(modelType?.GetProperty("Name")?.GetValue(Model) ?? ViewData["Name"] ?? "Category");
+    var selectedValue = (string?)(modelType?.GetProperty("SelectedValue")?.GetValue(Model) ?? ViewData["SelectedValue"]);
+    var includeUncategorized = (bool?)(modelType?.GetProperty("IncludeUncategorized")?.GetValue(Model) ?? ViewData["IncludeUncategorized"]) ?? true;
+    var cssClass = (string)(modelType?.GetProperty("CssClass")?.GetValue(Model) ?? ViewData["CssClass"] ?? ViewConstants.InputClass + " bg-white");
     
     var categories = includeUncategorized 
         ? ViewConstants.ItemCategories 

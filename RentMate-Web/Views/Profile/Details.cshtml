@@ -1,19 +1,19 @@
-@model RentMate.Models.ApplicationUser
+@model RentMate.Models.Domain.ApplicationUser
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.ICurrencyService CurrencyService
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = $"{Model.FirstName} {Model.LastName}";
     var profilePic = !string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Model.ProfilePictureUrl : "https://via.placeholder.com/150?text=User";
     
-    var allItems = Model.Items?.Where(i => i.IsListed && !i.IsAdminHidden).ToList() ?? new List<RentMate.Models.Item>();
+    var allItems = Model.Items?.Where(i => i.IsListed && !i.IsAdminHidden).ToList() ?? new List<RentMate.Models.Domain.Item>();
     double avgRating = 0;
     int reviewCount = 0;
     
     if (allItems.Any())
     {
-        var allReviews = allItems.SelectMany(i => i.Reviews ?? new List<RentMate.Models.Review>()).Where(r => !r.IsDeleted).ToList();
+        var allReviews = allItems.SelectMany(i => i.Reviews ?? new List<RentMate.Models.Domain.Review>()).Where(r => !r.IsDeleted).ToList();
         if (allReviews.Any())
         {
             avgRating = allReviews.Average(r => r.Rating);
@@ -151,7 +151,7 @@
             <!-- Recent Reviews -->
             @{
                 var recentReviews = allItems
-                    .SelectMany(i => (i.Reviews ?? new List<RentMate.Models.Review>()).Select(r => new { Item = i, Review = r }))
+                    .SelectMany(i => (i.Reviews ?? new List<RentMate.Models.Domain.Review>()).Select(r => new { Item = i, Review = r }))
                     .Where(x => !x.Review.IsDeleted)
                     .OrderByDescending(x => x.Review.CreatedAt)
                     .Take(5)

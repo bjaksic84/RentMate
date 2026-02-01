@@ -56,7 +56,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     
     
-    @inject RentMate.Services.ICurrencyService CurrencyService
+    @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
     <script>
         window.CurrentCurrency = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(CurrencyService.GetCurrentCurrency()));
     </script>
@@ -227,7 +227,7 @@
                                     </div>
                                 </div>
                                 <!-- Currency Section -->
-                                @inject RentMate.Services.ICurrencyService NavCurrencyService
+                                @inject RentMate.Services.Interfaces.ICurrencyService NavCurrencyService
                                 @{
                                     var navCurrentCurrency = NavCurrencyService.GetCurrentCurrency();
                                     var navReturnUrl = string.IsNullOrEmpty(Context.Request.Path) ? "~/" : $"{Context.Request.Path}{Context.Request.QueryString}";
@@ -406,7 +406,7 @@
     </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-
+    <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/translations.js" asp-append-version="true"></script>
     <script src="~/js/smartcalendar.js" asp-append-version="true"></script>
     <script src="~/js/favorites.js" asp-append-version="true"></script>
