@@ -1,0 +1,25 @@
+@*
+    Back Link Partial View - Consistent back navigation
+    
+    Usage: @await Html.PartialAsync("_BackLink", new { 
+        Controller = "Dashboard", 
+        Action = "UserDashboard", 
+        Text = "Back to Dashboard" 
+    })
+*@
+
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var controller = (string?)(Model?.Controller ?? ViewData["Controller"]);
+    var action = (string)(Model?.Action ?? ViewData["Action"] ?? "Index");
+    var text = (string)(Model?.Text ?? ViewData["Text"] ?? "Back");
+    var routeId = Model?.RouteId ?? ViewData["RouteId"];
+}
+
+<a asp-controller="@controller" asp-action="@action" asp-route-id="@routeId"
+   class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors mb-4">
+    <i class="bi bi-arrow-left"></i>
+    @Localizer[text]
+</a>

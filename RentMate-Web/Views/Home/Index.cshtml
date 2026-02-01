@@ -1,6 +1,6 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 @{
     ViewData["Title"] = Localizer["Home"];
     var popularItems = ViewBag.PopularItems as IEnumerable<RentMate.Models.Item> ?? Enumerable.Empty<RentMate.Models.Item>();
@@ -10,9 +10,9 @@
 }
 
 <!-- Hero Section - Full viewport height -->
-<section class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center overflow-hidden">
+<section class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center">
     <!-- Animated gradient background -->
-    <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900">
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900 overflow-hidden">
         <!-- Decorative elements -->
         <div class="absolute inset-0 opacity-30">
             <div class="absolute top-20 left-10 w-72 h-72 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
@@ -24,7 +24,7 @@
     </div>
     
     <!-- Hero Content -->
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center overflow-visible">
         <!-- Badge -->
         <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/90 text-sm font-medium mb-8">
             <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
@@ -41,20 +41,81 @@
             @Localizer["Forget about buying things you only need occasionally."] @Localizer["Save money, save space, save the planet."]
         </p>
         
-        <!-- Search Widget - Glassmorphic pill-shaped -->
-        <div class="max-w-4xl mx-auto">
-            <form asp-controller="Rentals" asp-action="Index" method="get" class="glass rounded-2xl sm:rounded-full p-2 shadow-lg border border-white/30 overflow-hidden">
+        <!-- Search Widget - Glassmorphic pill-shaped (Opus Architecture) -->
+        <!-- 
+            ARCHITECTURAL DECISIONS:
+            1. role="search" - Semantic landmark for screen readers (WCAG 2.1)
+            2. method="get" - Search actions must use GET for URL shareability/bookmarking
+            3. value="" binding - Preserves search term after page refresh via ViewBag
+            4. Clear button - Conditionally visible via oninput JavaScript
+            5. Loading spinner - Shows on form submit for perceived performance
+            6. ring-offset-2 - Creates visual gap between focus ring and element
+        -->
+        <div class="max-w-4xl mx-auto overflow-visible">
+            <form asp-controller="Rentals" asp-action="Index" method="get" 
+                  role="search" 
+                  aria-label="@Localizer["Search marketplace"]"
+                  id="heroSearchForm"
+                  onsubmit="showSearchLoading()"
+                  class="glass rounded-2xl sm:rounded-full p-2 shadow-lg border border-white/30 relative z-50 overflow-visible">
                 <div class="flex flex-col sm:flex-row items-stretch gap-2">
-                    <!-- What -->
+                    <!-- What (Search Input) -->
                     <div class="flex-1 min-w-0 group">
-                        <div onclick="document.getElementById('heroSearch').focus()" class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full bg-white/50 hover:bg-white/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 transition-all duration-200 cursor-text h-full">
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
-                                <i class="bi bi-search text-white text-sm" aria-hidden="true"></i>
+                        <div onclick="document.getElementById('heroSearch').focus()" 
+                             class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full 
+                                    bg-white/60 hover:bg-white/90 
+                                    focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md
+                                    transition-all duration-200 cursor-text h-full">
+                            <!-- Search Icon (left-positioned) -->
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                                <i class="bi bi-search text-white text-sm"></i>
                             </div>
-                            <input type="text" id="heroSearch" name="search" placeholder="@Localizer["What are you looking for?"]" 
-                                   aria-label="@Localizer["Search for items"]"
-                                   class="flex-1 min-w-0 bg-transparent border-none text-slate-900 font-medium placeholder-slate-400 focus:outline-none text-sm">
+                            <!-- Input Container with relative positioning for clear button -->
+                            <div class="flex-1 min-w-0 relative">
+                                <input type="text" 
+                                       id="heroSearch" 
+                                       name="search" 
+                                       value="@(ViewBag.CurrentSearch ?? "")"
+                                       placeholder="@Localizer["What are you looking for?"]" 
+                                       aria-label="@Localizer["Search for items"]"
+                                       autocomplete="off"
+                                       oninput="toggleClearButton(this)"
+                                       class="w-full bg-transparent border-none text-slate-900 font-medium placeholder-slate-500 focus:outline-none text-sm pr-8">
+                                <!-- Clear Button (×) - Hidden by default, shown when input has value -->
+                                <button type="button" 
+                                        id="heroSearchClear"
+                                        onclick="clearSearchInput()"
+                                        aria-label="@Localizer["Clear search"]"
+                                        class="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full 
+                                               bg-slate-200 hover:bg-slate-300 
+                                               flex items-center justify-center 
+                                               text-slate-500 hover:text-slate-700
+                                               transition-all duration-150 
+                                               opacity-0 invisible
+                                               focus:opacity-100 focus:visible focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <i class="bi bi-x text-sm" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                            <!-- Loading Spinner - Hidden by default, shown on form submit -->
+                            <div id="heroSearchSpinner" class="hidden flex-shrink-0" aria-hidden="true">
+                                <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
                         </div>
+                    </div>
+                    
+                    <!-- Divider -->
+                    <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
+                    
+                    <!-- Date Range - SmartCalendar Component (CENTER position) -->
+                    <div class="flex-1 min-w-0">
+                        @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.SmartCalendarModel {
+                            Id = "heroDateRange",
+                            StartDateField = "startDate",
+                            EndDateField = "endDate",
+                            Mode = RentMate.Models.CalendarMode.Range,
+                            MinDate = DateOnly.FromDateTime(DateTime.Today),
+                            Placeholder = Localizer["When? (Pick dates)"].Value
+                        })
                     </div>
                     
                     <!-- Divider -->
@@ -62,7 +123,7 @@
                     
                     <!-- Location -->
                     <div class="flex-1 min-w-0 group">
-                        <div onclick="document.querySelector('[name=city]').focus()" class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full bg-white/50 hover:bg-white/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 transition-all duration-200 cursor-pointer h-full">
+                        <div onclick="document.querySelector('[name=city]').focus()" class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full bg-white/60 hover:bg-white/90 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md transition-all duration-200 cursor-pointer h-full">
                             <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
                                 <i class="bi bi-geo-alt-fill text-white text-sm"></i>
                             </div>
@@ -73,22 +134,6 @@
                                     <option value="@city">@city</option>
                                 }
                             </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Divider -->
-                    <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
-                    
-                    <!-- Date Range -->
-                    <div class="flex-1 min-w-0 group">
-                        <div onclick="document.getElementById('dateRange').click()" class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full bg-white/50 hover:bg-white/80 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 transition-all duration-200 cursor-pointer h-full">
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
-                                <i class="bi bi-calendar-event text-white text-sm"></i>
-                            </div>
-                            <input type="text" id="dateRange" placeholder="@Localizer["When? (Pick dates)"]" readonly
-                                   class="flex-1 min-w-0 bg-transparent border-none text-slate-900 font-medium placeholder-slate-400 focus:outline-none text-sm cursor-pointer">
-                            <input type="hidden" name="startDate" id="heroStartDate" />
-                            <input type="hidden" name="endDate" id="heroEndDate" />
                         </div>
                     </div>
                     
@@ -105,10 +150,7 @@
         
         <!-- Quick categories - clickable pills that populate search -->
         <div class="flex flex-wrap justify-center gap-3 mt-8">
-            @{
-                var categories = new[] { ("Tools", "bi-tools"), ("Electronics", "bi-laptop"), ("Sports", "bi-bicycle"), ("Home & Garden", "bi-house"), ("Fun", "bi-controller") };
-            }
-            @foreach (var (cat, icon) in categories)
+            @foreach (var (cat, icon) in ViewConstants.MarketplaceCategories.Take(5))
             {
                 <a href="@Url.Action("Index", "Rentals", new { category = cat })"
                    class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/10 hover:border-white/30 transition-all duration-200 cursor-pointer focus-ring">
@@ -406,38 +448,8 @@
         }
 
 
-        // Determine language and date format for Flatpickr
-        var lang = document.documentElement.lang || 'en';
-        var flatpickrFormat = (lang.startsWith('sl')) ? 'd. M' : 'd M';
-        var flatpickrLocale = {
-            rangeSeparator: ' - '
-        };
-        if (lang.startsWith('sl')) {
-            flatpickrLocale.weekdays = {
-                shorthand: ['Ned', 'Pon', 'Tor', 'Sre', 'Čet', 'Pet', 'Sob'],
-                longhand: ['Nedelja', 'Ponedeljek', 'Torek', 'Sreda', 'Četrtek', 'Petek', 'Sobota']
-            };
-            flatpickrLocale.months = {
-                shorthand: ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'avg', 'sep', 'okt', 'nov', 'dec'],
-                longhand: ['januar', 'februar', 'marec', 'april', 'maj', 'junij', 'julij', 'avgust', 'september', 'oktober', 'november', 'december']
-            };
-        }
-        flatpickr("#dateRange", {
-            mode: "range",
-            minDate: "today",
-            dateFormat: flatpickrFormat,
-            locale: flatpickrLocale,
-            disableMobile: true,
-            onChange: function(selectedDates, dateStr, instance) {
-                if (selectedDates.length === 2) {
-                    document.getElementById('heroStartDate').value = formatLocalDate(selectedDates[0]);
-                    document.getElementById('heroEndDate').value = formatLocalDate(selectedDates[1]);
-                } else {
-                    document.getElementById('heroStartDate').value = '';
-                    document.getElementById('heroEndDate').value = '';
-                }
-            }
-        });
+
+        // SmartCalendar is now used instead of Flatpickr for date selection
 
         // Category pill click handler - populates search and focuses input
         function setSearchCategory(category) {
@@ -447,8 +459,74 @@
                 searchInput.focus();
                 // Select all text so user can easily type to replace
                 searchInput.select();
+                // Show clear button since we now have a value
+                toggleClearButton(searchInput);
             }
         }
+
+        // ============================================================
+        // OPUS SEARCH BAR - Clear Button & Loading State Functions
+        // ============================================================
+
+        // Toggles the visibility of the clear (×) button based on input value.
+        // Uses CSS opacity/visibility for smooth animation.
+        function toggleClearButton(inputElement) {
+            const clearBtn = document.getElementById('heroSearchClear');
+            if (!clearBtn) return;
+            
+            if (inputElement.value.length > 0) {
+                clearBtn.classList.remove('opacity-0', 'invisible');
+                clearBtn.classList.add('opacity-100', 'visible');
+            } else {
+                clearBtn.classList.add('opacity-0', 'invisible');
+                clearBtn.classList.remove('opacity-100', 'visible');
+            }
+        }
+
+        /**
+         * Clears the search input, hides the clear button, and refocuses input.
+         * Provides immediate feedback for keyboard and mouse users.
+         */
+        function clearSearchInput() {
+            const searchInput = document.getElementById('heroSearch');
+            const clearBtn = document.getElementById('heroSearchClear');
+            
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            if (clearBtn) {
+                clearBtn.classList.add('opacity-0', 'invisible');
+                clearBtn.classList.remove('opacity-100', 'visible');
+            }
+        }
+
+        /**
+         * Shows loading spinner on form submit for perceived performance.
+         * Called via onsubmit handler on the form element.
+         */
+        function showSearchLoading() {
+            const spinner = document.getElementById('heroSearchSpinner');
+            const searchIcon = document.querySelector('#heroSearchForm .bi-search');
+            
+            if (spinner) {
+                spinner.classList.remove('hidden');
+            }
+            // Optionally hide the search icon in the button during loading
+            const submitBtn = document.querySelector('#heroSearchForm button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-75', 'cursor-wait');
+            }
+        }
+
+        // Initialize clear button visibility on page load (for preserved search values)
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('heroSearch');
+            if (searchInput && searchInput.value.length > 0) {
+                toggleClearButton(searchInput);
+            }
+        });
     </script>
 }
 

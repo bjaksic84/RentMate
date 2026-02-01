@@ -16,6 +16,12 @@ public class ApplicationUser : IdentityUser
     public ICollection<Item>? Items { get; set; }
     public ICollection<Rental>? RentalsAsRenter { get; set; }
     public ICollection<Rental>? RentalsAsOwner { get; set; }
+    
+    /// <summary>
+    /// Collection of favorited items via join entity.
+    /// Use this to easily query: user.Favorites.Select(f => f.Item)
+    /// </summary>
+    public ICollection<AccountItemFavorite> Favorites { get; set; } = new List<AccountItemFavorite>();
 }
 
 

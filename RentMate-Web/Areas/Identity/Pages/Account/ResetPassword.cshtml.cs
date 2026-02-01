@@ -2,11 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -16,10 +13,27 @@ using RentMate.Models;
 
 namespace RentMate.Areas.Identity.Pages.Account
 {
+    /// <summary>
+    /// Page model for resetting user password.
+    /// </summary>
     public class ResetPasswordModel : PageModel
     {
+        #region Constants
+
+        private const int MinPasswordLength = 6;
+        private const int MaxPasswordLength = 100;
+        private const string CodeRequiredErrorKey = "A code must be supplied for password reset.";
+
+        #endregion
+
+        #region Dependencies
+
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IStringLocalizer<ResetPasswordModel> _localizer;
+
+        #endregion
+
+        #region Constructor
 
         public ResetPasswordModel(
             UserManager<ApplicationUser> userManager,
@@ -29,8 +43,16 @@ namespace RentMate.Areas.Identity.Pages.Account
             _localizer = localizer;
         }
 
+        #endregion
+
+        #region Properties
+
         [BindProperty]
         public InputModel Input { get; set; }
+
+        #endregion
+
+        #region Input Model
 
         public class InputModel
         {
@@ -40,7 +62,7 @@ namespace RentMate.Areas.Identity.Pages.Account
             public string Email { get; set; }
 
             [Required(ErrorMessage = "The {0} field is required.")]
-            [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+            [StringLength(MaxPasswordLength, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = MinPasswordLength)]
             [DataType(DataType.Password)]
             [Display(Name = "Password")]
             public string Password { get; set; }
@@ -54,28 +76,27 @@ namespace RentMate.Areas.Identity.Pages.Account
             public string Code { get; set; }
         }
 
+        #endregion
+
+        #region Page Handlers
+
         public IActionResult OnGet(string code = null)
         {
             if (code == null)
             {
-                return BadRequest(_localizer["A code must be supplied for password reset."]);
+                return BadRequest(_localizer[CodeRequiredErrorKey]);
             }
-            else
+
+            Input = new InputModel
             {
-                Input = new InputModel
-                {
-                    Code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code))
-                };
-                return Page();
-            }
+                Code = DecodeResetCode(code)
+            };
+            return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (!ModelState.IsValid)
-            {
-                return Page();
-            }
+            if (!ModelState.IsValid) return Page();
 
             var user = await _userManager.FindByEmailAsync(Input.Email);
             if (user == null)
@@ -84,17 +105,48 @@ namespace RentMate.Areas.Identity.Pages.Account
                 return RedirectToPage("./ResetPasswordConfirmation");
             }
 
+            return await ResetUserPasswordAsync(user);
+        }
+
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Decodes the Base64Url reset code.
+        /// </summary>
+        private static string DecodeResetCode(string code)
+        {
+            return Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+        }
+
+        /// <summary>
+        /// Attempts to reset the user's password.
+        /// </summary>
+        private async Task<IActionResult> ResetUserPasswordAsync(ApplicationUser user)
+        {
             var result = await _userManager.ResetPasswordAsync(user, Input.Code, Input.Password);
+            
             if (result.Succeeded)
             {
                 return RedirectToPage("./ResetPasswordConfirmation");
             }
 
+            AddIdentityErrors(result);
+            return Page();
+        }
+
+        /// <summary>
+        /// Adds identity errors to model state.
+        /// </summary>
+        private void AddIdentityErrors(IdentityResult result)
+        {
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(string.Empty, error.Description);
             }
-            return Page();
         }
+
+        #endregion
     }
 }

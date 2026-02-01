@@ -1,7 +1,7 @@
 @model RentMate.Models.Item
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["New Item"];
@@ -11,10 +11,7 @@
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <a asp-controller="Dashboard" asp-action="UserDashboard" class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors mb-4">
-            <i class="bi bi-arrow-left"></i>
-            @Localizer["Back to Dashboard"]
-        </a>
+        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = "Back to Dashboard" })
         <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["List a New Item"]</h1>
         <p class="text-slate-500 mt-2">@Localizer["Share your item with the community and start earning"]</p>
     </div>
@@ -63,7 +60,7 @@
                 <!-- Title -->
                 <div>
                     <label asp-for="Title" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Title"]</label>
-                    <input asp-for="Title" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                    <input asp-for="Title" class="@ViewConstants.InputClass" 
                            placeholder="@Localizer["e.g. Professional Camera Canon EOS R5"]" />
                     <span asp-validation-for="Title" class="text-sm text-red-600"></span>
                 </div>
@@ -72,15 +69,7 @@
                     <!-- Category -->
                     <div>
                         <label asp-for="Category" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Category"]</label>
-                        @{
-                            var categories = new[] { "Uncategorized", "Electronics", "Sports", "Tools", "Vehicles", "Home", "Garden", "Events", "Other" };
-                        }
-                        <select asp-for="Category" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white">
-                            @foreach (var cat in categories)
-                            {
-                                <option value="@cat">@Localizer[cat]</option>
-                            }
-                        </select>
+                        @await Html.PartialAsync("_CategorySelect", new { Name = "Category", SelectedValue = Model.Category })
                         <span asp-validation-for="Category" class="text-sm text-red-600"></span>
                     </div>
 
@@ -132,12 +121,10 @@
 
         <!-- Submit -->
         <div class="flex flex-col sm:flex-row gap-3 justify-end">
-            <a asp-controller="Dashboard" asp-action="UserDashboard" 
-               class="px-6 py-3 border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium rounded-xl transition-colors text-center">
+            <a asp-controller="Dashboard" asp-action="UserDashboard" class="@ViewConstants.ButtonStyles.Secondary text-center">
                 @Localizer["Cancel"]
             </a>
-            <button type="submit" 
-                    class="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm  transition-all">
+            <button type="submit" class="@ViewConstants.ButtonStyles.Primary">
                 @Localizer["Publish Item"]
             </button>
         </div>
@@ -161,10 +148,10 @@
             <p class="text-slate-600 mb-4">@Localizer["We would like to access your location to set the default pickup location for your item."]</p>
             <p class="text-sm text-slate-500 mb-6">@Localizer["Your location data will only be used to display the pickup location to potential renters. You can always enter a custom address instead."]</p>
             <div class="flex gap-3">
-                <button onclick="closeConsentModal()" class="flex-1 px-4 py-3 border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium rounded-xl transition-colors">
+                <button onclick="closeConsentModal()" class="flex-1 @ViewConstants.ButtonStyles.Secondary">
                     @Localizer["No thanks"]
                 </button>
-                <button onclick="confirmLocationAccess()" class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors">
+                <button onclick="confirmLocationAccess()" class="flex-1 @ViewConstants.ButtonStyles.Primary">
                     @Localizer["Allow Access"]
                 </button>
             </div>

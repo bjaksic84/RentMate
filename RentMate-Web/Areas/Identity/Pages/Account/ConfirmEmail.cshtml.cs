@@ -1,8 +1,6 @@
-using System;
-using System.Linq;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
 using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,19 +10,46 @@ using RentMate.Models;
 
 namespace RentMate.Areas.Identity.Pages.Account
 {
+    /// <summary>
+    /// Page model for email confirmation.
+    /// </summary>
     public class ConfirmEmailModel : PageModel
     {
+        #region Constants
+
+        private const string UserNotFoundKey = "Unable to load user with ID '{0}'.";
+        private const string EmailConfirmedKey = "Thank you for confirming your email.";
+        private const string EmailConfirmErrorKey = "Error confirming your email.";
+
+        #endregion
+
+        #region Dependencies
+
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IStringLocalizer<ConfirmEmailModel> _localizer;
 
-        public ConfirmEmailModel(UserManager<ApplicationUser> userManager, IStringLocalizer<ConfirmEmailModel> localizer)
+        #endregion
+
+        #region Constructor
+
+        public ConfirmEmailModel(
+            UserManager<ApplicationUser> userManager, 
+            IStringLocalizer<ConfirmEmailModel> localizer)
         {
             _userManager = userManager;
             _localizer = localizer;
         }
 
+        #endregion
+
+        #region Properties
+
         [TempData]
-        public string StatusMessage { get; set; }
+        public string? StatusMessage { get; set; }
+
+        #endregion
+
+        #region Page Handlers
 
         public async Task<IActionResult> OnGetAsync(string userId, string code)
         {
@@ -36,18 +61,30 @@ namespace RentMate.Areas.Identity.Pages.Account
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
             {
-                return NotFound(string.Format(_localizer["Unable to load user with ID '{0}'."], userId));
+                return NotFound(string.Format(_localizer[UserNotFoundKey], userId));
             }
 
-            code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
-            var result = await _userManager.ConfirmEmailAsync(user, code);
-            
-            // These strings are keys that must exist in the .resx
-            StatusMessage = result.Succeeded 
-                ? _localizer["Thank you for confirming your email."] 
-                : _localizer["Error confirming your email."];
-                
+            await ConfirmUserEmailAsync(user, code);
             return Page();
         }
+
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Confirms the user's email and sets the appropriate status message.
+        /// </summary>
+        private async Task ConfirmUserEmailAsync(ApplicationUser user, string code)
+        {
+            var decodedCode = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+            var result = await _userManager.ConfirmEmailAsync(user, decodedCode);
+            
+            StatusMessage = result.Succeeded 
+                ? _localizer[EmailConfirmedKey] 
+                : _localizer[EmailConfirmErrorKey];
+        }
+
+        #endregion
     }
 }

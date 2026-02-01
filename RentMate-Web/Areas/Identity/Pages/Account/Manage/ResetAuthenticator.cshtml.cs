@@ -2,67 +2,78 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using RentMate.Models;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {
-    public class ResetAuthenticatorModel : PageModel
+    /// <summary>
+    /// Page model for resetting the authenticator app key.
+    /// </summary>
+    public class ResetAuthenticatorModel : BaseIdentityPageModel
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
+        #region Constants
+
+        private const string AuthenticatorResetMessage = "Your authenticator app key has been reset, you will need to configure your authenticator app using the new key.";
+
+        #endregion
+
+        #region Dependencies
+
         private readonly ILogger<ResetAuthenticatorModel> _logger;
+
+        #endregion
+
+        #region Constructor
 
         public ResetAuthenticatorModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             ILogger<ResetAuthenticatorModel> logger)
+            : base(userManager, signInManager)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
             _logger = logger;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [TempData]
-        public string StatusMessage { get; set; }
+        #endregion
+
+        #region Page Handlers
 
         public async Task<IActionResult> OnGet()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
-
-            return Page();
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            return errorResult ?? Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            if (errorResult != null) return errorResult;
 
-            await _userManager.SetTwoFactorEnabledAsync(user, false);
-            await _userManager.ResetAuthenticatorKeyAsync(user);
-            var userId = await _userManager.GetUserIdAsync(user);
-            _logger.LogInformation("User with ID '{UserId}' has reset their authentication app key.", user.Id);
-
-            await _signInManager.RefreshSignInAsync(user);
-            StatusMessage = "Your authenticator app key has been reset, you will need to configure your authenticator app using the new key.";
-
+            await ResetAuthenticatorAsync(user);
             return RedirectToPage("./EnableAuthenticator");
         }
+
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Resets the authenticator key and refreshes sign-in.
+        /// </summary>
+        private async Task ResetAuthenticatorAsync(ApplicationUser user)
+        {
+            await UserManager.SetTwoFactorEnabledAsync(user, false);
+            await UserManager.ResetAuthenticatorKeyAsync(user);
+            
+            _logger.LogInformation("User with ID '{UserId}' has reset their authentication app key.", user.Id);
+
+            await RefreshSignInAsync(user);
+            SetSuccessMessage(AuthenticatorResetMessage);
+        }
+
+        #endregion
     }
 }

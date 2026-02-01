@@ -1,7 +1,7 @@
 @model RentMate.Models.Rental
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Cancel Rental"];
@@ -10,10 +10,7 @@
 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <a asp-controller="Rentals" asp-action="MyRentals" class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors mb-4">
-            <i class="bi bi-arrow-left"></i>
-            @Localizer["Back to My Rentals"]
-        </a>
+        @await Html.PartialAsync("_BackLink", new { Controller = "Rentals", Action = "MyRentals", Text = Localizer["Back to My Rentals"].Value })
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">

@@ -158,6 +158,24 @@ namespace RentMate.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("RentMate.Models.AccountItemFavorite", b =>
+                {
+                    b.Property<string>("AccountId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("AccountId", "ItemId");
+
+                    b.HasIndex("ItemId");
+
+                    b.ToTable("AccountItemFavorites");
+                });
+
             modelBuilder.Entity("RentMate.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -491,6 +509,25 @@ namespace RentMate.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RentMate.Models.AccountItemFavorite", b =>
+                {
+                    b.HasOne("RentMate.Models.ApplicationUser", "Account")
+                        .WithMany("Favorites")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RentMate.Models.Item", "Item")
+                        .WithMany("FavoritedBy")
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Item");
+                });
+
             modelBuilder.Entity("RentMate.Models.Item", b =>
                 {
                     b.HasOne("RentMate.Models.ApplicationUser", "User")
@@ -571,6 +608,8 @@ namespace RentMate.Migrations
 
             modelBuilder.Entity("RentMate.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("Favorites");
+
                     b.Navigation("Items");
 
                     b.Navigation("RentalsAsOwner");
@@ -580,6 +619,8 @@ namespace RentMate.Migrations
 
             modelBuilder.Entity("RentMate.Models.Item", b =>
                 {
+                    b.Navigation("FavoritedBy");
+
                     b.Navigation("Rentals");
 
                     b.Navigation("Reviews");

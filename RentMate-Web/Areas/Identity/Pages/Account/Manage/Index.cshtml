@@ -24,7 +24,7 @@
             <div class="flex-shrink-0">
                 <div class="relative">
                     <img id="profilePreview" 
-                         src="@(string.IsNullOrEmpty(Model.Input.ProfilePictureUrl) ? "https://via.placeholder.com/150?text=No+Image" : Model.Input.ProfilePictureUrl)" 
+                         src="@(string.IsNullOrEmpty(Model.Input?.ProfilePictureUrl) ? "https://via.placeholder.com/150?text=No+Image" : Model.Input.ProfilePictureUrl)" 
                          class="w-32 h-32 rounded-2xl object-cover border-2 border-slate-200 shadow-sm" 
                          alt="Profile Picture" />
                     <label for="fileUpload" class="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-lg transition-colors">

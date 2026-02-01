@@ -1,5 +1,38 @@
+/* ==========================================
+   RentMate Site Styles
+   ==========================================
+   Note: Primary styling uses Tailwind CSS.
+   This file contains custom utilities and overrides.
+   ========================================== */
+
+/* ==========================================
+   CSS Custom Properties (Design Tokens)
+   ========================================== */
+:root {
+    /* Colors */
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-normal: 300ms ease;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* ==========================================
+   Base Styles
+   ========================================== */
 html {
     font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
 @media (min-width: 768px) {
@@ -8,172 +41,149 @@ html {
     }
 }
 
+body {
+    margin-bottom: 60px;
+}
+
+/* ==========================================
+   Focus States (Accessibility)
+   ========================================== */
 .btn:focus,
 .btn:active:focus,
 .btn-link.nav-link:focus,
 .form-control:focus,
 .form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--primary);
 }
 
-html {
-    position: relative;
-    min-height: 100%;
-}
+/* ==========================================
+   Animation Utilities
+   ========================================== */
 
-body {
-    margin-bottom: 60px;
-}
-
-/* ===============================
-   Custom UI Enhancements (RentMate)
-   =============================== */
-
-/* Flash highlight animation for updated rows */
+/* Flash highlight for updated rows */
 tr.flash {
     animation: flashFade 0.8s ease-in-out;
 }
 
 @keyframes flashFade {
-    0% {
-        background-color: #d1e7dd;
-    }
-
-    /* Bootstrap success-light green */
-    100% {
-        background-color: transparent;
-    }
+    0% { background-color: #d1e7dd; }
+    100% { background-color: transparent; }
 }
 
-/* Slight opacity for disabled or pending cards */
+/* Pulse animation for connection indicator */
+@keyframes pulseFade {
+    0% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================================
+   Component Styles
+   ========================================== */
+
+/* Toast container */
+.toast-container {
+    z-index: 1100;
+}
+
+/* Connection Indicator */
+#connectionIndicator {
+    transition: background-color var(--transition-normal), 
+                color var(--transition-normal), 
+                transform var(--transition-normal);
+    opacity: 0;
+}
+
+#connectionIndicator.visible { opacity: 1; }
+#connectionIndicator.online { background-color: var(--success); color: white; }
+#connectionIndicator.offline { background-color: var(--danger); color: white; }
+#connectionIndicator.flash { animation: pulseFade 0.4s both; }
+
+/* Cards with disabled state */
 .card.opacity-50 {
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
 .card.opacity-50:hover {
     transform: scale(1.01);
 }
 
-/* Optional: Toast spacing consistency */
-.toast-container {
-    z-index: 1100;
-    /* keeps it above modals */
-}
-
-/* --- Connection Indicator Styles --- */
-#connectionIndicator.online {
-    background-color: #28a745;
-    /* Bootstrap success green */
-    color: white;
-}
-
-#connectionIndicator.offline {
-    background-color: #dc3545;
-    /* Bootstrap danger red */
-    color: white;
-}
-
-/* --- Connection Indicator Animation --- */
-#connectionIndicator {
-    transition: background-color 0.4s ease, color 0.4s ease, transform 0.3s ease;
-    animation-duration: 0.4s;
-    animation-fill-mode: both;
-    opacity: 0;
-    transition: opacity 0.4s ease, background-color 0.4s ease, transform 0.3s ease;
-}
-
-#connectionIndicator.visible {
-    opacity: 1;
-}
-
-#connectionIndicator.flash {
-    animation-name: pulseFade;
-}
-
-@keyframes pulseFade {
-    0% {
-        transform: scale(1);
-        opacity: 0.8;
-    }
-
-    50% {
-        transform: scale(1.15);
-        opacity: 1;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
+/* Modal backdrop */
 .modal-backdrop.fade {
     opacity: 0.4;
-    transition: opacity 0.3s ease;
+    transition: opacity var(--transition-normal);
 }
 
 .modal-backdrop.fade.show {
     opacity: 0.4;
 }
 
-/* Filter layout tweaks */
-@media (min-width: 992px) {
-    .col-lg-1-5 {
-        flex: 0 0 12%;
-        max-width: 12%;
-    }
-}
-
-/* Rotate arrow when expanded */
+/* Chevron rotation for collapsibles */
 button[aria-expanded="true"] .bi-chevron-down {
     transform: rotate(180deg);
-    transition: transform 0.3s ease;
 }
 
-button[aria-expanded="false"] .bi-chevron-down {
-    transition: transform 0.3s ease;
+button .bi-chevron-down {
+    transition: transform var(--transition-normal);
 }
 
-/* Slight glow on hero input focus */
-.input-group-lg .form-control:focus {
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, .25);
+/* ==========================================
+   Category Navigation
+   ========================================== */
+.category-item,
+.category-link {
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    min-width: 80px;
 }
 
-/* keep consistent height and smooth focus outline */
-form .form-control-lg {
-    min-width: 250px;
-    transition: box-shadow 0.25s ease;
+.category-item:hover,
+.category-link:hover {
+    opacity: 1;
+    transform: translateY(-3px);
+    color: var(--primary) !important;
 }
 
-form .form-control-lg:focus {
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+.category-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #6c757d;
 }
 
-/* responsive alignment */
-@media (max-width: 576px) {
-    form.d-flex.gap-2 {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    form.d-flex.gap-2 .form-control-lg,
-    form.d-flex.gap-2 .btn-lg {
-        width: 100%;
-        max-width: none;
-    }
+.icon-circle {
+    width: 50px;
+    height: 50px;
+    background: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid #eee;
+    transition: all 0.2s ease;
 }
 
-/* === Hero Search Styling === */
-
-/* subtle gradient background for input */
-.hero-search-input {
-    background: linear-gradient(135deg, #ffffff, #f6f7fb);
-    border: 1px solid #ced4da;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.03);
-    transition: all 0.3s ease;
+.category-link:hover .icon-circle {
+    background: var(--primary) !important;
+    color: white !important;
+    border-color: transparent !important;
 }
 
-/* === Landing hero styles (production-ready) === */
+/* Hide scrollbar for category scroll */
+.category-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.category-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+/* ==========================================
+   Hero Section
+   ========================================== */
 .hero-section {
     background: linear-gradient(180deg, rgba(13, 110, 253, 0.04), rgba(71, 145, 255, 0.02));
     padding-top: 3.5rem;
@@ -189,14 +199,6 @@ form .form-control-lg:focus {
     font-size: 1.125rem;
 }
 
-.hero-search-input .input-group-text {
-    border-radius: 50rem 0 0 50rem;
-}
-
-.hero-search-input .form-control {
-    border-radius: 0 50rem 50rem 0;
-}
-
 .hero-graphic {
     width: 220px;
     height: 220px;
@@ -206,11 +208,6 @@ form .form-control-lg:focus {
     background: linear-gradient(135deg, rgba(13, 110, 253, 0.06), rgba(71, 145, 255, 0.04));
 }
 
-/* Feature cards refinement */
-.card.h-100 {
-    border-radius: .85rem;
-}
-
 @media (max-width: 576px) {
     .hero-graphic {
         width: 140px;
@@ -218,7 +215,27 @@ form .form-control-lg:focus {
     }
 }
 
-/* Capsule search: remove group outline and make input visually lighter than button */
+/* Hero Search */
+.hero-search-form {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.hero-search-input {
+    background: linear-gradient(135deg, #ffffff, #f6f7fb);
+    border: 1px solid #ced4da;
+    box-shadow: var(--shadow-sm);
+    transition: all var(--transition-normal);
+}
+
+.hero-search-input:focus {
+    background: linear-gradient(135deg, #ffffff, #eef3ff);
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
 .hero-search-field {
     border-radius: 50rem !important;
     padding: 0.75rem 1rem;
@@ -230,216 +247,10 @@ form .form-control-lg:focus {
 .hero-search-btn {
     border-radius: 50rem !important;
     padding: 0.7rem 1.25rem;
-}
-
-.hero-search-form .hero-search-field:focus,
-.hero-search-form .hero-search-btn:focus {
-    box-shadow: 0 0 0 0.125rem rgba(13, 110, 253, 0.12) !important;
-    outline: none !important;
-}
-
-
-/* Carousel / categories */
-.category-carousel .hero-graphic {
-    width: 160px;
-    height: 160px;
-    border-radius: 1rem;
-    display: grid;
-    place-items: center;
-    background: linear-gradient(135deg, rgba(13, 110, 253, 0.06), rgba(71, 145, 255, 0.04));
-}
-
-.category-carousel .carousel-item a {
-    color: inherit;
-}
-
-.category-carousel .carousel-control-prev-icon,
-.category-carousel .carousel-control-next-icon {
-    filter: none;
-}
-
-
-
-/* Hero actions and landing auth button styling */
-.hero-actions .btn {
-    min-width: 150px;
-    border-radius: 0.75rem;
-}
-
-.landing-auth-btn {
-    border-radius: 0.75rem;
-    padding: 0.6rem 1.1rem;
-}
-
-/* Carousel control visibility and contrast */
-.category-carousel .carousel-control-prev-icon,
-.category-carousel .carousel-control-next-icon {
-    background-color: rgba(0, 0, 0, 0.62);
-    border-radius: 50%;
-    width: 2.2rem;
-    height: 2.2rem;
-    background-size: 1.05rem 1.05rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-}
-
-
-
-/* Ensure the 'How RentMate Works' section (uses .bg-white) adapts cleanly to dark theme */
-
-/* How it works step icons */
-.hero-section+section .display-4 {
-    font-size: 2.4rem;
-}
-
-.hero-section+section .bi {
-    opacity: 0.95;
-}
-
-.hero-section+section h5 {
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.hero-section+section p {
-    color: var(--muted-text);
-}
-
-/* site.css */
-
-/* Kategorije hover efekt */
-.category-item {
-    opacity: 0.7;
-    transition: all 0.2s ease;
-    min-width: 80px;
-}
-
-.category-item:hover {
-    opacity: 1;
-    transform: translateY(-3px);
-    color: var(--bs-primary) !important;
-}
-
-/* Airbnb Style Categories */
-.category-link {
-    color: #6c757d;
-    transition: all 0.2s ease;
-    min-width: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.category-link:hover {
-    color: #0d6efd;
-    transform: translateY(-2px);
-}
-
-.icon-circle {
-    width: 50px;
-    height: 50px;
-    background: #fff;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    border: 1px solid #eee;
-}
-
-.category-link:hover .icon-circle {
-    background: #0d6efd;
-    color: #fff;
-    border-color: #0d6efd;
-}
-
-/* Scrollbar hide for categories */
-.category-scroll::-webkit-scrollbar {
-    display: none;
-}
-
-.category-scroll {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-/* Iskalnik focus */
-.search-container:focus-within {
-    border-color: var(--bs-primary) !important;
-    box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
-}
-
-/* Skrij scrollbar pri kategorijah na mobilnikih */
-.category-scroll::-webkit-scrollbar {
-    display: none;
-}
-
-.category-scroll {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-/* Carousel višina */
-.carousel-inner {
-    height: 300px;
-}
-
-
-/* Search container in hero */
-
-
-.category-link:hover .icon-circle {
-    background: var(--primary) !important;
-    color: var(--panel-white-text) !important;
-    border-color: transparent !important;
-}
-
-
-/* Make carousel controls visible across themes */
-.carousel-control-prev-icon,
-.carousel-control-next-icon {
-    background-color: rgba(0, 0, 0, 0.55);
-    border-radius: 50%;
-}
-
-
-
-/* Remove thin white sticky row under navbar in dark mode */
-
-/* Make navbar border softer in dark mode (remove harsh white line) */
-
-/* Ensure section headers using .bg-white.border-top adapt */
-
-/* Make the 'How it works' inner cards (.bg-light) adapt to dark theme */
-
-/* More specific override to counter theme.css .sticky-top.bg-white rule */
-
-/* Ensure the colored icon circles keep contrast in dark mode */
-
-/* CTA join: ensure the card uses site theme colors and buttons follow .btn rules */
-.cta-join {
-    background-color: var(--card-bg) !important;
-    color: var(--text) !important;
-    border: 1px solid var(--border) !important;
-}
-
-.cta-join .text-muted {
-    color: var(--muted-text) !important;
-}
-
-
-.hero-search-input:focus {
-    background: linear-gradient(135deg, #ffffff, #eef3ff);
-    border-color: #80bdff;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-/* premium gradient button */
-.hero-search-btn {
-    background: linear-gradient(135deg, #0d6efd, #4791ff);
+    background: linear-gradient(135deg, var(--primary), #4791ff);
     border: none;
     color: #fff;
-    transition: all 0.3s ease;
+    transition: all var(--transition-normal);
     box-shadow: 0 4px 10px rgba(13, 110, 253, 0.3);
 }
 
@@ -454,17 +265,20 @@ form .form-control-lg:focus {
     box-shadow: 0 3px 8px rgba(13, 110, 253, 0.35);
 }
 
-/* keep smooth spacing & responsive layout */
-.hero-search-form {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 0.75rem;
+.hero-search-form .hero-search-field:focus,
+.hero-search-form .hero-search-btn:focus {
+    box-shadow: 0 0 0 0.125rem rgba(13, 110, 253, 0.12) !important;
+    outline: none !important;
 }
 
-.hero-search-form input,
-.hero-search-form button {
-    border-radius: 50rem !important;
+.hero-actions .btn {
+    min-width: 150px;
+    border-radius: 0.75rem;
+}
+
+.landing-auth-btn {
+    border-radius: 0.75rem;
+    padding: 0.6rem 1.1rem;
 }
 
 @media (max-width: 576px) {
@@ -480,21 +294,111 @@ form .form-control-lg:focus {
     }
 }
 
-/* PRISILNO skrij placeholder tekst, če polje ni v fokusu */
+/* ==========================================
+   Carousel Styles
+   ========================================== */
+.carousel-inner {
+    height: 300px;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: rgba(0, 0, 0, 0.55);
+    border-radius: 50%;
+    width: 2.2rem;
+    height: 2.2rem;
+    background-size: 1.05rem 1.05rem;
+    box-shadow: var(--shadow-md);
+}
+
+.category-carousel .hero-graphic {
+    width: 160px;
+    height: 160px;
+    border-radius: 1rem;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.06), rgba(71, 145, 255, 0.04));
+}
+
+.category-carousel .carousel-item a {
+    color: inherit;
+}
+
+/* ==========================================
+   Form Styles
+   ========================================== */
+.input-group-lg .form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+form .form-control-lg {
+    min-width: 250px;
+    transition: box-shadow 0.25s ease;
+}
+
+form .form-control-lg:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Floating labels - hide placeholder when not focused */
 .form-floating input.form-control::placeholder {
     color: transparent !important;
     opacity: 0 !important;
 }
 
-/* Pokaži placeholder tekst SAMO, ko uporabnik klikne v polje (fokus) */
 .form-floating input.form-control:focus::placeholder {
     color: #a0a0a0 !important;
     opacity: 1 !important;
 }
 
-/* Popravek za Auto-fill (ko Chrome sam izpolni geslo in ga obarva rumeno) */
-.form-floating input:-webkit-autofill+label,
-.form-floating input:-webkit-autofill:focus+label {
+/* Autofill fix for floating labels */
+.form-floating input:-webkit-autofill + label,
+.form-floating input:-webkit-autofill:focus + label {
     transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
     opacity: 0.65;
+}
+
+@media (max-width: 576px) {
+    form.d-flex.gap-2 {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    form.d-flex.gap-2 .form-control-lg,
+    form.d-flex.gap-2 .btn-lg {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+/* ==========================================
+   Utility Classes
+   ========================================== */
+.card.h-100 {
+    border-radius: 0.85rem;
+}
+
+/* Filter layout tweaks */
+@media (min-width: 992px) {
+    .col-lg-1-5 {
+        flex: 0 0 12%;
+        max-width: 12%;
+    }
+}
+
+/* Search container focus */
+.search-container:focus-within {
+    border-color: var(--primary) !important;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+/* CTA section theming */
+.cta-join {
+    background-color: var(--card-bg, #fff) !important;
+    color: var(--text, #1e293b) !important;
+    border: 1px solid var(--border, #e2e8f0) !important;
+}
+
+.cta-join .text-muted {
+    color: var(--muted-text, #64748b) !important;
 }

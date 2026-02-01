@@ -1,0 +1,67 @@
+@*
+    Image Upload Partial View - Consistent image upload with preview
+    
+    Usage: @await Html.PartialAsync("_ImageUpload", new { 
+        CurrentImageUrl = Model.ImageUrl,
+        PreviewId = "imgPreview",
+        Label = "Item Photo"
+    })
+*@
+
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var currentImageUrl = (string?)(Model?.CurrentImageUrl ?? ViewData["CurrentImageUrl"]);
+    var previewId = (string)(Model?.PreviewId ?? ViewData["PreviewId"] ?? "imgPreview");
+    var label = (string)(Model?.Label ?? ViewData["Label"] ?? "Photo");
+    var inputName = (string)(Model?.InputName ?? ViewData["InputName"] ?? "image");
+    var placeholderUrl = "https://via.placeholder.com/200x200?text=No+Image";
+    var displayUrl = string.IsNullOrEmpty(currentImageUrl) ? placeholderUrl : currentImageUrl;
+}
+
+<div class="bg-white rounded-2xl border border-slate-200 p-6">
+    <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer[label]</h2>
+    
+    <div class="flex flex-col md:flex-row gap-6">
+        <!-- Preview -->
+        <div class="shrink-0">
+            <img id="@previewId" src="@displayUrl" 
+                 class="w-48 h-48 rounded-xl object-cover border-2 border-dashed border-slate-300" 
+                 alt="@Localizer["Image preview"]" />
+        </div>
+        
+        <!-- Upload Buttons -->
+        <div class="flex-1 space-y-4">
+            <p class="text-sm text-slate-500">@Localizer["Upload a clear photo. Good photos help build trust."]</p>
+            
+            <div class="flex flex-wrap gap-3">
+                <label class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl cursor-pointer transition-colors">
+                    <i class="bi bi-camera"></i>
+                    @Localizer["Take Photo"]
+                    <input type="file" name="@inputName" class="hidden" accept="image/*" capture="environment" onchange="previewImage(this, '@previewId')" />
+                </label>
+                <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium rounded-xl cursor-pointer transition-colors">
+                    <i class="bi bi-image"></i>
+                    @Localizer["Choose File"]
+                    <input type="file" name="@inputName" class="hidden" accept="image/*" onchange="previewImage(this, '@previewId')" />
+                </label>
+            </div>
+            
+            <p class="text-xs text-slate-400">@Localizer["Supported formats: JPG, PNG, WebP. Max 10MB."]</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId || 'imgPreview');
+    if (input.files && input.files[0] && preview) {
+        const reader = new FileReader();
+        reader.onload = e => preview.src = e.target.result;
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+}

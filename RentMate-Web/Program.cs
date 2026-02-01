@@ -15,28 +15,25 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Microsoft.Extensions.Localization;
+using RentMate.Middleware;
 using RentMate.Resources;
 
 
-// Čiščenje mapiranja claimov, da dobimo čiste "sub", "role" itd.
+// Clear default claim type mappings to use standard "sub", "role" etc.
 System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ==========================================
-// 1. KONFIGURACIJA STORITEV (SERVICES)
+// 1. SERVICE CONFIGURATION
 // ==========================================
 
-// --- Baza podatkov ---
+// --- Database Configuration ---
 
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrEmpty(connectionString))
-{
-    // To pomaga pri debugiranju migracij
-    throw new InvalidOperationException("Connection string 'AzureContext' not found.");
-}
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found in configuration.");
 
 builder.Services.AddDbContext<RentMateContext>(options =>
     options.UseNpgsql(connectionString, sqlOptions => 
@@ -48,7 +45,7 @@ builder.Services.AddDbContext<RentMateContext>(options =>
             errorCodesToAdd: null);
     }));
 
-// --- Identity (Uporabniki in Role) ---
+// --- Identity (Users and Roles) ---
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => 
     {
         options.SignIn.RequireConfirmedAccount = false;
@@ -73,7 +70,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     .AddEntityFrameworkStores<RentMateContext>()
     .AddDefaultTokenProviders();
 
-// Nastavitve piškotkov (za Razor Pages / MVC login)
+// Cookie settings for Razor Pages / MVC login
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.AccessDeniedPath = "/AccessDenied";
@@ -90,9 +87,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.Name = "RentMate.Auth";
 });
 
-// --- JWT Avtentikacija (za API) ---
+// --- JWT Authentication (for API) ---
 var jwtSection = builder.Configuration.GetSection("Jwt");
-var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key is missing in configuration.");
+var jwtKey = jwtSection["Key"] 
+    ?? throw new InvalidOperationException("JWT Key is missing in configuration.");
 var issuer = jwtSection["Issuer"];
 var audience = jwtSection["Audience"];
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
@@ -113,7 +111,7 @@ builder.Services.AddAuthentication()
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1), // Allow 1 minute tolerance for clock differences
             
-            // Mapiranje claimov
+            // Claim type mapping
             RoleClaimType = ClaimTypes.Role,
             NameClaimType = ClaimTypes.NameIdentifier
         };
@@ -130,14 +128,14 @@ builder.Services.AddAuthentication()
         };
     });
 
-// --- Lokalizacija ---
+// --- Localization ---
 builder.Services.AddMemoryCache();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
 // Register custom JSON localizer factory
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
 
-// --- MVC, Kontrolerji in SignalR ---
+// --- MVC, Controllers, and SignalR ---
 builder.Services.AddControllersWithViews()
     .AddViewLocalization()
     .AddDataAnnotationsLocalization(options =>
@@ -145,8 +143,8 @@ builder.Services.AddControllersWithViews()
         options.DataAnnotationLocalizerProvider = (type, factory) =>
             factory.Create(typeof(ValidationMessages));
     })
-    .AddJsonOptions(x =>
-        x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles); // Prepreči krožne reference
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
@@ -238,10 +236,10 @@ builder.Services.AddCors(options => {
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    // Rešitev za podvojena imena razredov
+    // Fix for duplicate class names
     options.CustomSchemaIds(type => type.FullName);
 
-    // Konfiguracija za JWT avtentikacijo v Swagger UI
+    // JWT authentication configuration for Swagger UI
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -268,12 +266,13 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// --- Lastne storitve ---
+// --- Custom Services ---
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<CurrencyService>();
+builder.Services.AddScoped<ICurrencyService, CurrencyService>();
 builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
 builder.Services.AddScoped<IReviewAggregationService, ReviewAggregationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<ICalendarService, CalendarService>();
 
 // ==========================================
 // 2. BUILD APP
@@ -284,19 +283,19 @@ var app = builder.Build();
 // 3. MIDDLEWARE PIPELINE
 // ==========================================
 
-// Seeding podatkov (Admin role itd.)
-
+// Database seeding (Admin roles, etc.)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try 
     {
         var context = services.GetRequiredService<RentMateContext>();
+        
         if (context.Database.GetPendingMigrations().Any())
         {
             await context.Database.MigrateAsync();
         }
-        // Dodan try-catch za varnost pri zagonu
+        
         await DataSeeder.SeedRolesAndAdminAsync(services);
     }
     catch (Exception ex)
@@ -306,12 +305,11 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-
-// Lokalizacija (Mora biti pred Routing in Auth)
+// Localization (must be before Routing and Auth)
 var supportedCultures = new[] { new CultureInfo("sl"), new CultureInfo("en") };
 var localizationOptions = new RequestLocalizationOptions
 {
-    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture("sl"), // Slovenščina kot privzeta
+    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture("sl"), // Slovenian as default
     SupportedCultures = supportedCultures,
     SupportedUICultures = supportedCultures
 };
@@ -335,44 +333,8 @@ else
     app.UseCors("SecurePolicy");
 }
 
-// Security Headers Middleware
-app.Use(async (context, next) =>
-{
-    // Remove server identification headers
-    context.Response.Headers.Remove("Server");
-    context.Response.Headers.Remove("X-Powered-By");
-    context.Response.Headers.Remove("X-AspNet-Version");
-    
-    // Prevent clickjacking
-    context.Response.Headers.Append("X-Frame-Options", "DENY");
-    
-    // Prevent MIME type sniffing
-    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-    
-    // Enable XSS filtering
-    context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
-    
-    // Referrer Policy
-    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
-    
-    // Content Security Policy (adjust as needed for your CDN/external resources)
-    context.Response.Headers.Append("Content-Security-Policy", 
-        "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
-        "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
-        "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; " +
-        "img-src 'self' data: https: blob:; " +
-        "connect-src 'self' https: wss:; " +
-        "frame-ancestors 'none';");
-    
-    // Permissions Policy (GDPR compliant - browser will prompt user for consent)
-    // camera=(self) - Allow camera for taking item photos (requires user consent)
-    // geolocation=(self) - Allow location for pickup location (requires user consent)
-    context.Response.Headers.Append("Permissions-Policy", 
-        "accelerometer=(), camera=(self), geolocation=(self), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()");
-    
-    await next();
-});
+// Security Headers
+app.UseSecurityHeaders();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
@@ -387,7 +349,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Mapiranje poti
+// Route mapping
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

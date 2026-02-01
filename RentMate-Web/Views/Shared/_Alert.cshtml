@@ -1,0 +1,38 @@
+@*
+    Alert Partial View - Displays TempData alerts (success, error, warning, info)
+    
+    Usage: @await Html.PartialAsync("_Alert")
+    
+    Automatically displays alerts from TempData:
+    - TempData["SuccessMessage"] - Green success alert
+    - TempData["ErrorMessage"] - Red error alert
+    - TempData["WarningMessage"] - Amber warning alert
+    - TempData["InfoMessage"] - Blue info alert
+*@
+
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var alerts = new (string Key, string BgColor, string BorderColor, string TextColor, string Icon)[]
+    {
+        ("SuccessMessage", "bg-green-50", "border-green-200", "text-green-800", "bi-check-circle-fill text-green-600"),
+        ("ErrorMessage", "bg-red-50", "border-red-200", "text-red-800", "bi-exclamation-triangle-fill text-red-600"),
+        ("WarningMessage", "bg-amber-50", "border-amber-200", "text-amber-800", "bi-exclamation-circle-fill text-amber-600"),
+        ("InfoMessage", "bg-blue-50", "border-blue-200", "text-blue-800", "bi-info-circle-fill text-blue-600")
+    };
+}
+
+@foreach (var (key, bgColor, borderColor, textColor, icon) in alerts)
+{
+    if (TempData[key] != null)
+    {
+        <div class="mb-6 p-4 @bgColor border @borderColor rounded-xl flex items-center gap-3" role="alert">
+            <i class="bi @icon text-xl flex-shrink-0"></i>
+            <span class="@textColor flex-1">@TempData[key]</span>
+            <button type="button" class="ml-auto @textColor hover:opacity-70 transition-opacity" onclick="this.parentElement.remove()" aria-label="@Localizer["Close"]">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    }
+}

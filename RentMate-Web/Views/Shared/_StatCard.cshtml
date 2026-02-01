@@ -1,0 +1,56 @@
+@*
+    Stat Card Partial View
+    
+    Usage: @await Html.PartialAsync("_StatCard", new { 
+        Icon = "bi-people", 
+        IconColor = "blue", 
+        Value = 42, 
+        Label = "Users",
+        Link = "/Users",
+        LinkText = "Manage"
+    })
+    
+    IconColor options: blue, green, purple, amber, red, slate
+*@
+
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var icon = (string)(Model?.Icon ?? ViewData["Icon"] ?? "bi-info-circle");
+    var iconColor = (string)(Model?.IconColor ?? ViewData["IconColor"] ?? "blue");
+    var value = Model?.Value ?? ViewData["Value"] ?? 0;
+    var label = (string)(Model?.Label ?? ViewData["Label"] ?? "");
+    var link = (string?)(Model?.Link ?? ViewData["Link"]);
+    var linkText = (string?)(Model?.LinkText ?? ViewData["LinkText"]);
+    
+    // Icon background and text color
+    var (bgColor, textColor) = iconColor.ToLower() switch
+    {
+        "blue" => ("bg-blue-100", "text-blue-600"),
+        "green" => ("bg-green-100", "text-green-600"),
+        "purple" => ("bg-purple-100", "text-purple-600"),
+        "amber" => ("bg-amber-100", "text-amber-600"),
+        "red" => ("bg-red-100", "text-red-500"),
+        "slate" => ("bg-slate-100", "text-slate-600"),
+        _ => ("bg-blue-100", "text-blue-600")
+    };
+}
+
+<div class="bg-white rounded-2xl border border-slate-200 p-5">
+    <div class="flex items-center gap-3">
+        <div class="w-12 h-12 @bgColor rounded-xl flex items-center justify-center">
+            <i class="bi @icon @textColor text-xl"></i>
+        </div>
+        <div>
+            <p class="text-2xl font-bold text-slate-900">@value</p>
+            <p class="text-sm text-slate-500">@Localizer[label]</p>
+        </div>
+    </div>
+    @if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(linkText))
+    {
+        <a href="@link" class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
+            @Localizer[linkText] <i class="bi bi-arrow-right"></i>
+        </a>
+    }
+</div>

@@ -2,89 +2,96 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using RentMate.Models;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {
-    public class TwoFactorAuthenticationModel : PageModel
+    /// <summary>
+    /// Page model for managing two-factor authentication settings.
+    /// </summary>
+    public class TwoFactorAuthenticationModel : BaseIdentityPageModel
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
+        #region Constants
+
+        private const string BrowserForgottenMessage = "The current browser has been forgotten. When you login again from this browser you will be prompted for your 2fa code.";
+
+        #endregion
+
+        #region Dependencies
+
         private readonly ILogger<TwoFactorAuthenticationModel> _logger;
 
+        #endregion
+
+        #region Constructor
+
         public TwoFactorAuthenticationModel(
-            UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ILogger<TwoFactorAuthenticationModel> logger)
+            UserManager<ApplicationUser> userManager, 
+            SignInManager<ApplicationUser> signInManager, 
+            ILogger<TwoFactorAuthenticationModel> logger)
+            : base(userManager, signInManager)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
             _logger = logger;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        #endregion
+
+        #region Properties
+
+        /// <summary>Whether user has set up an authenticator app.</summary>
         public bool HasAuthenticator { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        /// <summary>Number of remaining recovery codes.</summary>
         public int RecoveryCodesLeft { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        /// <summary>Whether 2FA is currently enabled.</summary>
         [BindProperty]
         public bool Is2faEnabled { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        /// <summary>Whether this browser is remembered for 2FA.</summary>
         public bool IsMachineRemembered { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [TempData]
-        public string StatusMessage { get; set; }
+        #endregion
+
+        #region Page Handlers
 
         public async Task<IActionResult> OnGetAsync()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            if (errorResult != null) return errorResult;
 
-            HasAuthenticator = await _userManager.GetAuthenticatorKeyAsync(user) != null;
-            Is2faEnabled = await _userManager.GetTwoFactorEnabledAsync(user);
-            IsMachineRemembered = await _signInManager.IsTwoFactorClientRememberedAsync(user);
-            RecoveryCodesLeft = await _userManager.CountRecoveryCodesAsync(user);
-
+            await Load2faStatusAsync(user);
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            if (errorResult != null) return errorResult;
 
-            await _signInManager.ForgetTwoFactorClientAsync();
-            StatusMessage = "The current browser has been forgotten. When you login again from this browser you will be prompted for your 2fa code.";
+            await SignInManager.ForgetTwoFactorClientAsync();
+            SetSuccessMessage(BrowserForgottenMessage);
             return RedirectToPage();
         }
+
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Loads all 2FA status information for display.
+        /// </summary>
+        private async Task Load2faStatusAsync(ApplicationUser user)
+        {
+            HasAuthenticator = await UserManager.GetAuthenticatorKeyAsync(user) != null;
+            Is2faEnabled = await UserManager.GetTwoFactorEnabledAsync(user);
+            IsMachineRemembered = await SignInManager.IsTwoFactorClientRememberedAsync(user);
+            RecoveryCodesLeft = await UserManager.CountRecoveryCodesAsync(user);
+        }
+
+        #endregion
     }
 }

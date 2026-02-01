@@ -1,41 +1,44 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using RentMate.Data;
 using Microsoft.AspNetCore.Authorization;
-using RentMate.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Localization;
+using RentMate.Data;
+using RentMate.Models;
 using RentMate.Hubs;
 using RentMate.Services;
 using RentMate.Helpers;
-using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
+    /// <summary>
+    /// Controller for managing item CRUD operations and listings.
+    /// </summary>
     public class ItemsController : Controller
     {
         private readonly RentMateContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<RentMateHub> _hubContext;
-        private readonly IFileUploadService _fileService;
+        private readonly IFileUploadService _fileUploadService;
         private readonly IStringLocalizer<ItemsController> _localizer;
+
+        private const string ItemsFolder = "items";
+        private const string DashboardAction = "UserDashboard";
+        private const string DashboardController = "Dashboard";
 
         public ItemsController(
             RentMateContext context, 
             UserManager<ApplicationUser> userManager, 
             IHubContext<RentMateHub> hubContext, 
-            IFileUploadService fileService,
+            IFileUploadService fileUploadService,
             IStringLocalizer<ItemsController> localizer)
         {
             _context = context;
             _userManager = userManager;
             _hubContext = hubContext;
-            _fileService = fileService;
+            _fileUploadService = fileUploadService;
             _localizer = localizer;
         }
 
@@ -46,29 +49,49 @@ namespace RentMate.Controllers
             return View(await rentMateContext.ToListAsync());
         }
 
-        // GET: Items/Details/5
+        /// <summary>
+        /// Displays detailed information about a specific item.
+        /// </summary>
         [AllowAnonymous]
+        [HttpGet("Items/Details/{id}")]
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null) return NotFound();
+            if (id == null)
+            {
+                return NotFound();
+            }
 
-            var item = await _context.Items
-                .Include(i => i.User) // Owner
-                .Include(i => i.Reviews.Where(r => !r.IsDeleted)) // Reviews
-                    .ThenInclude(r => r.Reviewer) // Who wrote the review
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var currentUserId = _userManager.GetUserId(User);
 
-            if (item == null) return NotFound();
+            var item = await LoadItemWithDetailsAsync(id.Value, currentUserId);
+            if (item == null)
+            {
+                return NotFound();
+            }
 
-            // 1. Get coordinates based on the owner's city
-            var cityInfo = CityData.GetCoordinates(item.User?.City);
-
-            // 2. Send data to View
-            ViewBag.MapLat = cityInfo.Lat;
-            ViewBag.MapLng = cityInfo.Lng;
-            ViewBag.MapCityName = cityInfo.Name;
+            SetMapViewData(item.User?.City, currentUserId);
 
             return View(item);
+        }
+
+        private async Task<Item?> LoadItemWithDetailsAsync(int itemId, string? currentUserId)
+        {
+            return await _context.Items
+                .Include(i => i.User)
+                .Include(i => i.Reviews.Where(r => !r.IsDeleted))
+                    .ThenInclude(r => r.Reviewer)
+                .Include(i => i.FavoritedBy.Where(f => f.AccountId == currentUserId))
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(m => m.Id == itemId);
+        }
+
+        private void SetMapViewData(string? ownerCity, string? currentUserId)
+        {
+            var cityCoordinates = CityData.GetCoordinates(ownerCity);
+            ViewBag.MapLat = cityCoordinates.Lat;
+            ViewBag.MapLng = cityCoordinates.Lng;
+            ViewBag.MapCityName = cityCoordinates.Name;
+            ViewBag.CurrentUserId = currentUserId;
         }
 
         // GET: Items/Create
@@ -78,39 +101,47 @@ namespace RentMate.Controllers
             return View();
         }
 
-        // POST: Items/Create
+        /// <summary>
+        /// Creates a new item listing.
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
         public async Task<IActionResult> Create([Bind("Title,Description,Price,Category")] Item item, IFormFile? image)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-                return Unauthorized();
-
-            if (ModelState.IsValid)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
             {
-                // Assign ownership and safe defaults
-                if (image != null)
-                {
-                    // Use the "items" folder on Cloudinary
-                    item.ImageUrl = await _fileService.UploadFileAsync(image, "items");
-                }
-                item.UserId = user.Id;
-                item.IsListed = false;    // start unlisted
-                item.IsRented = false;    // not rented yet
-                item.CreatedAt = DateTime.UtcNow;
-                item.UpdatedAt = DateTime.UtcNow;
-
-                _context.Add(item);
-                await _context.SaveChangesAsync();
-
-                TempData["SuccessMessage"] = string.Format(_localizer["Item '{0}' created successfully!"], item.Title);
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return Unauthorized();
             }
 
-            TempData["ErrorMessage"] = _localizer["Failed to create item. Please try again."].Value;
-            return RedirectToAction("UserDashboard", "Dashboard");
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = _localizer["Failed to create item. Please try again."].Value;
+                return RedirectToAction(DashboardAction, DashboardController);
+            }
+
+            await InitializeNewItemAsync(item, currentUser.Id, image);
+
+            _context.Add(item);
+            await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = string.Format(_localizer["Item '{0}' created successfully!"], item.Title);
+            return RedirectToAction(DashboardAction, DashboardController);
+        }
+
+        private async Task InitializeNewItemAsync(Item item, string ownerId, IFormFile? image)
+        {
+            if (image != null)
+            {
+                item.ImageUrl = await _fileUploadService.UploadFileAsync(image, ItemsFolder);
+            }
+
+            item.UserId = ownerId;
+            item.IsListed = false;
+            item.IsRented = false;
+            item.CreatedAt = DateTime.UtcNow;
+            item.UpdatedAt = DateTime.UtcNow;
         }
 
         // GET: Items/Edit/5
@@ -125,52 +156,67 @@ namespace RentMate.Controllers
             return View(item);
         }
 
-        // POST: Items/Edit/5
+        /// <summary>
+        /// Updates an existing item.
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl")] Item item, IFormFile? image)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl")] Item updatedItem, IFormFile? image)
         {
-            if (id != item.Id) return NotFound();
+            if (id != updatedItem.Id)
+            {
+                return NotFound();
+            }
 
             var existingItem = await _context.Items.FindAsync(id);
-            if (existingItem == null) return NotFound();
-            
-            var user = await _userManager.GetUserAsync(User);
-            if (existingItem.UserId != user.Id) return Forbid();
-
-            if (ModelState.IsValid)
+            if (existingItem == null)
             {
-                try
-                {
-                    // Update fields
-                    existingItem.Title = item.Title;
-                    existingItem.Description = item.Description;
-                    existingItem.Price = item.Price;
-                    existingItem.Category = item.Category;
-                    existingItem.UpdatedAt = DateTime.UtcNow;
-
-                    // Image replacement logic
-                    if (image != null)
-                    {
-                        // Delete old image if it exists
-                        if (!string.IsNullOrEmpty(existingItem.ImageUrl))
-                        {
-                            _fileService.DeleteFile(existingItem.ImageUrl);
-                        }
-                        // Upload new
-                        existingItem.ImageUrl = await _fileService.UploadFileAsync(image, "items");
-                    }
-
-                    _context.Update(existingItem);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    throw;
-                }
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return NotFound();
             }
-            return View(item);
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!IsAuthorizedToModify(currentUser, existingItem))
+            {
+                return Forbid();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(updatedItem);
+            }
+
+            await UpdateItemPropertiesAsync(existingItem, updatedItem, image);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(DashboardAction, DashboardController);
+        }
+
+        private bool IsAuthorizedToModify(ApplicationUser? user, Item item)
+        {
+            return user != null && item.UserId == user.Id;
+        }
+
+        private async Task UpdateItemPropertiesAsync(Item existingItem, Item updatedItem, IFormFile? newImage)
+        {
+            existingItem.Title = updatedItem.Title;
+            existingItem.Description = updatedItem.Description;
+            existingItem.Price = updatedItem.Price;
+            existingItem.Category = updatedItem.Category;
+            existingItem.UpdatedAt = DateTime.UtcNow;
+
+            if (newImage != null)
+            {
+                await ReplaceItemImageAsync(existingItem, newImage);
+            }
+        }
+
+        private async Task ReplaceItemImageAsync(Item item, IFormFile newImage)
+        {
+            if (!string.IsNullOrEmpty(item.ImageUrl))
+            {
+                _fileUploadService.DeleteFile(item.ImageUrl);
+            }
+            item.ImageUrl = await _fileUploadService.UploadFileAsync(newImage, ItemsFolder);
         }
 
         // GET: Items/Delete/5
@@ -187,47 +233,61 @@ namespace RentMate.Controllers
             return View(item);
         }
 
-        // POST: Items/Delete/5
+        /// <summary>
+        /// Deletes an item after confirmation.
+        /// </summary>
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var item = await _context.Items.FindAsync(id);
-            var user = await _userManager.GetUserAsync(User);
-            
-            if (item != null && item.UserId == user.Id)
-            {
-                // Delete image from Cloudinary
-                if (!string.IsNullOrEmpty(item.ImageUrl))
-                {
-                    _fileService.DeleteFile(item.ImageUrl);
-                }
+            var currentUser = await _userManager.GetUserAsync(User);
 
+            if (item != null && IsAuthorizedToModify(currentUser, item))
+            {
+                DeleteItemImage(item);
                 _context.Items.Remove(item);
                 await _context.SaveChangesAsync();
             }
-            return RedirectToAction("UserDashboard", "Dashboard");
+
+            return RedirectToAction(DashboardAction, DashboardController);
         }
 
-        private bool ItemExists(int id)
+        private void DeleteItemImage(Item item)
         {
-            return _context.Items.Any(e => e.Id == id);
+            if (!string.IsNullOrEmpty(item.ImageUrl))
+            {
+                _fileUploadService.DeleteFile(item.ImageUrl);
+            }
         }
 
+        /// <summary>
+        /// Toggles the listing status of an item.
+        /// </summary>
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleListing(int id)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var currentUser = await _userManager.GetUserAsync(User);
             var item = await _context.Items.FindAsync(id);
-            if (item == null || item.UserId != user.Id) return Unauthorized();
 
-            item.IsListed = !item.IsListed;
+            if (!IsAuthorizedToModify(currentUser, item!))
+            {
+                return Unauthorized();
+            }
+
+            item!.IsListed = !item.IsListed;
             item.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            // Broadcast real-time update
+            await BroadcastListingChangeAsync(item);
+
+            return Json(new { success = true, isListed = item.IsListed });
+        }
+
+        private async Task BroadcastListingChangeAsync(Item item)
+        {
             await _hubContext.Clients.All.SendAsync("ItemListingChanged", new
             {
                 itemId = item.Id,
@@ -236,10 +296,11 @@ namespace RentMate.Controllers
                 price = item.Price,
                 description = item.Description
             });
-            
-            return Json(new { success = true, isListed = item.IsListed });
         }
 
+        /// <summary>
+        /// Loads the reviews partial view for an item.
+        /// </summary>
         [HttpGet("LoadReviewsPartial/{itemId}")]
         public async Task<IActionResult> LoadReviewsPartial(int itemId)
         {
@@ -249,20 +310,29 @@ namespace RentMate.Controllers
                 .FirstOrDefaultAsync(i => i.Id == itemId);
 
             if (item == null)
+            {
                 return NotFound();
+            }
 
-            // Sort newest first
-            var reviews = item.Reviews.OrderByDescending(r => r.CreatedAt).ToList();
+            var sortedReviews = item.Reviews
+                .OrderByDescending(r => r.CreatedAt)
+                .ToList();
 
-            return PartialView("~/Views/Shared/_ReviewsPartial.cshtml", reviews);
+            return PartialView("~/Views/Shared/_ReviewsPartial.cshtml", sortedReviews);
         }
 
+        /// <summary>
+        /// Toggles the admin-hidden status of an item. Admin only.
+        /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminToggleHide(int id)
         {
             var item = await _context.Items.FindAsync(id);
-            if (item == null) return NotFound();
+            if (item == null)
+            {
+                return NotFound();
+            }
 
             item.IsAdminHidden = !item.IsAdminHidden;
             await _context.SaveChangesAsync();

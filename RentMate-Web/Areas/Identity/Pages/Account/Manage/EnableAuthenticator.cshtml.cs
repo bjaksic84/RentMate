@@ -2,172 +2,201 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using RentMate.Models;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {
-    public class EnableAuthenticatorModel : PageModel
+    /// <summary>
+    /// Page model for enabling authenticator app-based 2FA.
+    /// </summary>
+    public class EnableAuthenticatorModel : BaseIdentityPageModel
     {
-        private readonly UserManager<ApplicationUser> _userManager;
+        #region Constants
+
+        private const int MinCodeLength = 6;
+        private const int MaxCodeLength = 7;
+        private const int KeyGroupSize = 4;
+        private const int RecoveryCodeCount = 10;
+        private const string AuthenticatorUriFormat = "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6";
+        private const string AuthenticatorIssuer = "Microsoft.AspNetCore.Identity.UI";
+        private const string InvalidCodeError = "Verification code is invalid.";
+        private const string AuthenticatorVerifiedMessage = "Your authenticator app has been verified.";
+
+        #endregion
+
+        #region Dependencies
+
         private readonly ILogger<EnableAuthenticatorModel> _logger;
         private readonly UrlEncoder _urlEncoder;
 
-        private const string AuthenticatorUriFormat = "otpauth://totp/{0}:{1}?secret={2}&issuer={0}&digits=6";
+        #endregion
+
+        #region Constructor
 
         public EnableAuthenticatorModel(
             UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             ILogger<EnableAuthenticatorModel> logger,
             UrlEncoder urlEncoder)
+            : base(userManager, signInManager)
         {
-            _userManager = userManager;
             _logger = logger;
             _urlEncoder = urlEncoder;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        #endregion
+
+        #region Properties
+
+        /// <summary>Formatted shared key for manual entry.</summary>
         public string SharedKey { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        /// <summary>URI for QR code generation.</summary>
         public string AuthenticatorUri { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        /// <summary>Generated recovery codes (passed via TempData).</summary>
         [TempData]
         public string[] RecoveryCodes { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        [TempData]
-        public string StatusMessage { get; set; }
-
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [BindProperty]
         public InputModel Input { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
+        #endregion
+
+        #region Input Model
+
         public class InputModel
         {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
             [Required]
-            [StringLength(7, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+            [StringLength(MaxCodeLength, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = MinCodeLength)]
             [DataType(DataType.Text)]
             [Display(Name = "Verification Code")]
             public string Code { get; set; }
         }
 
+        #endregion
+
+        #region Page Handlers
+
         public async Task<IActionResult> OnGetAsync()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            if (errorResult != null) return errorResult;
 
             await LoadSharedKeyAndQrCodeUriAsync(user);
-
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            if (errorResult != null) return errorResult;
 
-            if (!ModelState.IsValid)
+            if (IsModelStateInvalid())
             {
                 await LoadSharedKeyAndQrCodeUriAsync(user);
                 return Page();
             }
 
-            // Strip spaces and hyphens
-            var verificationCode = Input.Code.Replace(" ", string.Empty).Replace("-", string.Empty);
-
-            var is2faTokenValid = await _userManager.VerifyTwoFactorTokenAsync(
-                user, _userManager.Options.Tokens.AuthenticatorTokenProvider, verificationCode);
-
-            if (!is2faTokenValid)
+            if (!await ValidateVerificationCodeAsync(user))
             {
-                ModelState.AddModelError("Input.Code", "Verification code is invalid.");
                 await LoadSharedKeyAndQrCodeUriAsync(user);
                 return Page();
             }
 
-            await _userManager.SetTwoFactorEnabledAsync(user, true);
-            var userId = await _userManager.GetUserIdAsync(user);
-            _logger.LogInformation("User with ID '{UserId}' has enabled 2FA with an authenticator app.", userId);
-
-            StatusMessage = "Your authenticator app has been verified.";
-
-            if (await _userManager.CountRecoveryCodesAsync(user) == 0)
-            {
-                var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 10);
-                RecoveryCodes = recoveryCodes.ToArray();
-                return RedirectToPage("./ShowRecoveryCodes");
-            }
-            else
-            {
-                return RedirectToPage("./TwoFactorAuthentication");
-            }
+            return await EnableTwoFactorAndRedirectAsync(user);
         }
 
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Loads the authenticator key and generates QR code URI.
+        /// </summary>
         private async Task LoadSharedKeyAndQrCodeUriAsync(ApplicationUser user)
         {
-            // Load the authenticator key & QR code URI to display on the form
-            var unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+            var unformattedKey = await UserManager.GetAuthenticatorKeyAsync(user);
             if (string.IsNullOrEmpty(unformattedKey))
             {
-                await _userManager.ResetAuthenticatorKeyAsync(user);
-                unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+                await UserManager.ResetAuthenticatorKeyAsync(user);
+                unformattedKey = await UserManager.GetAuthenticatorKeyAsync(user);
             }
 
             SharedKey = FormatKey(unformattedKey);
 
-            var email = await _userManager.GetEmailAsync(user);
+            var email = await UserManager.GetEmailAsync(user);
             AuthenticatorUri = GenerateQrCodeUri(email, unformattedKey);
         }
 
-        private string FormatKey(string unformattedKey)
+        /// <summary>
+        /// Validates the user-entered verification code.
+        /// </summary>
+        private async Task<bool> ValidateVerificationCodeAsync(ApplicationUser user)
+        {
+            var verificationCode = NormalizeVerificationCode(Input.Code);
+            var tokenProvider = UserManager.Options.Tokens.AuthenticatorTokenProvider;
+            
+            var isValid = await UserManager.VerifyTwoFactorTokenAsync(user, tokenProvider, verificationCode);
+            if (!isValid)
+            {
+                ModelState.AddModelError("Input.Code", InvalidCodeError);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Enables 2FA and redirects appropriately based on recovery code status.
+        /// </summary>
+        private async Task<IActionResult> EnableTwoFactorAndRedirectAsync(ApplicationUser user)
+        {
+            await UserManager.SetTwoFactorEnabledAsync(user, true);
+            var userId = await UserManager.GetUserIdAsync(user);
+            _logger.LogInformation("User with ID '{UserId}' has enabled 2FA with an authenticator app.", userId);
+
+            SetSuccessMessage(AuthenticatorVerifiedMessage);
+
+            if (await UserManager.CountRecoveryCodesAsync(user) == 0)
+            {
+                var recoveryCodes = await UserManager.GenerateNewTwoFactorRecoveryCodesAsync(user, RecoveryCodeCount);
+                RecoveryCodes = recoveryCodes.ToArray();
+                return RedirectToPage("./ShowRecoveryCodes");
+            }
+
+            return RedirectToPage("./TwoFactorAuthentication");
+        }
+
+        /// <summary>
+        /// Removes spaces and hyphens from verification code.
+        /// </summary>
+        private static string NormalizeVerificationCode(string code)
+        {
+            return code.Replace(" ", string.Empty).Replace("-", string.Empty);
+        }
+
+        /// <summary>
+        /// Formats the authenticator key for display (groups of 4 characters).
+        /// </summary>
+        private static string FormatKey(string unformattedKey)
         {
             var result = new StringBuilder();
             int currentPosition = 0;
-            while (currentPosition + 4 < unformattedKey.Length)
+            
+            while (currentPosition + KeyGroupSize < unformattedKey.Length)
             {
-                result.Append(unformattedKey.AsSpan(currentPosition, 4)).Append(' ');
-                currentPosition += 4;
+                result.Append(unformattedKey.AsSpan(currentPosition, KeyGroupSize)).Append(' ');
+                currentPosition += KeyGroupSize;
             }
+            
             if (currentPosition < unformattedKey.Length)
             {
                 result.Append(unformattedKey.AsSpan(currentPosition));
@@ -176,14 +205,19 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             return result.ToString().ToLowerInvariant();
         }
 
+        /// <summary>
+        /// Generates the URI for QR code generation.
+        /// </summary>
         private string GenerateQrCodeUri(string email, string unformattedKey)
         {
             return string.Format(
                 CultureInfo.InvariantCulture,
                 AuthenticatorUriFormat,
-                _urlEncoder.Encode("Microsoft.AspNetCore.Identity.UI"),
+                _urlEncoder.Encode(AuthenticatorIssuer),
                 _urlEncoder.Encode(email),
                 unformattedKey);
         }
+
+        #endregion
     }
 }

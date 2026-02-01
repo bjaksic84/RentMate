@@ -1,70 +1,47 @@
 @model IEnumerable<RentMate.Models.Rental>
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["My Rentals"];
 }
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-            <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["My Rentals"]</h1>
-            <p class="text-slate-500 mt-1">@Localizer["Track your rental history"]</p>
-        </div>
-        <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-md transition-all">
-            <i class="bi bi-plus-lg"></i>
-            @Localizer["Browse Items"]
-        </a>
-    </div>
+    @await Html.PartialAsync("_PageHeader", new { 
+        Title = Localizer["My Rentals"].Value, 
+        Subtitle = Localizer["Track your rental history"].Value, 
+        ActionController = "Rentals", 
+        ActionAction = "Index", 
+        ActionText = Localizer["Browse Items"].Value, 
+        ActionIcon = "bi-plus-lg" 
+    })
 
     @if (!Model.Any())
     {
-        <div class="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-            <div class="w-20 h-20 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                <i class="bi bi-box-seam text-4xl text-slate-300"></i>
-            </div>
-            <h3 class="font-heading text-xl font-semibold text-slate-900 mb-2">@Localizer["No rentals yet"]</h3>
-            <p class="text-slate-500 mb-6">@Localizer["Start by renting an item!"]</p>
-            <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
-                @Localizer["Explore Items"]
-                <i class="bi bi-arrow-right"></i>
-            </a>
-        </div>
+        @await Html.PartialAsync("_EmptyState", new { 
+            Icon = "bi-box-seam", 
+            Message = Localizer["No rentals yet"].Value, 
+            ActionController = "Rentals", 
+            ActionAction = "Index", 
+            ActionText = Localizer["Explore Items"].Value 
+        })
     }
     else
     {
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             @foreach (var rental in Model)
             {
-                var statusClass = rental.Status.ToString() switch
-                {
-                    "Active" => "bg-green-100 text-green-700",
-                    "Pending" => "bg-amber-100 text-amber-700",
-                    "Completed" => "bg-slate-100 text-slate-600",
-                    "Cancelled" => "bg-red-100 text-red-700",
-                    _ => "bg-blue-100 text-blue-700"
-                };
+                var statusType = rental.Status.ToString().ToLower();
                 
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                     <!-- Item Image -->
                     <div class="relative h-40 overflow-hidden">
-                        @if(!string.IsNullOrEmpty(rental.Item?.ImageUrl)) {
-                            var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
-                            <img src="@thumbUrl" class="w-full h-full object-cover">
-                        } else {
-                            <div class="w-full h-full bg-slate-100 flex items-center justify-center">
-                                <i class="bi bi-image text-4xl text-slate-300"></i>
-                            </div>
-                        }
+                        @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = rental.Item?.ImageUrl, Size = "sm", Alt = rental.Item?.Title })
                         
                         <!-- Status Badge -->
                         <div class="absolute top-3 right-3">
-                            <span class="px-3 py-1 text-xs font-semibold rounded-full @statusClass">
-                                @Localizer[rental.Status.ToString()]
-                            </span>
+                            @await Html.PartialAsync("_StatusBadge", new { Type = statusType, Text = Localizer[rental.Status.ToString()].Value })
                         </div>
                     </div>
                     

@@ -2,15 +2,20 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Localization;
 using RentMate.Data;
 using RentMate.Models;
-using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
+using RentMate.Services;
+using RentMate.Helpers;
 using RentMate.Shared.Contracts.Responses;
-using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
+    /// <summary>
+    /// Controller for browsing items and managing rental requests.
+    /// </summary>
     [Authorize]
     public class RentalsController : Controller
     {
@@ -18,14 +23,18 @@ namespace RentMate.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<RentMateHub> _hubContext;
         private readonly IStringLocalizer<RentalsController> _localizer;
-        private readonly Services.CurrencyService _currencyService;
+        private readonly ICurrencyService _currencyService;
+
+        private const int DefaultPageSize = 12;
+        private const string DashboardAction = "UserDashboard";
+        private const string DashboardController = "Dashboard";
 
         public RentalsController(
-            RentMateContext context, 
-            UserManager<ApplicationUser> userManager, 
+            RentMateContext context,
+            UserManager<ApplicationUser> userManager,
             IHubContext<RentMateHub> hubContext,
             IStringLocalizer<RentalsController> localizer,
-            Services.CurrencyService currencyService)
+            ICurrencyService currencyService)
         {
             _context = context;
             _userManager = userManager;
@@ -34,11 +43,69 @@ namespace RentMate.Controllers
             _currencyService = currencyService;
         }
 
-        // 🔹 Public listings: items available to rent
+        #region Helper Methods
+
+        private bool IsAjaxRequest() => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
+        private IActionResult HandleError(string message)
+        {
+            if (IsAjaxRequest())
+            {
+                return BadRequest(message);
+            }
+            TempData["ErrorMessage"] = message;
+            return RedirectToAction(DashboardAction, DashboardController);
+        }
+
+        private IActionResult HandleSuccess(string message, object? jsonData = null)
+        {
+            if (IsAjaxRequest())
+            {
+                return Json(jsonData ?? new { success = true, message });
+            }
+            TempData["SuccessMessage"] = message;
+            return RedirectToAction(DashboardAction, DashboardController);
+        }
+
+        private bool HasDateConflict(ICollection<Rental>? rentals, DateTime startDate, DateTime endDate)
+        {
+            return rentals?.Any(r =>
+                (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
+                r.StartDate <= endDate &&
+                r.EndDate >= startDate) ?? false;
+        }
+
+        private static decimal CalculateTotalPrice(decimal? pricePerDay, DateTime startDate, DateTime endDate)
+        {
+            var rentalDays = Math.Max((endDate.Date - startDate.Date).Days, 1);
+            return (pricePerDay ?? 0) * rentalDays;
+        }
+
+        private bool IsUserAuthorizedForRental(ApplicationUser? user, Rental rental)
+        {
+            return user != null && (rental.OwnerId == user.Id || rental.RenterId == user.Id);
+        }
+
+        private async Task NotifyRentalStatusChangeAsync(Rental rental, string message)
+        {
+            await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
+            {
+                rentalId = rental.Id,
+                newStatus = rental.Status.ToString(),
+                itemTitle = rental.Item?.Title,
+                message
+            });
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Displays available items for rent with filtering and pagination.
+        /// </summary>
         [AllowAnonymous]
         public async Task<IActionResult> Index(
             string? search,
-            string[]? category, 
+            string[]? category,
             decimal? minPrice,
             decimal? maxPrice,
             string? city,
@@ -48,57 +115,86 @@ namespace RentMate.Controllers
             int? minRating,
             int page = 1)
         {
-            int pageSize = 12;
+            var currentUserId = _userManager.GetUserId(User);
+            var query = BuildBaseItemQuery(currentUserId);
 
-            // Base query with performance optimizations
-            var query = _context.Items
+            query = ApplySearchFilters(query, search, category, minPrice, maxPrice, city, minRating);
+            query = ApplyAvailabilityFilter(query, startDate, endDate);
+            query = ApplySorting(query, sort);
+
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * DefaultPageSize)
+                .Take(DefaultPageSize)
+                .ToListAsync();
+
+            await SetViewBagDataAsync(search, category, minPrice, maxPrice, city, startDate, endDate, sort, minRating, page, totalItems, currentUserId);
+
+            return View(items);
+        }
+
+        private IQueryable<Item> BuildBaseItemQuery(string? currentUserId)
+        {
+            return _context.Items
                 .AsNoTracking()
                 .Include(i => i.User)
-                // Performance: Only include bookings that are active or pending and haven't ended yet
-                .Include(i => i.Rentals.Where(r => 
-                    (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) && 
+                .Include(i => i.Rentals.Where(r =>
+                    (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
                     r.EndDate >= DateTime.Today))
-                .Where(i => i.IsListed && !i.IsAdminHidden)
-                .AsQueryable();
+                .Include(i => i.FavoritedBy.Where(f => f.AccountId == currentUserId))
+                .AsSplitQuery()
+                .Where(i => i.IsListed && !i.IsAdminHidden);
+        }
 
-            // 🔍 Text search
+        private IQueryable<Item> ApplySearchFilters(
+            IQueryable<Item> query,
+            string? search,
+            string[]? categories,
+            decimal? minPrice,
+            decimal? maxPrice,
+            string? city,
+            int? minRating)
+        {
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var lower = search.ToLower();
+                var searchLower = search.ToLower();
                 query = query.Where(i =>
-                    (i.Title != null && i.Title.ToLower().Contains(lower)) ||
-                    (i.Description != null && i.Description.ToLower().Contains(lower)));
+                    (i.Title != null && i.Title.ToLower().Contains(searchLower)) ||
+                    (i.Description != null && i.Description.ToLower().Contains(searchLower)));
             }
 
-            // 📂 Category filter
-            if (category != null && category.Length > 0)
+            if (categories?.Length > 0)
             {
-                query = query.Where(i => category.Contains(i.Category));
+                query = query.Where(i => categories.Contains(i.Category));
             }
 
-            // 💶 Price filters (Convert back to base currency if user has selected something else)
             if (minPrice.HasValue)
             {
-                var minBase = _currencyService.ConvertToBase(minPrice.Value);
-                query = query.Where(i => i.Price >= minBase);
+                var minBasePrice = _currencyService.ConvertToBase(minPrice.Value);
+                query = query.Where(i => i.Price >= minBasePrice);
             }
+
             if (maxPrice.HasValue)
             {
-                var maxBase = _currencyService.ConvertToBase(maxPrice.Value);
-                query = query.Where(i => i.Price <= maxBase);
+                var maxBasePrice = _currencyService.ConvertToBase(maxPrice.Value);
+                query = query.Where(i => i.Price <= maxBasePrice);
             }
 
-            // 📍 City filter
             if (!string.IsNullOrEmpty(city))
+            {
                 query = query.Where(i => i.User!.City == city);
+            }
 
-            // ⭐ Rating filter
             if (minRating.HasValue && minRating.Value > 0)
             {
                 query = query.Where(i => i.AverageRating.HasValue && i.AverageRating >= minRating.Value);
             }
 
-            // 🗓️ Availability filter (izboljšana logika prekrivanja)
+            return query;
+        }
+
+        private static IQueryable<Item> ApplyAvailabilityFilter(IQueryable<Item> query, DateTime? startDate, DateTime? endDate)
+        {
             if (startDate.HasValue && endDate.HasValue)
             {
                 query = query.Where(i =>
@@ -106,9 +202,12 @@ namespace RentMate.Controllers
                         (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
                         r.StartDate <= endDate && r.EndDate >= startDate));
             }
+            return query;
+        }
 
-            // ⚙️ Sorting
-            query = sort switch
+        private static IQueryable<Item> ApplySorting(IQueryable<Item> query, string? sortBy)
+        {
+            return sortBy switch
             {
                 "priceAsc" => query.OrderBy(i => i.Price),
                 "priceDesc" => query.OrderByDescending(i => i.Price),
@@ -116,30 +215,26 @@ namespace RentMate.Controllers
                 "ratingDesc" => query.OrderByDescending(i => i.AverageRating ?? 0).ThenByDescending(i => i.ReviewCount),
                 _ => query.OrderByDescending(i => i.UpdatedAt ?? i.CreatedAt)
             };
+        }
 
-            var totalItems = await query.CountAsync();
-            var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
+        private async Task SetViewBagDataAsync(
+            string? search,
+            string[]? category,
+            decimal? minPrice,
+            decimal? maxPrice,
+            string? city,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? sort,
+            int? minRating,
+            int page,
+            int totalItems,
+            string? currentUserId)
+        {
+            var absoluteMaxPrice = await CalculateMaxPriceAsync();
 
-            // Calculate absolute max price for the slider (in EUR)
-            var absMaxBase = await _context.Items.AnyAsync() 
-                ? await _context.Items.MaxAsync(i => i.Price) ?? 0 
-                : 1000;
-            
-            // Round up to nearest 10 for cleaner slider
-            absMaxBase = Math.Ceiling(absMaxBase / 10m) * 10m;
-            if (absMaxBase < 100) absMaxBase = 500; // Sensible minimum range
-
-            // Convert to current currency for the view
-            var absMaxConverted = _currencyService.Convert(absMaxBase);
-            ViewBag.AbsoluteMaxPrice = absMaxConverted;
-
-            // Za dropdown v filtrih
-            ViewBag.Cities = RentMate.Helpers.CityData.Cities.Select(c => c.Name).ToList();
-            
-            // Shranjevanje trenutnih filtrov za UI
+            ViewBag.AbsoluteMaxPrice = absoluteMaxPrice;
+            ViewBag.Cities = CityData.Cities.Select(c => c.Name).ToList();
             ViewBag.Search = search;
             ViewBag.Category = category;
             ViewBag.MinPrice = minPrice;
@@ -149,258 +244,257 @@ namespace RentMate.Controllers
             ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
             ViewBag.Sort = sort;
             ViewBag.MinRating = minRating;
-            
-            // Pagination info
             ViewBag.CurrentPage = page;
-            ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)DefaultPageSize);
             ViewBag.TotalItems = totalItems;
-
-            return View(items);
+            ViewBag.CurrentUserId = currentUserId;
         }
 
-        // 🔹 Step 1: Request a rental (Pending)
+        private async Task<decimal> CalculateMaxPriceAsync()
+        {
+            var hasItems = await _context.Items.AnyAsync();
+            var maxBasePrice = hasItems
+                ? await _context.Items.MaxAsync(i => i.Price) ?? 0
+                : 1000;
+
+            maxBasePrice = Math.Ceiling(maxBasePrice / 10m) * 10m;
+            if (maxBasePrice < 100) maxBasePrice = 500;
+
+            return _currencyService.Convert(maxBasePrice);
+        }
+
+        /// <summary>
+        /// Creates a new rental request for an item.
+        /// </summary>
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RequestRental(int itemId, DateTime startDate, DateTime endDate)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
                 return Unauthorized();
+            }
 
             var item = await _context.Items
                 .Include(i => i.Rentals)
                 .FirstOrDefaultAsync(i => i.Id == itemId);
 
+            // Validate item availability
             if (item == null || !item.IsListed)
             {
-                var msg = _localizer["Item not available for rent."].Value;
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return BadRequest(msg);
-
-                TempData["ErrorMessage"] = msg;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return HandleError(_localizer["Item not available for rent."].Value);
             }
 
-            if (item.UserId == user.Id)
+            // Prevent self-rental
+            if (item.UserId == currentUser.Id)
             {
-                var msg = _localizer["You cannot rent your own item."].Value;
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return BadRequest(msg);
-
-                TempData["ErrorMessage"] = msg;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return HandleError(_localizer["You cannot rent your own item."].Value);
             }
 
-            // Prevent overlapping rentals
-            bool hasConflict = item.Rentals!.Any(r =>
-                (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
-                r.StartDate <= endDate &&
-                r.EndDate >= startDate);
-
-            if (hasConflict)
+            // Check for date conflicts
+            if (HasDateConflict(item.Rentals, startDate, endDate))
             {
-                var msg = _localizer["Item is already booked during this period."].Value;
-                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                    return BadRequest(msg);
-
-                TempData["ErrorMessage"] = msg;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return HandleError(_localizer["Item is already booked during this period."].Value);
             }
 
-            // Calculate total price
-            int rentalDays = Math.Max((endDate.Date - startDate.Date).Days, 1);
-            decimal totalPrice = (item.Price ?? 0) * rentalDays;
-
-            var rental = new RentMate.Models.Rental
-            {
-                ItemId = item.Id,
-                OwnerId = item.UserId ?? string.Empty,
-                RenterId = user.Id,
-                StartDate = startDate,
-                EndDate = endDate,
-                Status = RentalStatus.Pending,
-                TotalPrice = totalPrice
-            };
-
+            var rental = CreateRentalRequest(item, currentUser.Id, startDate, endDate);
             _context.Rentals.Add(rental);
             await _context.SaveChangesAsync();
 
-            // ✅ Send real-time notification to the owner
+            await NotifyOwnerOfRentalRequestAsync(item, rental, currentUser);
+
+            return HandleSuccess(
+                _localizer["Rental request submitted. Awaiting owner approval."].Value,
+                new { success = true, message = _localizer["Rental request submitted successfully."].Value });
+        }
+
+        private Rental CreateRentalRequest(Item item, string renterId, DateTime startDate, DateTime endDate)
+        {
+            return new Rental
+            {
+                ItemId = item.Id,
+                OwnerId = item.UserId ?? string.Empty,
+                RenterId = renterId,
+                StartDate = startDate,
+                EndDate = endDate,
+                Status = RentalStatus.Pending,
+                TotalPrice = CalculateTotalPrice(item.Price, startDate, endDate)
+            };
+        }
+
+        private async Task NotifyOwnerOfRentalRequestAsync(Item item, Rental rental, ApplicationUser renter)
+        {
             await _hubContext.Clients.User(item.UserId!).SendAsync("RentalRequested", new
             {
                 rentalId = rental.Id,
                 itemTitle = item.Title,
-                renterEmail = user.Email,
+                renterEmail = renter.Email,
                 startDate = rental.StartDate.ToShortDateString(),
                 endDate = rental.EndDate.ToShortDateString(),
                 status = rental.Status.ToString()
             });
-
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-                return Json(new { success = true, message = _localizer["Rental request submitted successfully."].Value });
-
-            TempData["SuccessMessage"] = _localizer["Rental request submitted. Awaiting owner approval."].Value;
-            return RedirectToAction("UserDashboard", "Dashboard");
         }
 
-        // 🔹 Step 2: Owner approves rental
+        /// <summary>
+        /// Approves a pending rental request. Owner only.
+        /// </summary>
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveRental(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
-
-            var rental = await _context.Rentals
-                .Include(r => r.Item)
-                .FirstOrDefaultAsync(r => r.Id == rentalId);
-
-            if (rental == null || rental.Item == null)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
             {
-                TempData["ErrorMessage"] = _localizer["Rental not found."].Value;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return Unauthorized();
             }
 
-            if (rental.OwnerId != user.Id)
+            var rental = await LoadRentalWithItemAsync(rentalId);
+            if (rental?.Item == null)
             {
-                TempData["ErrorMessage"] = _localizer["You are not authorized to approve this rental."].Value;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return HandleError(_localizer["Rental not found."].Value);
+            }
+
+            if (rental.OwnerId != currentUser.Id)
+            {
+                return HandleError(_localizer["You are not authorized to approve this rental."].Value);
             }
 
             rental.Status = RentalStatus.Active;
             rental.Item.IsRented = true;
             rental.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
 
-            // Notify renter that their request was approved
-            await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
-            {
-                rentalId = rental.Id,
-                newStatus = rental.Status.ToString(),
-                itemTitle = rental.Item.Title,
-                message = string.Format(_localizer["Your rental request for '{0}' was approved!"], rental.Item.Title)
-            });
+            var message = string.Format(_localizer["Your rental request for '{0}' was approved!"], rental.Item.Title);
+            await NotifyRentalStatusChangeAsync(rental, message);
 
             TempData["SuccessMessage"] = string.Format(_localizer["You approved rental for '{0}'."], rental.Item.Title);
-            return RedirectToAction("UserDashboard", "Dashboard");
+            return RedirectToAction(DashboardAction, DashboardController);
         }
 
-        // 🔹 Step 3a: Complete rental
+        /// <summary>
+        /// Marks a rental as completed. Either party can complete.
+        /// </summary>
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CompleteRental(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
-
-            var rental = await _context.Rentals
-                .Include(r => r.Item)
-                .FirstOrDefaultAsync(r => r.Id == rentalId);
-
-            if (rental == null)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
             {
-                TempData["ErrorMessage"] = _localizer["Rental not found."].Value;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return Unauthorized();
             }
 
-            if (rental.OwnerId != user.Id && rental.RenterId != user.Id)
+            var rental = await LoadRentalWithItemAsync(rentalId);
+            if (rental == null)
             {
-                TempData["ErrorMessage"] = _localizer["You are not authorized to complete this rental."].Value;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return HandleError(_localizer["Rental not found."].Value);
+            }
+
+            if (!IsUserAuthorizedForRental(currentUser, rental))
+            {
+                return HandleError(_localizer["You are not authorized to complete this rental."].Value);
             }
 
             rental.Status = RentalStatus.Completed;
             rental.Item!.IsRented = false;
             rental.UpdatedAt = DateTime.UtcNow;
             rental.EndDate = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
 
-            await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
-            {
-                rentalId = rental.Id,
-                newStatus = rental.Status.ToString(),
-                itemTitle = rental.Item.Title,
-                message = string.Format(_localizer["Rental for '{0}' was marked as completed."], rental.Item.Title)
-            });
+            var message = string.Format(_localizer["Rental for '{0}' was marked as completed."], rental.Item.Title);
+            await NotifyRentalStatusChangeAsync(rental, message);
 
             TempData["SuccessMessage"] = string.Format(_localizer["Rental for '{0}' completed successfully."], rental.Item.Title);
-            return RedirectToAction("UserDashboard", "Dashboard");
+            return RedirectToAction(DashboardAction, DashboardController);
         }
 
-        // 🔹 Step 3b: Cancel rental (either party)
+        /// <summary>
+        /// Cancels a rental. Either party can cancel unless completed.
+        /// </summary>
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelRental(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
-
-            var rental = await _context.Rentals
-                .Include(r => r.Item)
-                .FirstOrDefaultAsync(r => r.Id == rentalId);
-
-            if (rental == null)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
             {
-                TempData["ErrorMessage"] = _localizer["Rental not found."].Value;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return Unauthorized();
             }
 
-            if (rental.OwnerId != user.Id && rental.RenterId != user.Id)
+            var rental = await LoadRentalWithItemAsync(rentalId);
+            if (rental == null)
             {
-                TempData["ErrorMessage"] = _localizer["You are not authorized to cancel this rental."].Value;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return HandleError(_localizer["Rental not found."].Value);
+            }
+
+            if (!IsUserAuthorizedForRental(currentUser, rental))
+            {
+                return HandleError(_localizer["You are not authorized to cancel this rental."].Value);
             }
 
             if (rental.Status == RentalStatus.Completed)
             {
-                TempData["ErrorMessage"] = _localizer["Completed rentals cannot be cancelled."].Value;
-                return RedirectToAction("UserDashboard", "Dashboard");
+                return HandleError(_localizer["Completed rentals cannot be cancelled."].Value);
             }
 
             rental.Status = RentalStatus.Cancelled;
             rental.Item!.IsRented = false;
             rental.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
 
-            await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
-            {
-                rentalId = rental.Id,
-                newStatus = rental.Status.ToString(),
-                itemTitle = rental.Item!.Title,
-                message = string.Format(_localizer["Rental for '{0}' was cancelled."], rental.Item!.Title)
-            });
+            var message = string.Format(_localizer["Rental for '{0}' was cancelled."], rental.Item.Title);
+            await NotifyRentalStatusChangeAsync(rental, message);
 
             TempData["SuccessMessage"] = _localizer["Rental cancelled successfully."].Value;
-            return RedirectToAction("UserDashboard", "Dashboard");
+            return RedirectToAction(DashboardAction, DashboardController);
         }
 
-        // 🔹 My rentals (as renter)
+        private async Task<Rental?> LoadRentalWithItemAsync(int rentalId)
+        {
+            return await _context.Rentals
+                .Include(r => r.Item)
+                .FirstOrDefaultAsync(r => r.Id == rentalId);
+        }
+
+        /// <summary>
+        /// Lists rentals where the current user is the renter.
+        /// </summary>
         public async Task<IActionResult> MyRentals()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
             var rentals = await _context.Rentals
                 .Include(r => r.Item)
-                .Where(r => r.RenterId == user.Id)
+                .Where(r => r.RenterId == currentUser.Id)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
             return View(rentals);
         }
 
-        // 🔹 Rentals of my items (as owner)
+        /// <summary>
+        /// Lists rentals for items owned by the current user.
+        /// </summary>
         public async Task<IActionResult> OwnerRentals()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                return Unauthorized();
+            }
+
             var rentals = await _context.Rentals
                 .Include(r => r.Item)
-                .Where(r => r.OwnerId == user.Id)
+                .Where(r => r.OwnerId == currentUser.Id)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 

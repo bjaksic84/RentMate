@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
+using RentMate.Models;
 using RentMate.Shared.Contracts.Requests;
 using RentMate.Shared.Contracts.Responses;
 
@@ -21,9 +22,9 @@ namespace RentMate.Controllers
     public class RentalsApiController : ControllerBase
     {
         private readonly RentMateContext _context;
-        private readonly UserManager<RentMate.Models.ApplicationUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public RentalsApiController(RentMateContext context, UserManager<RentMate.Models.ApplicationUser> userManager)
+        public RentalsApiController(RentMateContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;
@@ -32,8 +33,6 @@ namespace RentMate.Controllers
         /// <summary>
         /// Create a new rental request.
         /// </summary>
-        /// <param name="request">The rental request details.</param>
-        /// <returns>The created rental summary.</returns>
         [HttpPost]
         [ProducesResponseType(typeof(RentalSummary), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -42,19 +41,28 @@ namespace RentMate.Controllers
         public async Task<ActionResult<RentalSummary>> PostRental(CreateRentalRequest request)
         {
             var renterId = _userManager.GetUserId(User);
-            if (string.IsNullOrEmpty(renterId)) return Unauthorized();
+            if (string.IsNullOrEmpty(renterId))
+            {
+                return Unauthorized();
+            }
 
-            var item = await _context.Items.Include(i => i.User).FirstOrDefaultAsync(i => i.Id == request.ItemId);
-            if (item == null) return NotFound("Item not found.");
+            var item = await _context.Items
+                .Include(i => i.User)
+                .FirstOrDefaultAsync(i => i.Id == request.ItemId);
 
-            if (item.UserId == renterId) return BadRequest("You cannot rent your own item.");
+            if (item == null)
+            {
+                return NotFound("Item not found.");
+            }
 
-            // Calculate rental days and total price
-            int days = (request.EndDate - request.StartDate).Days;
-            if (days <= 0) days = 1;
-            var totalPrice = (item.Price ?? 0m) * days;
+            if (item.UserId == renterId)
+            {
+                return BadRequest("You cannot rent your own item.");
+            }
 
-            var dbRental = new RentMate.Models.Rental
+            var totalPrice = CalculateTotalPrice(item.Price, request.StartDate, request.EndDate);
+
+            var newRental = new Rental
             {
                 ItemId = request.ItemId,
                 RenterId = renterId,
@@ -66,42 +74,55 @@ namespace RentMate.Controllers
                 TotalPrice = totalPrice
             };
 
-            _context.Rentals.Add(dbRental);
+            _context.Rentals.Add(newRental);
             await _context.SaveChangesAsync();
 
             var renter = await _userManager.FindByIdAsync(renterId);
-            
+
             return Ok(new RentalSummary(
-                dbRental.Id,
+                newRental.Id,
                 item.Title ?? "Untitled",
                 item.Id,
                 item.ImageUrl,
                 renter?.UserName ?? "Unknown",
                 item.User?.UserName ?? "Unknown",
-                dbRental.StartDate,
-                dbRental.EndDate,
-                dbRental.TotalPrice,
-                dbRental.Status,
-                dbRental.RentalDate
+                newRental.StartDate,
+                newRental.EndDate,
+                newRental.TotalPrice,
+                newRental.Status,
+                newRental.RentalDate
             ));
+        }
+
+        private static decimal CalculateTotalPrice(decimal? pricePerDay, DateTime startDate, DateTime endDate)
+        {
+            var days = Math.Max((endDate - startDate).Days, 1);
+            return (pricePerDay ?? 0m) * days;
         }
 
         /// <summary>
         /// Update a rental's status.
         /// </summary>
-        /// <param name="id">The rental ID.</param>
-        /// <param name="newStatus">The new status.</param>
         [HttpPatch("{id}/status")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] RentalStatus newStatus)
         {
-            var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == id);
-            if (rental == null) return NotFound();
+            var rental = await _context.Rentals
+                .Include(r => r.Item)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (rental == null)
+            {
+                return NotFound();
+            }
 
             var userId = _userManager.GetUserId(User);
-            if (rental.Item?.UserId != userId && rental.RenterId != userId) return Forbid();
+            if (rental.Item?.UserId != userId && rental.RenterId != userId)
+            {
+                return Forbid();
+            }
 
             rental.Status = newStatus;
             await _context.SaveChangesAsync();

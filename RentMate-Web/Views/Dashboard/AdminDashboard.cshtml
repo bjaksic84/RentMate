@@ -2,7 +2,7 @@
 @using RentMate.Shared.Contracts.Responses
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Admin Dashboard"];
@@ -28,53 +28,10 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <i class="bi bi-people text-blue-600 text-xl"></i>
-                </div>
-                <div>
-                    <p class="text-2xl font-bold text-slate-900">@Model.TotalUsers</p>
-                    <p class="text-sm text-slate-500">@Localizer["Users"]</p>
-                </div>
-            </div>
-            <a asp-controller="Users" asp-action="Index" class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
-                @Localizer["Manage"] <i class="bi bi-arrow-right"></i>
-            </a>
-        </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                    <i class="bi bi-currency-euro text-green-600 text-xl"></i>
-                </div>
-                <div>
-                    <p class="text-2xl font-bold text-slate-900">@currency.Symbol@Model.TotalRevenue.ToString("N0")</p>
-                    <p class="text-sm text-slate-500">@Localizer["Total Revenue"]</p>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <i class="bi bi-box-seam text-purple-600 text-xl"></i>
-                </div>
-                <div>
-                    <p class="text-2xl font-bold text-slate-900">@Model.ActiveListings</p>
-                    <p class="text-sm text-slate-500">@Localizer["Active Listings"]</p>
-                </div>
-            </div>
-        </div>
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <i class="bi bi-arrow-repeat text-amber-600 text-xl"></i>
-                </div>
-                <div>
-                    <p class="text-2xl font-bold text-slate-900">@Model.ActiveRentals</p>
-                    <p class="text-sm text-slate-500">@Localizer["In Progress"]</p>
-                </div>
-            </div>
-        </div>
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-people", IconColor = "blue", Value = Model.TotalUsers, Label = "Users", Link = Url.Action("Index", "Users"), LinkText = "Manage" })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-currency-euro", IconColor = "green", Value = $"{currency.Symbol}{Model.TotalRevenue:N0}", Label = "Total Revenue" })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-box-seam", IconColor = "purple", Value = Model.ActiveListings, Label = "Active Listings" })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-arrow-repeat", IconColor = "amber", Value = Model.ActiveRentals, Label = "In Progress" })
     </div>
 
     <div class="grid lg:grid-cols-3 gap-6 mb-8">
@@ -107,22 +64,17 @@
                                 <td class="px-6 py-4 text-sm text-slate-500">@rental.Renter?.Email</td>
                                 <td class="px-6 py-4 text-sm text-slate-500">@rental.CreatedAt.ToString("dd. MM. yyyy")</td>
                                 <td class="px-6 py-4">
-                                    @if (rental.Status == RentalStatus.Active)
-                                    {
-                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">@Localizer["Active"]</span>
+                                    @{
+                                        var statusType = rental.Status switch
+                                        {
+                                            RentalStatus.Active => "active",
+                                            RentalStatus.Pending => "pending",
+                                            RentalStatus.Completed => "completed",
+                                            _ => "cancelled"
+                                        };
+                                        var statusText = rental.Status.ToString();
                                     }
-                                    else if (rental.Status == RentalStatus.Pending)
-                                    {
-                                        <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">@Localizer["Pending"]</span>
-                                    }
-                                    else if (rental.Status == RentalStatus.Completed)
-                                    {
-                                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">@Localizer["Completed"]</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">@Localizer["Cancelled"]</span>
-                                    }
+                                    @await Html.PartialAsync("_StatusBadge", new { Type = statusType, Text = statusText })
                                 </td>
                             </tr>
                         }

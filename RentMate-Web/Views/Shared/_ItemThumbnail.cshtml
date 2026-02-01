@@ -1,0 +1,60 @@
+@*
+    Item Thumbnail Partial View
+    
+    Usage: @await Html.PartialAsync("_ItemThumbnail", new { 
+        ImageUrl = item.ImageUrl, 
+        Size = "md",
+        Alt = item.Title,
+        CssClass = "custom-class",  // Optional: override default size class
+        HoverZoom = true            // Optional: add hover zoom effect
+    })
+    
+    Size options: 
+    - thumb: 80x80 (for inline display)
+    - sm: 400x200 (card thumbnail)
+    - md: 400x300 (medium card)
+    - lg: 600x400 (large card)
+    - xl: 800x600 (extra large)
+    - fill: fills container (100% width/height)
+*@
+
+@{
+    var imageUrl = (string?)(Model?.ImageUrl ?? ViewData["ImageUrl"]);
+    var size = (string)(Model?.Size ?? ViewData["Size"] ?? "md");
+    var alt = (string)(Model?.Alt ?? ViewData["Alt"] ?? "Item image");
+    var customClass = (string?)(Model?.CssClass ?? ViewData["CssClass"]);
+    var hoverZoom = (bool?)(Model?.HoverZoom ?? ViewData["HoverZoom"]) ?? false;
+    
+    // Size configurations: (default CSS class, Cloudinary transform)
+    var (defaultSizeClass, thumbTransform) = size.ToLower() switch
+    {
+        "thumb" => ("w-20 h-20", "c_thumb,w_80,h_80,g_face,q_auto"),
+        "sm" => ("w-full h-full", "c_fill,w_400,h_200,q_auto"),
+        "lg" => ("w-full h-full", "c_fill,w_600,h_400,q_auto"),
+        "xl" => ("w-full h-full", "c_fill,w_800,h_600,q_auto"),
+        "fill" => ("w-full h-full", "c_fill,w_400,h_300,q_auto"),
+        _ => ("w-full h-full", "c_fill,w_400,h_300,q_auto") // md default
+    };
+    
+    var sizeClass = customClass ?? defaultSizeClass;
+    var hoverClass = hoverZoom ? " group-hover:scale-105 transition-transform duration-300" : "";
+    
+    // Generate Cloudinary thumbnail URL if image exists
+    var thumbUrl = !string.IsNullOrEmpty(imageUrl) 
+        ? imageUrl.Replace("/upload/", $"/upload/{thumbTransform}/")
+        : null;
+}
+
+@if (!string.IsNullOrEmpty(thumbUrl))
+{
+    <img src="@thumbUrl" 
+         alt="@alt" 
+         class="@sizeClass object-cover@(hoverClass)" 
+         loading="lazy" />
+}
+else
+{
+    <div class="@sizeClass bg-slate-100 flex items-center justify-center">
+        <i class="bi bi-image text-4xl text-slate-300"></i>
+    </div>
+}

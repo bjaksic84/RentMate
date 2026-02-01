@@ -1,17 +1,18 @@
 @model RentMate.Models.Rental
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Rental Details"];
-    var statusClass = Model.Status.ToString() switch
+    var statusType = Model.Status.ToString().ToLower();
+    var statusBorderClass = Model.Status.ToString() switch
     {
-        "Active" => "bg-green-100 text-green-700 border-green-200",
-        "Pending" => "bg-amber-100 text-amber-700 border-amber-200",
-        "Completed" => "bg-slate-100 text-slate-600 border-slate-200",
-        "Cancelled" => "bg-red-100 text-red-700 border-red-200",
-        _ => "bg-blue-100 text-blue-700 border-blue-200"
+        "Active" => "bg-green-100 border-green-200",
+        "Pending" => "bg-amber-100 border-amber-200",
+        "Completed" => "bg-slate-100 border-slate-200",
+        "Cancelled" => "bg-red-100 border-red-200",
+        _ => "bg-blue-100 border-blue-200"
     };
     var days = (Model.EndDate - Model.StartDate).Days + 1;
 }
@@ -19,28 +20,19 @@
 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <a asp-controller="Rentals" asp-action="MyRentals" class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors mb-4">
-            <i class="bi bi-arrow-left"></i>
-            @Localizer["Back to My Rentals"]
-        </a>
+        @await Html.PartialAsync("_BackLink", new { Controller = "Rentals", Action = "MyRentals", Text = Localizer["Back to My Rentals"].Value })
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <!-- Status Header -->
-        <div class="@statusClass border-b px-6 py-4 text-center">
-            <span class="text-sm font-semibold uppercase tracking-wider">@Localizer[Model.Status.ToString()]</span>
+        <div class="@statusBorderClass border-b px-6 py-4 text-center">
+            @await Html.PartialAsync("_StatusBadge", new { Type = statusType, Text = Localizer[Model.Status.ToString()].Value })
         </div>
 
         <div class="p-6">
             <!-- Item Info -->
             <div class="flex gap-4 items-start mb-6">
-                @if(!string.IsNullOrEmpty(Model.Item?.ImageUrl)) {
-                    <img src="@Model.Item.ImageUrl" class="w-20 h-20 rounded-xl object-cover shrink-0" />
-                } else {
-                    <div class="w-20 h-20 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                        <i class="bi bi-image text-slate-300 text-xl"></i>
-                    </div>
-                }
+                @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.Item?.ImageUrl, Size = "thumb", Alt = Model.Item?.Title, CssClass = "w-20 h-20 rounded-xl shrink-0" })
                 <div class="flex-1 min-w-0">
                     <h1 class="font-heading text-2xl font-bold text-slate-900">@Model.Item?.Title</h1>
                     <p class="text-slate-400 text-sm mt-1">@Localizer["Rental ID"]: #@Model.Id</p>

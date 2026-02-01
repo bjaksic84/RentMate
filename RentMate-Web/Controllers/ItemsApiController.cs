@@ -1,14 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using RentMate.Data;
 using RentMate.Models;
 using RentMate.Shared.Contracts.Requests;
 using RentMate.Shared.Contracts.Responses;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Localization;
 
 namespace RentMate.Controllers
 {
@@ -39,7 +39,9 @@ namespace RentMate.Controllers
             _logger = logger;
         }
 
-        // GET: api/Items
+        /// <summary>
+        /// Gets all listed items.
+        /// </summary>
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ItemWithOwner>>> GetItems()
         {
@@ -50,11 +52,11 @@ namespace RentMate.Controllers
                 .Where(i => i.IsListed && !i.IsAdminHidden)
                 .Select(i => new ItemWithOwner(
                     i.Id,
-                    i.Title,
+                    i.Title ?? "",
                     i.Description,
                     i.Price ?? 0,
                     i.ImageUrl,
-                    i.Location ?? i.User.City,
+                    i.Location ?? i.User!.City,
                     i.Category,
                     i.IsListed,
                     i.IsAdminHidden,
@@ -63,7 +65,7 @@ namespace RentMate.Controllers
                     i.CreatedAt,
                     i.UpdatedAt,
                     new UserSummary(
-                        i.User.Id,
+                        i.User!.Id,
                         i.User.UserName ?? "",
                         i.User.Email,
                         i.User.FirstName,
@@ -77,7 +79,9 @@ namespace RentMate.Controllers
             return Ok(items);
         }
 
-        // GET: api/Items/5
+        /// <summary>
+        /// Gets a specific item by ID.
+        /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<ItemWithOwner>> GetItem(int id)
         {
@@ -91,7 +95,7 @@ namespace RentMate.Controllers
 
             var itemWithOwner = new ItemWithOwner(
                 item.Id,
-                item.Title,
+                item.Title ?? "",
                 item.Description,
                 item.Price ?? 0,
                 item.ImageUrl,
@@ -99,8 +103,8 @@ namespace RentMate.Controllers
                 item.Category,
                 item.IsListed,
                 item.IsAdminHidden,
-                item.Reviews.Any() ? item.Reviews.Average(r => r.Rating) : 0,
-                item.Reviews.Count,
+                (item.Reviews?.Any() ?? false) ? item.Reviews.Average(r => r.Rating) : 0,
+                item.Reviews?.Count ?? 0,
                 item.CreatedAt,
                 item.UpdatedAt,
                 item.User != null ? new UserSummary(
@@ -137,7 +141,7 @@ namespace RentMate.Controllers
                 return Unauthorized(_localizer["Error: Server cannot find your ID in the token. Dashboard will show 0."].Value);
             }
 
-            var webItem = new RentMate.Models.Item
+            var newItem = new Item
             {
                 Title = request.Title,
                 Description = request.Description,
@@ -150,45 +154,44 @@ namespace RentMate.Controllers
                 CreatedAt = DateTime.UtcNow
             };
 
-            try 
+            try
             {
-                _context.Items.Add(webItem);
+                _context.Items.Add(newItem);
                 await _context.SaveChangesAsync();
                 
                 // Reload with user to return full ItemWithOwner
-                await _context.Entry(webItem).Reference(i => i.User).LoadAsync();
+                await _context.Entry(newItem).Reference(i => i.User).LoadAsync();
                 
                 var result = new ItemWithOwner(
-                    webItem.Id,
-                    webItem.Title,
-                    webItem.Description,
-                    webItem.Price ?? 0,
-                    webItem.ImageUrl,
-                    webItem.Location ?? webItem.User?.City,
-                    webItem.Category,
-                    webItem.IsListed,
-                    webItem.IsAdminHidden,
+                    newItem.Id,
+                    newItem.Title,
+                    newItem.Description,
+                    newItem.Price ?? 0,
+                    newItem.ImageUrl,
+                    newItem.Location ?? newItem.User?.City,
+                    newItem.Category,
+                    newItem.IsListed,
+                    newItem.IsAdminHidden,
                     0, // New item has no reviews
                     0,
-                    webItem.CreatedAt,
+                    newItem.CreatedAt,
                     null,
                     new UserSummary(
-                        webItem.User!.Id,
-                        webItem.User.UserName ?? "",
-                        webItem.User.Email,
-                        webItem.User.FirstName,
-                        webItem.User.LastName,
-                        webItem.User.City,
-                        webItem.User.ProfilePictureUrl
+                        newItem.User!.Id,
+                        newItem.User.UserName ?? "",
+                        newItem.User.Email,
+                        newItem.User.FirstName,
+                        newItem.User.LastName,
+                        newItem.User.City,
+                        newItem.User.ProfilePictureUrl
                     )
                 );
                 
-                return CreatedAtAction("GetItem", new { id = webItem.Id }, result);
+                return CreatedAtAction("GetItem", new { id = newItem.Id }, result);
             }
             catch (Exception ex)
             {
-                // Log the actual error for debugging but don't expose to users
-                _logger.LogError(ex, "Error saving item for user {UserId}", webItem.UserId);
+                _logger.LogError(ex, "Error saving item for user {UserId}", newItem.UserId);
                 return BadRequest(_localizer["An error occurred while saving. Please try again."].Value);
             }
         }
@@ -303,8 +306,6 @@ namespace RentMate.Controllers
         /// <summary>
         /// Search items with optional filters.
         /// </summary>
-        /// <param name="request">Search parameters.</param>
-        /// <returns>Paginated list of items.</returns>
         [HttpPost("search")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(PaginatedResponse<ItemWithOwner>), StatusCodes.Status200OK)]
@@ -371,7 +372,7 @@ namespace RentMate.Controllers
                 .Take(pageSize)
                 .Select(i => new ItemWithOwner(
                     i.Id,
-                    i.Title,
+                    i.Title ?? "",
                     i.Description,
                     i.Price ?? 0,
                     i.ImageUrl,

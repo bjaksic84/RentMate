@@ -45,5 +45,11 @@ namespace RentMate.Models
         public virtual ApplicationUser? User { get; set; }
         public virtual List<Rental> Rentals { get; set; } = new();
         public virtual List<Review> Reviews { get; set; } = new();
+        
+        /// <summary>
+        /// Collection of users who have favorited this item.
+        /// Use this to get favorite count: item.FavoritedBy.Count
+        /// </summary>
+        public virtual List<AccountItemFavorite> FavoritedBy { get; set; } = new();
     }
 }

@@ -1,0 +1,34 @@
+@*
+    Empty State Partial View
+    
+    Usage: @await Html.PartialAsync("_EmptyState", new { 
+        Icon = "bi-box-seam", 
+        Message = "No items found",
+        ActionLink = "/Items/Create",
+        ActionText = "Create Item"
+    })
+*@
+
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var icon = (string)(Model?.Icon ?? ViewData["Icon"] ?? "bi-inbox");
+    var message = (string)(Model?.Message ?? ViewData["Message"] ?? "No data found");
+    var actionLink = (string?)(Model?.ActionLink ?? ViewData["ActionLink"]);
+    var actionText = (string?)(Model?.ActionText ?? ViewData["ActionText"]);
+}
+
+<div class="p-12 text-center">
+    <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
+        <i class="bi @icon text-2xl text-slate-300"></i>
+    </div>
+    <p class="text-slate-500 mb-4">@Localizer[message]</p>
+    @if (!string.IsNullOrEmpty(actionLink) && !string.IsNullOrEmpty(actionText))
+    {
+        <a href="@actionLink" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+            <i class="bi bi-plus-lg"></i>
+            @Localizer[actionText]
+        </a>
+    }
+</div>

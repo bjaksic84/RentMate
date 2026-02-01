@@ -2,15 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -22,9 +18,27 @@ using RentMate.Models;
 
 namespace RentMate.Areas.Identity.Pages.Account
 {
+    /// <summary>
+    /// Page model for handling external login (OAuth) flows.
+    /// </summary>
     [AllowAnonymous]
     public class ExternalLoginModel : PageModel
     {
+        #region Constants
+
+        private const string ExternalProviderErrorKey = "Error from external provider: {0}";
+        private const string LoadExternalInfoErrorKey = "Error loading external login information.";
+        private const string LoadExternalConfirmErrorKey = "Error loading external login information during confirmation.";
+        private const string ConfirmEmailKey = "Confirm your email";
+        private const string ConfirmEmailLinkKey = "Please confirm your account by <a href='{0}'>clicking here</a>.";
+        private const string CreateUserErrorKey = "Can't create an instance of '{0}'.";
+        private const string CreateUserHintKey = "Ensure that '{0}' is not an abstract class and has a parameterless constructor, or alternatively override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml";
+        private const string EmailNotSupportedKey = "The default UI requires a user store with email support.";
+
+        #endregion
+
+        #region Dependencies
+
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IUserStore<ApplicationUser> _userStore;
@@ -32,6 +46,10 @@ namespace RentMate.Areas.Identity.Pages.Account
         private readonly IEmailSender _emailSender;
         private readonly ILogger<ExternalLoginModel> _logger;
         private readonly IStringLocalizer<ExternalLoginModel> _localizer;
+
+        #endregion
+
+        #region Constructor
 
         public ExternalLoginModel(
             SignInManager<ApplicationUser> signInManager,
@@ -50,6 +68,10 @@ namespace RentMate.Areas.Identity.Pages.Account
             _localizer = localizer;
         }
 
+        #endregion
+
+        #region Properties
+
         [BindProperty]
         public InputModel Input { get; set; }
 
@@ -60,13 +82,21 @@ namespace RentMate.Areas.Identity.Pages.Account
         [TempData]
         public string ErrorMessage { get; set; }
 
+        #endregion
+
+        #region Input Model
+
         public class InputModel
         {
             [Required]
             [EmailAddress]
             public string Email { get; set; }
         }
-        
+
+        #endregion
+
+        #region Page Handlers
+
         public IActionResult OnGet() => RedirectToPage("./Login");
 
         public IActionResult OnPost(string provider, string returnUrl = null)
@@ -78,99 +108,149 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         public async Task<IActionResult> OnGetCallbackAsync(string returnUrl = null, string remoteError = null)
         {
-            returnUrl = returnUrl ?? Url.Content("~/");
+            returnUrl ??= Url.Content("~/");
+
             if (remoteError != null)
             {
-                ErrorMessage = string.Format(_localizer["Error from external provider: {0}"], remoteError);
-                return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
-            }
-            var info = await _signInManager.GetExternalLoginInfoAsync();
-            if (info == null)
-            {
-                ErrorMessage = _localizer["Error loading external login information."];
+                ErrorMessage = string.Format(_localizer[ExternalProviderErrorKey], remoteError);
                 return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
             }
 
-            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
-            if (result.Succeeded)
+            var info = await _signInManager.GetExternalLoginInfoAsync();
+            if (info == null)
             {
-                _logger.LogInformation("{Name} logged in with {LoginProvider} provider.", info.Principal.Identity.Name, info.LoginProvider);
-                return LocalRedirect(returnUrl);
+                ErrorMessage = _localizer[LoadExternalInfoErrorKey];
+                return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
             }
-            if (result.IsLockedOut)
-            {
-                return RedirectToPage("./Lockout");
-            }
-            else
-            {
-                ReturnUrl = returnUrl;
-                ProviderDisplayName = info.ProviderDisplayName;
-                if (info.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
-                {
-                    Input = new InputModel
-                    {
-                        Email = info.Principal.FindFirstValue(ClaimTypes.Email)
-                    };
-                }
-                return Page();
-            }
+
+            return await HandleExternalSignInAsync(info, returnUrl);
         }
 
         public async Task<IActionResult> OnPostConfirmationAsync(string returnUrl = null)
         {
-            returnUrl = returnUrl ?? Url.Content("~/");
+            returnUrl ??= Url.Content("~/");
+            
             var info = await _signInManager.GetExternalLoginInfoAsync();
             if (info == null)
             {
-                ErrorMessage = _localizer["Error loading external login information during confirmation."];
+                ErrorMessage = _localizer[LoadExternalConfirmErrorKey];
                 return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var user = CreateUser();
-
-                await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-                await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-
-                var result = await _userManager.CreateAsync(user);
-                if (result.Succeeded)
-                {
-                    result = await _userManager.AddLoginAsync(user, info);
-                    if (result.Succeeded)
-                    {
-                        _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
-
-                        var userId = await _userManager.GetUserIdAsync(user);
-                        var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-                        var callbackUrl = Url.Page(
-                            "/Account/ConfirmEmail",
-                            pageHandler: null,
-                            values: new { area = "Identity", userId = userId, code = code },
-                            protocol: Request.Scheme);
-
-                        await _emailSender.SendEmailAsync(Input.Email, _localizer["Confirm your email"],
-                            string.Format(_localizer["Please confirm your account by <a href='{0}'>clicking here</a>."], HtmlEncoder.Default.Encode(callbackUrl)));
-
-                        if (_userManager.Options.SignIn.RequireConfirmedAccount)
-                        {
-                            return RedirectToPage("./RegisterConfirmation", new { Email = Input.Email });
-                        }
-
-                        await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
-                        return LocalRedirect(returnUrl);
-                    }
-                }
-                foreach (var error in result.Errors)
-                {
-                    ModelState.AddModelError(string.Empty, error.Description);
-                }
+                ProviderDisplayName = info.ProviderDisplayName;
+                ReturnUrl = returnUrl;
+                return Page();
             }
 
-            ProviderDisplayName = info.ProviderDisplayName;
+            return await CreateExternalUserAsync(info, returnUrl);
+        }
+
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Handles the external sign-in result.
+        /// </summary>
+        private async Task<IActionResult> HandleExternalSignInAsync(ExternalLoginInfo info, string returnUrl)
+        {
+            var result = await _signInManager.ExternalLoginSignInAsync(
+                info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
+
+            if (result.Succeeded)
+            {
+                _logger.LogInformation("{Name} logged in with {LoginProvider} provider.", 
+                    info.Principal.Identity.Name, info.LoginProvider);
+                return LocalRedirect(returnUrl);
+            }
+
+            if (result.IsLockedOut)
+            {
+                return RedirectToPage("./Lockout");
+            }
+
+            // User doesn't have an account - show email confirmation form
             ReturnUrl = returnUrl;
+            ProviderDisplayName = info.ProviderDisplayName;
+            
+            if (info.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
+            {
+                Input = new InputModel { Email = info.Principal.FindFirstValue(ClaimTypes.Email) };
+            }
+            
             return Page();
+        }
+
+        /// <summary>
+        /// Creates a new user from external login and signs them in.
+        /// </summary>
+        private async Task<IActionResult> CreateExternalUserAsync(ExternalLoginInfo info, string returnUrl)
+        {
+            var user = CreateUser();
+
+            await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+            await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+
+            var result = await _userManager.CreateAsync(user);
+            if (!result.Succeeded)
+            {
+                AddIdentityErrors(result);
+                ProviderDisplayName = info.ProviderDisplayName;
+                ReturnUrl = returnUrl;
+                return Page();
+            }
+
+            result = await _userManager.AddLoginAsync(user, info);
+            if (!result.Succeeded)
+            {
+                AddIdentityErrors(result);
+                ProviderDisplayName = info.ProviderDisplayName;
+                ReturnUrl = returnUrl;
+                return Page();
+            }
+
+            _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
+            await SendEmailConfirmationAsync(user);
+
+            if (_userManager.Options.SignIn.RequireConfirmedAccount)
+            {
+                return RedirectToPage("./RegisterConfirmation", new { Email = Input.Email });
+            }
+
+            await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+            return LocalRedirect(returnUrl);
+        }
+
+        /// <summary>
+        /// Sends confirmation email to the new user.
+        /// </summary>
+        private async Task SendEmailConfirmationAsync(ApplicationUser user)
+        {
+            var userId = await _userManager.GetUserIdAsync(user);
+            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+            
+            var callbackUrl = Url.Page(
+                "/Account/ConfirmEmail",
+                pageHandler: null,
+                values: new { area = "Identity", userId, code },
+                protocol: Request.Scheme);
+
+            var emailBody = string.Format(_localizer[ConfirmEmailLinkKey], HtmlEncoder.Default.Encode(callbackUrl));
+            await _emailSender.SendEmailAsync(Input.Email, _localizer[ConfirmEmailKey], emailBody);
+        }
+
+        /// <summary>
+        /// Adds identity errors to model state.
+        /// </summary>
+        private void AddIdentityErrors(IdentityResult result)
+        {
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
         }
 
         private ApplicationUser CreateUser()
@@ -181,8 +261,9 @@ namespace RentMate.Areas.Identity.Pages.Account
             }
             catch
             {
-                throw new InvalidOperationException(string.Format(_localizer["Can't create an instance of '{0}'."], nameof(ApplicationUser)) +
-                    string.Format(_localizer["Ensure that '{0}' is not an abstract class and has a parameterless constructor, or alternatively override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml"], nameof(ApplicationUser)));
+                throw new InvalidOperationException(
+                    string.Format(_localizer[CreateUserErrorKey], nameof(ApplicationUser)) +
+                    string.Format(_localizer[CreateUserHintKey], nameof(ApplicationUser)));
             }
         }
 
@@ -190,9 +271,11 @@ namespace RentMate.Areas.Identity.Pages.Account
         {
             if (!_userManager.SupportsUserEmail)
             {
-                throw new NotSupportedException(_localizer["The default UI requires a user store with email support."]);
+                throw new NotSupportedException(_localizer[EmailNotSupportedKey]);
             }
             return (IUserEmailStore<ApplicationUser>)_userStore;
         }
+
+        #endregion
     }
 }

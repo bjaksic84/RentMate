@@ -1,7 +1,7 @@
 @model IEnumerable<RentMate.Models.Item>
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Items List"];
@@ -9,16 +9,14 @@
 
 <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-            <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["Items"]</h1>
-            <p class="text-slate-500 mt-1">@Localizer["Manage all items in the system"]</p>
-        </div>
-        <a asp-action="Create" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-md transition-all">
-            <i class="bi bi-plus-lg"></i>
-            @Localizer["Create New Item"]
-        </a>
-    </div>
+    @await Html.PartialAsync("_PageHeader", new { 
+        Title = "Items", 
+        Subtitle = "Manage all items in the system",
+        ActionController = "Items",
+        ActionAction = "Create",
+        ActionText = "Create New Item",
+        ActionIcon = "bi-plus-lg"
+    })
 
     <!-- Items Table -->
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -39,14 +37,7 @@
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    @if(!string.IsNullOrEmpty(item.ImageUrl)) {
-                                        var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_80,h_80,q_auto/");
-                                        <img src="@thumbUrl" class="w-10 h-10 rounded-lg object-cover" />
-                                    } else {
-                                        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                                            <i class="bi bi-image text-slate-300"></i>
-                                        </div>
-                                    }
+                                    @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = item.ImageUrl, Size = "sm", Alt = item.Title })
                                     <span class="font-medium text-slate-900">@item.Title</span>
                                 </div>
                             </td>
@@ -80,12 +71,7 @@
         
         @if(!Model.Any())
         {
-            <div class="p-12 text-center">
-                <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <i class="bi bi-box-seam text-2xl text-slate-300"></i>
-                </div>
-                <p class="text-slate-500">@Localizer["No items found"]</p>
-            </div>
+            @await Html.PartialAsync("_EmptyState", new { Icon = "bi-box-seam", Message = "No items found" })
         }
     </div>
 </div>

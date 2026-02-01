@@ -3,7 +3,7 @@
 @using RentMate.Shared.Contracts.Responses
 @model RentMate.Models.Item
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
 
@@ -67,11 +67,13 @@
                     </div>
                 }
                 <!-- Favorite button -->
-                <button class="absolute top-4 right-4 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform touch-target focus-ring"
-                        style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);"
-                        aria-label="@Localizer["Add to favorites"]">
-                    <i class="bi bi-heart text-slate-600 hover:text-red-500" aria-hidden="true"></i>
-                </button>
+                <div class="absolute top-4 right-4">
+                    @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.FavoriteButtonViewModel {
+                        ItemId = Model.Id,
+                        IsFavorited = Model.FavoritedBy?.Any(f => f.AccountId == ViewBag.CurrentUserId) ?? false,
+                        Size = "lg"
+                    })
+                </div>
             </div>
 
             <!-- Owner Info -->

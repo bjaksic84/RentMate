@@ -1,0 +1,38 @@
+@*
+    Form Section Partial View - Consistent form card sections
+    
+    Usage: 
+    @await Html.PartialAsync("_FormSection", new { Title = "Item Details" })
+    
+    Or with ViewData for content:
+    <partial name="_FormSection" view-data='@(new ViewDataDictionary(ViewData) { { "Title", "Basic Info" } })'>
+        <div>Form content here</div>
+    </partial>
+*@
+
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var title = (string)(Model?.Title ?? ViewData["Title"] ?? "");
+    var subtitle = (string?)(Model?.Subtitle ?? ViewData["Subtitle"]);
+    var icon = (string?)(Model?.Icon ?? ViewData["Icon"]);
+}
+
+<div class="bg-white rounded-2xl border border-slate-200 p-6">
+    @if (!string.IsNullOrEmpty(title))
+    {
+        <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            @if (!string.IsNullOrEmpty(icon))
+            {
+                <i class="bi @icon text-blue-600"></i>
+            }
+            @Localizer[title]
+        </h2>
+        @if (!string.IsNullOrEmpty(subtitle))
+        {
+            <p class="text-sm text-slate-500 -mt-2 mb-4">@Localizer[subtitle]</p>
+        }
+    }
+    @RenderBody()
+</div>

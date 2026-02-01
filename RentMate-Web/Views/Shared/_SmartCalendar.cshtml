@@ -1,0 +1,148 @@
+@model RentMate.Models.SmartCalendarModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@{
+    var calId = Model.Id ?? "smartCalendar";
+    var mode = Model.Mode == RentMate.Models.CalendarMode.Range ? "range" : "single";
+    var minDate = Model.MinDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
+    var maxDate = Model.MaxDate?.ToString("yyyy-MM-dd") ?? "";
+    var initialStart = Model.InitialStart?.ToString("yyyy-MM-dd") ?? "";
+    var initialEnd = Model.InitialEnd?.ToString("yyyy-MM-dd") ?? "";
+    var disabledJson = Model.DisabledDates != null 
+        ? System.Text.Json.JsonSerializer.Serialize(Model.DisabledDates.Select(d => d.ToString("yyyy-MM-dd")))
+        : "[]";
+    var isRangeMode = Model.Mode == RentMate.Models.CalendarMode.Range;
+    var weekdaysShort = new[] { "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" };
+}
+
+@* SmartCalendar v3.0 - Consolidated single-file component *@
+<div id="@calId" 
+     class="smart-calendar relative @Model.CssClass"
+     data-mode="@mode"
+     data-min-date="@minDate"
+     data-max-date="@maxDate"
+     data-initial-start="@initialStart"
+     data-initial-end="@initialEnd"
+     data-disabled="@disabledJson">
+    
+    <div class="smart-calendar-input flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full
+                bg-white/60 hover:bg-white/90
+                focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md
+                transition-all duration-200 cursor-pointer h-full"
+         onclick="SmartCalendar.toggle('@calId')">
+        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+            <i class="bi bi-calendar-event text-white text-sm"></i>
+        </div>
+        <input type="text" 
+               id="@(calId)_display"
+               placeholder="@(Model.Placeholder ?? Localizer["When?"].Value)"
+               aria-label="@(Model.Placeholder ?? Localizer["Date selection"].Value)"
+               aria-haspopup="dialog"
+               aria-expanded="false"
+               autocomplete="off"
+               readonly
+               class="flex-1 min-w-0 bg-transparent border-none text-slate-900 font-medium 
+                      placeholder-slate-500 focus:outline-none text-sm cursor-pointer">
+        <button type="button"
+                id="@(calId)_clear"
+                onclick="event.stopPropagation(); SmartCalendar.clear('@calId');"
+                aria-label="@Localizer["Clear dates"]"
+                class="hidden w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 
+                       flex items-center justify-center text-slate-500 hover:text-slate-700 
+                       transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <i class="bi bi-x text-sm" aria-hidden="true"></i>
+        </button>
+    </div>
+    
+    <input type="hidden" name="@Model.StartDateField" id="@(calId)_start" value="@initialStart">
+    @if (isRangeMode)
+    {
+        <input type="hidden" name="@Model.EndDateField" id="@(calId)_end" value="@initialEnd">
+    }
+    
+    <div id="@(calId)_panel"
+         role="dialog"
+         aria-modal="true"
+         aria-label="@Localizer["Calendar"]"
+         class="smart-calendar-panel hidden absolute top-full left-1/2 -translate-x-1/2 mt-3 
+                bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5
+                p-6 z-[9999] origin-top
+                @(isRangeMode ? "w-[680px]" : "w-[340px]")">
+        
+        <div id="@(calId)_announce" aria-live="polite" class="sr-only"></div>
+        
+        <div class="flex items-center justify-between mb-6">
+            <button type="button" id="@(calId)_prev" onclick="SmartCalendar.prevMonth('@calId')"
+                    class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center 
+                           text-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="@Localizer["Previous month"]">
+                <i class="bi bi-chevron-left text-lg" aria-hidden="true"></i>
+            </button>
+            <div class="flex-1 flex @(isRangeMode ? "justify-around" : "justify-center")">
+                <h2 id="@(calId)_monthLabel1" class="text-base font-semibold text-slate-900"></h2>
+                @if (isRangeMode)
+                {
+                    <h2 id="@(calId)_monthLabel2" class="text-base font-semibold text-slate-900"></h2>
+                }
+            </div>
+            <button type="button" id="@(calId)_next" onclick="SmartCalendar.nextMonth('@calId')"
+                    class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center 
+                           text-slate-600 transition-colors"
+                    aria-label="@Localizer["Next month"]">
+                <i class="bi bi-chevron-right text-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        
+        <div class="flex @(isRangeMode ? "gap-10" : "")">
+            <div class="flex-1">
+                <div class="grid grid-cols-7 mb-2">
+                    @foreach (var day in weekdaysShort) { <div class="h-10 flex items-center justify-center text-xs font-semibold text-slate-400 uppercase tracking-wide">@Localizer[day]</div> }
+                </div>
+                <div id="@(calId)_grid1" role="grid" aria-label="@Localizer["Calendar days"]" class="grid grid-cols-7"></div>
+            </div>
+            @if (isRangeMode)
+            {
+                <div class="w-px bg-slate-100" aria-hidden="true"></div>
+                <div class="flex-1">
+                    <div class="grid grid-cols-7 mb-2">
+                        @foreach (var day in weekdaysShort) { <div class="h-10 flex items-center justify-center text-xs font-semibold text-slate-400 uppercase tracking-wide">@Localizer[day]</div> }
+                    </div>
+                    <div id="@(calId)_grid2" role="grid" aria-label="@Localizer["Calendar days"]" class="grid grid-cols-7"></div>
+                </div>
+            }
+        </div>
+        
+        <div class="flex items-center justify-between mt-6 pt-5 border-t border-slate-100">
+            <button type="button" id="@(calId)_clearAll" onclick="SmartCalendar.clear('@calId')" 
+                    class="text-sm font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600 transition-colors hidden">
+                @Localizer["Clear dates"]
+            </button>
+            <div class="flex-1"></div>
+            <button type="button" onclick="SmartCalendar.close('@calId')" 
+                    class="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 rounded-full shadow-sm transition-all duration-200">
+                @Localizer["Close"]
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .sc-day { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: #1e293b; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: pointer; background: transparent; border: none; outline: none; -webkit-tap-highlight-color: transparent; z-index: 1; }
+    .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { content: ''; position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background-color: #2563eb; border-radius: 50%; }
+    .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end) { font-weight: 700; color: #2563eb; }
+    .sc-day.sc-disabled { color: #cbd5e1; cursor: not-allowed; text-decoration: line-through; opacity: 0.5; }
+    .sc-day::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background-color: transparent; transition: all 0.2s ease; z-index: -1; }
+    .sc-day:hover:not(.sc-disabled):not(.sc-selected-start):not(.sc-selected-end):not(.sc-in-range)::before, .sc-day.sc-hover-end:not(.sc-selected-start):not(.sc-selected-end)::before { background-color: #f1f5f9; box-shadow: 0 0 0 1px #e2e8f0; z-index: -1; }
+    .sc-day.sc-selected-start, .sc-day.sc-selected-end { color: white; font-weight: 600; z-index: 2; }
+    .sc-day.sc-selected-start::before, .sc-day.sc-selected-end::before { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); inset: 0; }
+    .sc-day.sc-in-range { color: #1a56db; background-color: #f0f7ff; }
+    .sc-day.sc-range-start, .sc-day.sc-range-end { position: relative; }
+    .sc-day.sc-range-start::after, .sc-day.sc-range-end::after { content: ''; position: absolute; top: 0; bottom: 0; width: 60%; background-color: #f0f7ff; z-index: -2; }
+    .sc-day.sc-range-start::after { right: 0; }
+    .sc-day.sc-range-end::after { left: 0; }
+    .sc-day:focus-visible::before { box-shadow: 0 0 0 2px white, 0 0 0 4px #2563eb; }
+    .sc-empty { width: 44px; height: 44px; }
+    .smart-calendar-panel { animation: scFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .smart-calendar-panel.hidden { display: none; }
+    @@keyframes scFadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.98); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+</style>

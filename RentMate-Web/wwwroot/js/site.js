@@ -1,19 +1,26 @@
-﻿// Site-wide helpers: toast, rent picker init, small UI utilities
+﻿/**
+ * RentMate Site-wide Utilities
+ * Handles: toasts, translations, lazy loading, and UI helpers
+ */
 (function () {
-	// --- Client-Side Translation API ---
-	window.Translations = {}; // Global storage
+	'use strict';
+
+	// ==========================================
+	// Client-Side Translation API
+	// ==========================================
+	window.Translations = {};
+
+	const TRANSLATION_CACHE_KEY = 'rentmate_translations';
+	const TRANSLATION_VERSION_KEY = 'rentmate_translations_version';
 
 	async function loadTranslations() {
 		try {
-			const cached = sessionStorage.getItem('rentmate_translations');
-			const cachedVersion = sessionStorage.getItem('rentmate_translations_version');
+			const cached = sessionStorage.getItem(TRANSLATION_CACHE_KEY);
+			const cachedVersion = sessionStorage.getItem(TRANSLATION_VERSION_KEY);
 
-			let url = '/api/translations';
-			if (cachedVersion) {
-				url += `?v=${cachedVersion}`;
-			}
-
+			const url = cachedVersion ? `/api/translations?v=${cachedVersion}` : '/api/translations';
 			const response = await fetch(url);
+
 			if (response.status === 304 && cached) {
 				window.Translations = JSON.parse(cached);
 				return;
@@ -22,122 +29,111 @@
 			if (response.ok) {
 				const data = await response.json();
 				window.Translations = data.translations;
-				sessionStorage.setItem('rentmate_translations', JSON.stringify(window.Translations));
-				sessionStorage.setItem('rentmate_translations_version', data.version);
+				sessionStorage.setItem(TRANSLATION_CACHE_KEY, JSON.stringify(window.Translations));
+				sessionStorage.setItem(TRANSLATION_VERSION_KEY, data.version);
 			} else if (cached) {
 				window.Translations = JSON.parse(cached);
 			}
 		} catch (err) {
 			console.error('Failed to load translations:', err);
+			// Attempt to use cached translations on error
+			const cached = sessionStorage.getItem(TRANSLATION_CACHE_KEY);
+			if (cached) {
+				window.Translations = JSON.parse(cached);
+			}
 		}
 	}
-	loadTranslations(); // Trigger on load
 
-	function showToast(message, type = 'info') {
-		const toastContainerId = 'toastContainer';
-		let container = document.getElementById(toastContainerId);
+	// ==========================================
+	// Toast Notification System (Tailwind CSS)
+	// ==========================================
+	const TOAST_CONTAINER_ID = 'toastContainer';
+	const TOAST_DURATION = 3000;
+
+	const TOAST_STYLES = {
+		success: { bg: 'bg-green-500', icon: 'bi-check-circle' },
+		error: { bg: 'bg-red-500', icon: 'bi-x-circle' },
+		warning: { bg: 'bg-amber-500', icon: 'bi-exclamation-triangle' },
+		info: { bg: 'bg-blue-500', icon: 'bi-info-circle' }
+	};
+
+	function getOrCreateToastContainer() {
+		let container = document.getElementById(TOAST_CONTAINER_ID);
 		if (!container) {
 			container = document.createElement('div');
-			container.id = toastContainerId;
-			container.className = 'toast-container position-fixed top-0 end-0 p-3';
+			container.id = TOAST_CONTAINER_ID;
+			container.className = 'fixed top-4 right-4 z-50 flex flex-col gap-2';
+			container.setAttribute('aria-live', 'polite');
+			container.setAttribute('aria-label', 'Notifications');
 			document.body.appendChild(container);
 		}
+		return container;
+	}
 
-		const toastEl = document.createElement('div');
-		toastEl.className = `toast align-items-center text-bg-${type} border-0 show mb-2`;
-		toastEl.setAttribute('role', 'alert');
-		toastEl.innerHTML = `
-			<div class="d-flex">
-				<div class="toast-body">${message}</div>
-				<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-			</div>
+	function showToast(message, type = 'info') {
+		const container = getOrCreateToastContainer();
+		const style = TOAST_STYLES[type] || TOAST_STYLES.info;
+
+		const toast = document.createElement('div');
+		toast.className = `${style.bg} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 transform translate-x-full opacity-0 transition-all duration-300`;
+		toast.setAttribute('role', 'alert');
+		toast.innerHTML = `
+			<i class="bi ${style.icon}"></i>
+			<span class="text-sm font-medium">${escapeHtml(message)}</span>
+			<button type="button" class="ml-2 hover:opacity-70 transition-opacity" aria-label="Dismiss">
+				<i class="bi bi-x"></i>
+			</button>
 		`;
-		container.appendChild(toastEl);
 
-		const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-		toast.show();
-		toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
-	}
+		// Close button handler
+		toast.querySelector('button').addEventListener('click', () => dismissToast(toast));
 
-	// Initialize rent date pickers on elements with .rent-daterange-picker
-	function initRentPickers() {
-		document.querySelectorAll('.rent-daterange-picker').forEach(function (element) {
-			try {
-				const blockedAttr = element.getAttribute('data-blocked') || '[]';
-				const blocked = JSON.parse(blockedAttr);
-				const form = element.closest('form');
-				const startInput = form ? form.querySelector('.start-date-input') : null;
-				const endInput = form ? form.querySelector('.end-date-input') : null;
+		container.appendChild(toast);
 
-				// Determine id suffix for modal-specific calc elements (if present)
-				const modal = element.closest('.modal');
-				const idSuffix = modal ? modal.id.replace('rentModal-', '') : null;
-				const calcWrapper = idSuffix ? document.getElementById('modalPriceCalculation-' + idSuffix) : document.getElementById('modalPriceCalculation');
-				const calcDays = idSuffix ? document.getElementById('modalCalcDays-' + idSuffix) : document.getElementById('modalCalcDays');
-				const calcTotalBase = idSuffix ? document.getElementById('modalCalcTotalBase-' + idSuffix) : document.getElementById('modalCalcTotalBase');
-				const calcFinalTotal = idSuffix ? document.getElementById('modalCalcFinalTotal-' + idSuffix) : document.getElementById('modalCalcFinalTotal');
-
-				const pricePerDay = parseFloat((form && form.dataset.price) || element.getAttribute('data-price') || 0);
-
-				flatpickr(element, {
-					mode: 'range',
-					dateFormat: 'Y-m-d',
-					minDate: 'today',
-					disable: blocked,
-					locale: { firstDayOfWeek: 1 },
-					onChange: function (selectedDates, dateStr, instance) {
-						if (selectedDates.length === 2) {
-							const start = selectedDates[0];
-							const end = selectedDates[1];
-
-							if (startInput) startInput.value = instance.formatDate(start, 'Y-m-d');
-							if (endInput) endInput.value = instance.formatDate(end, 'Y-m-d');
-
-							// calc days inclusive
-							const diffTime = Math.abs(end - start);
-							const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-							const basePrice = (isNaN(pricePerDay) ? 0 : pricePerDay);
-							const exchangeRate = window.CurrentCurrency ? window.CurrentCurrency.ExchangeRate : 1.0;
-							const symbol = window.CurrentCurrency ? window.CurrentCurrency.Symbol : '€';
-
-							const totalConverted = diffDays * basePrice * exchangeRate;
-							const formattedPrice = window.CurrentCurrency ? (window.CurrentCurrency.Code === "CHF" ? `${(basePrice * exchangeRate).toFixed(2)} ${symbol}` : `${symbol}${(basePrice * exchangeRate).toFixed(2)}`) : `${basePrice}€`;
-
-							if (calcWrapper) {
-								if (calcDays) {
-									const daysText = window.Translations && window.Translations["days"] ? window.Translations["days"] : "days";
-									calcDays.innerText = `${diffDays} ${daysText} x ${formattedPrice}`;
-								}
-								if (calcTotalBase) {
-									calcTotalBase.innerText = window.CurrentCurrency?.Code === "CHF" ? `${totalConverted.toFixed(2)} ${symbol}` : `${symbol}${totalConverted.toFixed(2)}`;
-								}
-								if (calcFinalTotal) {
-									calcFinalTotal.innerText = window.CurrentCurrency?.Code === "CHF" ? `${totalConverted.toFixed(2)} ${symbol}` : `${symbol}${totalConverted.toFixed(2)}`;
-								}
-								calcWrapper.classList.remove('d-none');
-							}
-						}
-					}
-				});
-			} catch (err) {
-				console.error('Failed initializing rent picker:', err);
-			}
+		// Animate in
+		requestAnimationFrame(() => {
+			toast.classList.remove('translate-x-full', 'opacity-0');
 		});
+
+		// Auto-dismiss
+		setTimeout(() => dismissToast(toast), TOAST_DURATION);
 	}
 
-	// Lazy image helper: add loading=lazy to all product images if not present
+	function dismissToast(toast) {
+		toast.classList.add('translate-x-full', 'opacity-0');
+		setTimeout(() => toast.remove(), 300);
+	}
+
+	function escapeHtml(text) {
+		const div = document.createElement('div');
+		div.textContent = text;
+		return div.innerHTML;
+	}
+
+	// ==========================================
+	// Lazy Image Loading
+	// ==========================================
 	function enableLazyImages() {
-		document.querySelectorAll('img').forEach(img => {
-			if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
+		document.querySelectorAll('img:not([loading])').forEach(img => {
+			img.setAttribute('loading', 'lazy');
 		});
 	}
 
-	document.addEventListener('DOMContentLoaded', function () {
-		initRentPickers();
+	// ==========================================
+	// Initialization
+	// ==========================================
+	function init() {
 		enableLazyImages();
-		window.showToast = showToast; // expose for inline scripts
-	});
+		window.showToast = showToast;
+	}
 
-	// (floating-label autofill handling reverted)
+	// Load translations immediately
+	loadTranslations();
+
+	// Initialize on DOM ready
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
 })();

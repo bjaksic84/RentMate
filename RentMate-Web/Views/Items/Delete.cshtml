@@ -1,7 +1,7 @@
 @model RentMate.Models.Item
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Delete item"];
@@ -10,10 +10,7 @@
 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <a asp-controller="Dashboard" asp-action="UserDashboard" class="inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 transition-colors mb-4">
-            <i class="bi bi-arrow-left"></i>
-            @Localizer["Back to Dashboard"]
-        </a>
+        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = "Back to Dashboard" })
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -33,19 +30,13 @@
         <!-- Item Preview -->
         <div class="p-6">
             <div class="flex gap-4 items-start">
-                @if(!string.IsNullOrEmpty(Model.ImageUrl)) {
-                    <img src="@Model.ImageUrl" class="w-24 h-24 rounded-xl object-cover shrink-0" />
-                } else {
-                    <div class="w-24 h-24 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                        <i class="bi bi-image text-slate-300 text-2xl"></i>
-                    </div>
-                }
+                @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.ImageUrl, Size = "lg", Alt = Model.Title })
                 <div class="flex-1 min-w-0">
                     <h2 class="font-heading text-xl font-bold text-slate-900">@Model.Title</h2>
                     <p class="text-slate-500 text-sm mt-1 line-clamp-2">@Model.Description</p>
                     <div class="flex items-center gap-4 mt-3">
                         <span class="text-lg font-bold text-green-600">@CurrencyService.Format(Model.Price)/@Localizer["day"]</span>
-                        <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">@Localizer[Model.Category ?? "Uncategorized"]</span>
+                        @await Html.PartialAsync("_StatusBadge", new { Type = "normal", Text = Model.Category ?? "Uncategorized" })
                     </div>
                 </div>
             </div>

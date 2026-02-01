@@ -1,0 +1,32 @@
+@*
+    Category Select Partial View - Dropdown for item categories
+    
+    Usage: @await Html.PartialAsync("_CategorySelect", new { 
+        Name = "Category",
+        SelectedValue = Model.Category,
+        IncludeUncategorized = true
+    })
+*@
+
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Helpers
+@inject IViewLocalizer Localizer
+
+@{
+    var name = (string)(Model?.Name ?? ViewData["Name"] ?? "Category");
+    var selectedValue = (string?)(Model?.SelectedValue ?? ViewData["SelectedValue"]);
+    var includeUncategorized = (bool?)(Model?.IncludeUncategorized ?? ViewData["IncludeUncategorized"]) ?? true;
+    var cssClass = (string)(Model?.CssClass ?? ViewData["CssClass"] ?? ViewConstants.InputClass + " bg-white");
+    
+    var categories = includeUncategorized 
+        ? ViewConstants.ItemCategories 
+        : ViewConstants.ItemCategories.Where(c => c != "Uncategorized").ToArray();
+}
+
+<select name="@name" id="@name" class="@cssClass">
+    @foreach (var category in categories)
+    {
+        var isSelected = string.Equals(selectedValue, category, StringComparison.OrdinalIgnoreCase);
+        <option value="@category" selected="@isSelected">@Localizer[category]</option>
+    }
+</select>

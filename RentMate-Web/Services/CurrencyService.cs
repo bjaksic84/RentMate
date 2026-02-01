@@ -2,81 +2,132 @@ using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using RentMate.Models;
 
-namespace RentMate.Services
+namespace RentMate.Services;
+
+/// <summary>
+/// Currency conversion and formatting service.
+/// Uses cookies to persist user's currency preference.
+/// </summary>
+public class CurrencyService : ICurrencyService
 {
-    public class CurrencyService
+    #region Constants
+
+    /// <summary>
+    /// Cookie name for storing the user's currency preference.
+    /// </summary>
+    public const string CurrencyCookieName = "RentMateCurrency";
+
+    private const string DefaultCurrencyCode = "EUR";
+
+    private static readonly List<CurrencyInfo> Currencies =
+    [
+        new() { Code = "EUR", Symbol = "€", Flag = "🇪🇺", Name = "Euro", ExchangeRate = 1.0m },
+        new() { Code = "USD", Symbol = "$", Flag = "🇺🇸", Name = "US Dollar", ExchangeRate = 1.08m },
+        new() { Code = "GBP", Symbol = "£", Flag = "🇬🇧", Name = "British Pound", ExchangeRate = 0.85m },
+        new() { Code = "CHF", Symbol = "CHF", Flag = "🇨🇭", Name = "Swiss Franc", ExchangeRate = 0.96m }
+    ];
+
+    #endregion
+
+    #region Fields
+
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    #endregion
+
+    #region Constructor
+
+    public CurrencyService(IHttpContextAccessor httpContextAccessor)
     {
-        public const string CurrencyCookieName = "RentMateCurrency";
-        private readonly IHttpContextAccessor _httpContextAccessor;
-
-        public static readonly List<CurrencyInfo> SupportedCurrencies = new()
-        {
-            new CurrencyInfo { Code = "EUR", Symbol = "€", Flag = "🇪🇺", Name = "Euro", ExchangeRate = 1.0m },
-            new CurrencyInfo { Code = "USD", Symbol = "$", Flag = "🇺🇸", Name = "US Dollar", ExchangeRate = 1.08m },
-            new CurrencyInfo { Code = "GBP", Symbol = "£", Flag = "🇬🇧", Name = "British Pound", ExchangeRate = 0.85m },
-            new CurrencyInfo { Code = "CHF", Symbol = "CHF", Flag = "🇨🇭", Name = "Swiss Franc", ExchangeRate = 0.96m }
-        };
-
-        public CurrencyService(IHttpContextAccessor httpContextAccessor)
-        {
-            _httpContextAccessor = httpContextAccessor;
-        }
-
-        public CurrencyInfo GetCurrentCurrency()
-        {
-            var cookie = _httpContextAccessor.HttpContext?.Request.Cookies[CurrencyCookieName];
-            if (string.IsNullOrEmpty(cookie))
-            {
-                return SupportedCurrencies[0]; // Default: EUR
-            }
-
-            return SupportedCurrencies.FirstOrDefault(c => c.Code == cookie) ?? SupportedCurrencies[0];
-        }
-
-        public decimal Convert(decimal? amount)
-        {
-            if (!amount.HasValue) return 0;
-            var currency = GetCurrentCurrency();
-            return amount.Value * currency.ExchangeRate;
-        }
-
-        public decimal ConvertToBase(decimal? amount)
-        {
-            if (!amount.HasValue) return 0;
-            var currency = GetCurrentCurrency();
-            if (currency.ExchangeRate == 0) return amount.Value;
-            return amount.Value / currency.ExchangeRate;
-        }
-
-        public string Format(decimal? amount, bool includeSymbol = true)
-        {
-            if (!amount.HasValue) return "";
-            
-            var currency = GetCurrentCurrency();
-            var convertedAmount = amount.Value * currency.ExchangeRate;
-            
-            // Use current culture for numeric formatting (decimal separator)
-            var currentCulture = CultureInfo.CurrentUICulture;
-            var formattedNumber = convertedAmount.ToString("N2", currentCulture);
-
-            if (includeSymbol)
-            {
-                if (currency.Code == "CHF") 
-                    return $"{formattedNumber} {currency.Symbol}";
-                
-                // For Euro, if it's Slovenian culture, symbol usually follows
-                if (currency.Code == "EUR" && currentCulture.TwoLetterISOLanguageName == "sl")
-                    return $"{formattedNumber} {currency.Symbol}";
-                
-                return $"{currency.Symbol}{formattedNumber}";
-            }
-
-            return formattedNumber;
-        }
-
-        public string GetSymbol()
-        {
-            return GetCurrentCurrency().Symbol;
-        }
+        _httpContextAccessor = httpContextAccessor;
     }
+
+    #endregion
+
+    #region Properties
+
+    /// <inheritdoc/>
+    public IReadOnlyList<CurrencyInfo> SupportedCurrencies => Currencies;
+
+    #endregion
+
+    #region Public Methods
+
+    /// <inheritdoc/>
+    public CurrencyInfo GetCurrentCurrency()
+    {
+        var cookieValue = _httpContextAccessor.HttpContext?.Request.Cookies[CurrencyCookieName];
+        
+        return string.IsNullOrEmpty(cookieValue)
+            ? GetDefaultCurrency()
+            : FindCurrencyByCode(cookieValue) ?? GetDefaultCurrency();
+    }
+
+    /// <inheritdoc/>
+    public decimal Convert(decimal? amount)
+    {
+        if (!amount.HasValue) return 0m;
+        
+        return amount.Value * GetCurrentCurrency().ExchangeRate;
+    }
+
+    /// <inheritdoc/>
+    public decimal ConvertToBase(decimal? amount)
+    {
+        if (!amount.HasValue) return 0m;
+
+        var exchangeRate = GetCurrentCurrency().ExchangeRate;
+        return exchangeRate == 0m ? amount.Value : amount.Value / exchangeRate;
+    }
+
+    /// <inheritdoc/>
+    public string Format(decimal? amount, bool includeSymbol = true)
+    {
+        if (!amount.HasValue) return string.Empty;
+
+        var currency = GetCurrentCurrency();
+        var convertedAmount = amount.Value * currency.ExchangeRate;
+        var formattedNumber = FormatNumber(convertedAmount);
+
+        return includeSymbol
+            ? FormatWithSymbol(formattedNumber, currency)
+            : formattedNumber;
+    }
+
+    /// <inheritdoc/>
+    public string GetSymbol() => GetCurrentCurrency().Symbol;
+
+    #endregion
+
+    #region Private Helpers
+
+    private static CurrencyInfo GetDefaultCurrency() 
+        => Currencies.First(c => c.Code == DefaultCurrencyCode);
+
+    private static CurrencyInfo? FindCurrencyByCode(string code) 
+        => Currencies.FirstOrDefault(c => c.Code == code);
+
+    private static string FormatNumber(decimal amount) 
+        => amount.ToString("N2", CultureInfo.CurrentUICulture);
+
+    /// <summary>
+    /// Formats the amount with the currency symbol according to locale conventions.
+    /// </summary>
+    private static string FormatWithSymbol(string formattedNumber, CurrencyInfo currency)
+    {
+        var culture = CultureInfo.CurrentUICulture;
+
+        // CHF always appears after the number
+        if (currency.Code == "CHF")
+            return $"{formattedNumber} {currency.Symbol}";
+
+        // Euro symbol appears after the number in Slovenian locale
+        if (currency.Code == "EUR" && culture.TwoLetterISOLanguageName == "sl")
+            return $"{formattedNumber} {currency.Symbol}";
+
+        // Default: symbol before the number
+        return $"{currency.Symbol}{formattedNumber}";
+    }
+
+    #endregion
 }

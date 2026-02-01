@@ -2,39 +2,66 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using RentMate.Models;
 using RentMate.Services;
-using Microsoft.AspNetCore.Mvc.Rendering; // Za SelectListItem
-using RentMate.Helpers; // Za CityData
+using RentMate.Helpers;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
 {
-    public class IndexModel : PageModel
+    /// <summary>
+    /// Page model for managing user profile information.
+    /// </summary>
+    public class IndexModel : BaseIdentityPageModel
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
+        #region Constants
+
+        private const string ProfileImagesFolder = "profiles";
+        private const string ProfileUpdatedMessage = "Vaš profil je bil posodobljen";
+        private const string PhoneNumberErrorMessage = "Unexpected error when trying to set phone number.";
+
+        #endregion
+
+        #region Dependencies
+
         private readonly IFileUploadService _fileUploadService;
+
+        #endregion
+
+        #region Constructor
 
         public IndexModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IFileUploadService fileUploadService)
+            : base(userManager, signInManager)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
             _fileUploadService = fileUploadService;
         }
 
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Current username for display.
+        /// </summary>
         public string? Username { get; set; }
         
-        // Seznam mest za dropdown
+        /// <summary>
+        /// Available cities for the dropdown.
+        /// </summary>
         public List<SelectListItem>? CityOptions { get; set; }
 
-        [TempData]
-        public string? StatusMessage { get; set; }
-
+        /// <summary>
+        /// Input model for profile updates.
+        /// </summary>
         [BindProperty]
         public InputModel? Input { get; set; }
+
+        #endregion
+
+        #region Input Model
 
         public class InputModel
         {
@@ -51,20 +78,69 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             [Display(Name = "Mesto")]
             public string? City { get; set; }
 
-            // URL za prikaz obstoječe slike
+            /// <summary>
+            /// URL of the existing profile picture.
+            /// </summary>
             public string? ProfilePictureUrl { get; set; }
 
-            // Polje za nalaganje nove slike
+            /// <summary>
+            /// New profile picture to upload.
+            /// </summary>
             [Display(Name = "Slika profila")]
             public IFormFile? NewProfilePicture { get; set; }
         }
 
-        private async Task LoadAsync(ApplicationUser user)
-        {
-            var userName = await _userManager.GetUserNameAsync(user);
-            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
+        #endregion
 
-            Username = userName;
+        #region Page Handlers
+
+        public async Task<IActionResult> OnGetAsync()
+        {
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            if (errorResult != null) return errorResult;
+
+            await LoadUserDataAsync(user!);
+            return Page();
+        }
+
+        public async Task<IActionResult> OnPostAsync()
+        {
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            if (errorResult != null) return errorResult;
+
+            if (IsModelStateInvalid())
+            {
+                await LoadUserDataAsync(user!);
+                return Page();
+            }
+
+            if (Input == null) return BadRequest();
+
+            var updateResult = await UpdateUserProfileAsync(user!);
+            if (!updateResult.Success)
+            {
+                SetErrorMessage(updateResult.ErrorMessage!);
+                return RedirectToPage();
+            }
+
+            await UserManager.UpdateAsync(user!);
+            await RefreshSignInAsync(user!);
+            
+            SetSuccessMessage(ProfileUpdatedMessage);
+            return RedirectToPage();
+        }
+
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Loads all user data for display.
+        /// </summary>
+        private async Task LoadUserDataAsync(ApplicationUser user)
+        {
+            Username = await UserManager.GetUserNameAsync(user);
+            var phoneNumber = await UserManager.GetPhoneNumberAsync(user);
 
             Input = new InputModel
             {
@@ -72,77 +148,95 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
                 FirstName = user.FirstName,
                 LastName = user.LastName,
                 City = user.City,
-                ProfilePictureUrl = user.ProfilePictureUrl // Naložimo iz baze
+                ProfilePictureUrl = user.ProfilePictureUrl
             };
 
-            // ✅ KORAK 2: Napolnimo dropdown seznam z mesti iz CityData
+            LoadCityOptions(user.City);
+        }
+
+        /// <summary>
+        /// Populates the city dropdown options.
+        /// </summary>
+        private void LoadCityOptions(string? currentCity)
+        {
             CityOptions = CityData.Cities.Select(c => new SelectListItem 
             { 
                 Value = c.Name, 
                 Text = c.Name,
-                Selected = c.Name == user.City // Če ima uporabnik že to mesto, ga označi
+                Selected = c.Name == currentCity
             }).ToList();
         }
 
-        public async Task<IActionResult> OnGetAsync()
+        /// <summary>
+        /// Updates all user profile fields.
+        /// </summary>
+        private async Task<(bool Success, string? ErrorMessage)> UpdateUserProfileAsync(ApplicationUser user)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            // Update phone number
+            var phoneResult = await UpdatePhoneNumberAsync(user);
+            if (!phoneResult.Success)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return phoneResult;
             }
 
-            await LoadAsync(user);
-            return Page();
+            // Update basic profile fields
+            UpdateBasicProfileFields(user);
+
+            // Handle profile picture upload
+            await UpdateProfilePictureAsync(user);
+
+            return (true, null);
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        /// <summary>
+        /// Updates the user's phone number if changed.
+        /// </summary>
+        private async Task<(bool Success, string? ErrorMessage)> UpdatePhoneNumberAsync(ApplicationUser user)
         {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null)
+            var currentPhoneNumber = await UserManager.GetPhoneNumberAsync(user);
+            
+            if (Input!.PhoneNumber != currentPhoneNumber)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                await LoadAsync(user); // Če validacija ne uspe, moramo ponovno naložiti mesta!
-                return Page();
-            }
-
-            var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
-            if (Input.PhoneNumber != phoneNumber)
-            {
-                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+                var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
                 if (!setPhoneResult.Succeeded)
                 {
-                    StatusMessage = "Unexpected error when trying to set phone number.";
-                    return RedirectToPage();
+                    return (false, PhoneNumberErrorMessage);
                 }
             }
 
-            // Posodobitev osnovnih podatkov
-            if (Input.FirstName != user.FirstName) user.FirstName = Input.FirstName;
-            if (Input.LastName != user.LastName) user.LastName = Input.LastName;
+            return (true, null);
+        }
+
+        /// <summary>
+        /// Updates basic profile fields (name, city).
+        /// </summary>
+        private void UpdateBasicProfileFields(ApplicationUser user)
+        {
+            if (Input!.FirstName != user.FirstName) 
+                user.FirstName = Input.FirstName;
             
-            // ✅ Shranjevanje mesta (prihaja iz dropdowna)
-            if (Input.City != user.City) user.City = Input.City;
+            if (Input.LastName != user.LastName) 
+                user.LastName = Input.LastName;
+            
+            if (Input.City != user.City) 
+                user.City = Input.City;
+        }
 
-            // LOGIKA ZA SLIKO (Cloudinary)
-            if (Input.NewProfilePicture != null)
+        /// <summary>
+        /// Uploads a new profile picture if provided.
+        /// </summary>
+        private async Task UpdateProfilePictureAsync(ApplicationUser user)
+        {
+            if (Input!.NewProfilePicture != null)
             {
-                // 1. Nalaganje na Cloudinary (mapa "profiles")
-                string newUrl = await _fileUploadService.UploadFileAsync(Input.NewProfilePicture, "profiles");
-
-                // 2. Posodobitev uporabnika
+                var newUrl = await _fileUploadService.UploadFileAsync(
+                    Input.NewProfilePicture, 
+                    ProfileImagesFolder);
+                
                 user.ProfilePictureUrl = newUrl;
             }
-
-            await _userManager.UpdateAsync(user);
-            await _signInManager.RefreshSignInAsync(user);
-            
-            StatusMessage = "Vaš profil je bil posodobljen";
-            return RedirectToPage();
         }
+
+        #endregion
     }
 }

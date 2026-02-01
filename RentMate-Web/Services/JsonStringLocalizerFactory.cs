@@ -2,37 +2,65 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
-namespace RentMate.Services
+namespace RentMate.Services;
+
+/// <summary>
+/// Factory for creating JSON-based string localizers.
+/// Ignores the resource source type and returns a global JSON localizer.
+/// </summary>
+public class JsonStringLocalizerFactory : IStringLocalizerFactory
 {
-    public class JsonStringLocalizerFactory : IStringLocalizerFactory
+    #region Constants
+
+    private const string DefaultResourcesPath = "Resources";
+
+    #endregion
+
+    #region Fields
+
+    private readonly string _resourcesPath;
+    private readonly IWebHostEnvironment _env;
+    private readonly IMemoryCache _cache;
+
+    #endregion
+
+    #region Constructor
+
+    public JsonStringLocalizerFactory(
+        IOptions<LocalizationOptions> localizationOptions,
+        IWebHostEnvironment env,
+        IMemoryCache cache)
     {
-        private readonly string _resourcesPath;
-        private readonly IWebHostEnvironment _env;
-        private readonly IMemoryCache _cache;
-
-        public JsonStringLocalizerFactory(IOptions<LocalizationOptions> localizationOptions, IWebHostEnvironment env, IMemoryCache cache)
-        {
-            _resourcesPath = localizationOptions.Value.ResourcesPath ?? "Resources";
-            _env = env;
-            _cache = cache;
-        }
-
-        public IStringLocalizer Create(Type resourceSource)
-        {
-            // We ignore the type and always return the global JSON localizer
-            // This effectively flattens all localization to a single source
-            return CreateLocalizer();
-        }
-
-        public IStringLocalizer Create(string baseName, string location)
-        {
-            return CreateLocalizer();
-        }
-
-        private IStringLocalizer CreateLocalizer()
-        {
-            var fullPath = Path.Combine(_env.ContentRootPath, _resourcesPath);
-            return new JsonStringLocalizer(fullPath, _cache);
-        }
+        _resourcesPath = localizationOptions.Value.ResourcesPath ?? DefaultResourcesPath;
+        _env = env;
+        _cache = cache;
     }
+
+    #endregion
+
+    #region IStringLocalizerFactory Implementation
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Type is ignored - all localization is flattened to a single JSON source.
+    /// </remarks>
+    public IStringLocalizer Create(Type resourceSource) => CreateLocalizer();
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Parameters are ignored - all localization is flattened to a single JSON source.
+    /// </remarks>
+    public IStringLocalizer Create(string baseName, string location) => CreateLocalizer();
+
+    #endregion
+
+    #region Private Helpers
+
+    private IStringLocalizer CreateLocalizer()
+    {
+        var fullPath = Path.Combine(_env.ContentRootPath, _resourcesPath);
+        return new JsonStringLocalizer(fullPath, _cache);
+    }
+
+    #endregion
 }

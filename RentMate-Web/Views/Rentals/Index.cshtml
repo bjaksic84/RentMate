@@ -4,7 +4,7 @@
 @using RentMate.Helpers;
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject RentMate.Services.CurrencyService CurrencyService
+@inject RentMate.Services.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Marketplace"];
@@ -23,7 +23,7 @@
                            !string.IsNullOrEmpty(ViewBag.StartDate as string) ||
                            !string.IsNullOrEmpty(ViewBag.MinRating as string);
     
-    var categories = new[] { "Tools", "Electronics", "Sports", "Home & Garden", "Fun", "Other" };
+    var categories = ViewConstants.FilterCategories;
     var cities = CityData.Cities.Select(c => c.Name).ToList();
     
     // Format dates for display (booking.com style: '26 Jan' or '26. jan')
@@ -36,65 +36,112 @@
         return dateStr ?? "";
     }
     
-    var formattedStartDate = FormatShortDate(ViewBag.StartDate as string);
-    var formattedEndDate = FormatShortDate(ViewBag.EndDate as string);
+    var formattedStartDate = FormatShortDate((ViewBag.StartDate as string) ?? "");
+    var formattedEndDate = FormatShortDate((ViewBag.EndDate as string) ?? "");
     var displayDateRange = !string.IsNullOrEmpty(ViewBag.StartDate as string) && !string.IsNullOrEmpty(ViewBag.EndDate as string)
         ? $"{formattedStartDate} - {formattedEndDate}"
         : "";
 }
 
+@Html.AntiForgeryToken()
+
 <!-- Mini Hero with Search -->
-<section class="bg-gradient-to-r from-blue-600 to-blue-700 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-6">
-            <h1 class="font-heading text-2xl sm:text-3xl font-bold text-white mb-2">
+<section class="relative z-[40] bg-gradient-to-r from-blue-600 to-blue-700 py-12 overflow-visible">
+    <!-- Decorative background elements -->
+    <div class="absolute inset-0 opacity-20 pointer-events-none">
+        <div class="absolute top-0 left-1/4 w-64 h-64 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
+    </div>
+
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-visible">
+        <div class="text-center mb-8">
+            <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-2">
                 @Localizer["Find the perfect item to rent"]
             </h1>
-            <p class="text-blue-100">@Model.Count() @Localizer["items available"]</p>
+            <p class="text-blue-100 opacity-90">@Model.Count() @Localizer["items available in our community"]</p>
         </div>
         
-        <!-- Search Bar -->
-        <form asp-action="Index" method="get" class="max-w-4xl mx-auto">
-            <div class="glass rounded-2xl p-2 shadow-lg">
-                <div class="flex flex-col sm:flex-row items-stretch gap-2">
-                    <div class="flex-1 flex items-center gap-3 px-4 py-3 bg-white/50 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 transition-all">
-                        <i class="bi bi-search text-blue-600" aria-hidden="true"></i>
-                        <input type="text" name="search" value="@ViewBag.Search" 
-                               placeholder="@Localizer["What are you looking for?"]"
-                               aria-label="@Localizer["Search items"]"
-                               class="flex-1 bg-transparent border-none text-slate-900 placeholder-slate-400 focus:outline-none">
+        <div class="max-w-4xl mx-auto overflow-visible">
+            <form asp-action="Index" method="get" id="marketplaceSearchForm"
+                  class="glass rounded-2xl sm:rounded-full p-2 shadow-xl border border-white/30 relative z-[500] overflow-visible">
+                <div class="flex flex-col sm:flex-row items-stretch gap-2 overflow-visible">
+                    <!-- What (Search Input) -->
+                    <div class="flex-[1.5] min-w-0 group relative overflow-visible">
+                        <div onclick="document.getElementById('mktSearch').focus()" 
+                             class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full 
+                                    bg-white/60 hover:bg-white/90 
+                                    focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2
+                                    transition-all duration-200 cursor-text h-full">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
+                                <i class="bi bi-search text-white text-sm"></i>
+                            </div>
+                            <div class="flex-1 min-w-0 relative">
+                                <input type="text" id="mktSearch" name="search" value="@ViewBag.Search" 
+                                       placeholder="@Localizer["What are you looking for?"]"
+                                       oninput="toggleClearButton(this)"
+                                       class="w-full bg-transparent border-none text-slate-900 font-medium placeholder-slate-500 focus:outline-none text-sm pr-8">
+                                <button type="button" id="mktSearchClear" onclick="clearSearchInput()"
+                                        class="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-500 transition-all opacity-0 invisible">
+                                    <i class="bi bi-x text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <select name="city" class="px-4 py-3 bg-white/50 rounded-xl border-none text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            aria-label="@Localizer["City"]">
-                        <option value="">@Localizer["All cities"]</option>
-                        @foreach (var city in cities)
-                        {
-                            <option value="@city" selected="@(ViewBag.City == city)">@city</option>
+                    
+                    <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
+                    
+                    <!-- Date Range -->
+                    <div class="flex-1 min-w-0 relative z-[10] overflow-visible">
+                        @{
+                            DateOnly? marketStartDate = null;
+                            DateOnly? marketEndDate = null;
+                            if (!string.IsNullOrEmpty(ViewBag.StartDate as string) && DateOnly.TryParse((string)ViewBag.StartDate, out var ps)) marketStartDate = ps;
+                            if (!string.IsNullOrEmpty(ViewBag.EndDate as string) && DateOnly.TryParse((string)ViewBag.EndDate, out var pe)) marketEndDate = pe;
                         }
-                    </select>
-                    <div class="flex items-center gap-3 px-4 py-3 bg-white/50 rounded-xl focus-within:ring-2 focus-within:ring-blue-500 transition-all">
-                        <i class="bi bi-calendar-event text-blue-600" aria-hidden="true"></i>
-                        <input type="text" id="marketplaceDateRange" name="dates" 
-                               value="@displayDateRange" 
-                               placeholder="@Localizer["Pick a date range"]"
-                               aria-label="@Localizer["When"]"
-                               readonly
-                               class="bg-transparent border-none text-slate-700 text-sm focus:outline-none cursor-pointer w-40 placeholder-slate-400">
-                        <input type="hidden" name="startDate" id="hiddenStartDate" value="@ViewBag.StartDate" />
-                        <input type="hidden" name="endDate" id="hiddenEndDate" value="@ViewBag.EndDate" />
+                        @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.SmartCalendarModel {
+                            Id = "marketplaceDateRange",
+                            StartDateField = "startDate",
+                            EndDateField = "endDate",
+                            Mode = RentMate.Models.CalendarMode.Range,
+                            MinDate = DateOnly.FromDateTime(DateTime.Today),
+                            InitialStart = marketStartDate,
+                            InitialEnd = marketEndDate,
+                            Placeholder = Localizer["When?"].Value
+                        })
                     </div>
-                    <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors"
-                            aria-label="@Localizer["Search"]">
-                        <i class="bi bi-search" aria-hidden="true"></i>
+                    
+                    <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
+                    
+                    <!-- Location -->
+                    <div class="flex-1 min-w-0 group relative overflow-visible">
+                        <div onclick="document.querySelector('[name=city]').focus()" 
+                             class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full bg-white/60 hover:bg-white/90 focus-within:bg-white transition-all cursor-pointer h-full">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
+                                <i class="bi bi-geo-alt-fill text-white text-sm"></i>
+                            </div>
+                            <select name="city" class="flex-1 min-w-0 bg-transparent border-none text-slate-900 font-medium focus:outline-none text-sm cursor-pointer">
+                                <option value="">@Localizer["Where?"]</option>
+                                @foreach (var city in cities)
+                                {
+                                    <option value="@city" selected="@(ViewBag.City == city)">@city</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Button -->
+                    <button type="submit" class="px-7 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl sm:rounded-full shadow-md transition-all duration-300 flex items-center justify-center gap-2 group">
+                        <i class="bi bi-search text-lg group-hover:scale-110 transition-transform"></i>
+                        <span class="sm:hidden lg:inline">@Localizer["Search"]</span>
                     </button>
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </section>
 
 <!-- Main Content -->
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="relative z-[10] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex flex-col lg:flex-row gap-8">
         
         <!-- Sidebar Filters (Desktop) -->
@@ -503,12 +550,12 @@
                                     }
                                     
                                     <!-- Favorite Button -->
-                                    <button onclick="event.preventDefault(); event.stopPropagation();" 
-                                            class="absolute top-3 right-3 w-10 h-10 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110 group/fav touch-target focus-ring"
-                                            style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);"
-                                            aria-label="@Localizer["Add to favorites"]">
-                                        <i class="bi bi-heart text-slate-600 group-hover/fav:text-red-500 transition-colors" aria-hidden="true"></i>
-                                    </button>
+                                    <div class="absolute top-3 right-3">
+                                        @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.FavoriteButtonViewModel {
+                                            ItemId = item.Id,
+                                            IsFavorited = item.FavoritedBy?.Any(f => f.AccountId == ViewBag.CurrentUserId) ?? false
+                                        })
+                                    </div>
                                     
                                     <!-- Category Badge -->
                                     @if (!string.IsNullOrEmpty(item.Category))
@@ -749,28 +796,30 @@
             return `${year}-${month}-${day}`;
         }
 
-        flatpickr("#marketplaceDateRange", {
-            mode: "range",
-            minDate: "today",
-            dateFormat: "M j",
-            locale: {
-                rangeSeparator: " - "
-            },
-            disableMobile: true,
-            @if (!string.IsNullOrEmpty(ViewBag.StartDate as string) && !string.IsNullOrEmpty(ViewBag.EndDate as string))
-            {
-                <text>defaultDate: ["@ViewBag.StartDate", "@ViewBag.EndDate"],</text>
+        // SmartCalendar is now used instead of Flatpickr for marketplace date selection
+        
+        function toggleClearButton(input) {
+            const clearBtn = document.getElementById('mktSearchClear');
+            if (input.value.length > 0) {
+                clearBtn.classList.remove('opacity-0', 'invisible');
+                clearBtn.classList.add('opacity-100', 'visible');
+            } else {
+                clearBtn.classList.add('opacity-0', 'invisible');
+                clearBtn.classList.remove('opacity-100', 'visible');
             }
-            onChange: function(selectedDates, dateStr, instance) {
-                if (selectedDates.length === 2) {
-                    // Format dates for form submission (yyyy-MM-dd) in local timezone
-                    document.getElementById('hiddenStartDate').value = formatLocalDate(selectedDates[0]);
-                    document.getElementById('hiddenEndDate').value = formatLocalDate(selectedDates[1]);
-                } else {
-                    document.getElementById('hiddenStartDate').value = '';
-                    document.getElementById('hiddenEndDate').value = '';
-                }
-            }
+        }
+
+        function clearSearchInput() {
+            const input = document.getElementById('mktSearch');
+            input.value = '';
+            input.focus();
+            toggleClearButton(input);
+        }
+
+        // Initialize clear button
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('mktSearch');
+            if (input) toggleClearButton(input);
         });
     </script>
 }
