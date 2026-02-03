@@ -11,7 +11,7 @@
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = "Back to Dashboard" })
+        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = Localizer["Back to Dashboard"].Value })
         <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["List a New Item"]</h1>
         <p class="text-slate-500 mt-2">@Localizer["Share your item with the community and start earning"]</p>
     </div>
@@ -78,8 +78,11 @@
                         <label asp-for="Price" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Price per day"] (@currency.Code)</label>
                         <div class="relative">
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">@currency.Symbol</span>
+                            @{
+                                var paddingClass = currency.Symbol.Length > 1 ? "pl-14" : "pl-10";
+                            }
                             <input asp-for="Price" type="number" step="0.01" min="0" 
-                                   class="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                   class="w-full @paddingClass pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
                                    placeholder="0.00" />
                         </div>
                         <span asp-validation-for="Price" class="text-sm text-red-600"></span>
@@ -120,13 +123,19 @@
         </div>
 
         <!-- Submit -->
-        <div class="flex flex-col sm:flex-row gap-3 justify-end">
-            <a asp-controller="Dashboard" asp-action="UserDashboard" class="@ViewConstants.ButtonStyles.Secondary text-center">
-                @Localizer["Cancel"]
-            </a>
-            <button type="submit" class="@ViewConstants.ButtonStyles.Primary">
-                @Localizer["Publish Item"]
+        <div class="flex flex-col sm:flex-row gap-3 justify-between items-center">
+            <button type="button" onclick="clearFormData()" class="px-4 py-2.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl font-medium transition-colors flex items-center gap-2">
+                <i class="bi bi-trash3"></i>
+                @Localizer["Clear Form"]
             </button>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <a asp-controller="Dashboard" asp-action="UserDashboard" class="@ViewConstants.ButtonStyles.Secondary text-center">
+                    @Localizer["Cancel"]
+                </a>
+                <button type="submit" class="@ViewConstants.ButtonStyles.Primary">
+                    @Localizer["Publish Item"]
+                </button>
+            </div>
         </div>
     </form>
 </div>
@@ -163,6 +172,87 @@
     <partial name="_ValidationScriptsPartial" />
     
     <script>
+        const STORAGE_KEY = 'rentmate_create_item_draft';
+        
+        // Auto-save form data to localStorage
+        function saveFormDraft() {
+            const form = document.querySelector('form');
+            const formData = {
+                title: form.querySelector('[name="Title"]')?.value || '',
+                description: form.querySelector('[name="Description"]')?.value || '',
+                price: form.querySelector('[name="Price"]')?.value || '',
+                category: form.querySelector('[name="Category"]')?.value || '',
+                location: form.querySelector('[name="Location"]')?.value || '',
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+        }
+        
+        // Restore form data from localStorage
+        function restoreFormDraft() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (!savedData) return;
+            
+            try {
+                const formData = JSON.parse(savedData);
+                const form = document.querySelector('form');
+                
+                if (formData.title) {
+                    const titleInput = form.querySelector('[name="Title"]');
+                    if (titleInput) titleInput.value = formData.title;
+                }
+                if (formData.description) {
+                    const descInput = form.querySelector('[name="Description"]');
+                    if (descInput) descInput.value = formData.description;
+                }
+                if (formData.price) {
+                    const priceInput = form.querySelector('[name="Price"]');
+                    if (priceInput) priceInput.value = formData.price;
+                }
+                if (formData.category) {
+                    const categorySelect = form.querySelector('[name="Category"]');
+                    if (categorySelect) categorySelect.value = formData.category;
+                }
+                if (formData.location) {
+                    const locationInput = form.querySelector('[name="Location"]');
+                    if (locationInput) locationInput.value = formData.location;
+                }
+            } catch (e) {
+                console.error('Failed to restore form draft:', e);
+            }
+        }
+        
+        // Clear all saved form data
+        function clearFormData() {
+            if (confirm('@Localizer["Are you sure you want to clear all fields?"]')) {
+                localStorage.removeItem(STORAGE_KEY);
+                const form = document.querySelector('form');
+                form.reset();
+                document.getElementById('imgPreview').src = 'https://via.placeholder.com/200x200?text=No+Image';
+            }
+        }
+        
+        // Clear draft on successful form submission
+        function clearDraftOnSubmit() {
+            localStorage.removeItem(STORAGE_KEY);
+        }
+        
+        // Initialize auto-save and restore
+        document.addEventListener('DOMContentLoaded', function() {
+            // Restore saved draft on page load
+            restoreFormDraft();
+            
+            // Set up auto-save on input changes
+            const form = document.querySelector('form');
+            form.querySelectorAll('input, textarea, select').forEach(input => {
+                input.addEventListener('input', saveFormDraft);
+                input.addEventListener('change', saveFormDraft);
+            });
+            
+            // Clear draft on form submit
+            form.addEventListener('submit', clearDraftOnSubmit);
+        });
+        
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();

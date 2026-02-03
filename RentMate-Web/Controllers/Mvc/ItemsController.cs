@@ -110,7 +110,7 @@ namespace RentMate.Controllers.Mvc
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category")] Item item, IFormFile? image)
+        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category,Location")] Item item, IFormFile? image)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -120,8 +120,9 @@ namespace RentMate.Controllers.Mvc
 
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = _localizer["Failed to create item. Please try again."].Value;
-                return RedirectToAction(DashboardAction, DashboardController);
+                // Stay on the Create page and show validation errors
+                ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email");
+                return View(item);
             }
 
             await InitializeNewItemAsync(item, currentUser.Id, image);

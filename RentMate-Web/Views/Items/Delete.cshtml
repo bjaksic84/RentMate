@@ -10,7 +10,7 @@
 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = "Back to Dashboard" })
+        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = Localizer["Back to Dashboard"].Value })
     </div>
 
     <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">

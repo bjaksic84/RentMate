@@ -10,7 +10,7 @@
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = "Back to Dashboard" })
+        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = Localizer["Back to Dashboard"].Value })
         <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["Edit Item"]</h1>
         <p class="text-slate-500 mt-1">@Localizer["Update your listing details"]</p>
     </div>
