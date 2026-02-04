@@ -388,6 +388,7 @@
   "Reviews": "Reviews",
   "Reviews for \"": "Reviews for \"",
   "Role": "Role",
+  "Update Review": "Update Review",
   "Role '{0}' assigned to user '{1}'.": "Role '{0}' assigned to user '{1}'.",
   "Role '{0}' removed from user '{1}'.": "Role '{0}' removed from user '{1}'.",
   "Role does not exist.": "Role does not exist.",

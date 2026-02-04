@@ -80,7 +80,7 @@ namespace RentMate.Controllers.Mvc
 
         private static decimal CalculateTotalPrice(decimal? pricePerDay, DateTime startDate, DateTime endDate)
         {
-            var rentalDays = Math.Max((endDate.Date - startDate.Date).Days, 1);
+            var rentalDays = Math.Max((endDate.Date - startDate.Date).Days + 1, 1);
             return (pricePerDay ?? 0) * rentalDays;
         }
 

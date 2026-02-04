@@ -80,13 +80,22 @@
             <div class="flex items-center justify-between p-6 bg-white rounded-2xl border border-slate-200">
                 <div class="flex items-center gap-4">
                     <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="shrink-0">
-                        <img src="@(Model.User?.ProfilePictureUrl ?? "https://via.placeholder.com/60")" 
-                             class="w-14 h-14 rounded-full object-cover ring-2 ring-slate-100">
+                        @if(!string.IsNullOrEmpty(Model.User?.ProfilePictureUrl))
+                        {
+                            <img src="@Model.User.ProfilePictureUrl" 
+                                 class="w-14 h-14 rounded-full object-cover ring-2 ring-slate-100">
+                        }
+                        else
+                        {
+                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center ring-2 ring-slate-100">
+                                <i class="bi bi-person-fill text-white text-xl"></i>
+                            </div>
+                        }
                     </a>
                     <div>
                         <p class="text-sm text-slate-500">@Localizer["Hosted by"]</p>
                         <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="font-semibold text-slate-900 hover:text-blue-600 transition-colors focus-ring">
-                            @(Model.User?.FirstName ?? Localizer["Unknown"].Value) @(Model.User?.LastName ?? "")
+                            @(!string.IsNullOrEmpty(Model.User?.FirstName) ? $"{Model.User.FirstName} {Model.User.LastName}" : (Model.User?.Email ?? Localizer["Unknown"].Value))
                         </a>
                     </div>
                 </div>
@@ -111,16 +120,53 @@
                     </h2>
                 </div>
                 
+                @{
+                    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                }
+                
                 @if(Model.Reviews?.Any() == true) {
                     <div class="grid md:grid-cols-2 gap-6">
-                        @foreach(var review in Model.Reviews.OrderByDescending(r => r.CreatedAt).Take(4))
+                        @foreach(var review in Model.Reviews.Where(r => !r.IsDeleted).OrderByDescending(r => r.CreatedAt).Take(4))
                         {
-                            <div class="p-4 bg-slate-50 rounded-xl">
+                            var isOwnReview = review.ReviewerId == currentUserId;
+                            var reviewerName = review.IsAnonymous 
+                                ? Localizer["Anonymous"].Value 
+                                : (!string.IsNullOrEmpty(review.Reviewer?.FirstName) 
+                                    ? $"{review.Reviewer.FirstName} {review.Reviewer.LastName}".Trim() 
+                                    : (review.Reviewer?.Email ?? Localizer["Unknown"].Value));
+                            var hasReviewerPic = !review.IsAnonymous && !string.IsNullOrEmpty(review.Reviewer?.ProfilePictureUrl);
+                            
+                            <div class="p-4 bg-slate-50 rounded-xl relative">
+                                @if(isOwnReview)
+                                {
+                                    <button type="button" 
+                                            class="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            onclick="openEditReviewModal(@review.Id, @review.ItemId, @review.Rating, '@Html.Raw(review.Title?.Replace("'", "\\'") ?? "")', '@Html.Raw(review.Body?.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "") ?? "")', @(review.IsAnonymous ? "true" : "false"))"
+                                            title="@Localizer["Edit Review"]">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                }
                                 <div class="flex items-center gap-3 mb-3">
-                                    <img src="@(review.Reviewer?.ProfilePictureUrl ?? "https://via.placeholder.com/40")" 
-                                         class="w-10 h-10 rounded-full object-cover">
+                                    @if(review.IsAnonymous)
+                                    {
+                                        <div class="w-10 h-10 rounded-full bg-slate-400 flex items-center justify-center">
+                                            <i class="bi bi-person-fill text-white text-sm"></i>
+                                        </div>
+                                    }
+                                    else if(hasReviewerPic)
+                                    {
+                                        <img src="@review.Reviewer!.ProfilePictureUrl" 
+                                             class="w-10 h-10 rounded-full object-cover"
+                                             alt="@reviewerName">
+                                    }
+                                    else
+                                    {
+                                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center">
+                                            <i class="bi bi-person-fill text-white text-sm"></i>
+                                        </div>
+                                    }
                                     <div>
-                                        <p class="font-semibold text-slate-900">@(review.IsAnonymous ? Localizer["Anonymous"] : review.Reviewer?.FirstName)</p>
+                                        <p class="font-semibold text-slate-900">@reviewerName</p>
                                         <p class="text-xs text-slate-500">@review.CreatedAt.ToString("MMMM yyyy")</p>
                                     </div>
                                 </div>
@@ -185,7 +231,7 @@
                     <!-- Rent Button -->
                     <button type="button" 
                             class="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold rounded-xl shadow-sm  transition-all duration-300"
-                            data-bs-toggle="modal" data-bs-target="#rentModal-@Model.Id">
+                            onclick="document.getElementById('rentModal-@Model.Id').classList.remove('hidden')">
                         @Localizer["Rent Now"]
                     </button>
                     
@@ -274,8 +320,178 @@
                 console.error('Map initialization error:', e);
             }
         });
+        
+        // Edit Review Modal Functions
+        function openEditReviewModal(reviewId, itemId, rating, title, body, isAnonymous) {
+            const modal = document.getElementById('editReviewModal');
+            document.getElementById('editReviewId').value = reviewId;
+            document.getElementById('editReviewItemId').value = itemId;
+            document.getElementById('editReviewTitle').value = title || '';
+            document.getElementById('editReviewBody').value = body || '';
+            document.getElementById('editIsAnonymous').checked = isAnonymous;
+            document.getElementById('editRatingValue').value = rating;
+            
+            // Update star display
+            document.querySelectorAll('#editStarRating .star-btn').forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.remove('text-slate-300');
+                    star.classList.add('text-amber-400');
+                } else {
+                    star.classList.remove('text-amber-400');
+                    star.classList.add('text-slate-300');
+                }
+            });
+            
+            modal.classList.remove('hidden');
+        }
+        
+        function closeEditReviewModal() {
+            document.getElementById('editReviewModal').classList.add('hidden');
+        }
+        
+        // Star rating functionality for edit modal
+        document.querySelectorAll('#editStarRating .star-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const rating = parseInt(this.dataset.rating);
+                document.getElementById('editRatingValue').value = rating;
+                
+                document.querySelectorAll('#editStarRating .star-btn').forEach((star, index) => {
+                    if (index < rating) {
+                        star.classList.remove('text-slate-300');
+                        star.classList.add('text-amber-400');
+                    } else {
+                        star.classList.remove('text-amber-400');
+                        star.classList.add('text-slate-300');
+                    }
+                });
+            });
+        });
+        
+        // Edit review form submission
+        document.getElementById('editReviewForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const rating = parseInt(document.getElementById('editRatingValue').value);
+            if (rating < 1) {
+                alert('@Localizer["Please select a rating"]');
+                return;
+            }
+
+            const reviewId = document.getElementById('editReviewId').value;
+            const itemId = document.getElementById('editReviewItemId').value;
+            const body = document.getElementById('editReviewBody').value;
+            const title = document.getElementById('editReviewTitle').value;
+            const isAnonymous = document.getElementById('editIsAnonymous').checked;
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                const response = await fetch(`/api/Reviews/${reviewId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token
+                    },
+                    body: JSON.stringify({
+                        id: parseInt(reviewId),
+                        itemId: parseInt(itemId),
+                        rating: rating,
+                        title: title || null,
+                        body: body,
+                        isAnonymous: isAnonymous
+                    })
+                });
+
+                if (response.ok) {
+                    closeEditReviewModal();
+                    location.reload();
+                } else {
+                    const error = await response.text();
+                    alert(error || '@Localizer["Failed to update review"]');
+                }
+            } catch (error) {
+                console.error('Error updating review:', error);
+                alert('@Localizer["An error occurred. Please try again."]');
+            }
+        });
     </script>
 
     <partial name="_RentModal" model="Model" />
+    
+    <!-- Edit Review Modal -->
+    @if(User.Identity?.IsAuthenticated == true)
+    {
+        @Html.AntiForgeryToken()
+        <div id="editReviewModal" class="fixed inset-0 hidden" style="z-index: 1200;">
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEditReviewModal()"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: 1200;">
+                <div class="bg-white rounded-2xl shadow-2xl m-4 overflow-hidden">
+                    <!-- Header -->
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-white font-heading text-lg font-bold">@Localizer["Edit Review"]</h3>
+                            <button type="button" onclick="closeEditReviewModal()" class="text-white/80 hover:text-white">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <form id="editReviewForm" class="p-6">
+                        <input type="hidden" id="editReviewId" name="reviewId" value="" />
+                        <input type="hidden" id="editReviewItemId" name="itemId" value="" />
+
+                        <!-- Rating -->
+                        <div class="mb-5">
+                            <label class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Rating"]</label>
+                            <div class="flex gap-2" id="editStarRating">
+                                @for (int i = 1; i <= 5; i++)
+                                {
+                                    <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400 transition-colors" data-rating="@i">
+                                        <i class="bi bi-star-fill"></i>
+                                    </button>
+                                }
+                            </div>
+                            <input type="hidden" id="editRatingValue" name="rating" value="0" />
+                        </div>
+
+                        <!-- Title -->
+                        <div class="mb-5">
+                            <label for="editReviewTitle" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
+                            <input type="text" id="editReviewTitle" name="title" maxlength="100"
+                                   class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                   placeholder="@Localizer["Summarize your experience"]">
+                        </div>
+
+                        <!-- Body -->
+                        <div class="mb-5">
+                            <label for="editReviewBody" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Your Review"]</label>
+                            <textarea id="editReviewBody" name="body" rows="4" required
+                                      class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                                      placeholder="@Localizer["Share your experience with this item..."]"></textarea>
+                        </div>
+
+                        <!-- Anonymous Option -->
+                        <div class="mb-5">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="editIsAnonymous" name="isAnonymous" class="w-4 h-4 text-blue-500 border-slate-300 rounded focus:ring-blue-500">
+                                <span class="text-sm text-slate-600">@Localizer["Post anonymously"]</span>
+                            </label>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button type="button" onclick="closeEditReviewModal()" 
+                                    class="flex-1 px-4 py-3 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors">
+                                @Localizer["Cancel"]
+                            </button>
+                            <button type="submit" 
+                                    class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+                                <i class="bi bi-check-lg me-1"></i>
+                                @Localizer["Update Review"]
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
 }
 

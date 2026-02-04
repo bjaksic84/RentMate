@@ -120,4 +120,40 @@ public static class ViewConstants
     };
     
     #endregion
+    
+    #region Z-Index Scale
+    
+    /// <summary>
+    /// Z-Index scale for consistent layering across the application.
+    /// Use CSS variables: var(--z-{level}) in views.
+    /// 
+    /// Hierarchy (lowest to highest):
+    /// - Base (1): Default content layer
+    /// - Dropdown (100): Dropdowns, select menus
+    /// - Sticky (200): Sticky sidebars, headers
+    /// - Fixed (300): Fixed elements (not navbar)
+    /// - MobileDrawer (400): Mobile navigation drawer
+    /// - Navbar (900): Navigation bar
+    /// - ModalBackdrop (1100): Modal overlay/backdrop (above Leaflet 1000)
+    /// - Modal (1200): Modal dialogs
+    /// - Popover (1300): Popovers, calendar panels
+    /// - Tooltip (1400): Tooltips
+    /// - Toast (1500): Toast notifications (always on top)
+    /// </summary>
+    public static class ZIndex
+    {
+        public const string Base = "var(--z-base, 1)";
+        public const string Dropdown = "var(--z-dropdown, 100)";
+        public const string Sticky = "var(--z-sticky, 200)";
+        public const string Fixed = "var(--z-fixed, 300)";
+        public const string MobileDrawer = "var(--z-mobile-drawer, 400)";
+        public const string Navbar = "var(--z-navbar, 900)";
+        public const string ModalBackdrop = "var(--z-modal-backdrop, 1100)";
+        public const string Modal = "var(--z-modal, 1200)";
+        public const string Popover = "var(--z-popover, 1300)";
+        public const string Tooltip = "var(--z-tooltip, 1400)";
+        public const string Toast = "var(--z-toast, 1500)";
+    }
+    
+    #endregion
 }

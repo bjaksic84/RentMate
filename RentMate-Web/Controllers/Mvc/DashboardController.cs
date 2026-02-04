@@ -203,7 +203,8 @@ namespace RentMate.Controllers.Mvc
         {
             IQueryable<Rental> query = _context.Rentals
                 .AsNoTracking()
-                .Include(r => r.Item);
+                .Include(r => r.Item)
+                    .ThenInclude(i => i!.Reviews.Where(rev => !rev.IsDeleted));
 
             if (asRenter)
             {

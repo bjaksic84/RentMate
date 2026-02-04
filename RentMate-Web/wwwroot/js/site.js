@@ -62,7 +62,8 @@
 		if (!container) {
 			container = document.createElement('div');
 			container.id = TOAST_CONTAINER_ID;
-			container.className = 'fixed top-4 right-4 z-50 flex flex-col gap-2';
+			container.className = 'fixed top-4 right-4 flex flex-col gap-2';
+			container.style.zIndex = 'var(--z-toast, 1500)';
 			container.setAttribute('aria-live', 'polite');
 			container.setAttribute('aria-label', 'Notifications');
 			document.body.appendChild(container);

@@ -64,48 +64,50 @@
          role="dialog"
          aria-modal="true"
          aria-label="@Localizer["Calendar"]"
-         class="smart-calendar-panel hidden absolute top-full left-1/2 -translate-x-1/2 mt-3 
+         class="smart-calendar-panel hidden absolute mt-3 
                 bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5
-                p-6 z-[9999] origin-top
-                @(isRangeMode ? "w-[680px]" : "w-[340px]")">
+                p-4 sm:p-6 origin-top
+                w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[340px] max-w-[95vw]
+                @(isRangeMode ? "lg:w-[680px]" : "")"
+         style="z-index: var(--z-popover, 1300); left: 50%; transform: translateX(-50%); bottom: auto;">>
         
         <div id="@(calId)_announce" aria-live="polite" class="sr-only"></div>
         
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center justify-between mb-4 sm:mb-6">
             <button type="button" id="@(calId)_prev" onclick="SmartCalendar.prevMonth('@calId')"
-                    class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center 
+                    class="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-slate-100 flex items-center justify-center 
                            text-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="@Localizer["Previous month"]">
                 <i class="bi bi-chevron-left text-lg" aria-hidden="true"></i>
             </button>
-            <div class="flex-1 flex @(isRangeMode ? "justify-around" : "justify-center")">
-                <h2 id="@(calId)_monthLabel1" class="text-base font-semibold text-slate-900"></h2>
+            <div class="flex-1 flex @(isRangeMode ? "lg:justify-around justify-center" : "justify-center")">
+                <h2 id="@(calId)_monthLabel1" class="text-sm sm:text-base font-semibold text-slate-900"></h2>
                 @if (isRangeMode)
                 {
-                    <h2 id="@(calId)_monthLabel2" class="text-base font-semibold text-slate-900"></h2>
+                    <h2 id="@(calId)_monthLabel2" class="hidden lg:block text-base font-semibold text-slate-900"></h2>
                 }
             </div>
             <button type="button" id="@(calId)_next" onclick="SmartCalendar.nextMonth('@calId')"
-                    class="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center 
+                    class="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-slate-100 flex items-center justify-center 
                            text-slate-600 transition-colors"
                     aria-label="@Localizer["Next month"]">
                 <i class="bi bi-chevron-right text-lg" aria-hidden="true"></i>
             </button>
         </div>
         
-        <div class="flex @(isRangeMode ? "gap-10" : "")">
-            <div class="flex-1">
+        <div class="flex flex-col lg:flex-row @(isRangeMode ? "lg:gap-10" : "")">
+            <div class="flex-1 min-w-0">
                 <div class="grid grid-cols-7 mb-2">
-                    @foreach (var day in weekdaysShort) { <div class="h-10 flex items-center justify-center text-xs font-semibold text-slate-400 uppercase tracking-wide">@Localizer[day]</div> }
+                    @foreach (var day in weekdaysShort) { <div class="h-8 sm:h-10 flex items-center justify-center text-xs font-semibold text-slate-400 uppercase tracking-wide">@Localizer[day]</div> }
                 </div>
                 <div id="@(calId)_grid1" role="grid" aria-label="@Localizer["Calendar days"]" class="grid grid-cols-7"></div>
             </div>
             @if (isRangeMode)
             {
-                <div class="w-px bg-slate-100" aria-hidden="true"></div>
-                <div class="flex-1">
+                <div class="hidden lg:block w-px bg-slate-100" aria-hidden="true"></div>
+                <div class="hidden lg:block flex-1 min-w-0">
                     <div class="grid grid-cols-7 mb-2">
-                        @foreach (var day in weekdaysShort) { <div class="h-10 flex items-center justify-center text-xs font-semibold text-slate-400 uppercase tracking-wide">@Localizer[day]</div> }
+                        @foreach (var day in weekdaysShort) { <div class="h-8 sm:h-10 flex items-center justify-center text-xs font-semibold text-slate-400 uppercase tracking-wide">@Localizer[day]</div> }
                     </div>
                     <div id="@(calId)_grid2" role="grid" aria-label="@Localizer["Calendar days"]" class="grid grid-cols-7"></div>
                 </div>
@@ -127,11 +129,14 @@
 </div>
 
 <style>
-    .sc-day { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: #1e293b; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: pointer; background: transparent; border: none; outline: none; -webkit-tap-highlight-color: transparent; z-index: 1; }
-    .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { content: ''; position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background-color: #2563eb; border-radius: 50%; }
+    .sc-day { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #1e293b; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: pointer; background: transparent; border: none; outline: none; -webkit-tap-highlight-color: transparent; z-index: 1; }
+    @@media (min-width: 640px) { .sc-day { width: 44px; height: 44px; font-size: 14px; } }
+    .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background-color: #2563eb; border-radius: 50%; }
+    @@media (min-width: 640px) { .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { bottom: 6px; } }
     .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end) { font-weight: 700; color: #2563eb; }
     .sc-day.sc-disabled { color: #cbd5e1; cursor: not-allowed; text-decoration: line-through; opacity: 0.5; }
-    .sc-day::before { content: ''; position: absolute; inset: 4px; border-radius: 50%; background-color: transparent; transition: all 0.2s ease; z-index: -1; }
+    .sc-day::before { content: ''; position: absolute; inset: 2px; border-radius: 50%; background-color: transparent; transition: all 0.2s ease; z-index: -1; }
+    @@media (min-width: 640px) { .sc-day::before { inset: 4px; } }
     .sc-day:hover:not(.sc-disabled):not(.sc-selected-start):not(.sc-selected-end):not(.sc-in-range)::before, .sc-day.sc-hover-end:not(.sc-selected-start):not(.sc-selected-end)::before { background-color: #f1f5f9; box-shadow: 0 0 0 1px #e2e8f0; z-index: -1; }
     .sc-day.sc-selected-start, .sc-day.sc-selected-end { color: white; font-weight: 600; z-index: 2; }
     .sc-day.sc-selected-start::before, .sc-day.sc-selected-end::before { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35); inset: 0; }
@@ -141,8 +146,9 @@
     .sc-day.sc-range-start::after { right: 0; }
     .sc-day.sc-range-end::after { left: 0; }
     .sc-day:focus-visible::before { box-shadow: 0 0 0 2px white, 0 0 0 4px #2563eb; }
-    .sc-empty { width: 44px; height: 44px; }
-    .smart-calendar-panel { animation: scFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .sc-empty { width: 36px; height: 36px; }
+    @@media (min-width: 640px) { .sc-empty { width: 44px; height: 44px; } }
+    .smart-calendar-panel { animation: scFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: var(--z-popover, 1300); left: 50%; transform: translateX(-50%); }
     .smart-calendar-panel.hidden { display: none; }
     @@keyframes scFadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.98); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
 </style>

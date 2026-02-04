@@ -5,7 +5,7 @@
 
 @{
     ViewData["Title"] = $"{Model.FirstName} {Model.LastName}";
-    var profilePic = !string.IsNullOrEmpty(Model.ProfilePictureUrl) ? Model.ProfilePictureUrl : "https://via.placeholder.com/150?text=User";
+    var hasProfilePic = !string.IsNullOrEmpty(Model.ProfilePictureUrl);
     
     var allItems = Model.Items?.Where(i => i.IsListed && !i.IsAdminHidden).ToList() ?? new List<RentMate.Models.Domain.Item>();
     double avgRating = 0;
@@ -29,9 +29,18 @@
             <div class="bg-white rounded-2xl border border-slate-200 p-6 text-center sticky top-24">
                 <!-- Profile Picture -->
                 <div class="relative inline-block mb-4">
-                    <img src="@profilePic" 
-                         class="w-32 h-32 rounded-full object-cover ring-4 ring-white shadow-lg mx-auto" 
-                         alt="@Model.FirstName">
+                    @if(hasProfilePic)
+                    {
+                        <img src="@Model.ProfilePictureUrl" 
+                             class="w-32 h-32 rounded-full object-cover ring-4 ring-white shadow-lg mx-auto" 
+                             alt="@Model.FirstName">
+                    }
+                    else
+                    {
+                        <div class="w-32 h-32 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center ring-4 ring-white shadow-lg mx-auto">
+                            <i class="bi bi-person-fill text-white text-5xl"></i>
+                        </div>
+                    }
                     @if(avgRating >= 4.5 && reviewCount >= 5) 
                     {
                         <div class="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center ring-2 ring-white" title="@Localizer["Super Host"]">
@@ -169,8 +178,23 @@
                     {
                         <div class="bg-white rounded-2xl border border-slate-200 p-5">
                             <div class="flex items-start gap-4">
-                                <img src="@(entry.Review.Reviewer?.ProfilePictureUrl ?? "https://via.placeholder.com/40")" 
-                                     class="w-10 h-10 rounded-full object-cover shrink-0">
+                                @if(entry.Review.IsAnonymous)
+                                {
+                                    <div class="w-10 h-10 rounded-full bg-slate-400 flex items-center justify-center shrink-0">
+                                        <i class="bi bi-person-fill text-white text-sm"></i>
+                                    </div>
+                                }
+                                else if(!string.IsNullOrEmpty(entry.Review.Reviewer?.ProfilePictureUrl))
+                                {
+                                    <img src="@entry.Review.Reviewer.ProfilePictureUrl" 
+                                         class="w-10 h-10 rounded-full object-cover shrink-0">
+                                }
+                                else
+                                {
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center shrink-0">
+                                        <i class="bi bi-person-fill text-white text-sm"></i>
+                                    </div>
+                                }
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center justify-between gap-2">
                                         <div>

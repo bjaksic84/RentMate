@@ -81,9 +81,52 @@ tr.flash {
    Component Styles
    ========================================== */
 
+/* Leaflet Map - Keep controls below popovers/modals */
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+    z-index: auto !important;
+}
+
+.leaflet-control-container {
+    z-index: auto !important;
+}
+
+.leaflet-top,
+.leaflet-bottom,
+.leaflet-left,
+.leaflet-right {
+    z-index: auto !important;
+}
+
+.leaflet-control,
+.leaflet-control-zoom,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution,
+.leaflet-control-attribution a {
+    z-index: auto !important;
+}
+
+/* Map container creates isolated stacking context */
+#map,
+.leaflet-container {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+    contain: layout style;
+}
+
 /* Toast container */
 .toast-container {
-    z-index: 1100;
+    z-index: var(--z-toast, 1500);
 }
 
 /* Connection Indicator */

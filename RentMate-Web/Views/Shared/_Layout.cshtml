@@ -71,14 +71,18 @@
             --trust-blue-light: #3b82f6;
             --trust-blue-lighter: #60a5fa;
             
-            /* Z-Index Scale (prevents collision) */
+            /* Z-Index Scale - Logical Hierarchy (prevents collision) */
+            --z-base: 1;
             --z-dropdown: 100;
             --z-sticky: 200;
-            --z-mobile-drawer: 300;
-            --z-modal-backdrop: 400;
-            --z-modal: 500;
-            --z-tooltip: 600;
-            --z-navbar: 2000;
+            --z-fixed: 300;
+            --z-mobile-drawer: 400;
+            --z-modal-backdrop: 1100;
+            --z-modal: 1200;
+            --z-popover: 1300;
+            --z-tooltip: 1400;
+            --z-navbar: 900;
+            --z-toast: 1500;
             
             /* WCAG Compliant Contrast Colors */
             --text-on-dark: rgba(255, 255, 255, 0.92);

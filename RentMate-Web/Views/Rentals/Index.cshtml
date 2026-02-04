@@ -46,14 +46,14 @@
 @Html.AntiForgeryToken()
 
 <!-- Mini Hero with Search -->
-<section class="relative z-[40] bg-gradient-to-r from-blue-600 to-blue-700 py-12 overflow-visible">
+<section class="relative bg-gradient-to-r from-blue-600 to-blue-700 py-12 overflow-visible" style="z-index: var(--z-base, 1);">
     <!-- Decorative background elements -->
     <div class="absolute inset-0 opacity-20 pointer-events-none">
         <div class="absolute top-0 left-1/4 w-64 h-64 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
         <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
     </div>
 
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-visible">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-visible" style="z-index: var(--z-base, 1);">
         <div class="text-center mb-8">
             <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-2">
                 @Localizer["Find the perfect item to rent"]
@@ -63,7 +63,7 @@
         
         <div class="max-w-4xl mx-auto overflow-visible">
             <form asp-action="Index" method="get" id="marketplaceSearchForm"
-                  class="glass rounded-2xl sm:rounded-full p-2 shadow-xl border border-white/30 relative z-[500] overflow-visible">
+                  class="glass rounded-2xl sm:rounded-full p-2 shadow-xl border border-white/30 relative overflow-visible" style="z-index: var(--z-dropdown, 100);">
                 <div class="flex flex-col sm:flex-row items-stretch gap-2 overflow-visible">
                     <!-- What (Search Input) -->
                     <div class="flex-[1.5] min-w-0 group relative overflow-visible">
@@ -91,7 +91,7 @@
                     <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
                     
                     <!-- Date Range -->
-                    <div class="flex-1 min-w-0 relative z-[10] overflow-visible">
+                    <div class="flex-1 min-w-0 relative overflow-visible" style="z-index: var(--z-popover, 700);">
                         @{
                             DateOnly? marketStartDate = null;
                             DateOnly? marketEndDate = null;
@@ -141,7 +141,7 @@
 </section>
 
 <!-- Main Content -->
-<div class="relative z-[10] max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" style="z-index: var(--z-base, 1);">
     <div class="flex flex-col lg:flex-row gap-8">
         
         <!-- Sidebar Filters (Desktop) -->
@@ -421,8 +421,8 @@
             </button>
             
             <!-- Mobile Filters Drawer -->
-            <div id="mobileFiltersOverlay" class="fixed inset-0 bg-black/50 hidden lg:hidden" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); z-index: var(--z-modal-backdrop, 400);" onclick="closeMobileFilters()"></div>
-            <div id="mobileFiltersDrawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 lg:hidden overflow-hidden flex flex-col" style="z-index: var(--z-modal, 500);">
+            <div id="mobileFiltersOverlay" class="fixed inset-0 bg-black/50 hidden lg:hidden" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); z-index: var(--z-modal-backdrop, 1100);" onclick="closeMobileFilters()"></div>
+            <div id="mobileFiltersDrawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 lg:hidden overflow-hidden flex flex-col" style="z-index: var(--z-modal, 1200);">
                 <!-- Drawer Header -->
                 <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                     <div class="flex items-center gap-3">

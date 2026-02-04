@@ -309,14 +309,23 @@
                                 
                                 <div class="flex items-center gap-2">
                                     @{
-                                        // Check if this rental already has a review from the current user
-                                        var hasReview = rental.Item?.Reviews?.Any(r => r.RentalId == rental.Id && !r.IsDeleted) ?? false;
+                                        // Check if this user has already reviewed this item (one review per item)
+                                        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                        var existingReview = rental.Item?.Reviews?.FirstOrDefault(r => r.ReviewerId == currentUserId && !r.IsDeleted);
+                                        var hasReview = existingReview != null;
                                     }
                                     @if (rental.Status == RentalStatus.Completed && !hasReview)
                                     {
                                         <button class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors"
-                                                data-bs-toggle="modal" data-bs-target="#reviewModal" data-rentalid="@rental.Id">
+                                                onclick="openReviewModal(@rental.Id, @rental.ItemId, null)">
                                             <i class="bi bi-star"></i> @Localizer["Leave Review"]
+                                        </button>
+                                    }
+                                    else if (rental.Status == RentalStatus.Completed && hasReview)
+                                    {
+                                        <button class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
+                                                onclick="openReviewModal(@rental.Id, @rental.ItemId, @existingReview!.Id)">
+                                            <i class="bi bi-pencil"></i> @Localizer["Edit Review"]
                                         </button>
                                     }
                                     else if (rental.Status == RentalStatus.Pending)
@@ -442,6 +451,80 @@
     </div>
 </div>
 
+<!-- Review Modal (Tailwind) -->
+<div id="reviewModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeReviewModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: var(--z-modal, 1200);">
+        <div class="bg-white rounded-2xl shadow-2xl m-4 overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-amber-500 to-amber-400 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h3 id="reviewModalTitle" class="text-white font-heading text-lg font-bold">@Localizer["Leave a Review"]</h3>
+                    <button type="button" onclick="closeReviewModal()" class="text-white/80 hover:text-white">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <form id="reviewForm" class="p-6">
+                <input type="hidden" id="reviewRentalId" name="rentalId" value="" />
+                <input type="hidden" id="reviewItemId" name="itemId" value="" />
+                <input type="hidden" id="reviewId" name="reviewId" value="" />
+
+                <!-- Rating -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Rating"]</label>
+                    <div class="flex gap-2" id="starRating">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400 transition-colors" data-rating="@i">
+                                <i class="bi bi-star-fill"></i>
+                            </button>
+                        }
+                    </div>
+                    <input type="hidden" id="ratingValue" name="rating" value="0" />
+                </div>
+
+                <!-- Title -->
+                <div class="mb-5">
+                    <label for="reviewTitle" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
+                    <input type="text" id="reviewTitle" name="title" maxlength="100"
+                           class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                           placeholder="@Localizer["Summarize your experience"]">
+                </div>
+
+                <!-- Body -->
+                <div class="mb-5">
+                    <label for="reviewBody" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Your Review"]</label>
+                    <textarea id="reviewBody" name="body" rows="4" required
+                              class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors resize-none"
+                              placeholder="@Localizer["Share your experience with this item..."]"></textarea>
+                </div>
+
+                <!-- Anonymous Option -->
+                <div class="mb-5">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="isAnonymous" name="isAnonymous" class="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500">
+                        <span class="text-sm text-slate-600">@Localizer["Post anonymously"]</span>
+                    </label>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeReviewModal()" 
+                            class="flex-1 px-4 py-3 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button type="submit" id="reviewSubmitBtn"
+                            class="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-400 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+                        <i class="bi bi-check-lg me-1"></i>
+                        <span id="reviewSubmitText">@Localizer["Submit Review"]</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="~/lib/signalr/signalr.min.js"></script>
     <script>
@@ -464,6 +547,158 @@
                 console.error('Error toggling listing:', error);
             }
         }
+
+        // Review Modal Functions
+        async function openReviewModal(rentalId, itemId, reviewId) {
+            const modal = document.getElementById('reviewModal');
+            document.getElementById('reviewRentalId').value = rentalId;
+            document.getElementById('reviewItemId').value = itemId;
+            document.getElementById('reviewId').value = reviewId || '';
+            
+            // Reset form
+            document.getElementById('reviewForm').reset();
+            document.getElementById('ratingValue').value = '0';
+            document.querySelectorAll('.star-btn').forEach(btn => {
+                btn.querySelector('i').className = 'bi bi-star-fill';
+                btn.classList.remove('text-amber-400');
+                btn.classList.add('text-slate-300');
+            });
+            
+            const isEditMode = reviewId !== null && reviewId !== '';
+            const modalTitle = document.getElementById('reviewModalTitle');
+            const submitText = document.getElementById('reviewSubmitText');
+            
+            if (isEditMode) {
+                // Edit mode - fetch existing review data
+                modalTitle.textContent = '@Localizer["Edit Review"]';
+                submitText.textContent = '@Localizer["Update Review"]';
+                
+                try {
+                    const response = await fetch(`/api/Reviews/mine/item/${itemId}`);
+                    if (response.ok) {
+                        const review = await response.json();
+                        document.getElementById('reviewTitle').value = review.title || '';
+                        document.getElementById('reviewBody').value = review.body || '';
+                        document.getElementById('isAnonymous').checked = review.isAnonymous || false;
+                        document.getElementById('ratingValue').value = review.rating;
+                        
+                        // Update star display
+                        document.querySelectorAll('.star-btn').forEach((star, index) => {
+                            if (index < review.rating) {
+                                star.classList.remove('text-slate-300');
+                                star.classList.add('text-amber-400');
+                            } else {
+                                star.classList.remove('text-amber-400');
+                                star.classList.add('text-slate-300');
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching review:', error);
+                }
+            } else {
+                // Create mode
+                modalTitle.textContent = '@Localizer["Leave a Review"]';
+                submitText.textContent = '@Localizer["Submit Review"]';
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeReviewModal() {
+            document.getElementById('reviewModal').classList.add('hidden');
+        }
+
+        // Star rating functionality
+        document.querySelectorAll('.star-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const rating = parseInt(this.dataset.rating);
+                document.getElementById('ratingValue').value = rating;
+                
+                document.querySelectorAll('.star-btn').forEach((star, index) => {
+                    if (index < rating) {
+                        star.classList.remove('text-slate-300');
+                        star.classList.add('text-amber-400');
+                    } else {
+                        star.classList.remove('text-amber-400');
+                        star.classList.add('text-slate-300');
+                    }
+                });
+            });
+        });
+
+        // Review form submission
+        document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const rating = parseInt(document.getElementById('ratingValue').value);
+            if (rating < 1) {
+                alert('@Localizer["Please select a rating"]');
+                return;
+            }
+
+            const reviewId = document.getElementById('reviewId').value;
+            const rentalId = document.getElementById('reviewRentalId').value;
+            const itemId = document.getElementById('reviewItemId').value;
+            const body = document.getElementById('reviewBody').value;
+            const title = document.getElementById('reviewTitle').value;
+            const isAnonymous = document.getElementById('isAnonymous').checked;
+            
+            const isEditMode = reviewId !== null && reviewId !== '';
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                
+                let response;
+                if (isEditMode) {
+                    // Update existing review
+                    response = await fetch(`/api/Reviews/${reviewId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token
+                        },
+                        body: JSON.stringify({
+                            id: parseInt(reviewId),
+                            itemId: parseInt(itemId),
+                            rentalId: parseInt(rentalId),
+                            rating: rating,
+                            title: title || null,
+                            body: body,
+                            isAnonymous: isAnonymous
+                        })
+                    });
+                } else {
+                    // Create new review
+                    response = await fetch('/api/Reviews', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token
+                        },
+                        body: JSON.stringify({
+                            itemId: parseInt(itemId),
+                            rentalId: parseInt(rentalId),
+                            rating: rating,
+                            title: title || null,
+                            body: body,
+                            isAnonymous: isAnonymous
+                        })
+                    });
+                }
+
+                if (response.ok) {
+                    closeReviewModal();
+                    location.reload();
+                } else {
+                    const error = await response.text();
+                    alert(error || '@Localizer["Failed to submit review"]');
+                }
+            } catch (error) {
+                console.error('Error submitting review:', error);
+                alert('@Localizer["An error occurred. Please try again."]');
+            }
+        });
 
         // SignalR connection
         const connection = new signalR.HubConnectionBuilder()
