@@ -3,18 +3,32 @@
   --text: #0f1720;
   --muted-bg: #f8f9fa;
   --card-bg: #ffffff;
-  --primary: #d97706;
-  /* warmer primary (amber) */
+  --primary: #2563eb;
   --muted-text: #6c757d;
   --border: rgba(0, 0, 0, 0.08);
   --badge-bg: #f1f3f5;
   --navbar-bg: var(--card-bg);
   --row-hover: rgba(0, 0, 0, 0.03);
   --panel-white: #ffffff;
-  /* sections that should remain white */
   --panel-white-text: #0f1720;
   --surface-soft: #f7f9fb;
-  /* very soft elevated surface for light theme */
+}
+
+/* Dark theme overrides */
+.dark {
+  --bg: #0f172a;
+  --text: #e2e8f0;
+  --muted-bg: #1e293b;
+  --card-bg: #1e293b;
+  --primary: #3b82f6;
+  --muted-text: #94a3b8;
+  --border: #334155;
+  --badge-bg: #334155;
+  --navbar-bg: rgba(15, 23, 42, 0.85);
+  --row-hover: #334155;
+  --panel-white: #1e293b;
+  --panel-white-text: #e2e8f0;
+  --surface-soft: #1e293b;
 }
 
 
@@ -167,9 +181,8 @@ small {
 .form-control:focus,
 .form-select:focus {
   outline: none !important;
-  box-shadow: 0 0 0 0.25rem rgba(217, 119, 6, 0.16) !important;
-  /* soft amber focus ring */
-  border-color: rgba(217, 119, 6, 0.18) !important;
+  box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.16) !important;
+  border-color: rgba(37, 99, 235, 0.18) !important;
 }
 
 
@@ -194,9 +207,9 @@ small {
 
 svg,
 svg.bi {
-  fill: currentColor !important;
-  stroke: currentColor !important;
-  color: inherit !important;
+  fill: currentColor;
+  stroke: currentColor;
+  color: inherit;
   vertical-align: middle;
 }
 
@@ -207,5 +220,84 @@ svg.bi {
 .text-primary .bi,
 .text-dark .bi,
 .badge .bi {
-  color: var(--text) !important;
+  color: var(--text);
+}
+
+/* Dark mode: glassmorphism and scrollbar adjustments */
+.dark .glass {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Dark mode: dropdown menus */
+.dark .bg-white {
+  background-color: var(--card-bg) !important;
+}
+
+/* Dark mode: text color overrides for Tailwind utility classes */
+.dark .text-slate-900 {
+  color: #e2e8f0 !important;
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+.dark .text-slate-400 {
+  color: #64748b !important;
+}
+
+/* Dark mode: background overrides */
+.dark .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-slate-200 {
+  background-color: #334155 !important;
+}
+
+/* Dark mode: hover states */
+.dark .hover\:bg-blue-50:hover {
+  background-color: rgba(37, 99, 235, 0.15) !important;
+}
+
+.dark .hover\:bg-slate-50:hover {
+  background-color: #334155 !important;
+}
+
+.dark .hover\:bg-slate-200:hover {
+  background-color: #475569 !important;
+}
+
+/* Dark mode: borders */
+.dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+.dark .border-white\/20 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Dark mode: active language/currency items */
+.dark .bg-blue-50 {
+  background-color: rgba(37, 99, 235, 0.15) !important;
 }

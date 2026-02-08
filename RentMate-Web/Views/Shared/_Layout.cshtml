@@ -14,6 +14,13 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme') || 'system';
+            var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (dark) document.documentElement.classList.add('dark');
+        })();
+    </script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - RentMate</title>
@@ -22,6 +29,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -55,6 +63,8 @@
     <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     
+    <!-- Theme CSS (includes dark mode support) -->
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
     
     @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
     <script>
@@ -103,6 +113,10 @@
             backdrop-filter: blur(12px);
         }
         
+        .dark .glass {
+            background: rgba(15, 23, 42, 0.8);
+        }
+
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
@@ -118,6 +132,18 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        
+        /* Dark mode scrollbar */
+        .dark ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
         /* Smooth transitions */
         .hover-lift {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -163,9 +189,165 @@
             white-space: nowrap;
             border-width: 0;
         }
+        
+        /* ==========================================
+           DARK MODE GLOBAL OVERRIDES
+           ========================================== */
+        
+        /* Background colors */
+        .dark .bg-white { background-color: #1e293b !important; }
+        .dark .bg-slate-50 { background-color: #0f172a !important; }
+        .dark .bg-slate-100 { background-color: #1e293b !important; }
+        .dark .bg-slate-200 { background-color: #334155 !important; }
+        
+        /* Text colors */
+        .dark .text-slate-900 { color: #f8fafc !important; }
+        .dark .text-slate-800 { color: #f1f5f9 !important; }
+        .dark .text-slate-700 { color: #e2e8f0 !important; }
+        .dark .text-slate-600 { color: #cbd5e1 !important; }
+        .dark .text-slate-500 { color: #94a3b8 !important; }
+        .dark .text-slate-400 { color: #64748b !important; }
+        
+        /* Border colors */
+        .dark .border-slate-100 { border-color: #334155 !important; }
+        .dark .border-slate-200 { border-color: #475569 !important; }
+        .dark .border-slate-300 { border-color: #64748b !important; }
+        .dark .divide-slate-100 > * + * { border-color: #334155 !important; }
+        .dark .divide-slate-200 > * + * { border-color: #475569 !important; }
+        
+        /* Ring/outline colors */
+        .dark .ring-slate-100 { --tw-ring-color: #334155 !important; }
+        .dark .ring-white { --tw-ring-color: #1e293b !important; }
+        
+        /* Hover states */
+        .dark .hover\:bg-slate-50:hover { background-color: #334155 !important; }
+        .dark .hover\:bg-slate-100:hover { background-color: #475569 !important; }
+        .dark .hover\:bg-blue-50:hover { background-color: rgba(59, 130, 246, 0.2) !important; }
+        .dark .hover\:bg-white:hover { background-color: #334155 !important; }
+        
+        /* Form inputs and selects */
+        .dark input:not([type="range"]), .dark select, .dark textarea {
+            background-color: #1e293b;
+            color: #f1f5f9;
+            border-color: #475569;
+        }
+        .dark input::placeholder, .dark textarea::placeholder {
+            color: #64748b;
+        }
+        .dark select option {
+            background-color: #1e293b;
+            color: #f1f5f9;
+        }
+        
+        /* Specific component overrides */
+        .dark .placeholder-slate-500::placeholder { color: #64748b !important; }
+        
+        /* Cards and panels */
+        .dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg, .dark .shadow-xl {
+            --tw-shadow-color: rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Navigation hover states */
+        .dark .hover\:text-blue-600:hover { color: #60a5fa !important; }
+        
+        /* Gradient backgrounds in dark mode */
+        .dark .from-slate-50 { --tw-gradient-from: #1e293b !important; }
+        .dark .to-white { --tw-gradient-to: #0f172a !important; }
+        .dark .bg-gradient-to-r.from-slate-50.to-white {
+            background: linear-gradient(to right, #1e293b, #0f172a) !important;
+        }
+        
+        /* Logo text in navbar */
+        .dark header .text-slate-900 { color: #f8fafc !important; }
+        
+        /* Mobile menu dark mode */
+        .dark #mobileMenu { background-color: #1e293b !important; }
+        
+        /* Dropdown menus dark mode */
+        .dark #languageMenu,
+        .dark #currencyMenu,
+        .dark #themeMenu {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        
+        /* User menu dropdown */
+        .dark .absolute.right-0.mt-2.bg-white {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
+        
+        /* Active selection states */
+        .dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.15) !important; }
+        .dark .text-blue-700 { color: #93c5fd !important; }
+        .dark .text-blue-600 { color: #60a5fa !important; }
+        
+        /* Red/danger colors */
+        .dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.1) !important; }
+        .dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.15) !important; }
+        .dark .text-red-800 { color: #fecaca !important; }
+        .dark .text-red-700 { color: #fca5a5 !important; }
+        .dark .text-red-600 { color: #f87171 !important; }
+        .dark .text-red-500 { color: #ef4444 !important; }
+        .dark .border-red-200 { border-color: rgba(239, 68, 68, 0.3) !important; }
+        .dark .hover\:bg-red-50:hover { background-color: rgba(239, 68, 68, 0.15) !important; }
+        
+        /* Green/success colors */
+        .dark .bg-green-50 { background-color: rgba(34, 197, 94, 0.1) !important; }
+        .dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.15) !important; }
+        .dark .text-green-800 { color: #bbf7d0 !important; }
+        .dark .text-green-700 { color: #86efac !important; }
+        .dark .border-green-200 { border-color: rgba(34, 197, 94, 0.3) !important; }
+        
+        /* Amber/warning colors */
+        .dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.1) !important; }
+        .dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.15) !important; }
+        .dark .text-amber-800 { color: #fde68a !important; }
+        .dark .text-amber-700 { color: #fcd34d !important; }
+        .dark .border-amber-200 { border-color: rgba(245, 158, 11, 0.3) !important; }
+
+        /* Yellow colors */
+        .dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.15) !important; }
+        .dark .text-yellow-700 { color: #fde047 !important; }
+        
+        /* Purple/info colors */
+        .dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.15) !important; }
+        .dark .text-purple-700 { color: #d8b4fe !important; }
+        
+        /* Blue/info refinements */
+        .dark .text-blue-800 { color: #bfdbfe !important; }
+        .dark .border-blue-200 { border-color: rgba(59, 130, 246, 0.3) !important; }
+        
+        /* Filter sidebar specific */
+        .dark details summary:hover { background-color: #334155 !important; }
+        
+        /* Category labels and filter items */
+        .dark .border-transparent { border-color: transparent !important; }
+        
+        /* Footer - keep as is since it's already dark */
+        
+        /* White/light backgrounds that need inversion */
+        .dark .bg-white\/60 { background-color: rgba(30, 41, 59, 0.6) !important; }
+        .dark .bg-white\/80 { background-color: rgba(30, 41, 59, 0.8) !important; }
+        .dark .bg-white\/90 { background-color: rgba(30, 41, 59, 0.9) !important; }
+        .dark .hover\:bg-white\/90:hover { background-color: rgba(30, 41, 59, 0.9) !important; }
+        
+        /* Focus states */
+        .dark .focus-within\:bg-white:focus-within { background-color: #1e293b !important; }
+        
+        /* Border on white */
+        .dark .border-white\/20 { border-color: rgba(51, 65, 85, 0.5) !important; }
+        .dark .border-white\/30 { border-color: rgba(51, 65, 85, 0.6) !important; }
+        
+        /* HR elements */
+        .dark hr { border-color: #334155 !important; }
+        
+        /* Section backgrounds */
+        .dark section.bg-white { background-color: #0f172a !important; }
+        .dark section.bg-slate-50 { background-color: #1e293b !important; }
     </style>
 </head>
-<body class="bg-slate-50 font-body antialiased">
+<body class="bg-slate-50 dark:bg-slate-900 font-body antialiased dark:text-slate-100 transition-colors duration-200">
     <!-- Sticky Glassmorphic Navbar -->
     <header class="fixed top-0 left-0 right-0" style="z-index: var(--z-navbar);">
         <nav class="glass border-b border-white/20 shadow-lg shadow-slate-900/5">
@@ -261,7 +443,39 @@
                                 </div>
                             </div>
                         </div>
-                        
+
+                        <!-- Theme Toggle -->
+                        <div class="relative" id="themeDropdown">
+                            <button onclick="document.getElementById('themeMenu').classList.toggle('hidden')"
+                                    class="flex items-center gap-1.5 px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring"
+                                    aria-label="@Localizer["Theme"]"
+                                    aria-haspopup="true">
+                                <i class="bi bi-sun-fill theme-icon-light" aria-hidden="true"></i>
+                                <i class="bi bi-moon-fill theme-icon-dark hidden" aria-hidden="true"></i>
+                                <i class="bi bi-display theme-icon-system hidden" aria-hidden="true"></i>
+                                <i class="bi bi-chevron-down text-xs" aria-hidden="true"></i>
+                            </button>
+                            <div id="themeMenu" class="hidden absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden" style="z-index: var(--z-dropdown);">
+                                <div class="p-2">
+                                    <button type="button" onclick="setThemePreference('light')" data-theme-option="light"
+                                            class="theme-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                                        <i class="bi bi-sun-fill"></i> @Localizer["Light"]
+                                        <i class="bi bi-check ml-auto text-blue-600 theme-check hidden"></i>
+                                    </button>
+                                    <button type="button" onclick="setThemePreference('dark')" data-theme-option="dark"
+                                            class="theme-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                                        <i class="bi bi-moon-fill"></i> @Localizer["Dark"]
+                                        <i class="bi bi-check ml-auto text-blue-600 theme-check hidden"></i>
+                                    </button>
+                                    <button type="button" onclick="setThemePreference('system')" data-theme-option="system"
+                                            class="theme-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                                        <i class="bi bi-display"></i> @Localizer["System"]
+                                        <i class="bi bi-check ml-auto text-blue-600 theme-check hidden"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <!-- User Menu -->
@@ -331,6 +545,23 @@
                     <a asp-controller="Rentals" asp-action="Index" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
                         @Localizer["Marketplace"]
                     </a>
+                    <!-- Mobile Theme Toggle -->
+                    <div class="flex items-center gap-2 px-4 py-2">
+                        <span class="text-sm font-medium text-slate-600">@Localizer["Theme"]:</span>
+                        <button type="button" onclick="setThemePreference('light')" data-theme-mobile="light"
+                                class="theme-mobile-btn p-2 rounded-lg text-sm text-slate-600 hover:bg-blue-50 transition-colors">
+                            <i class="bi bi-sun-fill"></i>
+                        </button>
+                        <button type="button" onclick="setThemePreference('dark')" data-theme-mobile="dark"
+                                class="theme-mobile-btn p-2 rounded-lg text-sm text-slate-600 hover:bg-blue-50 transition-colors">
+                            <i class="bi bi-moon-fill"></i>
+                        </button>
+                        <button type="button" onclick="setThemePreference('system')" data-theme-mobile="system"
+                                class="theme-mobile-btn p-2 rounded-lg text-sm text-slate-600 hover:bg-blue-50 transition-colors">
+                            <i class="bi bi-display"></i>
+                        </button>
+                    </div>
+
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <a asp-controller="Profile" asp-action="Index" class="block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
@@ -483,6 +714,12 @@
             if (currencyDropdown && currencyMenu && !currencyDropdown.contains(e.target)) {
                 currencyMenu.classList.add('hidden');
             }
+            // Close theme menu
+            const themeDropdown = document.getElementById('themeDropdown');
+            const themeMenu = document.getElementById('themeMenu');
+            if (themeDropdown && themeMenu && !themeDropdown.contains(e.target)) {
+                themeMenu.classList.add('hidden');
+            }
         });
 
         // Set a cookie with 1 year expiry
@@ -533,12 +770,82 @@
         // Seamless currency switching - preserves scroll position and form data
         function setCurrency(currencyCode) {
             setCookie('RentMateCurrency', currencyCode);
-            
+
             // Save scroll position and form data, then reload
             sessionStorage.setItem('rentmate_scroll_position', window.scrollY.toString());
             saveFormData();
             window.location.reload();
         }
+
+        // ==========================================
+        // Theme Management (Light / Dark / System)
+        // ==========================================
+        function getThemePreference() {
+            return localStorage.getItem('theme') || 'system';
+        }
+
+        function applyTheme(pref) {
+            var isDark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.classList.toggle('dark', isDark);
+            updateThemeUI(pref);
+        }
+
+        function setThemePreference(pref) {
+            localStorage.setItem('theme', pref);
+            applyTheme(pref);
+            // Close the dropdown
+            var menu = document.getElementById('themeMenu');
+            if (menu) menu.classList.add('hidden');
+        }
+
+        function updateThemeUI(pref) {
+            // Update desktop dropdown icons
+            var icons = { light: '.theme-icon-light', dark: '.theme-icon-dark', system: '.theme-icon-system' };
+            Object.keys(icons).forEach(function(key) {
+                var el = document.querySelector('#themeDropdown ' + icons[key]);
+                if (el) el.classList.toggle('hidden', key !== pref);
+            });
+
+            // Update desktop dropdown active states
+            document.querySelectorAll('.theme-btn').forEach(function(btn) {
+                var opt = btn.getAttribute('data-theme-option');
+                var isActive = opt === pref;
+                btn.classList.toggle('bg-blue-50', isActive);
+                btn.classList.toggle('text-blue-700', isActive);
+                btn.classList.toggle('font-medium', isActive);
+                var check = btn.querySelector('.theme-check');
+                if (check) check.classList.toggle('hidden', !isActive);
+            });
+
+            // Update mobile toggle active states
+            document.querySelectorAll('.theme-mobile-btn').forEach(function(btn) {
+                var opt = btn.getAttribute('data-theme-mobile');
+                var isActive = opt === pref;
+                btn.classList.toggle('bg-blue-50', isActive);
+                btn.classList.toggle('text-blue-700', isActive);
+                btn.classList.toggle('ring-2', isActive);
+                btn.classList.toggle('ring-blue-300', isActive);
+            });
+        }
+
+        // Listen for OS theme changes when in "system" mode
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+            if (getThemePreference() === 'system') {
+                applyTheme('system');
+            }
+        });
+
+        // Apply theme on page load (after DOM is available for UI updates)
+        (function() {
+            function initThemeUI() {
+                applyTheme(getThemePreference());
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initThemeUI);
+            } else {
+                initThemeUI();
+            }
+        })();
     </script>
     
     @await RenderSectionAsync("Scripts", required: false)

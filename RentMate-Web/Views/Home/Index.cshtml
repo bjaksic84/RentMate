@@ -244,12 +244,9 @@
                                 </div>
                             }
                             <!-- Favorite button -->
-                            <button onclick="event.preventDefault();" 
-                                    class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 touch-target focus-ring"
-                                    style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);"
-                                    aria-label="@Localizer["Add to favorites"]">
-                                <i class="bi bi-heart text-slate-600 hover:text-red-500" aria-hidden="true"></i>
-                            </button>
+                            <div class="absolute top-3 right-3 z-10">
+                                @await Html.PartialAsync("_FavoriteButton", new { ItemId = item.Id, IsFavorited = false })
+                            </div>
                             <!-- Rating badge -->
                             @if (item.AverageRating.HasValue)
                             {
@@ -332,12 +329,9 @@
                                 @Localizer["New"]
                             </div>
                             <!-- Favorite button -->
-                            <button onclick="event.preventDefault();" 
-                                    class="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow-md transition-all duration-200 hover:scale-110 touch-target focus-ring"
-                                    style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);"
-                                    aria-label="@Localizer["Add to favorites"]">
-                                <i class="bi bi-heart text-slate-600 hover:text-red-500" aria-hidden="true"></i>
-                            </button>
+                            <div class="absolute top-3 right-3 z-10">
+                                @await Html.PartialAsync("_FavoriteButton", new { ItemId = item.Id, IsFavorited = false })
+                            </div>
                         </div>
                         <!-- Content -->
                         <div class="p-4">

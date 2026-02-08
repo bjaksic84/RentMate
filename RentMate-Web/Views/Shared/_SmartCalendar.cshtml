@@ -151,4 +151,17 @@
     .smart-calendar-panel { animation: scFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: var(--z-popover, 1300); left: 50%; transform: translateX(-50%); }
     .smart-calendar-panel.hidden { display: none; }
     @@keyframes scFadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.98); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+    
+    /* Dark mode styles for SmartCalendar */
+    .dark .sc-day { color: #e2e8f0; }
+    .dark .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end) { color: #60a5fa; }
+    .dark .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { background-color: #60a5fa; }
+    .dark .sc-day.sc-disabled { color: #475569; }
+    .dark .sc-day:hover:not(.sc-disabled):not(.sc-selected-start):not(.sc-selected-end):not(.sc-in-range)::before,
+    .dark .sc-day.sc-hover-end:not(.sc-selected-start):not(.sc-selected-end)::before { background-color: #334155; box-shadow: 0 0 0 1px #475569; }
+    .dark .sc-day.sc-in-range { color: #93c5fd; background-color: rgba(59, 130, 246, 0.15); }
+    .dark .sc-day.sc-range-start::after, .dark .sc-day.sc-range-end::after { background-color: rgba(59, 130, 246, 0.15); }
+    .dark .sc-day:focus-visible::before { box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #60a5fa; }
+    .dark .smart-calendar-panel { background-color: #1e293b; border-color: #334155; }
+    .dark .smart-calendar-panel .border-slate-100 { border-color: #334155; }
 </style>
