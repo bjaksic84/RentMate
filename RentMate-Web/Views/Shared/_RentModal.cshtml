@@ -6,11 +6,13 @@
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
-    var blockedDates = (Model.Rentals ?? Enumerable.Empty<RentMate.Models.Domain.Rental>())
+    var blockedRanges = (Model.Rentals ?? Enumerable.Empty<RentMate.Models.Domain.Rental>())
         .Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending)
-        .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
+        .Select(r => new RentMate.Models.ViewModels.DisabledDateRange {
+            From = DateOnly.FromDateTime(r.StartDate),
+            To = DateOnly.FromDateTime(r.EndDate)
+        })
         .ToList();
-    var jsonBlocked = blockedDates != null && blockedDates.Any() ? JsonSerializer.Serialize(blockedDates) : "[]";
     var calendarId = $"rentCalendar_{Model.Id}";
 }
 
@@ -40,15 +42,51 @@
                         Mode = RentMate.Models.ViewModels.CalendarMode.Range,
                         StartDateField = "startDate",
                         EndDateField = "endDate",
-                        Placeholder = Localizer["Click to select dates..."].Value
+                        MinDate = DateOnly.FromDateTime(DateTime.Today),
+                        Placeholder = Localizer["Click to select dates..."].Value,
+                        DisabledRanges = blockedRanges
                     })
                 </div>
+
+                @if (Model.Accessories?.Any(a => a.IsAvailable) == true)
+                {
+                    <div class="mb-5">
+                        <label class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Optional Accessories"]</label>
+                        <div class="space-y-2" id="accessoryPicker-@Model.Id">
+                            @foreach (var acc in Model.Accessories.Where(a => a.IsAvailable))
+                            {
+                                <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors acc-option" data-daily-price="@acc.DailyPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                    <input type="checkbox" name="accessoryIds" value="@acc.Id" class="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 acc-checkbox" />
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-slate-900">@acc.Name</p>
+                                        @if (!string.IsNullOrEmpty(acc.Description))
+                                        {
+                                            <p class="text-xs text-slate-400 truncate">@acc.Description</p>
+                                        }
+                                    </div>
+                                    <span class="text-sm font-semibold text-slate-700">+@CurrencyService.Format(acc.DailyPrice)/@Localizer["day"]</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                }
 
                 <div id="modalPriceCalculation-@Model.Id" class="hidden mb-5 p-4 bg-slate-50 rounded-xl">
                     <div class="flex justify-between items-center text-sm text-slate-600 mb-2">
                         <span id="modalCalcDays-@Model.Id">0 @Localizer["days"] x @CurrencyService.Format(Model.Price)</span>
                         <span id="modalCalcTotalBase-@Model.Id" class="font-medium">@CurrencyService.GetCurrentCurrency().Symbol 0.00</span>
                     </div>
+                    <div id="modalCalcAccessories-@Model.Id" class="hidden flex justify-between items-center text-sm text-slate-600 mb-2">
+                        <span>@Localizer["Accessories"]</span>
+                        <span id="modalCalcAccTotal-@Model.Id" class="font-medium">@CurrencyService.GetCurrentCurrency().Symbol 0.00</span>
+                    </div>
+                    @if (Model.DepositAmount.HasValue && Model.DepositAmount > 0)
+                    {
+                        <div class="flex justify-between items-center text-sm text-slate-600 mb-2">
+                            <span class="flex items-center gap-1"><i class="bi bi-shield-check text-blue-500"></i> @Localizer["Deposit"]</span>
+                            <span class="font-medium">@CurrencyService.Format(Model.DepositAmount) <span class="text-xs text-slate-400">(@Localizer["refundable"])</span></span>
+                        </div>
+                    }
                     <div class="flex justify-between items-center pt-3 border-t border-slate-200">
                         <span class="font-semibold text-slate-900">@Localizer["Total"]</span>
                         <span id="modalCalcFinalTotal-@Model.Id" class="text-xl font-bold text-green-600">@CurrencyService.GetCurrentCurrency().Symbol 0.00</span>
@@ -56,12 +94,12 @@
                 </div>
 
                 <div class="flex gap-3">
-                    <button type="button" 
-                            onclick="document.getElementById('rentModal-@Model.Id').classList.add('hidden')" 
+                    <button type="button"
+                            onclick="document.getElementById('rentModal-@Model.Id').classList.add('hidden')"
                             class="flex-1 px-4 py-3 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors">
                         @Localizer["Cancel"]
                     </button>
-                    <button type="submit" 
+                    <button type="submit"
                             class="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-xl hover:shadow-md transition-all">
                         <i class="bi bi-check-lg me-1"></i>
                         @Localizer["Confirm"]
@@ -75,45 +113,70 @@
 <!-- Price Calculation Script -->
 <script>
 (function() {
-    const calendarId = '@calendarId';
-    const itemId = '@Model.Id';
-    const pricePerDay = parseFloat('@Model.Price?.ToString(System.Globalization.CultureInfo.InvariantCulture)' || '0');
-    
-    document.getElementById(calendarId)?.addEventListener('smartcalendar:change', function(e) {
-        const { startDate, endDate } = e.detail;
-        
-        if (startDate && endDate) {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            const diffTime = Math.abs(end - start);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            
-            const basePrice = isNaN(pricePerDay) ? 0 : pricePerDay;
-            const exchangeRate = window.CurrentCurrency ? window.CurrentCurrency.ExchangeRate : 1.0;
-            const symbol = window.CurrentCurrency ? window.CurrentCurrency.Symbol : '€';
-            const code = window.CurrentCurrency ? window.CurrentCurrency.Code : 'EUR';
-            
-            const totalConverted = diffDays * basePrice * exchangeRate;
-            const formattedPrice = code === 'CHF' 
-                ? `${(basePrice * exchangeRate).toFixed(2)} ${symbol}` 
-                : `${symbol}${(basePrice * exchangeRate).toFixed(2)}`;
-            const formattedTotal = code === 'CHF' 
-                ? `${totalConverted.toFixed(2)} ${symbol}` 
-                : `${symbol}${totalConverted.toFixed(2)}`;
-            
-            const calcWrapper = document.getElementById('modalPriceCalculation-' + itemId);
-            const calcDays = document.getElementById('modalCalcDays-' + itemId);
-            const calcTotalBase = document.getElementById('modalCalcTotalBase-' + itemId);
-            const calcFinalTotal = document.getElementById('modalCalcFinalTotal-' + itemId);
-            
-            if (calcWrapper) {
-                const daysText = window.Translations && window.Translations["days"] ? window.Translations["days"] : "days";
-                if (calcDays) calcDays.innerText = `${diffDays} ${daysText} x ${formattedPrice}`;
-                if (calcTotalBase) calcTotalBase.innerText = formattedTotal;
-                if (calcFinalTotal) calcFinalTotal.innerText = formattedTotal;
-                calcWrapper.classList.remove('hidden');
+    var calendarId = '@calendarId';
+    var itemId = '@Model.Id';
+    var pricePerDay = parseFloat('@Model.Price?.ToString(System.Globalization.CultureInfo.InvariantCulture)' || '0');
+    var currentDays = 0;
+
+    function getAccTotal() {
+        var total = 0;
+        var picker = document.getElementById('accessoryPicker-' + itemId);
+        if (!picker) return 0;
+        picker.querySelectorAll('.acc-checkbox:checked').forEach(function(cb) {
+            var opt = cb.closest('.acc-option');
+            if (opt) total += parseFloat(opt.getAttribute('data-daily-price') || '0');
+        });
+        return total;
+    }
+
+    function recalc() {
+        if (currentDays <= 0) return;
+        var basePrice = isNaN(pricePerDay) ? 0 : pricePerDay;
+        var exchangeRate = window.CurrentCurrency ? window.CurrentCurrency.ExchangeRate : 1.0;
+        var symbol = window.CurrentCurrency ? window.CurrentCurrency.Symbol : '\u20AC';
+        var code = window.CurrentCurrency ? window.CurrentCurrency.Code : 'EUR';
+        var accDaily = getAccTotal();
+
+        var rentalTotal = currentDays * basePrice * exchangeRate;
+        var accTotal = currentDays * accDaily * exchangeRate;
+        var grandTotal = rentalTotal + accTotal;
+
+        function fmt(val) { return code === 'CHF' ? val.toFixed(2) + ' ' + symbol : symbol + val.toFixed(2); }
+
+        var calcWrapper = document.getElementById('modalPriceCalculation-' + itemId);
+        var calcDays = document.getElementById('modalCalcDays-' + itemId);
+        var calcTotalBase = document.getElementById('modalCalcTotalBase-' + itemId);
+        var calcFinalTotal = document.getElementById('modalCalcFinalTotal-' + itemId);
+        var calcAccRow = document.getElementById('modalCalcAccessories-' + itemId);
+        var calcAccTotal = document.getElementById('modalCalcAccTotal-' + itemId);
+
+        if (calcWrapper) {
+            var daysText = window.Translations && window.Translations["days"] ? window.Translations["days"] : "days";
+            if (calcDays) calcDays.innerText = currentDays + ' ' + daysText + ' x ' + fmt(basePrice * exchangeRate);
+            if (calcTotalBase) calcTotalBase.innerText = fmt(rentalTotal);
+            if (calcAccRow) {
+                if (accTotal > 0) { calcAccRow.classList.remove('hidden'); if (calcAccTotal) calcAccTotal.innerText = fmt(accTotal); }
+                else { calcAccRow.classList.add('hidden'); }
             }
+            if (calcFinalTotal) calcFinalTotal.innerText = fmt(grandTotal);
+            calcWrapper.classList.remove('hidden');
+        }
+    }
+
+    document.getElementById(calendarId)?.addEventListener('smartcalendar:change', function(e) {
+        var startDate = e.detail.startDate, endDate = e.detail.endDate;
+        if (startDate && endDate) {
+            var start = new Date(startDate), end = new Date(endDate);
+            currentDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)) + 1;
+            recalc();
         }
     });
+
+    var picker = document.getElementById('accessoryPicker-' + itemId);
+    if (picker) {
+        picker.querySelectorAll('.acc-checkbox').forEach(function(cb) {
+            cb.addEventListener('change', recalc);
+        });
+    }
 })();
 </script>

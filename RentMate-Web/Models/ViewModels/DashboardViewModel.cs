@@ -1,4 +1,5 @@
 using RentMate.Models.Domain;
+using RentMate.Services.Interfaces;
 
 namespace RentMate.Models.ViewModels;
 
@@ -60,6 +61,19 @@ public class DashboardViewModel
 
     /// <summary>Items this user has favorited.</summary>
     public List<Item>? FavoriteItems { get; set; }
+
+    #endregion
+
+    #region Deposit & Extension Data
+
+    /// <summary>Pending extension requests for items this user owns.</summary>
+    public List<RentalExtension>? PendingExtensions { get; set; }
+
+    /// <summary>Deposit summary for items this user owns.</summary>
+    public DepositSummary? DepositSummary { get; set; }
+
+    /// <summary>Number of pending extension requests.</summary>
+    public int PendingExtensionCount { get; set; }
 
     #endregion
 }

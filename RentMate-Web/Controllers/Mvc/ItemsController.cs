@@ -26,23 +26,26 @@ namespace RentMate.Controllers.Mvc
         private readonly IHubContext<RentMateHub> _hubContext;
         private readonly IFileUploadService _fileUploadService;
         private readonly IStringLocalizer<ItemsController> _localizer;
+        private readonly IAccessoryService _accessoryService;
 
         private const string ItemsFolder = "items";
         private const string DashboardAction = "UserDashboard";
         private const string DashboardController = "Dashboard";
 
         public ItemsController(
-            RentMateContext context, 
-            UserManager<ApplicationUser> userManager, 
-            IHubContext<RentMateHub> hubContext, 
+            RentMateContext context,
+            UserManager<ApplicationUser> userManager,
+            IHubContext<RentMateHub> hubContext,
             IFileUploadService fileUploadService,
-            IStringLocalizer<ItemsController> localizer)
+            IStringLocalizer<ItemsController> localizer,
+            IAccessoryService accessoryService)
         {
             _context = context;
             _userManager = userManager;
             _hubContext = hubContext;
             _fileUploadService = fileUploadService;
             _localizer = localizer;
+            _accessoryService = accessoryService;
         }
 
         // GET: Items
@@ -84,6 +87,9 @@ namespace RentMate.Controllers.Mvc
                 .Include(i => i.Reviews.Where(r => !r.IsDeleted))
                     .ThenInclude(r => r.Reviewer)
                 .Include(i => i.FavoritedBy.Where(f => f.AccountId == currentUserId))
+                .Include(i => i.Accessories.Where(a => a.IsAvailable))
+                .Include(i => i.Rentals.Where(r => r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Active
+                    || r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Pending))
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(m => m.Id == itemId);
         }
@@ -110,7 +116,7 @@ namespace RentMate.Controllers.Mvc
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category,Location")] Item item, IFormFile? image)
+        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category,Location,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item item, IFormFile? image)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -153,9 +159,11 @@ namespace RentMate.Controllers.Mvc
         {
             if (id == null) return NotFound();
 
-            var item = await _context.Items.FindAsync(id);
+            var item = await _context.Items
+                .Include(i => i.Accessories)
+                .FirstOrDefaultAsync(i => i.Id == id);
             if (item == null) return NotFound();
-            
+
             ViewData["UserId"] = new SelectList(_context.Users, "Id", "Email", item.UserId);
             return View(item);
         }
@@ -165,7 +173,7 @@ namespace RentMate.Controllers.Mvc
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl")] Item updatedItem, IFormFile? image)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item updatedItem, IFormFile? image)
         {
             if (id != updatedItem.Id)
             {
@@ -206,6 +214,9 @@ namespace RentMate.Controllers.Mvc
             existingItem.Description = updatedItem.Description;
             existingItem.Price = updatedItem.Price;
             existingItem.Category = updatedItem.Category;
+            existingItem.DepositAmount = updatedItem.DepositAmount;
+            existingItem.AutoApproveExtensions = updatedItem.AutoApproveExtensions;
+            existingItem.MaxRentalDays = updatedItem.MaxRentalDays;
             existingItem.UpdatedAt = DateTime.UtcNow;
 
             if (newImage != null)
@@ -324,6 +335,112 @@ namespace RentMate.Controllers.Mvc
 
             return PartialView("~/Views/Shared/_ReviewsPartial.cshtml", sortedReviews);
         }
+
+        #region Booked Dates
+
+        /// <summary>
+        /// Returns booked date ranges for an item (Active/Pending rentals).
+        /// </summary>
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetBookedDates(int itemId)
+        {
+            var rentals = await _context.Rentals
+                .AsNoTracking()
+                .Where(r => r.ItemId == itemId
+                    && (r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Active
+                        || r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Pending))
+                .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd"), r.Id })
+                .ToListAsync();
+
+            return Json(rentals);
+        }
+
+        #endregion
+
+        #region Accessory Management
+
+        /// <summary>
+        /// Gets accessories for an item as JSON.
+        /// </summary>
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetAccessories(int itemId)
+        {
+            var item = await _context.Items.FindAsync(itemId);
+            if (item == null) return NotFound();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!IsAuthorizedToModify(currentUser, item)) return Forbid();
+
+            var accessories = await _accessoryService.GetAccessoriesForItemAsync(itemId);
+            return Json(accessories.Select(a => new
+            {
+                a.Id,
+                a.Name,
+                a.DailyPrice,
+                a.Description,
+                a.IsAvailable
+            }));
+        }
+
+        /// <summary>
+        /// Adds a new accessory to an item.
+        /// </summary>
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddAccessory(int itemId, string name, decimal dailyPrice, string? description)
+        {
+            var item = await _context.Items.FindAsync(itemId);
+            if (item == null) return NotFound();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!IsAuthorizedToModify(currentUser, item)) return Forbid();
+
+            var accessory = await _accessoryService.AddAccessoryAsync(itemId, name, dailyPrice, description);
+            return Json(new { success = true, accessory = new { accessory.Id, accessory.Name, accessory.DailyPrice, accessory.Description, accessory.IsAvailable } });
+        }
+
+        /// <summary>
+        /// Updates an existing accessory.
+        /// </summary>
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateAccessory(int accessoryId, string name, decimal dailyPrice, bool isAvailable, string? description)
+        {
+            try
+            {
+                var accessory = await _accessoryService.UpdateAccessoryAsync(accessoryId, name, dailyPrice, isAvailable, description);
+                return Json(new { success = true, accessory = new { accessory.Id, accessory.Name, accessory.DailyPrice, accessory.Description, accessory.IsAvailable } });
+            }
+            catch (InvalidOperationException)
+            {
+                return NotFound();
+            }
+        }
+
+        /// <summary>
+        /// Deletes an accessory.
+        /// </summary>
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAccessory(int accessoryId)
+        {
+            try
+            {
+                await _accessoryService.DeleteAccessoryAsync(accessoryId);
+                return Json(new { success = true });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Toggles the admin-hidden status of an item. Admin only.

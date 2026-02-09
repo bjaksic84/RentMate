@@ -21,7 +21,7 @@
         <input type="hidden" asp-for="ImageUrl" />
 
         <!-- Image Section -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
             <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Item Photo"]</h2>
             
             <div class="flex flex-col sm:flex-row gap-6 items-start">
@@ -50,7 +50,7 @@
         </div>
 
         <!-- Basic Info -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
             <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Basic Information"]</h2>
             
             <div class="space-y-4">
@@ -84,9 +84,91 @@
             </div>
         </div>
 
+        <!-- Rental Settings -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+            <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-1">@Localizer["Rental Settings"]</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">@Localizer["Configure deposit, extensions, and rental limits"]</p>
+
+            <div class="space-y-4">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label asp-for="DepositAmount" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Deposit Amount"]</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">@CurrencyService.GetSymbol()</span>
+                            <input asp-for="DepositAmount" type="number" step="0.01" min="0" class="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="0.00" />
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">@Localizer["Leave empty for no deposit requirement"]</p>
+                    </div>
+                    <div>
+                        <label asp-for="MaxRentalDays" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Max Rental Days"]</label>
+                        <input asp-for="MaxRentalDays" type="number" min="1" class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="@Localizer["No limit"]" />
+                        <p class="text-xs text-slate-400 mt-1">@Localizer["Leave empty for no limit"]</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input asp-for="AutoApproveExtensions" type="checkbox" class="sr-only peer" />
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <div>
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Auto-approve Extensions"]</p>
+                        <p class="text-xs text-slate-400">@Localizer["Automatically approve extension requests when no scheduling conflict exists"]</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accessories -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white">@Localizer["Accessories"]</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Add optional extras renters can include"]</p>
+                </div>
+                <button type="button" id="addAccessoryBtn" class="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                    <i class="bi bi-plus-lg mr-1"></i>@Localizer["Add"]
+                </button>
+            </div>
+
+            <div id="accessoriesList" class="space-y-3">
+                <!-- Populated by JS -->
+            </div>
+            <div id="noAccessories" class="text-center py-8 text-slate-400 hidden">
+                <i class="bi bi-puzzle text-3xl mb-2 block"></i>
+                <p class="text-sm">@Localizer["No accessories yet. Add extras like chargers, cases, or bags."]</p>
+            </div>
+
+            <!-- Add/Edit Form (hidden by default) -->
+            <div id="accessoryForm" class="hidden mt-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+                <input type="hidden" id="accEditId" value="" />
+                <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Accessory Name"]</label>
+                        <input id="accName" type="text" maxlength="100" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="@Localizer["e.g. Charger, Case, Tripod"]" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Daily Price"]</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">@CurrencyService.GetSymbol()</span>
+                            <input id="accPrice" type="number" step="0.01" min="0" class="w-full pl-8 pr-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="0.00" />
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Description"] <span class="text-slate-400 font-normal">(@Localizer["Optional"])</span></label>
+                    <input id="accDesc" type="text" maxlength="500" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <button type="button" id="accCancelBtn" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors">@Localizer["Cancel"]</button>
+                    <button type="button" id="accSaveBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">@Localizer["Save"]</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Location -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Pickup Location"]</h2>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+            <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-4">@Localizer["Pickup Location"]</h2>
             
             <div>
                 <label asp-for="Location" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Address"]</label>
@@ -237,5 +319,145 @@
             statusEl.textContent = message;
             statusEl.className = 'text-sm mt-1 ' + className;
         }
+
+        // Accessory Management
+        (function() {
+            var itemId = @Model.Id;
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            var list = document.getElementById('accessoriesList');
+            var noMsg = document.getElementById('noAccessories');
+            var form = document.getElementById('accessoryForm');
+            var editId = document.getElementById('accEditId');
+            var nameInput = document.getElementById('accName');
+            var priceInput = document.getElementById('accPrice');
+            var descInput = document.getElementById('accDesc');
+            var currencySymbol = '@CurrencyService.GetSymbol()';
+
+            function renderAccessories(accessories) {
+                list.innerHTML = '';
+                if (!accessories || accessories.length === 0) {
+                    noMsg.classList.remove('hidden');
+                    return;
+                }
+                noMsg.classList.add('hidden');
+                accessories.forEach(function(a) {
+                    var row = document.createElement('div');
+                    row.className = 'flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl group';
+                    row.setAttribute('data-id', a.id);
+                    var availBadge = a.isAvailable
+                        ? '<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">@Localizer["Available"]</span>'
+                        : '<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-200 text-slate-500">@Localizer["Unavailable"]</span>';
+                    row.innerHTML = '<div class="flex-1 min-w-0">' +
+                        '<div class="flex items-center gap-2">' +
+                        '<p class="text-sm font-medium text-slate-900 dark:text-white truncate">' + escapeHtml(a.name) + '</p>' +
+                        availBadge +
+                        '</div>' +
+                        (a.description ? '<p class="text-xs text-slate-400 truncate mt-0.5">' + escapeHtml(a.description) + '</p>' : '') +
+                        '</div>' +
+                        '<p class="text-sm font-semibold text-slate-900 dark:text-white whitespace-nowrap">' + currencySymbol + parseFloat(a.dailyPrice).toFixed(2) + '<span class="text-xs font-normal text-slate-400">/@Localizer["day"]</span></p>' +
+                        '<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">' +
+                        '<button type="button" class="acc-edit p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" data-id="' + a.id + '"><i class="bi bi-pencil text-sm"></i></button>' +
+                        '<button type="button" class="acc-delete p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" data-id="' + a.id + '"><i class="bi bi-trash text-sm"></i></button>' +
+                        '</div>';
+                    list.appendChild(row);
+                });
+                bindRowActions();
+            }
+
+            function bindRowActions() {
+                list.querySelectorAll('.acc-edit').forEach(function(btn) {
+                    btn.onclick = function() { startEdit(parseInt(this.getAttribute('data-id'))); };
+                });
+                list.querySelectorAll('.acc-delete').forEach(function(btn) {
+                    btn.onclick = function() { deleteAccessory(parseInt(this.getAttribute('data-id'))); };
+                });
+            }
+
+            function escapeHtml(str) {
+                var div = document.createElement('div');
+                div.textContent = str || '';
+                return div.innerHTML;
+            }
+
+            function showForm(acc) {
+                editId.value = acc ? acc.id : '';
+                nameInput.value = acc ? acc.name : '';
+                priceInput.value = acc ? acc.dailyPrice : '';
+                descInput.value = acc ? (acc.description || '') : '';
+                form.classList.remove('hidden');
+                nameInput.focus();
+            }
+
+            function hideForm() {
+                form.classList.add('hidden');
+                editId.value = '';
+                nameInput.value = '';
+                priceInput.value = '';
+                descInput.value = '';
+            }
+
+            function startEdit(id) {
+                var row = list.querySelector('[data-id="' + id + '"]');
+                if (!row) return;
+                // Fetch fresh data
+                fetch('/Items/GetAccessories?itemId=' + itemId)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        var acc = data.find(function(a) { return a.id === id; });
+                        if (acc) showForm(acc);
+                    });
+            }
+
+            function deleteAccessory(id) {
+                if (!confirm('@Localizer["Delete this accessory?"]')) return;
+                fetch('/Items/DeleteAccessory?accessoryId=' + id, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) loadAccessories();
+                    else alert(data.message || '@Localizer["Failed to delete accessory"]');
+                });
+            }
+
+            function loadAccessories() {
+                fetch('/Items/GetAccessories?itemId=' + itemId)
+                    .then(function(r) { return r.json(); })
+                    .then(renderAccessories);
+            }
+
+            document.getElementById('addAccessoryBtn').onclick = function() { showForm(null); };
+            document.getElementById('accCancelBtn').onclick = hideForm;
+            document.getElementById('accSaveBtn').onclick = function() {
+                var name = nameInput.value.trim();
+                var price = parseFloat(priceInput.value);
+                if (!name) { nameInput.focus(); return; }
+                if (isNaN(price) || price < 0) { priceInput.focus(); return; }
+
+                var id = editId.value;
+                var url, params;
+                if (id) {
+                    url = '/Items/UpdateAccessory';
+                    params = 'accessoryId=' + id + '&name=' + encodeURIComponent(name) + '&dailyPrice=' + price + '&isAvailable=true&description=' + encodeURIComponent(descInput.value);
+                } else {
+                    url = '/Items/AddAccessory';
+                    params = 'itemId=' + itemId + '&name=' + encodeURIComponent(name) + '&dailyPrice=' + price + '&description=' + encodeURIComponent(descInput.value);
+                }
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' },
+                    body: params
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.success) { hideForm(); loadAccessories(); }
+                });
+            };
+
+            // Initial load
+            loadAccessories();
+        })();
     </script>
 }

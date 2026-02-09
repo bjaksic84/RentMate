@@ -27,6 +27,8 @@ namespace RentMate.Controllers.Mvc
         private readonly IHubContext<RentMateHub> _hubContext;
         private readonly IStringLocalizer<RentalsController> _localizer;
         private readonly ICurrencyService _currencyService;
+        private readonly IAccessoryService _accessoryService;
+        private readonly IDepositService _depositService;
 
         private const int DefaultPageSize = 12;
         private const string DashboardAction = "UserDashboard";
@@ -37,13 +39,17 @@ namespace RentMate.Controllers.Mvc
             UserManager<ApplicationUser> userManager,
             IHubContext<RentMateHub> hubContext,
             IStringLocalizer<RentalsController> localizer,
-            ICurrencyService currencyService)
+            ICurrencyService currencyService,
+            IAccessoryService accessoryService,
+            IDepositService depositService)
         {
             _context = context;
             _userManager = userManager;
             _hubContext = hubContext;
             _localizer = localizer;
             _currencyService = currencyService;
+            _accessoryService = accessoryService;
+            _depositService = depositService;
         }
 
         #region Helper Methods
@@ -272,7 +278,7 @@ namespace RentMate.Controllers.Mvc
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RequestRental(int itemId, DateTime startDate, DateTime endDate)
+        public async Task<IActionResult> RequestRental(int itemId, DateTime startDate, DateTime endDate, List<int>? accessoryIds)
         {
             var currentUser = await _userManager.GetUserAsync(User);
             if (currentUser == null)
@@ -305,6 +311,15 @@ namespace RentMate.Controllers.Mvc
             var rental = CreateRentalRequest(item, currentUser.Id, startDate, endDate);
             _context.Rentals.Add(rental);
             await _context.SaveChangesAsync();
+
+            // Attach selected accessories
+            if (accessoryIds?.Count > 0)
+            {
+                var rentalAccessories = await _accessoryService.AttachAccessoriesToRentalAsync(rental.Id, accessoryIds);
+                var accessoryTotal = rentalAccessories.Sum(ra => ra.DailyPrice * Math.Max((endDate.Date - startDate.Date).Days + 1, 1));
+                rental.TotalPrice += accessoryTotal;
+                await _context.SaveChangesAsync();
+            }
 
             await NotifyOwnerOfRentalRequestAsync(item, rental, currentUser);
 
@@ -369,6 +384,12 @@ namespace RentMate.Controllers.Mvc
             rental.Item.IsRented = true;
             rental.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            // Create deposit authorization if the item requires a deposit
+            if (rental.Item.DepositAmount.HasValue && rental.Item.DepositAmount > 0)
+            {
+                await _depositService.CreateAndAuthorizeDepositAsync(rental.Id, rental.Item.DepositAmount.Value);
+            }
 
             var message = string.Format(_localizer["Your rental request for '{0}' was approved!"], rental.Item.Title);
             await NotifyRentalStatusChangeAsync(rental, message);

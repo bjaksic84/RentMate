@@ -17,6 +17,31 @@ public class RentMateHub : Hub
     /// </summary>
     public const string RentalRequestedEvent = "RentalRequested";
 
+    /// <summary>
+    /// Client method name for rental status change notifications.
+    /// </summary>
+    public const string RentalStatusChangedEvent = "RentalStatusChanged";
+
+    /// <summary>
+    /// Client method name for extension request notifications sent to the owner.
+    /// </summary>
+    public const string ExtensionRequestedEvent = "ExtensionRequested";
+
+    /// <summary>
+    /// Client method name for extension status change notifications sent to the renter.
+    /// </summary>
+    public const string ExtensionStatusChangedEvent = "ExtensionStatusChanged";
+
+    /// <summary>
+    /// Client method name for deposit status change notifications.
+    /// </summary>
+    public const string DepositStatusChangedEvent = "DepositStatusChanged";
+
+    /// <summary>
+    /// Client method name for overdue rental notifications sent to both parties.
+    /// </summary>
+    public const string RentalOverdueEvent = "RentalOverdue";
+
     #endregion
 
     #region Hub Methods
@@ -29,6 +54,38 @@ public class RentMateHub : Hub
     public async Task NotifyRentalRequest(string ownerId, object rentalData)
     {
         await Clients.User(ownerId).SendAsync(RentalRequestedEvent, rentalData);
+    }
+
+    /// <summary>
+    /// Sends an extension request notification to the item owner.
+    /// </summary>
+    public async Task NotifyExtensionRequest(string ownerId, object extensionData)
+    {
+        await Clients.User(ownerId).SendAsync(ExtensionRequestedEvent, extensionData);
+    }
+
+    /// <summary>
+    /// Sends an extension status change notification to the renter.
+    /// </summary>
+    public async Task NotifyExtensionStatusChanged(string renterId, object extensionData)
+    {
+        await Clients.User(renterId).SendAsync(ExtensionStatusChangedEvent, extensionData);
+    }
+
+    /// <summary>
+    /// Sends a deposit status change notification to the renter.
+    /// </summary>
+    public async Task NotifyDepositStatusChanged(string renterId, object depositData)
+    {
+        await Clients.User(renterId).SendAsync(DepositStatusChangedEvent, depositData);
+    }
+
+    /// <summary>
+    /// Sends an overdue rental notification to a user.
+    /// </summary>
+    public async Task NotifyRentalOverdue(string userId, object overdueData)
+    {
+        await Clients.User(userId).SendAsync(RentalOverdueEvent, overdueData);
     }
 
     #endregion

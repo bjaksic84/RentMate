@@ -100,6 +100,58 @@
             </div>
         </div>
 
+        <!-- Rental Settings -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+            <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-1">@Localizer["Rental Settings"]</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">@Localizer["Configure deposit, extensions, and rental limits"]</p>
+
+            <div class="space-y-4">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div>
+                        <label asp-for="DepositAmount" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Deposit Amount"]</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">@currency.Symbol</span>
+                            @{
+                                var depositPaddingClass = currency.Symbol.Length > 1 ? "pl-14" : "pl-10";
+                            }
+                            <input asp-for="DepositAmount" type="number" step="0.01" min="0" class="w-full @depositPaddingClass pr-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="0.00" />
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">@Localizer["Leave empty for no deposit requirement"]</p>
+                    </div>
+                    <div>
+                        <label asp-for="MaxRentalDays" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Max Rental Days"]</label>
+                        <input asp-for="MaxRentalDays" type="number" min="1" class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="@Localizer["No limit"]" />
+                        <p class="text-xs text-slate-400 mt-1">@Localizer["Leave empty for no limit"]</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input asp-for="AutoApproveExtensions" type="checkbox" class="sr-only peer" />
+                        <div class="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                    <div>
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Auto-approve Extensions"]</p>
+                        <p class="text-xs text-slate-400">@Localizer["Automatically approve extension requests when no scheduling conflict exists"]</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accessories (available after saving) -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 opacity-60">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white">@Localizer["Accessories"]</h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Add optional extras renters can include"]</p>
+                </div>
+            </div>
+            <div class="text-center py-8 text-slate-400">
+                <i class="bi bi-puzzle text-3xl mb-2 block"></i>
+                <p class="text-sm">@Localizer["Save the item first, then edit it to add accessories."]</p>
+            </div>
+        </div>
+
         <!-- Pickup Location -->
         <div class="bg-white rounded-2xl border border-slate-200 p-6">
             <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Pickup Location"]</h2>

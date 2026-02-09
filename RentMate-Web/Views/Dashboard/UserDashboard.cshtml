@@ -1,26 +1,39 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using RentMate.Shared.Contracts.Responses
+@using RentMate.Models.Domain
 @model RentMate.Models.ViewModels.DashboardViewModel
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
 @{
     ViewData["Title"] = Localizer["Dashboard"];
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+    // Compute attention items
+    var pendingOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Pending).ToList() ?? new();
+    var overdueRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < DateTime.UtcNow.Date).ToList() ?? new();
+    var activeMyRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
+    var activeOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
+    var hasAttentionItems = pendingOwnerRentals.Any() || overdueRentals.Any() || (Model.PendingExtensions?.Any() ?? false);
 }
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-            <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["👋 Hello, {0}", User.Identity?.Name ?? ""]</h1>
-            <p class="text-slate-500 mt-1">@Localizer["Manage your items, rentals, and borrowings in one place."]</p>
+            <h1 class="font-outfit text-3xl font-bold text-slate-900 dark:text-white">
+                @Localizer["Hello, {0}", User.Identity?.Name ?? ""]
+            </h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1">
+                @Localizer["Manage your items, rentals, and borrowings in one place."]
+            </p>
         </div>
         <div class="flex items-center gap-3">
-            <span id="connectionIndicator" class="px-3 py-1.5 bg-slate-200 text-slate-600 text-sm font-medium rounded-full">
+            <span id="connectionIndicator" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-full">
                 @Localizer["Offline"]
             </span>
-            <a asp-controller="Items" asp-action="Create" 
-               class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm  transition-all">
+            <a asp-controller="Items" asp-action="Create"
+               class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 hover:brightness-110 text-white font-medium rounded-xl shadow-sm transition-all">
                 <i class="bi bi-plus-lg"></i>
                 @Localizer["Add Item"]
             </a>
@@ -36,488 +49,810 @@
     @await Html.PartialAsync("_Alert")
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-box-seam", IconColor = "blue", Value = Model.ListingsOwned?.Count() ?? 0, Label = "My Items", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-graph-up-arrow", IconColor = "green", Value = Model.OwnerRentals?.Count() ?? 0, Label = "Renting Out", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-bag", IconColor = "purple", Value = Model.MyRentals?.Count() ?? 0, Label = "My Rentals", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-star", IconColor = "amber", Value = Model.ListingsOwned?.Sum(i => i.ReviewCount) ?? 0, Label = "Reviews", Link = (string?)null, LinkText = (string?)null })
-        <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                    <i class="bi bi-heart-fill text-red-500 text-xl"></i>
-                </div>
-                <div>
-                    <p class="text-2xl font-bold text-slate-900" data-favorites-count>@(Model.FavoriteItems?.Count ?? 0)</p>
-                    <p class="text-sm text-slate-500">@Localizer["Favorites"]</p>
-                </div>
-            </div>
-        </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-bag", IconColor = "purple", Value = activeMyRentals.Count, Label = "Active Rentals", Link = (string?)null, LinkText = (string?)null })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-graph-up-arrow", IconColor = "green", Value = activeOwnerRentals.Count, Label = "Renting Out", Link = (string?)null, LinkText = (string?)null })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-calendar-plus", IconColor = "blue", Value = Model.PendingExtensionCount, Label = "Pending Extensions", Link = (string?)null, LinkText = (string?)null })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-shield-check", IconColor = "amber", Value = CurrencyService.Format(Model.DepositSummary?.TotalHeld ?? 0), Label = "Deposits Held", Link = (string?)null, LinkText = (string?)null })
     </div>
 
-    <div class="space-y-8">
-        <!-- My Items Section -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <i class="bi bi-box-seam text-blue-600"></i>
-                    @Localizer["My Items"]
+    <!-- Attention Required Banner -->
+    @if (hasAttentionItems)
+    {
+        <div class="mb-8 rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 overflow-hidden">
+            <div class="px-6 py-4 border-b border-amber-200 dark:border-amber-800">
+                <h2 class="text-lg font-semibold font-outfit text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    @Localizer["Attention Required"]
+                    <span class="ml-2 px-2 py-0.5 bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 text-xs font-medium rounded-full">
+                        @(pendingOwnerRentals.Count + overdueRentals.Count + (Model.PendingExtensions?.Count ?? 0))
+                    </span>
                 </h2>
             </div>
-
-            @if (Model.ListingsOwned?.Any() ?? false)
-            {
-                <div class="divide-y divide-slate-100">
-                    @foreach (var item in Model.ListingsOwned)
+            <div class="divide-y divide-amber-200 dark:divide-amber-800">
+                @* Overdue rentals *@
+                @foreach (var rental in overdueRentals)
+                {
+                    var overdueDays = (DateTime.UtcNow.Date - rental.EndDate.Date).Days;
+                    <div class="px-6 py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                                <i class="bi bi-exclamation-triangle text-rose-600 dark:text-rose-400 text-sm"></i>
+                            </span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-900 dark:text-white">
+                                    @Localizer["Overdue"]: <strong>@rental.Item?.Title</strong>
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @overdueDays @Localizer["days overdue"] &mdash; @Localizer["Return or extend to avoid deposit charge"]
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="openExtensionModal(@rental.Id, '@rental.StartDate.ToString("yyyy-MM-dd")', '@rental.EndDate.ToString("yyyy-MM-dd")', @(rental.Item?.Price ?? 0), @(rental.ItemId), @(rental.Item?.AutoApproveExtensions.ToString().ToLower()))"
+                                class="px-3 py-1.5 text-xs font-medium bg-trust-blue-600 text-white rounded-lg hover:brightness-110 transition">
+                            @Localizer["Extend"]
+                        </button>
+                    </div>
+                }
+                @* Pending rental requests *@
+                @foreach (var rental in pendingOwnerRentals)
+                {
+                    <div class="px-6 py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                <i class="bi bi-clock text-amber-600 dark:text-amber-400 text-sm"></i>
+                            </span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-900 dark:text-white">
+                                    @Localizer["Rental request"]: <strong>@rental.Item?.Title</strong>
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.Email) &mdash; @rental.StartDate.ToString("dd MMM") → @rental.EndDate.ToString("dd MMM yyyy")
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="inline">
+                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
+                                    @Localizer["Approve"]
+                                </button>
+                            </form>
+                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
+                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                <button class="px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                    @Localizer["Reject"]
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+                @* Pending extension requests *@
+                @if (Model.PendingExtensions != null)
+                {
+                    foreach (var ext in Model.PendingExtensions)
                     {
-                        <div class="p-4 hover:bg-slate-50 transition-colors">
-                            <div class="flex items-center gap-4">
-                                <!-- Image -->
-                                <div class="w-16 h-16 shrink-0">
-                                    @if(!string.IsNullOrEmpty(item.ImageUrl)) {
-                                        var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_100,h_100,g_face,q_auto/");
-                                        <img src="@thumbUrl" class="w-full h-full rounded-xl object-cover" />
-                                    } else {
-                                        <div class="w-full h-full bg-slate-100 rounded-xl flex items-center justify-center">
-                                            <i class="bi bi-image text-slate-400"></i>
-                                        </div>
-                                    }
+                        <div class="px-6 py-3 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                                    <i class="bi bi-calendar-plus text-sky-600 dark:text-sky-400 text-sm"></i>
+                                </span>
+                                <div>
+                                    <p class="text-sm font-medium text-slate-900 dark:text-white">
+                                        @Localizer["Extension request"]: <strong>@ext.Rental?.Item?.Title</strong>
+                                    </p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        @Localizer["From"] @(ext.RequestedBy?.FirstName ?? ext.RequestedBy?.Email) &mdash;
+                                        @ext.OriginalEndDate.ToString("dd MMM") → @ext.NewEndDate.ToString("dd MMM yyyy")
+                                        (+@CurrencyService.Format(ext.AdditionalCost))
+                                    </p>
                                 </div>
-                                
-                                <!-- Info -->
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2">
-                                        <h3 class="font-semibold text-slate-900 truncate">@item.Title</h3>
-                                        @if (item.IsListed)
-                                        {
-                                            <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">@Localizer["Listed"]</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">@Localizer["Hidden"]</span>
-                                        }
-                                        @if (item.IsAdminHidden)
-                                        {
-                                            <span class="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full" title="@Localizer["Hidden by moderator"]">
-                                                <i class="bi bi-shield-exclamation"></i> @Localizer["Moderated"]
-                                            </span>
-                                        }
-                                    </div>
-                                    <p class="text-sm text-slate-500">@Localizer[item.Category ?? "Uncategorized"]</p>
-                                    <div class="flex items-center gap-4 mt-1 text-sm">
-                                        <span class="font-semibold text-blue-600">@CurrencyService.Format(item.Price)/@Localizer["day"]</span>
-                                        <span class="text-slate-400">•</span>
-                                        <span class="text-slate-500"><i class="bi bi-star-fill text-amber-400"></i> @(item.AverageRating?.ToString("0.0") ?? "-")</span>
-                                        <span class="text-slate-400">•</span>
-                                        <span class="text-slate-500">@item.ReviewCount @Localizer["reviews"]</span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Actions -->
-                                <div class="flex items-center gap-2">
-                                    <button onclick="toggleListing(@item.Id, this)" 
-                                            class="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" 
-                                            title="@(item.IsListed ? Localizer["Hide from marketplace"] : Localizer["List on marketplace"])">
-                                        @if(item.IsListed) { <i class="bi bi-eye-slash"></i> } else { <i class="bi bi-eye"></i> }
-                                    </button>
-                                    <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id" 
-                                       class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                       title="@Localizer["Edit"]">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id" 
-                                       class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                       title="@Localizer["Delete"]">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="approveExtension(@ext.Id)"
+                                        class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
+                                    @Localizer["Approve"]
+                                </button>
+                                <button onclick="declineExtension(@ext.Id)"
+                                        class="px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                    @Localizer["Decline"]
+                                </button>
                             </div>
                         </div>
                     }
-                </div>
-            }
-            else
-            {
-                <div class="py-12 text-center">
-                    <i class="bi bi-box-seam text-6xl text-slate-200"></i>
-                    <h3 class="mt-4 text-lg font-semibold text-slate-900">@Localizer["You have no listed items yet."]</h3>
-                    <p class="text-slate-500 mt-1">@Localizer["Start earning by listing your first item"]</p>
-                    <a asp-controller="Items" asp-action="Create" class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
-                        <i class="bi bi-plus-lg"></i>
-                        @Localizer["Add First Item"]
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Two-Column Layout -->
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Left Column (Main Content) -->
+        <div class="flex-1 lg:w-2/3 space-y-8">
+
+            <!-- Active Rentals (From Others) -->
+            <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="bi bi-bag text-purple-600"></i>
+                        @Localizer["My Rentals (From Others)"]
+                    </h2>
+                    <a asp-controller="Rentals" asp-action="Index" class="text-sm text-trust-blue-600 hover:text-trust-blue-700 font-medium">
+                        @Localizer["Browse Marketplace"] <i class="bi bi-arrow-right"></i>
                     </a>
                 </div>
-            }
-        </div>
 
-        <!-- Renting Out (Owner) Section -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200">
-                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <i class="bi bi-graph-up-arrow text-green-600"></i>
-                    @Localizer["Renting Out (Owner)"]
-                </h2>
-            </div>
+                @{
+                    var activeMyRentalsList = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending).ToList() ?? new();
+                }
+                @if (activeMyRentalsList.Any())
+                {
+                    <div class="p-4 grid gap-4 sm:grid-cols-2">
+                        @foreach (var rental in activeMyRentalsList)
+                        {
+                            var daysRemaining = (rental.EndDate.Date - DateTime.UtcNow.Date).Days;
+                            var isOverdue = rental.Status == RentalStatus.Active && daysRemaining < 0;
+                            var urgency = daysRemaining < 0 ? "overdue" : daysRemaining <= 1 ? "urgent" : daysRemaining <= 3 ? "warning" : "normal";
+                            var existingReview = rental.Item?.Reviews?.FirstOrDefault(r => r.ReviewerId == currentUserId && !r.IsDeleted);
+                            var hasPendingExt = rental.Extensions?.Any(e => e.Status == ExtensionStatus.Pending) ?? false;
 
-            @if (Model.OwnerRentals?.Any() ?? false)
-            {
-                <div class="divide-y divide-slate-100">
-                    @foreach (var rental in Model.OwnerRentals)
-                    {
-                        <div class="p-4 hover:bg-slate-50 transition-colors">
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                                <div class="flex-1">
-                                    <h3 class="font-semibold text-slate-900">@rental.Item?.Title</h3>
-                                    <div class="flex items-center gap-2 mt-1">
-                                        @if (!string.IsNullOrEmpty(rental.Renter?.ProfilePictureUrl))
-                                        {
-                                            <img src="@rental.Renter.ProfilePictureUrl" class="w-6 h-6 rounded-full object-cover" />
-                                        }
-                                        else
-                                        {
-                                            <div class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">
-                                                <i class="bi bi-person"></i>
-                                            </div>
-                                        }
-                                        <span class="text-sm text-slate-500">@rental.Renter?.Email</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex flex-wrap items-center gap-4 text-sm">
-                                    <div class="text-slate-500">
-                                        @rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")
-                                    </div>
-                                    <div class="font-bold text-green-600">@CurrencyService.Format(rental.TotalPrice)</div>
-                                    
-                                    @if (rental.Status == RentalStatus.Pending)
+                            <article class="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm transition-shadow hover:shadow-md">
+                                <!-- Image + Badges -->
+                                <div class="relative h-40 overflow-hidden">
+                                    @if (!string.IsNullOrEmpty(rental.Item?.ImageUrl))
                                     {
-                                        <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">@Localizer["Pending"]</span>
-                                    }
-                                    else if (rental.Status == RentalStatus.Active)
-                                    {
-                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">@Localizer["Active"]</span>
-                                    }
-                                    else if (rental.Status == RentalStatus.Completed)
-                                    {
-                                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">@Localizer["Completed"]</span>
+                                        var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
+                                        <img src="@thumbUrl" alt="@rental.Item?.Title" class="h-full w-full object-cover transition-transform group-hover:scale-105" />
                                     }
                                     else
                                     {
-                                        <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">@Localizer["Cancelled"]</span>
+                                        <div class="h-full w-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
+                                            <i class="bi bi-image text-4xl text-slate-300 dark:text-slate-600"></i>
+                                        </div>
+                                    }
+                                    <!-- Status Badge -->
+                                    <div class="absolute top-3 left-3">
+                                        @await Html.PartialAsync("_StatusBadge", new { Type = isOverdue ? "overdue" : rental.Status.ToString().ToLower(), Text = isOverdue ? "Overdue" : rental.Status.ToString(), ShowIcon = true })
+                                    </div>
+                                    <!-- Deposit Badge -->
+                                    @if (rental.Deposit != null)
+                                    {
+                                        <div class="absolute top-3 right-3 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium backdrop-blur-sm
+                                            @(rental.Deposit.Status switch {
+                                                DepositStatus.Authorized => "bg-sky-500/20 text-white",
+                                                DepositStatus.Released => "bg-emerald-500/20 text-white",
+                                                _ => "bg-slate-500/20 text-white"
+                                            })">
+                                            <i class="bi bi-shield-check"></i>
+                                            @CurrencyService.Format(rental.Deposit.Amount)
+                                        </div>
                                     }
                                 </div>
-                                
-                                <div class="flex items-center gap-2">
-                                    @if (rental.Status == RentalStatus.Pending)
-                                    {
-                                        <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                                <i class="bi bi-check-lg"></i> @Localizer["Approve"]
-                                            </button>
-                                        </form>
-                                        <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 text-sm font-medium rounded-lg transition-colors">
-                                                <i class="bi bi-x-lg"></i> @Localizer["Reject"]
-                                            </button>
-                                        </form>
-                                    }
-                                    else if (rental.Status == RentalStatus.Active)
-                                    {
-                                        <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
-                                                @Localizer["Mark Returned"]
-                                            </button>
-                                        </form>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="py-12 text-center">
-                    <i class="bi bi-calendar-x text-6xl text-slate-200"></i>
-                    <h3 class="mt-4 text-lg font-semibold text-slate-900">@Localizer["No rental requests at the moment."]</h3>
-                    <p class="text-slate-500 mt-1">@Localizer["When someone wants to rent your items, you'll see them here"]</p>
-                </div>
-            }
-        </div>
 
-        <!-- My Rentals (From Others) Section -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <i class="bi bi-bag text-purple-600"></i>
-                    @Localizer["My Rentals (From Others)"]
-                </h2>
-                <a asp-controller="Rentals" asp-action="Index" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    <i class="bi bi-search me-1"></i> @Localizer["Browse Marketplace"]
-                </a>
-            </div>
+                                <!-- Card Body -->
+                                <div class="p-4">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId"
+                                           class="text-base font-medium text-slate-900 dark:text-white hover:text-trust-blue-600 transition-colors line-clamp-1">
+                                            @rental.Item?.Title
+                                        </a>
+                                        <span class="text-sm font-semibold text-trust-blue-600 dark:text-trust-blue-400 whitespace-nowrap ml-2">
+                                            @CurrencyService.Format(rental.Item?.Price)/@Localizer["day"]
+                                        </span>
+                                    </div>
 
-            @if (Model.MyRentals?.Any() ?? false)
-            {
-                <div class="divide-y divide-slate-100">
-                    @foreach (var rental in Model.MyRentals)
-                    {
-                        <div class="p-4 hover:bg-slate-50 transition-colors">
-                            <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                                <div class="flex-1">
-                                    <h3 class="font-semibold text-slate-900">@rental.Item?.Title</h3>
-                                    <div class="flex items-center gap-2 mt-1">
+                                    <!-- Owner Info -->
+                                    <div class="flex items-center gap-2 mb-3">
                                         @if (!string.IsNullOrEmpty(rental.Item?.User?.ProfilePictureUrl))
                                         {
-                                            <img src="@rental.Item.User.ProfilePictureUrl" class="w-6 h-6 rounded-full object-cover" />
+                                            <img src="@rental.Item.User.ProfilePictureUrl" class="w-5 h-5 rounded-full object-cover" />
                                         }
                                         else
                                         {
-                                            <div class="w-6 h-6 bg-slate-600 text-white rounded-full flex items-center justify-center text-xs">
-                                                <i class="bi bi-person"></i>
-                                            </div>
+                                            <div class="w-5 h-5 bg-slate-400 text-white rounded-full flex items-center justify-center text-xs"><i class="bi bi-person"></i></div>
                                         }
-                                        <span class="text-sm text-slate-500">@Localizer["From"] @rental.Item?.User?.FirstName</span>
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">@Localizer["From"] @(rental.Item?.User?.FirstName ?? rental.Owner?.Email)</span>
+                                    </div>
+
+                                    <!-- Countdown Timer -->
+                                    @if (rental.Status == RentalStatus.Active)
+                                    {
+                                        <div class="mb-3">
+                                            @await Html.PartialAsync("_CountdownTimer", new { EndDate = rental.EndDate, DaysRemaining = daysRemaining, Urgency = urgency })
+                                        </div>
+                                    }
+
+                                    <!-- Accessories -->
+                                    @if (rental.Accessories?.Any() ?? false)
+                                    {
+                                        <div class="mb-3 flex flex-wrap gap-1.5">
+                                            @foreach (var acc in rental.Accessories)
+                                            {
+                                                <span class="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-700 px-2 py-0.5 text-xs text-slate-600 dark:text-slate-300">
+                                                    @acc.Name &middot; @CurrencyService.Format(acc.DailyPrice)/@Localizer["day"]
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <!-- Total -->
+                                    <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-3 mb-3">
+                                        <span class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Total"]</span>
+                                        <span class="text-base font-semibold text-slate-900 dark:text-white">@CurrencyService.Format(rental.TotalPrice)</span>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div class="flex gap-2">
+                                        @if (rental.Status == RentalStatus.Active && !hasPendingExt)
+                                        {
+                                            <button onclick="openExtensionModal(@rental.Id, '@rental.StartDate.ToString("yyyy-MM-dd")', '@rental.EndDate.ToString("yyyy-MM-dd")', @(rental.Item?.Price ?? 0), @(rental.ItemId), @(rental.Item?.AutoApproveExtensions.ToString().ToLower()))"
+                                                    class="flex-1 rounded-xl bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:brightness-110 focus:ring-2 focus:ring-trust-blue-500 focus:ring-offset-2">
+                                                @Localizer["Extend Rental"]
+                                            </button>
+                                        }
+                                        else if (hasPendingExt)
+                                        {
+                                            <span class="flex-1 rounded-xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 px-3 py-2 text-center text-sm font-medium text-sky-700 dark:text-sky-400">
+                                                <i class="bi bi-clock"></i> @Localizer["Extension Pending"]
+                                            </span>
+                                        }
+                                        else if (rental.Status == RentalStatus.Completed && existingReview == null)
+                                        {
+                                            <button onclick="openReviewModal(@rental.Id, @rental.ItemId, null)"
+                                                    class="flex-1 rounded-xl bg-amber-500 hover:bg-amber-600 px-3 py-2 text-sm font-medium text-white transition">
+                                                <i class="bi bi-star"></i> @Localizer["Leave Review"]
+                                            </button>
+                                        }
+                                        else if (rental.Status == RentalStatus.Completed && existingReview != null)
+                                        {
+                                            <button onclick="openReviewModal(@rental.Id, @rental.ItemId, @existingReview.Id)"
+                                                    class="flex-1 rounded-xl bg-trust-blue-500 hover:bg-trust-blue-600 px-3 py-2 text-sm font-medium text-white transition">
+                                                <i class="bi bi-pencil"></i> @Localizer["Edit Review"]
+                                            </button>
+                                        }
+                                        else if (rental.Status == RentalStatus.Pending)
+                                        {
+                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="flex-1">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                                    @Localizer["Cancel Request"]
+                                                </button>
+                                            </form>
+                                        }
                                     </div>
                                 </div>
-                                
-                                <div class="flex flex-wrap items-center gap-4 text-sm">
-                                    <div class="text-slate-500">
-                                        @rental.StartDate.ToString("dd.MM") <i class="bi bi-arrow-right mx-1"></i> @rental.EndDate.ToString("dd.MM.yyyy")
-                                    </div>
-                                    <div class="font-bold text-slate-900">@CurrencyService.Format(rental.TotalPrice)</div>
-                                    
-                                    @if (rental.Status == RentalStatus.Pending)
+                            </article>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @await Html.PartialAsync("_EmptyState", new { Icon = "bi-bag", Message = "You haven't rented anything yet.", ActionLink = Url.Action("Index", "Rentals"), ActionText = "Browse Marketplace" })
+                }
+            </section>
+
+            <!-- Renting Out (Owner) -->
+            <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 class="text-lg font-semibold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="bi bi-graph-up-arrow text-emerald-600"></i>
+                        @Localizer["Renting Out (Owner)"]
+                    </h2>
+                </div>
+
+                @{
+                    var activeOwnerRentalsList = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending).ToList() ?? new();
+                }
+                @if (activeOwnerRentalsList.Any())
+                {
+                    <div class="p-4 grid gap-4 sm:grid-cols-2">
+                        @foreach (var rental in activeOwnerRentalsList)
+                        {
+                            var daysRemaining = (rental.EndDate.Date - DateTime.UtcNow.Date).Days;
+                            var isRentalOverdue = rental.Status == RentalStatus.Active && daysRemaining < 0;
+                            var ownerUrgency = daysRemaining < 0 ? "overdue" : daysRemaining <= 1 ? "urgent" : daysRemaining <= 3 ? "warning" : "normal";
+
+                            <article class="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm transition-shadow hover:shadow-md">
+                                <div class="relative h-40 overflow-hidden">
+                                    @if (!string.IsNullOrEmpty(rental.Item?.ImageUrl))
                                     {
-                                        <span class="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">@Localizer["Pending"]</span>
-                                    }
-                                    else if (rental.Status == RentalStatus.Active)
-                                    {
-                                        <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">@Localizer["Active"]</span>
-                                    }
-                                    else if (rental.Status == RentalStatus.Completed)
-                                    {
-                                        <span class="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">@Localizer["Completed"]</span>
+                                        var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
+                                        <img src="@thumbUrl" alt="@rental.Item?.Title" class="h-full w-full object-cover transition-transform group-hover:scale-105" />
                                     }
                                     else
                                     {
-                                        <span class="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">@Localizer["Cancelled"]</span>
+                                        <div class="h-full w-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center">
+                                            <i class="bi bi-image text-4xl text-slate-300 dark:text-slate-600"></i>
+                                        </div>
+                                    }
+                                    <div class="absolute top-3 left-3">
+                                        @await Html.PartialAsync("_StatusBadge", new { Type = isRentalOverdue ? "overdue" : rental.Status.ToString().ToLower(), Text = isRentalOverdue ? "Overdue" : rental.Status.ToString(), ShowIcon = true })
+                                    </div>
+                                    @if (rental.Deposit != null)
+                                    {
+                                        var depositBadgeType = rental.Deposit.Status switch {
+                                            DepositStatus.Authorized => "deposit-held",
+                                            DepositStatus.Released => "deposit-released",
+                                            DepositStatus.Charged or DepositStatus.PartiallyCharged => "deposit-charged",
+                                            _ => "pending"
+                                        };
+                                        <div class="absolute top-3 right-3">
+                                            @await Html.PartialAsync("_StatusBadge", new { Type = depositBadgeType, Text = CurrencyService.Format(rental.Deposit.Amount), ShowIcon = true, SmallPadding = true })
+                                        </div>
                                     }
                                 </div>
-                                
-                                <div class="flex items-center gap-2">
-                                    @{
-                                        // Check if this user has already reviewed this item (one review per item)
-                                        var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                                        var existingReview = rental.Item?.Reviews?.FirstOrDefault(r => r.ReviewerId == currentUserId && !r.IsDeleted);
-                                        var hasReview = existingReview != null;
-                                    }
-                                    @if (rental.Status == RentalStatus.Completed && !hasReview)
+
+                                <div class="p-4">
+                                    <h3 class="text-base font-medium text-slate-900 dark:text-white mb-2 line-clamp-1">@rental.Item?.Title</h3>
+
+                                    <!-- Renter Info -->
+                                    <div class="flex items-center gap-2 mb-3">
+                                        @if (!string.IsNullOrEmpty(rental.Renter?.ProfilePictureUrl))
+                                        {
+                                            <img src="@rental.Renter.ProfilePictureUrl" class="w-5 h-5 rounded-full object-cover" />
+                                        }
+                                        else
+                                        {
+                                            <div class="w-5 h-5 bg-trust-blue-600 text-white rounded-full flex items-center justify-center text-xs"><i class="bi bi-person"></i></div>
+                                        }
+                                        <span class="text-xs text-slate-500 dark:text-slate-400">@Localizer["Rented by"] @(rental.Renter?.FirstName ?? rental.Renter?.Email)</span>
+                                    </div>
+
+                                    <!-- Countdown -->
+                                    @if (rental.Status == RentalStatus.Active)
                                     {
-                                        <button class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors"
-                                                onclick="openReviewModal(@rental.Id, @rental.ItemId, null)">
-                                            <i class="bi bi-star"></i> @Localizer["Leave Review"]
-                                        </button>
+                                        <div class="mb-3">
+                                            @await Html.PartialAsync("_CountdownTimer", new { EndDate = rental.EndDate, DaysRemaining = daysRemaining, Urgency = ownerUrgency })
+                                        </div>
                                     }
-                                    else if (rental.Status == RentalStatus.Completed && hasReview)
-                                    {
-                                        <button class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
-                                                onclick="openReviewModal(@rental.Id, @rental.ItemId, @existingReview!.Id)">
-                                            <i class="bi bi-pencil"></i> @Localizer["Edit Review"]
-                                        </button>
-                                    }
-                                    else if (rental.Status == RentalStatus.Pending)
-                                    {
-                                        <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
-                                            <input type="hidden" name="rentalId" value="@rental.Id" />
-                                            <button class="px-4 py-2 border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-medium rounded-lg transition-colors">
-                                                @Localizer["Cancel Request"]
-                                            </button>
-                                        </form>
-                                    }
-                                    <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId" 
-                                       class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
+
+                                    <!-- Dates + Price -->
+                                    <div class="flex items-center justify-between text-sm mb-3">
+                                        <span class="text-slate-500 dark:text-slate-400">
+                                            @rental.StartDate.ToString("dd MMM") → @rental.EndDate.ToString("dd MMM yyyy")
+                                        </span>
+                                        <span class="font-semibold text-emerald-600">@CurrencyService.Format(rental.TotalPrice)</span>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div class="flex gap-2">
+                                        @if (rental.Status == RentalStatus.Pending)
+                                        {
+                                            <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="flex-1">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 px-3 py-2 text-sm font-medium text-white transition">
+                                                    <i class="bi bi-check-lg"></i> @Localizer["Approve"]
+                                                </button>
+                                            </form>
+                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="flex-1">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                                    <i class="bi bi-x-lg"></i> @Localizer["Reject"]
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (rental.Status == RentalStatus.Active)
+                                        {
+                                            @if (rental.Deposit != null && rental.Deposit.Status == DepositStatus.Authorized)
+                                            {
+                                                <button onclick="openDepositResolution(@rental.Id, @(rental.Deposit.Amount), '@rental.Deposit.Status')"
+                                                        class="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:brightness-110">
+                                                    @Localizer["Complete & Release Deposit"]
+                                                </button>
+                                            }
+                                            <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="flex-1">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                                    <i class="bi bi-flag"></i> @Localizer["End rental early"]
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    }
-                </div>
+                            </article>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @await Html.PartialAsync("_EmptyState", new { Icon = "bi-calendar-x", Message = "No rental requests at the moment." })
+                }
+            </section>
+
+            <!-- Rental History -->
+            @{
+                var completedRentals = (Model.MyRentals?.Where(r => r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled).ToList() ?? new())
+                    .Concat(Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled) ?? Enumerable.Empty<Rental>())
+                    .OrderByDescending(r => r.EndDate)
+                    .Take(10)
+                    .ToList();
             }
-            else
+            @if (completedRentals.Any())
             {
-                <div class="py-12 text-center">
-                    <i class="bi bi-bag text-6xl text-slate-200"></i>
-                    <h3 class="mt-4 text-lg font-semibold text-slate-900">@Localizer["You haven't rented anything yet."]</h3>
-                    <p class="text-slate-500 mt-1">@Localizer["Explore the marketplace to find items to rent"]</p>
-                    <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
-                        <i class="bi bi-search"></i>
-                        @Localizer["Browse Marketplace"]
-                    </a>
-                </div>
+                <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                    <details>
+                        <summary class="px-6 py-4 cursor-pointer select-none border-b border-slate-200 dark:border-slate-700">
+                            <h2 class="inline text-lg font-semibold font-outfit text-slate-900 dark:text-white">
+                                <i class="bi bi-clock-history text-slate-400 mr-2"></i>
+                                @Localizer["Rental History"]
+                                <span class="ml-2 text-sm font-normal text-slate-500">(@completedRentals.Count)</span>
+                            </h2>
+                        </summary>
+                        <div class="divide-y divide-slate-100 dark:divide-slate-700">
+                            @foreach (var rental in completedRentals)
+                            {
+                                var isOwner = rental.OwnerId == currentUserId;
+                                <div class="px-6 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0">
+                                            @if (!string.IsNullOrEmpty(rental.Item?.ImageUrl))
+                                            {
+                                                var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
+                                                <img src="@thumbUrl" class="w-full h-full object-cover" />
+                                            }
+                                            else
+                                            {
+                                                <div class="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center"><i class="bi bi-image text-slate-300"></i></div>
+                                            }
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-slate-900 dark:text-white">@rental.Item?.Title</p>
+                                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                                @rental.StartDate.ToString("dd MMM") → @rental.EndDate.ToString("dd MMM yyyy")
+                                                &middot; @(isOwner ? Localizer["As owner"] : Localizer["As renter"])
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-sm font-medium text-slate-900 dark:text-white">@CurrencyService.Format(rental.TotalPrice)</span>
+                                        @await Html.PartialAsync("_StatusBadge", new { Type = rental.Status.ToString().ToLower(), Text = rental.Status.ToString(), SmallPadding = true })
+                                        @if (!isOwner && rental.Status == RentalStatus.Completed)
+                                        {
+                                            <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId"
+                                               class="px-2.5 py-1 text-xs font-medium text-trust-blue-600 hover:text-trust-blue-700 border border-trust-blue-200 dark:border-trust-blue-800 rounded-lg hover:bg-trust-blue-50 dark:hover:bg-trust-blue-900/20 transition">
+                                                @Localizer["Rent Again"]
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </details>
+                </section>
             }
         </div>
 
-        <!-- Saved Favorites Section -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <i class="bi bi-heart-fill text-red-500"></i>
-                    @Localizer["Saved Favorites"]
-                </h2>
-                <a asp-controller="Rentals" asp-action="Index" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                    <i class="bi bi-plus-lg me-1"></i> @Localizer["Find More"]
-                </a>
-            </div>
+        <!-- Right Column (Sidebar) -->
+        <div class="lg:w-1/3 space-y-6">
+            <!-- My Items Summary -->
+            <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <h2 class="text-base font-semibold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="bi bi-box-seam text-trust-blue-600"></i>
+                        @Localizer["My Items"]
+                    </h2>
+                    <a asp-controller="Items" asp-action="Create" class="text-xs text-trust-blue-600 hover:text-trust-blue-700 font-medium">
+                        <i class="bi bi-plus-lg"></i> @Localizer["Add"]
+                    </a>
+                </div>
 
-            @if (Model.FavoriteItems?.Any() ?? false)
-            {
-                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                    @foreach (var item in Model.FavoriteItems)
-                    {
-                        <div class="group relative bg-slate-50 rounded-xl overflow-hidden hover:shadow-md transition-all" data-favorite-card>
-                            <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="block">
-                                <!-- Image -->
-                                <div class="aspect-[4/3] relative overflow-hidden">
+                @if (Model.ListingsOwned?.Any() ?? false)
+                {
+                    <div class="divide-y divide-slate-100 dark:divide-slate-700 max-h-96 overflow-y-auto">
+                        @foreach (var item in Model.ListingsOwned)
+                        {
+                            <div class="px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden">
+                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                        {
+                                            var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
+                                            <img src="@thumbUrl" class="w-full h-full object-cover" />
+                                        }
+                                        else
+                                        {
+                                            <div class="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center"><i class="bi bi-image text-slate-300"></i></div>
+                                        }
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-1.5">
+                                            <h3 class="text-sm font-medium text-slate-900 dark:text-white truncate">@item.Title</h3>
+                                            @if (item.IsListed)
+                                            {
+                                                <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="@Localizer["Listed"]"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" title="@Localizer["Hidden"]"></span>
+                                            }
+                                        </div>
+                                        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                            <span class="font-medium text-trust-blue-600">@CurrencyService.Format(item.Price)/@Localizer["day"]</span>
+                                            @if (item.DepositAmount.HasValue)
+                                            {
+                                                <span>&middot; <i class="bi bi-shield-check"></i> @CurrencyService.Format(item.DepositAmount)</span>
+                                            }
+                                            @if (item.Accessories?.Any() ?? false)
+                                            {
+                                                <span>&middot; @item.Accessories.Count @Localizer["add-ons"]</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <button onclick="toggleListing(@item.Id, this)"
+                                                class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                                title="@(item.IsListed ? Localizer["Hide"] : Localizer["List"])">
+                                            <i class="bi @(item.IsListed ? "bi-eye-slash" : "bi-eye") text-sm"></i>
+                                        </button>
+                                        <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id"
+                                           class="p-1.5 text-slate-400 hover:text-trust-blue-600 hover:bg-trust-blue-50 dark:hover:bg-trust-blue-900/20 rounded-lg transition-colors"
+                                           title="@Localizer["Edit"]">
+                                            <i class="bi bi-pencil text-sm"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @await Html.PartialAsync("_EmptyState", new { Icon = "bi-box-seam", Message = "You have no listed items yet.", ActionLink = Url.Action("Create", "Items"), ActionText = "Add First Item" })
+                }
+            </section>
+
+            <!-- Saved Favorites -->
+            <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                    <h2 class="text-base font-semibold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="bi bi-heart-fill text-red-500"></i>
+                        @Localizer["Favorites"]
+                        @if (Model.FavoriteItems?.Any() ?? false)
+                        {
+                            <span class="text-xs font-normal text-slate-500">(@(Model.FavoriteItems?.Count ?? 0))</span>
+                        }
+                    </h2>
+                    <a asp-controller="Rentals" asp-action="Index" class="text-xs text-trust-blue-600 hover:text-trust-blue-700 font-medium">
+                        @Localizer["Find More"]
+                    </a>
+                </div>
+
+                @if (Model.FavoriteItems?.Any() ?? false)
+                {
+                    <div class="divide-y divide-slate-100 dark:divide-slate-700 max-h-80 overflow-y-auto">
+                        @foreach (var item in Model.FavoriteItems)
+                        {
+                            <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id"
+                               class="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                                <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden">
                                     @if (!string.IsNullOrEmpty(item.ImageUrl))
                                     {
-                                        var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_300,q_auto/");
-                                        <img src="@thumbUrl" alt="@item.Title" 
-                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                        var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
+                                        <img src="@thumbUrl" class="w-full h-full object-cover" />
                                     }
                                     else
                                     {
-                                        <div class="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                                            <i class="bi bi-image text-4xl text-slate-300"></i>
-                                        </div>
-                                    }
-                                    
-                                    <!-- Rating Badge -->
-                                    @if (item.AverageRating.HasValue)
-                                    {
-                                        <div class="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-1 bg-white/90 rounded-lg text-xs font-semibold shadow-sm" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
-                                            <i class="bi bi-star-fill text-amber-400"></i>
-                                            <span class="text-slate-800">@item.AverageRating.Value.ToString("0.0")</span>
-                                        </div>
+                                        <div class="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center"><i class="bi bi-image text-slate-300"></i></div>
                                     }
                                 </div>
-                                
-                                <!-- Content -->
-                                <div class="p-3">
-                                    <h3 class="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
-                                        @item.Title
-                                    </h3>
-                                    @if (!string.IsNullOrEmpty(item.Location) || !string.IsNullOrEmpty(item.User?.City))
-                                    {
-                                        <p class="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                                            <i class="bi bi-geo-alt text-blue-500"></i> 
-                                            @(item.Location ?? item.User?.City)
-                                        </p>
-                                    }
-                                    <div class="flex items-center justify-between mt-2">
-                                        <span class="font-bold text-slate-900">@CurrencyService.Format(item.Price)<span class="text-slate-500 font-normal text-xs">/@Localizer["day"]</span></span>
-                                    </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-medium text-slate-900 dark:text-white truncate">@item.Title</h3>
+                                    <span class="text-xs font-semibold text-trust-blue-600">@CurrencyService.Format(item.Price)/@Localizer["day"]</span>
                                 </div>
+                                @if (item.AverageRating.HasValue)
+                                {
+                                    <span class="text-xs text-amber-500"><i class="bi bi-star-fill"></i> @item.AverageRating.Value.ToString("0.0")</span>
+                                }
                             </a>
-                            
-                            <!-- Favorite Button (positioned absolutely) -->
-                            <div class="absolute top-2 right-2">
-                                @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel {
-                                    ItemId = item.Id,
-                                    IsFavorited = true,
-                                    Size = "sm"
-                                })
-                            </div>
-                        </div>
-                    }
+                        }
+                    </div>
+                }
+                else
+                {
+                    @await Html.PartialAsync("_EmptyState", new { Icon = "bi-heart", Message = "No favorites yet" })
+                }
+            </section>
+
+            <!-- Earnings Overview (Placeholder) -->
+            <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+                <h2 class="text-base font-semibold font-outfit text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+                    <i class="bi bi-currency-euro text-emerald-600"></i>
+                    @Localizer["Earnings Overview"]
+                </h2>
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500 dark:text-slate-400">@Localizer["Total Earned"]</span>
+                        <span class="font-medium text-slate-900 dark:text-white">
+                            @CurrencyService.Format(Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed).Sum(r => r.TotalPrice) ?? 0)
+                        </span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500 dark:text-slate-400">@Localizer["Active Income"]</span>
+                        <span class="font-medium text-emerald-600">
+                            @CurrencyService.Format(Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).Sum(r => r.TotalPrice) ?? 0)
+                        </span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-500 dark:text-slate-400">@Localizer["Deposits Held"]</span>
+                        <span class="font-medium text-sky-600">
+                            @CurrencyService.Format(Model.DepositSummary?.TotalHeld ?? 0)
+                        </span>
+                    </div>
                 </div>
-            }
-            else
-            {
-                <div class="py-12 text-center">
-                    <i class="bi bi-heart text-6xl text-slate-200"></i>
-                    <h3 class="mt-4 text-lg font-semibold text-slate-900">@Localizer["No favorites yet"]</h3>
-                    <p class="text-slate-500 mt-1">@Localizer["Items you favorite will appear here for quick access"]</p>
-                    <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
-                        <i class="bi bi-search"></i>
-                        @Localizer["Browse Marketplace"]
-                    </a>
-                </div>
-            }
+            </section>
         </div>
     </div>
 </div>
 
-<!-- Review Modal (Tailwind) -->
+<!-- Extension Modal -->
+<div id="extension-modal" class="fixed inset-0 z-50 hidden items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="extension-modal-title">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" data-action="close-extension"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl">
+        <button type="button" data-action="close-extension" class="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition" aria-label="@Localizer["Close"]">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <div class="mb-5">
+            <h2 id="extension-modal-title" class="text-lg font-semibold font-outfit text-slate-900 dark:text-white">@Localizer["Extend Rental"]</h2>
+        </div>
+        <div id="ext-current-info" class="mb-5 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500 dark:text-slate-400">@Localizer["Your rental period"]</span>
+                <span id="ext-rental-period" class="font-medium text-slate-900 dark:text-white"></span>
+            </div>
+            <div class="mt-2 flex justify-between text-sm">
+                <span class="text-slate-500 dark:text-slate-400">@Localizer["Daily rate"]</span>
+                <span id="ext-daily-rate" class="font-medium text-slate-900 dark:text-white"></span>
+            </div>
+        </div>
+        <form id="extension-form" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="RentalId" id="ext-rental-id" />
+            <div class="mb-4">
+                <label class="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["New return date"]</label>
+                @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.ViewModels.SmartCalendarModel {
+                    Id = "extCalendar",
+                    Mode = RentMate.Models.ViewModels.CalendarMode.Single,
+                    StartDateField = "NewEndDate",
+                    MinDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+                    Placeholder = Localizer["Pick new return date..."].Value
+                })
+            </div>
+            <div id="ext-blocked-notice" class="mb-4 hidden rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3">
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-calendar-x text-rose-500 mt-0.5 shrink-0"></i>
+                    <div>
+                        <p class="text-xs font-medium text-rose-700 dark:text-rose-300">@Localizer["Extension limited"]</p>
+                        <p class="text-xs text-rose-600 dark:text-rose-400 mt-0.5">@Localizer["Another booking starts on"] <strong id="ext-blocked-date"></strong>. @Localizer["You can extend up to the day before. To rent beyond that, create a new booking after their rental ends."]</p>
+                    </div>
+                </div>
+            </div>
+            <div id="ext-cost-preview" class="mb-5 hidden rounded-xl border border-trust-blue-200 dark:border-trust-blue-800 bg-trust-blue-50 dark:bg-trust-blue-900/20 p-4">
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>@Localizer["Additional days"]</span>
+                        <span id="ext-extra-days">0</span>
+                    </div>
+                    <div class="flex justify-between border-t border-trust-blue-200 dark:border-trust-blue-700 pt-2">
+                        <span class="font-medium text-slate-900 dark:text-white">@Localizer["Additional cost"]</span>
+                        <span id="ext-additional-cost" class="text-base font-semibold text-trust-blue-700 dark:text-trust-blue-300"></span>
+                    </div>
+                </div>
+            </div>
+            <div id="ext-approval-notice" class="mb-5 flex items-start gap-2 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                <i class="bi bi-info-circle text-amber-500 mt-0.5 shrink-0"></i>
+                <p class="text-xs text-amber-700 dark:text-amber-300">@Localizer["This extension request will be sent to the owner for approval."]</p>
+            </div>
+            <div class="flex gap-3">
+                <button type="button" data-action="close-extension"
+                        class="flex-1 rounded-xl border border-slate-200 dark:border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 transition hover:bg-slate-50 dark:hover:bg-slate-700">
+                    @Localizer["Cancel"]
+                </button>
+                <button type="submit" id="ext-submit-btn" disabled
+                        class="flex-1 rounded-xl bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">
+                    @Localizer["Request Extension"]
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Deposit Resolution Modal -->
+<div id="deposit-modal" class="fixed inset-0 z-50 hidden items-center justify-center" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" data-action="close-deposit"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl">
+        <button type="button" data-action="close-deposit" class="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" aria-label="@Localizer["Close"]">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <h2 class="text-lg font-semibold font-outfit text-slate-900 dark:text-white mb-5">@Localizer["Resolve Deposit"]</h2>
+        <input type="hidden" id="dep-rental-id" />
+
+        <div class="mb-5 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500 dark:text-slate-400">@Localizer["Deposit amount"]</span>
+                <span id="dep-amount" class="font-semibold text-slate-900 dark:text-white"></span>
+            </div>
+        </div>
+
+        <!-- Release Full -->
+        <button onclick="releaseDeposit()" id="dep-release-btn"
+                class="w-full mb-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:brightness-110">
+            <i class="bi bi-shield-check mr-1"></i> @Localizer["Release Full Deposit"]
+        </button>
+
+        <!-- Or Charge -->
+        <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
+            <div class="relative flex justify-center"><span class="bg-white dark:bg-slate-800 px-3 text-xs text-slate-500 dark:text-slate-400">@Localizer["or charge from deposit"]</span></div>
+        </div>
+
+        <div class="space-y-3">
+            <div>
+                <label for="dep-charge-amount" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Amount to charge"]</label>
+                <input type="number" id="dep-charge-amount" step="0.01" min="0.01"
+                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm text-slate-900 dark:text-white dark:bg-slate-700 focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20" />
+            </div>
+            <div>
+                <label for="dep-charge-reason" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Reason (visible to renter)"]</label>
+                <textarea id="dep-charge-reason" rows="2"
+                          class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm text-slate-900 dark:text-white dark:bg-slate-700 resize-none focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20"
+                          placeholder="@Localizer["e.g., Item returned with scratches on the surface"]"></textarea>
+            </div>
+            <button onclick="chargeDeposit()" id="dep-charge-btn"
+                    class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                <i class="bi bi-shield-x mr-1"></i> @Localizer["Charge Deposit"]
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modal -->
 <div id="reviewModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeReviewModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: var(--z-modal, 1200);">
-        <div class="bg-white rounded-2xl shadow-2xl m-4 overflow-hidden">
-            <!-- Header -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl m-4 overflow-hidden">
             <div class="bg-gradient-to-r from-amber-500 to-amber-400 px-6 py-4">
                 <div class="flex items-center justify-between">
-                    <h3 id="reviewModalTitle" class="text-white font-heading text-lg font-bold">@Localizer["Leave a Review"]</h3>
-                    <button type="button" onclick="closeReviewModal()" class="text-white/80 hover:text-white">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
+                    <h3 id="reviewModalTitle" class="text-white font-outfit text-lg font-bold">@Localizer["Leave a Review"]</h3>
+                    <button type="button" onclick="closeReviewModal()" class="text-white/80 hover:text-white"><i class="bi bi-x-lg"></i></button>
                 </div>
             </div>
-            
             <form id="reviewForm" class="p-6">
-                <input type="hidden" id="reviewRentalId" name="rentalId" value="" />
-                <input type="hidden" id="reviewItemId" name="itemId" value="" />
-                <input type="hidden" id="reviewId" name="reviewId" value="" />
-
-                <!-- Rating -->
+                <input type="hidden" id="reviewRentalId" name="rentalId" />
+                <input type="hidden" id="reviewItemId" name="itemId" />
+                <input type="hidden" id="reviewId" name="reviewId" />
                 <div class="mb-5">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Rating"]</label>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">@Localizer["Rating"]</label>
                     <div class="flex gap-2" id="starRating">
                         @for (int i = 1; i <= 5; i++)
                         {
-                            <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400 transition-colors" data-rating="@i">
-                                <i class="bi bi-star-fill"></i>
-                            </button>
+                            <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400 transition-colors" data-rating="@i"><i class="bi bi-star-fill"></i></button>
                         }
                     </div>
                     <input type="hidden" id="ratingValue" name="rating" value="0" />
                 </div>
-
-                <!-- Title -->
                 <div class="mb-5">
-                    <label for="reviewTitle" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
+                    <label for="reviewTitle" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
                     <input type="text" id="reviewTitle" name="title" maxlength="100"
-                           class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                           class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
                            placeholder="@Localizer["Summarize your experience"]">
                 </div>
-
-                <!-- Body -->
                 <div class="mb-5">
-                    <label for="reviewBody" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Your Review"]</label>
+                    <label for="reviewBody" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">@Localizer["Your Review"]</label>
                     <textarea id="reviewBody" name="body" rows="4" required
-                              class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors resize-none"
+                              class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors resize-none"
                               placeholder="@Localizer["Share your experience with this item..."]"></textarea>
                 </div>
-
-                <!-- Anonymous Option -->
                 <div class="mb-5">
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="checkbox" id="isAnonymous" name="isAnonymous" class="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500">
-                        <span class="text-sm text-slate-600">@Localizer["Post anonymously"]</span>
+                        <span class="text-sm text-slate-600 dark:text-slate-400">@Localizer["Post anonymously"]</span>
                     </label>
                 </div>
-
                 <div class="flex gap-3">
-                    <button type="button" onclick="closeReviewModal()" 
-                            class="flex-1 px-4 py-3 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors">
-                        @Localizer["Cancel"]
-                    </button>
-                    <button type="submit" id="reviewSubmitBtn"
-                            class="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-400 text-white font-semibold rounded-xl hover:shadow-md transition-all">
-                        <i class="bi bi-check-lg me-1"></i>
-                        <span id="reviewSubmitText">@Localizer["Submit Review"]</span>
+                    <button type="button" onclick="closeReviewModal()" class="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">@Localizer["Cancel"]</button>
+                    <button type="submit" id="reviewSubmitBtn" class="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-400 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+                        <i class="bi bi-check-lg me-1"></i> <span id="reviewSubmitText">@Localizer["Submit Review"]</span>
                     </button>
                 </div>
             </form>
@@ -528,195 +863,409 @@
 @section Scripts {
     <script src="~/lib/signalr/signalr.min.js"></script>
     <script>
-        // Toggle listing visibility
+        // === Utility Functions ===
+        function formatCurrency(amount) {
+            var lang = document.documentElement.lang || 'sl';
+            var currency = window.currentCurrency || 'EUR';
+            return new Intl.NumberFormat(lang, { style: 'currency', currency: currency }).format(amount);
+        }
+
+        function getToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        }
+
+        function showToast(message, type) {
+            var container = document.getElementById('toastContainer');
+            var toast = document.createElement('div');
+            var bgClass = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-trust-blue-600';
+            toast.className = bgClass + ' text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in';
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(function () { toast.remove(); }, 4000);
+        }
+
+        // === Toggle Listing ===
         async function toggleListing(itemId, btn) {
             try {
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-                const response = await fetch(`/Items/ToggleListing/${itemId}`, { 
+                var response = await fetch('/Items/ToggleListing/' + itemId, {
                     method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': token
-                    }
+                    headers: { 'X-CSRF-TOKEN': getToken() }
                 });
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    console.error('Failed to toggle listing:', response.statusText);
-                }
+                if (response.ok) location.reload();
             } catch (error) {
                 console.error('Error toggling listing:', error);
             }
         }
 
-        // Review Modal Functions
+        // === Extension Modal ===
+        var extState = { rentalId: 0, currentStartDate: null, currentEndDate: null, dailyRate: 0, autoApprove: false };
+
+        function openExtensionModal(rentalId, startDate, currentEndDate, dailyRate, itemId, autoApprove) {
+            extState.rentalId = rentalId;
+            extState.currentStartDate = new Date(startDate + 'T00:00:00');
+            extState.currentEndDate = new Date(currentEndDate + 'T00:00:00');
+            extState.dailyRate = dailyRate;
+            extState.autoApprove = autoApprove;
+
+            document.getElementById('ext-rental-id').value = rentalId;
+
+            var lang = document.documentElement.lang || 'en';
+            var startFmt = extState.currentStartDate.toLocaleDateString(lang, { day: 'numeric', month: 'short' });
+            var endFmt = extState.currentEndDate.toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' });
+            document.getElementById('ext-rental-period').textContent = startFmt + ' \u2013 ' + endFmt;
+            document.getElementById('ext-daily-rate').textContent = formatCurrency(dailyRate) + '/@Localizer["day"]';
+            document.getElementById('ext-cost-preview').classList.add('hidden');
+            document.getElementById('ext-submit-btn').disabled = true;
+
+            var notice = document.getElementById('ext-approval-notice');
+            if (autoApprove) { notice.classList.add('hidden'); } else { notice.classList.remove('hidden'); }
+
+            // Fetch booked dates for the item and configure calendar
+            // Show calendar starting from user's booking start so highlight is visible
+            var userHighlight = { from: new Date(startDate + 'T00:00:00'), to: new Date(currentEndDate + 'T00:00:00') };
+            function toLocalISODate(d) {
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            var minDateForSelection = new Date(extState.currentEndDate);
+            minDateForSelection.setDate(minDateForSelection.getDate() + 1);
+            var minDateStr = toLocalISODate(minDateForSelection);
+            // Allow calendar to show from the booking start month
+            var calendarMinStr = startDate;
+
+            fetch('/Items/GetBookedDates?itemId=' + itemId)
+                .then(function(r) { return r.json(); })
+                .then(function(bookings) {
+                    var blocked = { dates: [], ranges: [] };
+                    var nextBookingStart = null;
+                    bookings.forEach(function(b) {
+                        if (b.id !== rentalId) {
+                            var bFrom = new Date(b.from + 'T00:00:00');
+                            var bTo = new Date(b.to + 'T00:00:00');
+                            blocked.ranges.push({ from: bFrom, to: bTo });
+                            // Find the nearest booking that starts after the user's current end
+                            if (bFrom > extState.currentEndDate) {
+                                if (!nextBookingStart || bFrom < nextBookingStart) {
+                                    nextBookingStart = bFrom;
+                                }
+                            }
+                        }
+                    });
+
+                    // Cap maxDate to the day before the next booking
+                    var calendarMaxStr = null;
+                    var blockedNotice = document.getElementById('ext-blocked-notice');
+                    if (nextBookingStart) {
+                        var maxDate = new Date(nextBookingStart);
+                        maxDate.setDate(maxDate.getDate() - 1);
+                        calendarMaxStr = toLocalISODate(maxDate);
+                        // Show the notice
+                        var lang = document.documentElement.lang || 'en';
+                        document.getElementById('ext-blocked-date').textContent = nextBookingStart.toLocaleDateString(lang, { day: 'numeric', month: 'short', year: 'numeric' });
+                        blockedNotice.classList.remove('hidden');
+                    } else {
+                        blockedNotice.classList.add('hidden');
+                    }
+
+                    SmartCalendar.update('extCalendar', {
+                        minDate: calendarMinStr,
+                        selectableMinDate: minDateStr,
+                        maxDate: calendarMaxStr,
+                        disabled: blocked,
+                        highlights: [userHighlight]
+                    });
+                })
+                .catch(function() {
+                    document.getElementById('ext-blocked-notice').classList.add('hidden');
+                    SmartCalendar.update('extCalendar', {
+                        minDate: calendarMinStr,
+                        selectableMinDate: minDateStr,
+                        maxDate: null,
+                        disabled: { dates: [], ranges: [] },
+                        highlights: [userHighlight]
+                    });
+                });
+
+            var modal = document.getElementById('extension-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeExtensionModal() {
+            var modal = document.getElementById('extension-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        // Listen for calendar date selection
+        document.getElementById('extCalendar')?.addEventListener('smartcalendar:change', function(e) {
+            var selectedDate = e.detail.startDate;
+            if (!selectedDate) {
+                document.getElementById('ext-cost-preview').classList.add('hidden');
+                document.getElementById('ext-submit-btn').disabled = true;
+                return;
+            }
+            var newDate = new Date(selectedDate + 'T00:00:00');
+            var extraDays = Math.round((newDate - extState.currentEndDate) / 86400000);
+            if (extraDays <= 0) {
+                document.getElementById('ext-cost-preview').classList.add('hidden');
+                document.getElementById('ext-submit-btn').disabled = true;
+                return;
+            }
+            document.getElementById('ext-extra-days').textContent = extraDays;
+            document.getElementById('ext-additional-cost').textContent = formatCurrency(extraDays * extState.dailyRate);
+            document.getElementById('ext-cost-preview').classList.remove('hidden');
+            document.getElementById('ext-submit-btn').disabled = false;
+        });
+
+        document.querySelectorAll('[data-action="close-extension"]').forEach(function (el) {
+            el.addEventListener('click', closeExtensionModal);
+        });
+
+        document.getElementById('extension-form')?.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var btn = document.getElementById('ext-submit-btn');
+            btn.disabled = true;
+            btn.textContent = '@Localizer["Submitting..."]';
+
+            var formData = new FormData(this);
+            try {
+                var response = await fetch('/Dashboard/RequestExtension', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-CSRF-TOKEN': formData.get('__RequestVerificationToken') }
+                });
+                var data = await response.json();
+                if (data.success) {
+                    closeExtensionModal();
+                    showToast(data.message, 'success');
+                    setTimeout(function () { location.reload(); }, 1500);
+                } else {
+                    showToast(data.message, 'error');
+                    btn.disabled = false;
+                    btn.textContent = '@Localizer["Request Extension"]';
+                }
+            } catch (err) {
+                showToast('@Localizer["Something went wrong"]', 'error');
+                btn.disabled = false;
+                btn.textContent = '@Localizer["Request Extension"]';
+            }
+        });
+
+        // === Extension Approval/Decline ===
+        async function approveExtension(extensionId) {
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/ApproveExtension', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'extensionId=' + extensionId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) setTimeout(function () { location.reload(); }, 1000);
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+        }
+
+        async function declineExtension(extensionId) {
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/DeclineExtension', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'extensionId=' + extensionId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) setTimeout(function () { location.reload(); }, 1000);
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+        }
+
+        // === Deposit Resolution Modal ===
+        var depState = { rentalId: 0, amount: 0 };
+
+        function openDepositResolution(rentalId, amount, status) {
+            depState.rentalId = rentalId;
+            depState.amount = amount;
+            document.getElementById('dep-rental-id').value = rentalId;
+            document.getElementById('dep-amount').textContent = formatCurrency(amount);
+            document.getElementById('dep-charge-amount').value = '';
+            document.getElementById('dep-charge-amount').max = amount;
+            document.getElementById('dep-charge-reason').value = '';
+
+            var modal = document.getElementById('deposit-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeDepositModal() {
+            var modal = document.getElementById('deposit-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('[data-action="close-deposit"]').forEach(function (el) {
+            el.addEventListener('click', closeDepositModal);
+        });
+
+        async function releaseDeposit() {
+            var btn = document.getElementById('dep-release-btn');
+            btn.disabled = true;
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/ReleaseDeposit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'rentalId=' + depState.rentalId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) { closeDepositModal(); setTimeout(function () { location.reload(); }, 1000); }
+                else { btn.disabled = false; }
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
+        }
+
+        async function chargeDeposit() {
+            var amount = parseFloat(document.getElementById('dep-charge-amount').value);
+            var reason = document.getElementById('dep-charge-reason').value.trim();
+            if (!amount || amount <= 0) { showToast('@Localizer["Enter a valid amount"]', 'error'); return; }
+            if (amount > depState.amount) { showToast('@Localizer["Amount exceeds deposit"]', 'error'); return; }
+            if (!reason) { showToast('@Localizer["Please provide a reason"]', 'error'); return; }
+
+            var btn = document.getElementById('dep-charge-btn');
+            btn.disabled = true;
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/ChargeDeposit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'rentalId=' + depState.rentalId + '&amount=' + amount + '&reason=' + encodeURIComponent(reason) + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) { closeDepositModal(); setTimeout(function () { location.reload(); }, 1000); }
+                else { btn.disabled = false; }
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
+        }
+
+        // === Review Modal ===
         async function openReviewModal(rentalId, itemId, reviewId) {
-            const modal = document.getElementById('reviewModal');
+            var modal = document.getElementById('reviewModal');
             document.getElementById('reviewRentalId').value = rentalId;
             document.getElementById('reviewItemId').value = itemId;
             document.getElementById('reviewId').value = reviewId || '';
-            
-            // Reset form
             document.getElementById('reviewForm').reset();
             document.getElementById('ratingValue').value = '0';
-            document.querySelectorAll('.star-btn').forEach(btn => {
-                btn.querySelector('i').className = 'bi bi-star-fill';
+            document.querySelectorAll('.star-btn').forEach(function (btn) {
                 btn.classList.remove('text-amber-400');
                 btn.classList.add('text-slate-300');
             });
-            
-            const isEditMode = reviewId !== null && reviewId !== '';
-            const modalTitle = document.getElementById('reviewModalTitle');
-            const submitText = document.getElementById('reviewSubmitText');
-            
+
+            var isEditMode = reviewId !== null && reviewId !== '';
+            document.getElementById('reviewModalTitle').textContent = isEditMode ? '@Localizer["Edit Review"]' : '@Localizer["Leave a Review"]';
+            document.getElementById('reviewSubmitText').textContent = isEditMode ? '@Localizer["Update Review"]' : '@Localizer["Submit Review"]';
+
             if (isEditMode) {
-                // Edit mode - fetch existing review data
-                modalTitle.textContent = '@Localizer["Edit Review"]';
-                submitText.textContent = '@Localizer["Update Review"]';
-                
                 try {
-                    const response = await fetch(`/api/Reviews/mine/item/${itemId}`);
+                    var response = await fetch('/api/Reviews/mine/item/' + itemId);
                     if (response.ok) {
-                        const review = await response.json();
+                        var review = await response.json();
                         document.getElementById('reviewTitle').value = review.title || '';
                         document.getElementById('reviewBody').value = review.body || '';
                         document.getElementById('isAnonymous').checked = review.isAnonymous || false;
                         document.getElementById('ratingValue').value = review.rating;
-                        
-                        // Update star display
-                        document.querySelectorAll('.star-btn').forEach((star, index) => {
-                            if (index < review.rating) {
-                                star.classList.remove('text-slate-300');
-                                star.classList.add('text-amber-400');
-                            } else {
-                                star.classList.remove('text-amber-400');
-                                star.classList.add('text-slate-300');
-                            }
+                        document.querySelectorAll('.star-btn').forEach(function (star, index) {
+                            if (index < review.rating) { star.classList.remove('text-slate-300'); star.classList.add('text-amber-400'); }
+                            else { star.classList.remove('text-amber-400'); star.classList.add('text-slate-300'); }
                         });
                     }
-                } catch (error) {
-                    console.error('Error fetching review:', error);
-                }
-            } else {
-                // Create mode
-                modalTitle.textContent = '@Localizer["Leave a Review"]';
-                submitText.textContent = '@Localizer["Submit Review"]';
+                } catch (error) { console.error('Error fetching review:', error); }
             }
-            
             modal.classList.remove('hidden');
         }
 
-        function closeReviewModal() {
-            document.getElementById('reviewModal').classList.add('hidden');
-        }
+        function closeReviewModal() { document.getElementById('reviewModal').classList.add('hidden'); }
 
-        // Star rating functionality
-        document.querySelectorAll('.star-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const rating = parseInt(this.dataset.rating);
+        document.querySelectorAll('.star-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var rating = parseInt(this.dataset.rating);
                 document.getElementById('ratingValue').value = rating;
-                
-                document.querySelectorAll('.star-btn').forEach((star, index) => {
-                    if (index < rating) {
-                        star.classList.remove('text-slate-300');
-                        star.classList.add('text-amber-400');
-                    } else {
-                        star.classList.remove('text-amber-400');
-                        star.classList.add('text-slate-300');
-                    }
+                document.querySelectorAll('.star-btn').forEach(function (star, index) {
+                    if (index < rating) { star.classList.remove('text-slate-300'); star.classList.add('text-amber-400'); }
+                    else { star.classList.remove('text-amber-400'); star.classList.add('text-slate-300'); }
                 });
             });
         });
 
-        // Review form submission
-        document.getElementById('reviewForm').addEventListener('submit', async function(e) {
+        document.getElementById('reviewForm')?.addEventListener('submit', async function (e) {
             e.preventDefault();
-            
-            const rating = parseInt(document.getElementById('ratingValue').value);
-            if (rating < 1) {
-                alert('@Localizer["Please select a rating"]');
-                return;
-            }
+            var rating = parseInt(document.getElementById('ratingValue').value);
+            if (rating < 1) { alert('@Localizer["Please select a rating"]'); return; }
 
-            const reviewId = document.getElementById('reviewId').value;
-            const rentalId = document.getElementById('reviewRentalId').value;
-            const itemId = document.getElementById('reviewItemId').value;
-            const body = document.getElementById('reviewBody').value;
-            const title = document.getElementById('reviewTitle').value;
-            const isAnonymous = document.getElementById('isAnonymous').checked;
-            
-            const isEditMode = reviewId !== null && reviewId !== '';
+            var reviewId = document.getElementById('reviewId').value;
+            var itemId = document.getElementById('reviewItemId').value;
+            var rentalId = document.getElementById('reviewRentalId').value;
+            var isEditMode = reviewId !== null && reviewId !== '';
 
             try {
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-                
-                let response;
-                if (isEditMode) {
-                    // Update existing review
-                    response = await fetch(`/api/Reviews/${reviewId}`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': token
-                        },
-                        body: JSON.stringify({
-                            id: parseInt(reviewId),
-                            itemId: parseInt(itemId),
-                            rentalId: parseInt(rentalId),
-                            rating: rating,
-                            title: title || null,
-                            body: body,
-                            isAnonymous: isAnonymous
-                        })
-                    });
-                } else {
-                    // Create new review
-                    response = await fetch('/api/Reviews', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': token
-                        },
-                        body: JSON.stringify({
-                            itemId: parseInt(itemId),
-                            rentalId: parseInt(rentalId),
-                            rating: rating,
-                            title: title || null,
-                            body: body,
-                            isAnonymous: isAnonymous
-                        })
-                    });
-                }
+                var payload = {
+                    itemId: parseInt(itemId),
+                    rentalId: parseInt(rentalId),
+                    rating: rating,
+                    title: document.getElementById('reviewTitle').value || null,
+                    body: document.getElementById('reviewBody').value,
+                    isAnonymous: document.getElementById('isAnonymous').checked
+                };
+                if (isEditMode) payload.id = parseInt(reviewId);
 
-                if (response.ok) {
-                    closeReviewModal();
-                    location.reload();
-                } else {
-                    const error = await response.text();
-                    alert(error || '@Localizer["Failed to submit review"]');
-                }
+                var response = await fetch(isEditMode ? '/api/Reviews/' + reviewId : '/api/Reviews', {
+                    method: isEditMode ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getToken() },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) { closeReviewModal(); location.reload(); }
+                else { var error = await response.text(); alert(error || '@Localizer["Failed to submit review"]'); }
             } catch (error) {
                 console.error('Error submitting review:', error);
                 alert('@Localizer["An error occurred. Please try again."]');
             }
         });
 
-        // SignalR connection
-        const connection = new signalR.HubConnectionBuilder()
+        // === Keyboard: Escape closes modals ===
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeExtensionModal();
+                closeDepositModal();
+                closeReviewModal();
+            }
+        });
+
+        // === SignalR ===
+        var connection = new signalR.HubConnectionBuilder()
             .withUrl("/rentMateHub")
             .withAutomaticReconnect()
             .build();
 
-        connection.on("RentalRequested", () => location.reload());
-        connection.on("RentalApproved", () => location.reload());
-        connection.on("RentalCompleted", () => location.reload());
-        connection.on("RentalCancelled", () => location.reload());
+        connection.on("RentalRequested", function () { location.reload(); });
+        connection.on("RentalApproved", function () { location.reload(); });
+        connection.on("RentalCompleted", function () { location.reload(); });
+        connection.on("RentalCancelled", function () { location.reload(); });
+        connection.on("ExtensionRequested", function () { location.reload(); });
+        connection.on("ExtensionApproved", function () { location.reload(); });
+        connection.on("ExtensionDeclined", function () { location.reload(); });
+        connection.on("DepositReleased", function () { location.reload(); });
+        connection.on("DepositCharged", function () { location.reload(); });
 
         connection.start()
-            .then(() => {
-                document.getElementById('connectionIndicator').className = 'px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-full';
-                document.getElementById('connectionIndicator').textContent = '@Localizer["Live"]';
+            .then(function () {
+                var indicator = document.getElementById('connectionIndicator');
+                indicator.className = 'px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm font-medium rounded-full';
+                indicator.textContent = '@Localizer["Live"]';
             })
-            .catch(err => console.error('SignalR Error:', err));
+            .catch(function (err) { console.error('SignalR Error:', err); });
     </script>
 }
-

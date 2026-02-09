@@ -1,0 +1,46 @@
+@*
+    Countdown Timer Partial View
+
+    Usage: @await Html.PartialAsync("_CountdownTimer", new {
+        EndDate = rental.EndDate,
+        DaysRemaining = daysRemaining,
+        Urgency = "normal" // normal, warning, urgent, overdue
+    })
+*@
+
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var modelType = Model?.GetType();
+    var endDate = (DateTime)(modelType?.GetProperty("EndDate")?.GetValue(Model) ?? DateTime.UtcNow);
+    var daysRemaining = (int)(modelType?.GetProperty("DaysRemaining")?.GetValue(Model) ?? 0);
+    var urgency = (string)(modelType?.GetProperty("Urgency")?.GetValue(Model) ?? "normal");
+    var isOverdue = daysRemaining < 0;
+
+    var (borderColor, bgColor, iconColor, textColor) = urgency switch
+    {
+        "overdue" => ("border-rose-200 dark:border-rose-800", "bg-rose-50 dark:bg-rose-900/20", "text-rose-500", "text-rose-700 dark:text-rose-400"),
+        "urgent" => ("border-rose-200 dark:border-rose-800", "bg-rose-50 dark:bg-rose-900/20", "text-rose-500", "text-rose-700 dark:text-rose-400"),
+        "warning" => ("border-amber-200 dark:border-amber-800", "bg-amber-50 dark:bg-amber-900/20", "text-amber-500", "text-amber-700 dark:text-amber-400"),
+        _ => ("border-slate-200 dark:border-slate-700", "bg-slate-50 dark:bg-slate-800", "text-slate-400", "text-slate-900 dark:text-white")
+    };
+}
+
+<div class="flex items-center gap-3 rounded-xl border px-4 py-2.5 @borderColor @bgColor">
+    <svg class="h-4 w-4 @iconColor shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <div class="flex-1">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+            @(isOverdue ? Localizer["Overdue by"] : Localizer["Returns in"])
+        </p>
+        <p class="text-2xl font-bold tabular-nums font-outfit @textColor">
+            @Math.Abs(daysRemaining)
+            <span class="text-sm font-normal">@Localizer["days"]</span>
+        </p>
+    </div>
+    <time class="text-xs text-slate-400" datetime="@endDate.ToString("yyyy-MM-dd")">
+        @endDate.ToString("dd MMM yyyy")
+    </time>
+</div>

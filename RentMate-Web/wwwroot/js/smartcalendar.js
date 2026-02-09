@@ -145,26 +145,23 @@
         /**
          * Calculate all state flags for a day cell
          * @param {Date} date
-         * @returns {{
-         *   dateStr: string,
-         *   isDisabled: boolean,
-         *   isToday: boolean,
-         *   isStart: boolean,
-         *   isEnd: boolean,
-         *   isInRange: boolean,
-         *   isRangeStart: boolean,
-         *   isRangeEnd: boolean,
-         *   isHoverEnd: boolean
-         * }}
+         * @returns {Object}
          */
         calculate(date) {
             const dateStr = DateUtils.toISODate(date);
             const { selectedStart, selectedEnd, hoverDate, config } = this.instance;
 
             const isDisabled = this._isDateDisabled(date);
+            const isBooked = this._isDateBooked(date);
             const isStart = selectedStart && DateUtils.toISODate(selectedStart) === dateStr;
             const isEnd = selectedEnd && DateUtils.toISODate(selectedEnd) === dateStr;
             const isInRange = this._isInRange(date);
+
+            // Highlight states (user's current booking)
+            const highlight = this._getHighlightState(date);
+
+            // Extension preview (hover trail from highlight end to hovered date)
+            const extPreview = this._getExtensionPreviewState(date);
 
             // Range connector states
             let isRangeStart = false;
@@ -189,13 +186,19 @@
             return {
                 dateStr,
                 isDisabled,
+                isBooked,
                 isToday: dateStr === this.todayStr,
                 isStart,
                 isEnd,
                 isInRange: isInRange && !isStart && !isEnd,
                 isRangeStart,
                 isRangeEnd,
-                isHoverEnd: hoverDate && DateUtils.toISODate(hoverDate) === dateStr
+                isHoverEnd: hoverDate && DateUtils.toISODate(hoverDate) === dateStr,
+                isHighlight: highlight.inRange,
+                isHighlightStart: highlight.isStart,
+                isHighlightEnd: highlight.isEnd,
+                isExtPreview: extPreview.inRange,
+                isExtPreviewEnd: extPreview.isEnd,
             };
         }
 
@@ -204,9 +207,10 @@
          */
         _isDateDisabled(date) {
             const d = DateUtils.normalizeDate(date);
-            const { minDate, maxDate, disabled } = this.instance.config;
+            const { minDate, selectableMinDate, maxDate, disabled } = this.instance.config;
+            const effectiveMin = selectableMinDate || minDate;
 
-            if (minDate && d < minDate) return true;
+            if (effectiveMin && d < effectiveMin) return true;
             if (maxDate && d > maxDate) return true;
 
             const dateStr = DateUtils.toISODate(d);
@@ -221,6 +225,69 @@
             }
 
             return false;
+        }
+
+        /**
+         * Check if date falls within a booked range (not past/future disabled)
+         * @private
+         */
+        _isDateBooked(date) {
+            const d = DateUtils.normalizeDate(date);
+            const { disabled } = this.instance.config;
+            if (!disabled.ranges) return false;
+            for (const range of disabled.ranges) {
+                const from = DateUtils.normalizeDate(range.from);
+                const to = DateUtils.normalizeDate(range.to);
+                if (d >= from && d <= to) return true;
+            }
+            return false;
+        }
+
+        /**
+         * Get highlight state for a date (user's own booking)
+         * @private
+         */
+        _getHighlightState(date) {
+            const d = DateUtils.normalizeDate(date);
+            const { highlights } = this.instance.config;
+            if (!highlights || !highlights.length) return { inRange: false, isStart: false, isEnd: false };
+            for (const h of highlights) {
+                const from = DateUtils.normalizeDate(h.from);
+                const to = DateUtils.normalizeDate(h.to);
+                if (d >= from && d <= to) {
+                    return {
+                        inRange: true,
+                        isStart: d.getTime() === from.getTime(),
+                        isEnd: d.getTime() === to.getTime(),
+                    };
+                }
+            }
+            return { inRange: false, isStart: false, isEnd: false };
+        }
+
+        /**
+         * Get extension preview state (hover trail from highlight end to hovered date)
+         * @private
+         */
+        _getExtensionPreviewState(date) {
+            const { hoverDate, selectedStart, config } = this.instance;
+            if (!config.highlights?.length) return { inRange: false, isEnd: false };
+            if (config.mode !== 'single') return { inRange: false, isEnd: false };
+
+            const d = DateUtils.normalizeDate(date);
+            const lastHighlight = config.highlights[config.highlights.length - 1];
+            const highlightEnd = DateUtils.normalizeDate(lastHighlight.to);
+            const previewStart = new Date(highlightEnd);
+            previewStart.setDate(previewStart.getDate() + 1);
+
+            // Show green range for: hover preview OR confirmed selection
+            const targetDate = selectedStart ? DateUtils.normalizeDate(selectedStart) : (hoverDate ? DateUtils.normalizeDate(hoverDate) : null);
+            if (!targetDate || targetDate <= highlightEnd) return { inRange: false, isEnd: false };
+
+            if (d >= previewStart && d <= targetDate) {
+                return { inRange: true, isEnd: d.getTime() === targetDate.getTime() };
+            }
+            return { inRange: false, isEnd: false };
         }
 
         /**
@@ -253,7 +320,12 @@
                 instance.selectedEnd = null;
                 callbacks.updateDisplay();
                 callbacks.dispatchChange();
-                callbacks.close();
+                // Keep panel open in extension mode so user sees the green trail
+                if (instance.config.highlights?.length) {
+                    callbacks.render();
+                } else {
+                    callbacks.close();
+                }
             }
         },
 
@@ -330,10 +402,12 @@
         return {
             mode: container.dataset.mode || 'single',
             minDate,
+            selectableMinDate: null,
             maxDate: container.dataset.maxDate ? new Date(container.dataset.maxDate) : null,
             disabled: DisabledDatesParser.parse(container.dataset.disabled || '[]'),
             initialStart: container.dataset.initialStart ? new Date(container.dataset.initialStart) : null,
             initialEnd: container.dataset.initialEnd ? new Date(container.dataset.initialEnd) : null,
+            highlights: [],
         };
     }
 
@@ -374,6 +448,7 @@
 
         updateNavButtons(id);
         updateClearButton(id);
+        updateLegend(id);
     }
 
     /**
@@ -468,6 +543,7 @@
      */
     function createDayCell(id, date, day, state) {
         const instance = instances[id];
+        const hasHighlights = instance.config.highlights?.length > 0;
         const cell = document.createElement('button');
         cell.type = 'button';
         cell.dataset.date = state.dateStr;
@@ -492,6 +568,22 @@
                     }
                 };
             }
+
+            // Hover for extension preview (single mode with highlights)
+            if (instance.config.mode === 'single' && hasHighlights && !instance.selectedStart) {
+                cell.onmouseenter = () => {
+                    instance.hoverDate = date;
+                    renderCalendar(id);
+                };
+            }
+        }
+
+        // Highlighted dates are visually active but not clickable/hoverable
+        if (state.isHighlight && state.isDisabled) {
+            cell.disabled = false;
+            cell.style.cursor = 'default';
+            cell.onclick = (e) => e.stopPropagation();
+            cell.onmouseenter = null;
         }
 
         return cell;
@@ -506,6 +598,12 @@
         const classes = ['sc-day'];
 
         if (state.isDisabled) classes.push('sc-disabled');
+        if (state.isBooked) classes.push('sc-booked');
+        if (state.isHighlight) classes.push('sc-highlight');
+        if (state.isHighlightStart) classes.push('sc-highlight-start');
+        if (state.isHighlightEnd) classes.push('sc-highlight-end');
+        if (state.isExtPreview) classes.push('sc-ext-preview');
+        if (state.isExtPreviewEnd) classes.push('sc-ext-preview-end');
         if (state.isStart) classes.push('sc-selected-start');
         if (state.isEnd) classes.push('sc-selected-end');
         if (state.isInRange) classes.push('sc-in-range');
@@ -620,6 +718,45 @@
         }
     }
 
+    /**
+     * Show/hide legend items based on calendar config
+     * @param {string} id
+     */
+    function updateLegend(id) {
+        const instance = instances[id];
+        const legend = document.getElementById(`${id}_legend`);
+        if (!legend) return;
+
+        const { disabled, highlights } = instance.config;
+        const hasRanges = disabled.ranges?.length > 0;
+        const hasHighlights = highlights?.length > 0;
+        const hasDisabledDates = disabled.dates?.length > 0 || instance.config.selectableMinDate;
+
+        // Determine which legend items to show
+        const show = {
+            highlight: hasHighlights,
+            extension: hasHighlights,
+            booked: hasRanges,
+            unavailable: (hasRanges || hasDisabledDates) && !hasHighlights,
+        };
+
+        let anyVisible = false;
+        legend.querySelectorAll('[data-legend]').forEach(el => {
+            const key = el.dataset.legend;
+            if (show[key]) {
+                el.classList.remove('hidden');
+                el.classList.add('flex');
+                anyVisible = true;
+            } else {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            }
+        });
+
+        legend.classList.toggle('hidden', !anyVisible);
+        if (anyVisible) legend.classList.add('flex');
+    }
+
     // ==========================================
     // Navigation
     // ==========================================
@@ -717,6 +854,15 @@
         const panel = document.getElementById(`${id}_panel`);
         if (!panel) return;
 
+        // Clear hover state when mouse leaves the calendar panel
+        panel.addEventListener('mouseleave', () => {
+            const instance = instances[id];
+            if (instance && instance.hoverDate) {
+                instance.hoverDate = null;
+                renderCalendar(id);
+            }
+        });
+
         // Touch gestures
         let touchStartX = 0;
         panel.addEventListener('touchstart', e => {
@@ -748,6 +894,71 @@
     // ==========================================
     // Public API
     // ==========================================
+    /**
+     * Destroy a calendar instance so it can be re-initialized
+     * @param {string} id
+     */
+    function destroy(id) {
+        close(id);
+        delete instances[id];
+    }
+
+    /**
+     * Update a calendar instance with new configuration and re-render
+     * @param {string} id
+     * @param {Object} newConfig - Partial config: { minDate, maxDate, disabled, mode }
+     */
+    function update(id, newConfig) {
+        let instance = instances[id];
+        if (!instance) {
+            // Initialize first if not yet created
+            init(id);
+            instance = instances[id];
+            if (!instance) return;
+        }
+
+        if (newConfig.minDate) {
+            const d = new Date(newConfig.minDate);
+            d.setHours(0, 0, 0, 0);
+            instance.config.minDate = d;
+            // Reset current month to min date if before it
+            const minMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+            if (instance.currentMonth < minMonth) {
+                instance.currentMonth = minMonth;
+            }
+        }
+        if ('maxDate' in newConfig) {
+            if (newConfig.maxDate) {
+                const d = new Date(newConfig.maxDate);
+                d.setHours(0, 0, 0, 0);
+                instance.config.maxDate = d;
+            } else {
+                instance.config.maxDate = null;
+            }
+        }
+        if (newConfig.selectableMinDate) {
+            const d = new Date(newConfig.selectableMinDate);
+            d.setHours(0, 0, 0, 0);
+            instance.config.selectableMinDate = d;
+        }
+        if (newConfig.disabled !== undefined) {
+            instance.config.disabled = typeof newConfig.disabled === 'string'
+                ? DisabledDatesParser.parse(newConfig.disabled)
+                : newConfig.disabled;
+        }
+        if (newConfig.highlights !== undefined) {
+            instance.config.highlights = newConfig.highlights || [];
+        }
+
+        // Clear selection
+        instance.selectedStart = null;
+        instance.selectedEnd = null;
+        instance.hoverDate = null;
+
+        updateDisplay(id);
+        renderCalendar(id);
+    }
+
     window.SmartCalendar = {
         init,
         toggle,
@@ -756,6 +967,8 @@
         clear,
         prevMonth,
         nextMonth,
+        destroy,
+        update,
         getSelection: (id) => {
             const instance = instances[id];
             if (!instance) return null;

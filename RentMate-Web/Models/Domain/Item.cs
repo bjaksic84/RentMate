@@ -41,10 +41,27 @@ namespace RentMate.Models.Domain
         public double? AverageRating { get; set; }
         public int ReviewCount { get; set; }
 
+        /// <summary>
+        /// Fixed deposit amount required from the renter. Null means no deposit.
+        /// </summary>
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? DepositAmount { get; set; }
+
+        /// <summary>
+        /// When true, extension requests are auto-approved if no scheduling conflict exists.
+        /// </summary>
+        public bool AutoApproveExtensions { get; set; }
+
+        /// <summary>
+        /// Maximum rental duration in days. Null means no limit.
+        /// </summary>
+        public int? MaxRentalDays { get; set; }
+
         // Navigation properties for Entity Framework
         public virtual ApplicationUser? User { get; set; }
         public virtual List<Rental> Rentals { get; set; } = new();
         public virtual List<Review> Reviews { get; set; } = new();
+        public virtual List<ItemAccessory> Accessories { get; set; } = new();
         
         /// <summary>
         /// Collection of users who have favorited this item.

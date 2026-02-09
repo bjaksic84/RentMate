@@ -24,6 +24,10 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
     public DbSet<Review> Reviews { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<AccountItemFavorite> AccountItemFavorites { get; set; }
+    public DbSet<ItemAccessory> ItemAccessories { get; set; }
+    public DbSet<RentalAccessory> RentalAccessories { get; set; }
+    public DbSet<RentalDeposit> RentalDeposits { get; set; }
+    public DbSet<RentalExtension> RentalExtensions { get; set; }
 
     #endregion
 
@@ -39,6 +43,9 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         ConfigurePaymentEntity(modelBuilder);
         ConfigureReviewEntity(modelBuilder);
         ConfigureFavoritesEntity(modelBuilder);
+        ConfigureAccessoryEntities(modelBuilder);
+        ConfigureDepositEntity(modelBuilder);
+        ConfigureExtensionEntity(modelBuilder);
         ConfigurePerformanceIndexes(modelBuilder);
     }
 
@@ -163,6 +170,91 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
 
             // Index for efficient queries by ItemId
             entity.HasIndex(f => f.ItemId);
+        });
+    }
+
+    private static void ConfigureAccessoryEntities(ModelBuilder modelBuilder)
+    {
+        // ItemAccessory → Item
+        modelBuilder.Entity<ItemAccessory>(entity =>
+        {
+            entity.Property(a => a.DailyPrice)
+                  .HasColumnType("decimal(10,2)");
+
+            entity.HasOne(a => a.Item)
+                  .WithMany(i => i.Accessories)
+                  .HasForeignKey(a => a.ItemId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(a => a.ItemId);
+        });
+
+        // RentalAccessory → Rental, ItemAccessory
+        modelBuilder.Entity<RentalAccessory>(entity =>
+        {
+            entity.Property(a => a.DailyPrice)
+                  .HasColumnType("decimal(10,2)");
+
+            entity.HasOne(a => a.Rental)
+                  .WithMany(r => r.Accessories)
+                  .HasForeignKey(a => a.RentalId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(a => a.ItemAccessory)
+                  .WithMany(ia => ia.RentalAccessories)
+                  .HasForeignKey(a => a.ItemAccessoryId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private static void ConfigureDepositEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RentalDeposit>(entity =>
+        {
+            entity.Property(d => d.Amount)
+                  .HasColumnType("decimal(10,2)");
+
+            entity.Property(d => d.ChargedAmount)
+                  .HasColumnType("decimal(10,2)");
+
+            entity.Property(d => d.Status)
+                  .HasConversion<string>();
+
+            // One-to-one with Rental
+            entity.HasOne(d => d.Rental)
+                  .WithOne(r => r.Deposit)
+                  .HasForeignKey<RentalDeposit>(d => d.RentalId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(d => d.RentalId)
+                  .IsUnique();
+        });
+    }
+
+    private static void ConfigureExtensionEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<RentalExtension>(entity =>
+        {
+            entity.Property(e => e.AdditionalCost)
+                  .HasColumnType("decimal(10,2)");
+
+            entity.Property(e => e.DailyRate)
+                  .HasColumnType("decimal(10,2)");
+
+            entity.Property(e => e.Status)
+                  .HasConversion<string>();
+
+            entity.HasOne(e => e.Rental)
+                  .WithMany(r => r.Extensions)
+                  .HasForeignKey(e => e.RentalId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.RequestedBy)
+                  .WithMany()
+                  .HasForeignKey(e => e.RequestedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(e => new { e.RentalId, e.Status });
         });
     }
 

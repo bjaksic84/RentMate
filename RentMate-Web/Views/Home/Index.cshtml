@@ -10,7 +10,7 @@
 }
 
 <!-- Hero Section - Full viewport height -->
-<section class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center">
+<section class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center z-10">
     <!-- Animated gradient background -->
     <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900 overflow-hidden">
         <!-- Decorative elements -->
@@ -114,7 +114,8 @@
                             EndDateField = "endDate",
                             Mode = RentMate.Models.ViewModels.CalendarMode.Range,
                             MinDate = DateOnly.FromDateTime(DateTime.Today),
-                            Placeholder = Localizer["When? (Pick dates)"].Value
+                            Placeholder = Localizer["When? (Pick dates)"].Value,
+                            CssClass = "sc-open-up"
                         })
                     </div>
                     

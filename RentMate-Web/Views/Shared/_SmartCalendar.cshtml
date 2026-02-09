@@ -8,8 +8,17 @@
     var maxDate = Model.MaxDate?.ToString("yyyy-MM-dd") ?? "";
     var initialStart = Model.InitialStart?.ToString("yyyy-MM-dd") ?? "";
     var initialEnd = Model.InitialEnd?.ToString("yyyy-MM-dd") ?? "";
-    var disabledJson = Model.DisabledDates != null 
-        ? System.Text.Json.JsonSerializer.Serialize(Model.DisabledDates.Select(d => d.ToString("yyyy-MM-dd")))
+    var disabledItems = new List<object>();
+    if (Model.DisabledDates != null)
+    {
+        disabledItems.AddRange(Model.DisabledDates.Select(d => (object)d.ToString("yyyy-MM-dd")));
+    }
+    if (Model.DisabledRanges != null)
+    {
+        disabledItems.AddRange(Model.DisabledRanges.Select(r => (object)new { from = r.From.ToString("yyyy-MM-dd"), to = r.To.ToString("yyyy-MM-dd") }));
+    }
+    var disabledJson = disabledItems.Any()
+        ? System.Text.Json.JsonSerializer.Serialize(disabledItems)
         : "[]";
     var isRangeMode = Model.Mode == RentMate.Models.ViewModels.CalendarMode.Range;
     var weekdaysShort = new[] { "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su" };
@@ -64,12 +73,11 @@
          role="dialog"
          aria-modal="true"
          aria-label="@Localizer["Calendar"]"
-         class="smart-calendar-panel hidden absolute mt-3 
+         class="smart-calendar-panel hidden absolute
                 bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5
                 p-4 sm:p-6 origin-top
                 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[340px] max-w-[95vw]
-                @(isRangeMode ? "lg:w-[680px]" : "")"
-         style="z-index: var(--z-popover, 1300); left: 50%; transform: translateX(-50%); bottom: auto;">>
+                @(isRangeMode ? "lg:w-[680px]" : "")">
         
         <div id="@(calId)_announce" aria-live="polite" class="sr-only"></div>
         
@@ -114,6 +122,24 @@
             }
         </div>
         
+        <div id="@(calId)_legend" class="hidden flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 text-xs text-slate-500 dark:text-slate-400">
+            <span data-legend="highlight" class="hidden items-center gap-1.5">
+                <span class="inline-block w-3.5 h-3.5 rounded" style="background-color: #fef3c7;"></span>
+                @Localizer["Your booking"]
+            </span>
+            <span data-legend="extension" class="hidden items-center gap-1.5">
+                <span class="inline-block w-3.5 h-3.5 rounded" style="background-color: #d1fae5;"></span>
+                @Localizer["Extension"]
+            </span>
+            <span data-legend="booked" class="hidden items-center gap-1.5">
+                <span class="inline-block w-3.5 h-3.5 rounded" style="background: repeating-linear-gradient(-45deg, rgba(225,29,72,0.15), rgba(225,29,72,0.15) 3px, rgba(225,29,72,0.05) 3px, rgba(225,29,72,0.05) 5px);"></span>
+                @Localizer["Booked"]
+            </span>
+            <span data-legend="unavailable" class="hidden items-center gap-1.5">
+                <span class="inline-block w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-600 opacity-50"></span>
+                @Localizer["Unavailable"]
+            </span>
+        </div>
         <div class="flex items-center justify-between mt-6 pt-5 border-t border-slate-100">
             <button type="button" id="@(calId)_clearAll" onclick="SmartCalendar.clear('@calId')" 
                     class="text-sm font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600 transition-colors hidden">
@@ -135,7 +161,21 @@
     @@media (min-width: 640px) { .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { bottom: 6px; } }
     .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end) { font-weight: 700; color: #2563eb; }
     .sc-day.sc-disabled { color: #cbd5e1; cursor: not-allowed; text-decoration: line-through; opacity: 0.5; }
+    .sc-day.sc-booked { color: #e11d48; text-decoration: none; opacity: 1; background: repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(225, 29, 72, 0.08) 3px, rgba(225, 29, 72, 0.08) 5px); border-radius: 8px; }
     .sc-day::before { content: ''; position: absolute; inset: 2px; border-radius: 50%; background-color: transparent; transition: all 0.2s ease; z-index: -1; }
+    .sc-day.sc-booked::before { background-color: rgba(225, 29, 72, 0.1); border-radius: 8px; inset: 1px; }
+    /* Highlight: user's own booking (yellow) */
+    .sc-day.sc-highlight { color: #92400e; font-weight: 600; background-color: #fef3c7; cursor: default; opacity: 1; text-decoration: none; }
+    .sc-day.sc-highlight::before { background-color: transparent; }
+    .sc-day.sc-highlight.sc-disabled { color: #92400e; opacity: 1; text-decoration: none; }
+    .sc-day.sc-highlight-start { border-radius: 50% 0 0 50%; }
+    .sc-day.sc-highlight-end { border-radius: 0 50% 50% 0; }
+    .sc-day.sc-highlight-start.sc-highlight-end { border-radius: 50%; }
+    /* Extension preview (green trail from highlight end to hovered date) */
+    .sc-day.sc-ext-preview { color: #065f46; background-color: #d1fae5; opacity: 1; text-decoration: none; cursor: pointer; }
+    .sc-day.sc-ext-preview::before { background-color: transparent; }
+    .sc-day.sc-ext-preview-end::before { background: linear-gradient(135deg, #059669 0%, #10b981 100%); box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35); inset: 0; border-radius: 50%; }
+    .sc-day.sc-ext-preview-end { color: white; font-weight: 600; z-index: 2; border-radius: 0 50% 50% 0; }
     @@media (min-width: 640px) { .sc-day::before { inset: 4px; } }
     .sc-day:hover:not(.sc-disabled):not(.sc-selected-start):not(.sc-selected-end):not(.sc-in-range)::before, .sc-day.sc-hover-end:not(.sc-selected-start):not(.sc-selected-end)::before { background-color: #f1f5f9; box-shadow: 0 0 0 1px #e2e8f0; z-index: -1; }
     .sc-day.sc-selected-start, .sc-day.sc-selected-end { color: white; font-weight: 600; z-index: 2; }
@@ -148,7 +188,7 @@
     .sc-day:focus-visible::before { box-shadow: 0 0 0 2px white, 0 0 0 4px #2563eb; }
     .sc-empty { width: 36px; height: 36px; }
     @@media (min-width: 640px) { .sc-empty { width: 44px; height: 44px; } }
-    .smart-calendar-panel { animation: scFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: var(--z-popover, 1300); left: 50%; transform: translateX(-50%); }
+    .smart-calendar-panel { animation: scFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); z-index: var(--z-popover, 1300); left: 50%; transform: translateX(-50%); margin-top: 0.75rem; }
     .smart-calendar-panel.hidden { display: none; }
     @@keyframes scFadeIn { from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.98); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
     
@@ -157,6 +197,12 @@
     .dark .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end) { color: #60a5fa; }
     .dark .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { background-color: #60a5fa; }
     .dark .sc-day.sc-disabled { color: #475569; }
+    .dark .sc-day.sc-booked { color: #fb7185; background: repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(251, 113, 133, 0.1) 3px, rgba(251, 113, 133, 0.1) 5px); }
+    .dark .sc-day.sc-booked::before { background-color: rgba(251, 113, 133, 0.12); }
+    .dark .sc-day.sc-highlight { color: #fcd34d; background-color: rgba(252, 211, 77, 0.15); }
+    .dark .sc-day.sc-highlight.sc-disabled { color: #fcd34d; opacity: 1; }
+    .dark .sc-day.sc-ext-preview { color: #6ee7b7; background-color: rgba(16, 185, 129, 0.15); }
+    .dark .sc-day.sc-ext-preview-end { color: white; }
     .dark .sc-day:hover:not(.sc-disabled):not(.sc-selected-start):not(.sc-selected-end):not(.sc-in-range)::before,
     .dark .sc-day.sc-hover-end:not(.sc-selected-start):not(.sc-selected-end)::before { background-color: #334155; box-shadow: 0 0 0 1px #475569; }
     .dark .sc-day.sc-in-range { color: #93c5fd; background-color: rgba(59, 130, 246, 0.15); }
@@ -164,4 +210,24 @@
     .dark .sc-day:focus-visible::before { box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #60a5fa; }
     .dark .smart-calendar-panel { background-color: #1e293b; border-color: #334155; }
     .dark .smart-calendar-panel .border-slate-100 { border-color: #334155; }
+
+    /* Upward-opening compact variant */
+    .sc-open-up .smart-calendar-panel { bottom: 100%; top: auto; margin-top: 0; margin-bottom: 0.75rem; padding: 0.75rem; animation: scFadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    @@keyframes scFadeInUp { from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(0.98); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+    .sc-open-up .sc-day { width: 30px; height: 30px; font-size: 12px; }
+    .sc-open-up .sc-empty { width: 30px; height: 30px; }
+    @@media (min-width: 640px) {
+        .sc-open-up .smart-calendar-panel { padding: 1rem; }
+        .sc-open-up .sc-day { width: 34px; height: 34px; font-size: 13px; }
+        .sc-open-up .sc-empty { width: 34px; height: 34px; }
+    }
+    .sc-open-up .smart-calendar-panel .mb-4 { margin-bottom: 0.5rem; }
+    .sc-open-up .smart-calendar-panel .sm\:mb-6 { margin-bottom: 0.5rem; }
+    .sc-open-up .smart-calendar-panel .mt-6 { margin-top: 0.75rem; }
+    .sc-open-up .smart-calendar-panel .pt-5 { padding-top: 0.75rem; }
+    .sc-open-up .smart-calendar-panel .mb-2 { margin-bottom: 0.25rem; }
+    @@media (min-width: 1024px) {
+        .sc-open-up .smart-calendar-panel.lg\:w-\[680px\] { width: 530px; }
+        .sc-open-up .smart-calendar-panel .lg\:gap-10 { gap: 1.25rem; }
+    }
 </style>

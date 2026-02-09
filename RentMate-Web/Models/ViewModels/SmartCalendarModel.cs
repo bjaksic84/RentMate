@@ -38,9 +38,18 @@ namespace RentMate.Models.ViewModels
         
         /// <summary>Dates that cannot be selected (e.g., already booked)</summary>
         public IEnumerable<DateOnly>? DisabledDates { get; set; }
-        
+
+        /// <summary>Date ranges that cannot be selected (e.g., existing rental periods)</summary>
+        public IEnumerable<DisabledDateRange>? DisabledRanges { get; set; }
+
         /// <summary>Additional CSS classes for the container</summary>
         public string? CssClass { get; set; }
+    }
+
+    public class DisabledDateRange
+    {
+        public DateOnly From { get; set; }
+        public DateOnly To { get; set; }
     }
 
     public enum CalendarMode

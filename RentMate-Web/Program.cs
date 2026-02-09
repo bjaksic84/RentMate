@@ -275,6 +275,11 @@ builder.Services.AddScoped<IFileUploadService, CloudinaryFileUploadService>();
 builder.Services.AddScoped<IReviewAggregationService, ReviewAggregationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
+builder.Services.AddScoped<IPaymentService, StubPaymentService>();
+builder.Services.AddScoped<IDepositService, DepositService>();
+builder.Services.AddScoped<IRentalExtensionService, RentalExtensionService>();
+builder.Services.AddScoped<IAccessoryService, AccessoryService>();
+builder.Services.AddHostedService<OverdueRentalService>();
 
 // ==========================================
 // 2. BUILD APP

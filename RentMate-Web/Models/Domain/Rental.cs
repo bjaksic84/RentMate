@@ -46,5 +46,8 @@ namespace RentMate.Models.Domain
         public virtual ApplicationUser? Renter { get; set; }
         public virtual Item? Item { get; set; }
         public virtual ICollection<Review> Reviews { get; set; } = new List<Review>();
+        public virtual ICollection<RentalAccessory> Accessories { get; set; } = new List<RentalAccessory>();
+        public virtual RentalDeposit? Deposit { get; set; }
+        public virtual ICollection<RentalExtension> Extensions { get; set; } = new List<RentalExtension>();
     }
 }
