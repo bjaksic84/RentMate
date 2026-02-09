@@ -34,7 +34,7 @@
      data-initial-end="@initialEnd"
      data-disabled="@disabledJson">
     
-    <div class="smart-calendar-input flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full
+    <div class="smart-calendar-input flex items-center gap-3 px-4 py-3 rounded-xl md:rounded-full
                 bg-white/60 hover:bg-white/90
                 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md
                 transition-all duration-200 cursor-pointer h-full"
@@ -155,8 +155,8 @@
 </div>
 
 <style>
-    .sc-day { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #1e293b; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: pointer; background: transparent; border: none; outline: none; -webkit-tap-highlight-color: transparent; z-index: 1; }
-    @@media (min-width: 640px) { .sc-day { width: 44px; height: 44px; font-size: 14px; } }
+    .sc-day { width: 100%; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: #1e293b; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position: relative; cursor: pointer; background: transparent; border: none; outline: none; -webkit-tap-highlight-color: transparent; z-index: 1; }
+    @@media (min-width: 640px) { .sc-day { height: 44px; font-size: 14px; } }
     .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background-color: #2563eb; border-radius: 50%; }
     @@media (min-width: 640px) { .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end)::after { bottom: 6px; } }
     .sc-day.sc-today:not(.sc-selected-start):not(.sc-selected-end) { font-weight: 700; color: #2563eb; }

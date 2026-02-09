@@ -10,7 +10,7 @@
 }
 
 <!-- Hero Section - Full viewport height -->
-<section class="relative min-h-[calc(100vh-5rem)] flex items-center justify-center z-10">
+<section class="relative min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] flex items-center justify-center z-10">
     <!-- Animated gradient background -->
     <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900 overflow-hidden">
         <!-- Decorative elements -->
@@ -57,13 +57,13 @@
                   aria-label="@Localizer["Search marketplace"]"
                   id="heroSearchForm"
                   onsubmit="showSearchLoading()"
-                  class="glass rounded-2xl sm:rounded-full p-2 shadow-lg border border-white/30 relative z-50 overflow-visible">
-                <div class="flex flex-col sm:flex-row items-stretch gap-2">
+                  class="glass rounded-2xl md:rounded-full p-2 shadow-lg border border-white/30 relative z-50 overflow-visible">
+                <div class="flex flex-col md:flex-row items-stretch gap-2">
                     <!-- What (Search Input) -->
                     <div class="flex-1 min-w-0 group">
                         <div onclick="document.getElementById('heroSearch').focus()" 
-                             class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full 
-                                    bg-white/60 hover:bg-white/90 
+                             class="flex items-center gap-3 px-4 py-3 rounded-xl md:rounded-full
+                                    bg-white/60 hover:bg-white/90
                                     focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md
                                     transition-all duration-200 cursor-text h-full">
                             <!-- Search Icon (left-positioned) -->
@@ -104,8 +104,8 @@
                     </div>
                     
                     <!-- Divider -->
-                    <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
-                    
+                    <div class="hidden md:block w-px bg-slate-300/50 my-2"></div>
+
                     <!-- Date Range - SmartCalendar Component (CENTER position) -->
                     <div class="flex-1 min-w-0">
                         @await Html.PartialAsync("_SmartCalendar", new RentMate.Models.ViewModels.SmartCalendarModel {
@@ -120,11 +120,11 @@
                     </div>
                     
                     <!-- Divider -->
-                    <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
-                    
+                    <div class="hidden md:block w-px bg-slate-300/50 my-2"></div>
+
                     <!-- Location -->
                     <div class="flex-1 min-w-0 group">
-                        <div onclick="document.querySelector('[name=city]').focus()" class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full bg-white/60 hover:bg-white/90 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md transition-all duration-200 cursor-pointer h-full">
+                        <div onclick="document.querySelector('[name=city]').focus()" class="flex items-center gap-3 px-4 py-3 rounded-xl md:rounded-full bg-white/60 hover:bg-white/90 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md transition-all duration-200 cursor-pointer h-full">
                             <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
                                 <i class="bi bi-geo-alt-fill text-white text-sm"></i>
                             </div>
@@ -140,10 +140,10 @@
                     
                     <!-- Search Button -->
                     <button type="submit" 
-                            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl sm:rounded-full shadow-sm transition-all duration-300 flex items-center justify-center gap-2 group focus-ring flex-shrink-0"
+                            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl md:rounded-full shadow-sm transition-all duration-300 flex items-center justify-center gap-2 group focus-ring flex-shrink-0"
                             aria-label="@Localizer["Search marketplace"]">
                         <i class="bi bi-search text-lg group-hover:scale-110 transition-transform" aria-hidden="true"></i>
-                        <span class="sm:hidden lg:inline">@Localizer["Search"]</span>
+                        <span class="md:hidden lg:inline">@Localizer["Search"]</span>
                     </button>
                 </div>
             </form>
