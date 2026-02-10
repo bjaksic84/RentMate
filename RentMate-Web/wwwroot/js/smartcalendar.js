@@ -390,8 +390,8 @@
      * @returns {Object}
      */
     function parseConfig(container) {
-        let minDate = container.dataset.minDate 
-            ? new Date(container.dataset.minDate) 
+        let minDate = container.dataset.minDate
+            ? new Date(container.dataset.minDate)
             : new Date();
 
         if (isNaN(minDate.getTime())) {
@@ -563,6 +563,7 @@
             if (instance.config.mode === 'range') {
                 cell.onmouseenter = () => {
                     if (instance.selectedStart && !instance.selectedEnd) {
+                        if (instance.hoverDate && instance.hoverDate.getTime() === date.getTime()) return;
                         instance.hoverDate = date;
                         renderCalendar(id);
                     }
@@ -572,6 +573,7 @@
             // Hover for extension preview (single mode with highlights)
             if (instance.config.mode === 'single' && hasHighlights && !instance.selectedStart) {
                 cell.onmouseenter = () => {
+                    if (instance.hoverDate && instance.hoverDate.getTime() === date.getTime()) return;
                     instance.hoverDate = date;
                     renderCalendar(id);
                 };
@@ -625,12 +627,17 @@
         date = DateUtils.normalizeDate(date);
 
         const strategy = SelectionStrategies[instance.config.mode] || SelectionStrategies.single;
-        strategy.select(instance, date, {
-            updateDisplay: () => updateDisplay(id),
-            dispatchChange: () => dispatchChangeEvent(id),
-            close: () => close(id),
-            render: () => renderCalendar(id)
-        });
+
+        try {
+            strategy.select(instance, date, {
+                updateDisplay: () => updateDisplay(id),
+                dispatchChange: () => dispatchChangeEvent(id),
+                close: () => close(id),
+                render: () => renderCalendar(id)
+            });
+        } catch (e) {
+            console.error('SmartCalendar: error in select strategy', e);
+        }
     }
 
     /**
