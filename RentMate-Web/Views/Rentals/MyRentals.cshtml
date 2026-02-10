@@ -74,11 +74,20 @@
                         <a asp-action="Details" asp-route-id="@rental.Id" class="block w-full py-2.5 text-center border border-blue-600 text-blue-600 rounded-xl font-medium hover:bg-blue-50 transition-colors">
                             @Localizer["View Details"]
                         </a>
+                        @if(rental.Status.ToString() == "Accepted")
+                        {
+                            <a asp-controller="Payment" asp-action="Checkout" asp-route-rentalId="@rental.Id" class="block w-full py-2.5 text-center bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-md hover:shadow-lg transition-all">
+                                @Localizer["Pay Now"]
+                            </a>
+                        }
                         @if(rental.Status.ToString() == "Pending" || rental.Status.ToString() == "Active")
                         {
-                            <a asp-action="Delete" asp-route-id="@rental.Id" class="block w-full py-2.5 text-center border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 transition-colors">
-                                @Localizer["Cancel Rental"]
-                            </a>
+                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="block w-full">
+                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                <button class="block w-full py-2.5 text-center border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 transition-colors">
+                                    @Localizer["Cancel Rental"]
+                                </button>
+                            </form>
                         }
                     </div>
                 </div>

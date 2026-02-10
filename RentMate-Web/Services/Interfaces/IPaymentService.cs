@@ -34,12 +34,14 @@ namespace RentMate.Services.Interfaces
     {
         public bool Success { get; set; }
         public string? PaymentReference { get; set; }
+        public string? ClientSecret { get; set; }
         public string? ErrorMessage { get; set; }
 
-        public static PaymentResult Succeeded(string paymentReference) => new()
+        public static PaymentResult Succeeded(string paymentReference, string? clientSecret = null) => new()
         {
             Success = true,
-            PaymentReference = paymentReference
+            PaymentReference = paymentReference,
+            ClientSecret = clientSecret
         };
 
         public static PaymentResult Failed(string errorMessage) => new()

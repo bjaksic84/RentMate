@@ -79,7 +79,7 @@ namespace RentMate.Controllers.Mvc
         private bool HasDateConflict(ICollection<Rental>? rentals, DateTime startDate, DateTime endDate)
         {
             return rentals?.Any(r =>
-                (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
+                (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted) &&
                 r.StartDate <= endDate &&
                 r.EndDate >= startDate) ?? false;
         }
@@ -148,7 +148,7 @@ namespace RentMate.Controllers.Mvc
                 .AsNoTracking()
                 .Include(i => i.User)
                 .Include(i => i.Rentals.Where(r =>
-                    (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
+                    (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted) &&
                     r.EndDate >= DateTime.Today))
                 .Include(i => i.FavoritedBy.Where(f => f.AccountId == currentUserId))
                 .AsSplitQuery()
@@ -208,7 +208,7 @@ namespace RentMate.Controllers.Mvc
             {
                 query = query.Where(i =>
                     !i.Rentals!.Any(r =>
-                        (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending) &&
+                        (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted) &&
                         r.StartDate <= endDate && r.EndDate >= startDate));
             }
             return query;
@@ -380,16 +380,12 @@ namespace RentMate.Controllers.Mvc
                 return HandleError(_localizer["You are not authorized to approve this rental."].Value);
             }
 
-            rental.Status = RentalStatus.Active;
+            rental.Status = RentalStatus.Accepted;
             rental.Item.IsRented = true;
             rental.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            // Create deposit authorization if the item requires a deposit
-            if (rental.Item.DepositAmount.HasValue && rental.Item.DepositAmount > 0)
-            {
-                await _depositService.CreateAndAuthorizeDepositAsync(rental.Id, rental.Item.DepositAmount.Value);
-            }
+
 
             var message = string.Format(_localizer["Your rental request for '{0}' was approved!"], rental.Item.Title);
             await NotifyRentalStatusChangeAsync(rental, message);

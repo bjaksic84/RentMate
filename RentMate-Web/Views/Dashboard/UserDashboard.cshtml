@@ -183,7 +183,7 @@
                 </div>
 
                 @{
-                    var activeMyRentalsList = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending).ToList() ?? new();
+                    var activeMyRentalsList = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted).ToList() ?? new();
                 }
                 @if (activeMyRentalsList.Any())
                 {
@@ -310,6 +310,28 @@
                                                 <i class="bi bi-pencil"></i> @Localizer["Edit Review"]
                                             </button>
                                         }
+                                        else if (rental.Status == RentalStatus.Accepted)
+                                        {
+                                            <a asp-controller="Payment" asp-action="Checkout" asp-route-rentalId="@rental.Id" 
+                                               class="flex-1 rounded-xl bg-trust-blue-600 hover:bg-trust-blue-700 px-3 py-2 text-sm font-medium text-white transition text-center flex items-center justify-center">
+                                                <i class="bi bi-credit-card mr-2"></i> @Localizer["Pay Now"]
+                                            </a>
+                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="flex-1">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                                    @Localizer["Cancel Request"]
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (rental.Status == RentalStatus.Pending)
+                                        {
+                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="flex-1">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                                    @Localizer["Cancel Request"]
+                                                </button>
+                                            </form>
+                                        }
                                         else if (rental.Status == RentalStatus.Pending)
                                         {
                                             <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="flex-1">
@@ -341,7 +363,7 @@
                 </div>
 
                 @{
-                    var activeOwnerRentalsList = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending).ToList() ?? new();
+                    var activeOwnerRentalsList = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted).ToList() ?? new();
                 }
                 @if (activeOwnerRentalsList.Any())
                 {
@@ -445,6 +467,18 @@
                                                 @Html.AntiForgeryToken()
                                                 <button type="submit" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
                                                     <i class="bi bi-flag"></i> @Localizer["End rental early"]
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (rental.Status == RentalStatus.Accepted)
+                                        {
+                                            <span class="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2 text-center text-sm font-medium text-slate-500 dark:text-slate-400">
+                                                <i class="bi bi-hourglass-split"></i> @Localizer["Waiting for Payment"]
+                                            </span>
+                                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="">
+                                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                <button class="rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition" title="@Localizer["Cancel"]">
+                                                    <i class="bi bi-x-lg"></i>
                                                 </button>
                                             </form>
                                         }
