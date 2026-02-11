@@ -242,8 +242,13 @@ namespace RentMate.Controllers.Mvc
             var item = await _context.Items
                 .Include(i => i.User)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            
+
             if (item == null) return NotFound();
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (!IsAuthorizedToModify(currentUser, item)) return Forbid();
+
+            ViewBag.HasActiveRentals = await HasActiveRentalsAsync(id.Value);
 
             return View(item);
         }
@@ -260,12 +265,26 @@ namespace RentMate.Controllers.Mvc
 
             if (item != null && IsAuthorizedToModify(currentUser, item))
             {
+                if (await HasActiveRentalsAsync(id))
+                {
+                    TempData["ErrorMessage"] = _localizer["Cannot delete item with active rentals. Please wait until all rentals are completed or cancelled."].Value;
+                    return RedirectToAction(nameof(Delete), new { id });
+                }
+
                 DeleteItemImage(item);
                 _context.Items.Remove(item);
                 await _context.SaveChangesAsync();
             }
 
             return RedirectToAction(DashboardAction, DashboardController);
+        }
+
+        private async Task<bool> HasActiveRentalsAsync(int itemId)
+        {
+            return await _context.Rentals.AnyAsync(r =>
+                r.ItemId == itemId &&
+                r.Status != RentMate.Shared.Contracts.Responses.RentalStatus.Completed &&
+                r.Status != RentMate.Shared.Contracts.Responses.RentalStatus.Cancelled);
         }
 
         private void DeleteItemImage(Item item)

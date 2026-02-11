@@ -8,6 +8,7 @@ namespace RentMate.Models.Domain
         Pending = 0,
         Approved = 1,
         Declined = 2,
-        AutoApproved = 3
+        AutoApproved = 3,
+        Accepted = 4
     }
 }

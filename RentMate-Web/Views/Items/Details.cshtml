@@ -137,15 +137,26 @@
                             var hasReviewerPic = !review.IsAnonymous && !string.IsNullOrEmpty(review.Reviewer?.ProfilePictureUrl);
                             
                             <div class="p-4 bg-slate-50 rounded-xl relative">
-                                @if(isOwnReview)
-                                {
-                                    <button type="button" 
-                                            class="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            onclick="openEditReviewModal(@review.Id, @review.ItemId, @review.Rating, '@Html.Raw(review.Title?.Replace("'", "\\'") ?? "")', '@Html.Raw(review.Body?.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "") ?? "")', @(review.IsAnonymous ? "true" : "false"))"
-                                            title="@Localizer["Edit Review"]">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                }
+                                <div class="absolute top-3 right-3 flex items-center gap-1">
+                                    @if(isOwnReview)
+                                    {
+                                        <button type="button"
+                                                class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                onclick="openEditReviewModal(@review.Id, @review.ItemId, @review.Rating, '@Html.Raw(review.Title?.Replace("'", "\\'") ?? "")', '@Html.Raw(review.Body?.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "") ?? "")', @(review.IsAnonymous ? "true" : "false"))"
+                                                title="@Localizer["Edit Review"]">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                    }
+                                    @if(isOwnReview || User.IsInRole("Admin"))
+                                    {
+                                        <button type="button"
+                                                class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                onclick="deleteReview(@review.Id)"
+                                                title="@Localizer["Delete Review"]">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </div>
                                 <div class="flex items-center gap-3 mb-3">
                                     @if(review.IsAnonymous)
                                     {
@@ -228,8 +239,16 @@
                         </div>
                     </div>
 
+                    @if(Model.DepositAmount.HasValue && Model.DepositAmount.Value > 0)
+                    {
+                        <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+                            <i class="bi bi-shield-check"></i>
+                            <span>+ @CurrencyService.Format(Model.DepositAmount.Value) @Localizer["Deposit"] (@Localizer["refundable"])</span>
+                        </div>
+                    }
+
                     <!-- Rent Button -->
-                    <button type="button" 
+                    <button type="button"
                             class="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold rounded-xl shadow-sm  transition-all duration-300"
                             onclick="document.getElementById('rentModal-@Model.Id').classList.remove('hidden')">
                         @Localizer["Rent Now"]
@@ -321,6 +340,27 @@
             }
         });
         
+        // Delete Review
+        async function deleteReview(reviewId) {
+            if (!confirm('@Localizer["Are you sure you want to delete your review?"]')) return;
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                const response = await fetch('/api/Reviews/' + reviewId, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': token }
+                });
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    const error = await response.text();
+                    alert(error || '@Localizer["Failed to delete review."]');
+                }
+            } catch (error) {
+                console.error('Error deleting review:', error);
+                alert('@Localizer["An error occurred. Please try again."]');
+            }
+        }
+
         // Edit Review Modal Functions
         function openEditReviewModal(reviewId, itemId, rating, title, body, isAnonymous) {
             const modal = document.getElementById('editReviewModal');

@@ -195,6 +195,7 @@
                             var urgency = daysRemaining < 0 ? "overdue" : daysRemaining <= 1 ? "urgent" : daysRemaining <= 3 ? "warning" : "normal";
                             var existingReview = rental.Item?.Reviews?.FirstOrDefault(r => r.ReviewerId == currentUserId && !r.IsDeleted);
                             var hasPendingExt = rental.Extensions?.Any(e => e.Status == ExtensionStatus.Pending) ?? false;
+                            var acceptedExt = rental.Extensions?.FirstOrDefault(e => e.Status == ExtensionStatus.Accepted);
 
                             <article class="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm transition-shadow hover:shadow-md">
                                 <!-- Image + Badges -->
@@ -254,11 +255,31 @@
                                         <span class="text-xs text-slate-500 dark:text-slate-400">@Localizer["From"] @(rental.Item?.User?.FirstName ?? rental.Owner?.Email)</span>
                                     </div>
 
-                                    <!-- Countdown Timer -->
+                                    <!-- Dates & Countdown -->
                                     @if (rental.Status == RentalStatus.Active)
                                     {
                                         <div class="mb-3">
+                                            <div class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+                                                <i class="bi bi-calendar-event"></i>
+                                                <span>@Localizer["Return by"] <strong class="text-slate-700 dark:text-slate-200">@rental.EndDate.ToString("dd MMM yyyy")</strong></span>
+                                            </div>
                                             @await Html.PartialAsync("_CountdownTimer", new { EndDate = rental.EndDate, DaysRemaining = daysRemaining, Urgency = urgency })
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="mb-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                            <i class="bi bi-calendar-range"></i>
+                                            <span>@rental.StartDate.ToString("dd MMM") &rarr; @rental.EndDate.ToString("dd MMM yyyy")</span>
+                                        </div>
+                                    }
+
+                                    <!-- Deposit -->
+                                    @if (rental.Item?.DepositAmount.HasValue == true && rental.Item.DepositAmount.Value > 0)
+                                    {
+                                        <div class="mb-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                            <i class="bi bi-shield-check text-sky-500"></i>
+                                            <span>@Localizer["Deposit"]: <strong class="text-slate-700 dark:text-slate-200">@CurrencyService.Format(rental.Item.DepositAmount.Value)</strong></span>
                                         </div>
                                     }
 
@@ -283,7 +304,19 @@
 
                                     <!-- Actions -->
                                     <div class="flex gap-2">
-                                        @if (rental.Status == RentalStatus.Active && !hasPendingExt)
+                                        @if (acceptedExt != null)
+                                        {
+                                            <a asp-controller="Payment" asp-action="ExtensionCheckout" asp-route-extensionId="@acceptedExt.Id"
+                                               class="flex-1 rounded-xl bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:brightness-110 text-center flex items-center justify-center">
+                                                <i class="bi bi-credit-card mr-1"></i> @Localizer["Pay for Extension"] (@CurrencyService.Format(acceptedExt.AdditionalCost))
+                                            </a>
+                                            <button onclick="cancelExtension(@acceptedExt.Id)"
+                                                    class="rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                                                    title="@Localizer["Cancel Extension"]">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        }
+                                        else if (rental.Status == RentalStatus.Active && !hasPendingExt)
                                         {
                                             <button onclick="openExtensionModal(@rental.Id, '@rental.StartDate.ToString("yyyy-MM-dd")', '@rental.EndDate.ToString("yyyy-MM-dd")', @(rental.Item?.Price ?? 0), @(rental.ItemId), @(rental.Item?.AutoApproveExtensions.ToString().ToLower()))"
                                                     class="flex-1 rounded-xl bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:brightness-110 focus:ring-2 focus:ring-trust-blue-500 focus:ring-offset-2">
@@ -420,19 +453,49 @@
                                         <span class="text-xs text-slate-500 dark:text-slate-400">@Localizer["Rented by"] @(rental.Renter?.FirstName ?? rental.Renter?.Email)</span>
                                     </div>
 
-                                    <!-- Countdown -->
+                                    <!-- Countdown / Dates -->
                                     @if (rental.Status == RentalStatus.Active)
                                     {
                                         <div class="mb-3">
+                                            <div class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+                                                <i class="bi bi-calendar-event"></i>
+                                                <span>@Localizer["Return by"] <strong class="text-slate-700 dark:text-slate-200">@rental.EndDate.ToString("dd MMM yyyy")</strong></span>
+                                            </div>
                                             @await Html.PartialAsync("_CountdownTimer", new { EndDate = rental.EndDate, DaysRemaining = daysRemaining, Urgency = ownerUrgency })
                                         </div>
                                     }
+                                    else
+                                    {
+                                        <div class="mb-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                            <i class="bi bi-calendar-range"></i>
+                                            <span>@rental.StartDate.ToString("dd MMM") &rarr; @rental.EndDate.ToString("dd MMM yyyy")</span>
+                                        </div>
+                                    }
 
-                                    <!-- Dates + Price -->
+                                    <!-- Deposit -->
+                                    @if (rental.Item?.DepositAmount.HasValue == true && rental.Item.DepositAmount.Value > 0)
+                                    {
+                                        <div class="mb-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+                                            <i class="bi bi-shield-check text-sky-500"></i>
+                                            <span>@Localizer["Deposit"]: <strong class="text-slate-700 dark:text-slate-200">@CurrencyService.Format(rental.Item.DepositAmount.Value)</strong></span>
+                                        </div>
+                                    }
+
+                                    <!-- Extension Status -->
+                                    @{
+                                        var ownerAcceptedExt = rental.Extensions?.FirstOrDefault(e => e.Status == ExtensionStatus.Accepted);
+                                    }
+                                    @if (ownerAcceptedExt != null)
+                                    {
+                                        <div class="mb-3 flex items-center gap-1.5 text-xs rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-2">
+                                            <i class="bi bi-hourglass-split text-amber-500"></i>
+                                            <span class="text-amber-700 dark:text-amber-300">@Localizer["Extension accepted — awaiting payment"] (+@CurrencyService.Format(ownerAcceptedExt.AdditionalCost))</span>
+                                        </div>
+                                    }
+
+                                    <!-- Price -->
                                     <div class="flex items-center justify-between text-sm mb-3">
-                                        <span class="text-slate-500 dark:text-slate-400">
-                                            @rental.StartDate.ToString("dd MMM") → @rental.EndDate.ToString("dd MMM yyyy")
-                                        </span>
+                                        <span class="text-slate-500 dark:text-slate-400">@Localizer["Total"]</span>
                                         <span class="font-semibold text-emerald-600">@CurrencyService.Format(rental.TotalPrice)</span>
                                     </div>
 
@@ -457,18 +520,22 @@
                                         {
                                             @if (rental.Deposit != null && rental.Deposit.Status == DepositStatus.Authorized)
                                             {
-                                                <button onclick="openDepositResolution(@rental.Id, @(rental.Deposit.Amount), '@rental.Deposit.Status')"
-                                                        class="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:brightness-110">
-                                                    @Localizer["Complete & Release Deposit"]
-                                                </button>
-                                            }
-                                            <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="flex-1">
-                                                <input type="hidden" name="rentalId" value="@rental.Id" />
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                                <button type="button"
+                                                        onclick="openEarlyReturnModal(@rental.Id, @(rental.Deposit.Amount))"
+                                                        class="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
                                                     <i class="bi bi-flag"></i> @Localizer["End rental early"]
                                                 </button>
-                                            </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-controller="Rentals" asp-action="CompleteRental" method="post" class="flex-1">
+                                                    <input type="hidden" name="rentalId" value="@rental.Id" />
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                                        <i class="bi bi-flag"></i> @Localizer["End rental early"]
+                                                    </button>
+                                                </form>
+                                            }
                                         }
                                         else if (rental.Status == RentalStatus.Accepted)
                                         {
@@ -505,13 +572,23 @@
             @if (completedRentals.Any())
             {
                 <section class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                    <details>
+                    <details open>
                         <summary class="px-6 py-4 cursor-pointer select-none border-b border-slate-200 dark:border-slate-700">
                             <h2 class="inline text-lg font-semibold font-outfit text-slate-900 dark:text-white">
                                 <i class="bi bi-clock-history text-slate-400 mr-2"></i>
                                 @Localizer["Rental History"]
                                 <span class="ml-2 text-sm font-normal text-slate-500">(@completedRentals.Count)</span>
                             </h2>
+                            @{
+                                var unreviewedCount = completedRentals.Count(r => r.OwnerId != currentUserId && r.Status == RentalStatus.Completed && !(r.Item?.Reviews?.Any(rev => rev.ReviewerId == currentUserId && !rev.IsDeleted) ?? false));
+                            }
+                            @if (unreviewedCount > 0)
+                            {
+                                <p class="mt-1 ml-8 text-sm text-amber-600 dark:text-amber-400">
+                                    <i class="bi bi-star mr-1"></i>
+                                    @string.Format(Localizer["You have {0} completed rentals awaiting your review"].Value, unreviewedCount)
+                                </p>
+                            }
                         </summary>
                         <div class="divide-y divide-slate-100 dark:divide-slate-700">
                             @foreach (var rental in completedRentals)
@@ -543,6 +620,21 @@
                                         @await Html.PartialAsync("_StatusBadge", new { Type = rental.Status.ToString().ToLower(), Text = rental.Status.ToString(), SmallPadding = true })
                                         @if (!isOwner && rental.Status == RentalStatus.Completed)
                                         {
+                                            var existingReview = rental.Item?.Reviews?.FirstOrDefault(r => r.ReviewerId == currentUserId && !r.IsDeleted);
+                                            @if (existingReview == null)
+                                            {
+                                                <button type="button" onclick="openReviewModal(@rental.Id, @rental.ItemId, null)"
+                                                        class="px-2.5 py-1 text-xs font-medium text-amber-600 hover:text-amber-700 border border-amber-200 dark:border-amber-700 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition">
+                                                    <i class="bi bi-star mr-1"></i>@Localizer["Leave Review"]
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" onclick="openReviewModal(@rental.Id, @rental.ItemId, @existingReview.Id)"
+                                                        class="px-2.5 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                                                    <i class="bi bi-pencil mr-1"></i>@Localizer["Edit Review"]
+                                                </button>
+                                            }
                                             <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId"
                                                class="px-2.5 py-1 text-xs font-medium text-trust-blue-600 hover:text-trust-blue-700 border border-trust-blue-200 dark:border-trust-blue-800 rounded-lg hover:bg-trust-blue-50 dark:hover:bg-trust-blue-900/20 transition">
                                                 @Localizer["Rent Again"]
@@ -623,6 +715,11 @@
                                            class="p-1.5 text-slate-400 hover:text-trust-blue-600 hover:bg-trust-blue-50 dark:hover:bg-trust-blue-900/20 rounded-lg transition-colors"
                                            title="@Localizer["Edit"]">
                                             <i class="bi bi-pencil text-sm"></i>
+                                        </a>
+                                        <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id"
+                                           class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                           title="@Localizer["Delete"]">
+                                            <i class="bi bi-trash text-sm"></i>
                                         </a>
                                     </div>
                                 </div>
@@ -835,6 +932,64 @@
             <button onclick="chargeDeposit()" id="dep-charge-btn"
                     class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
                 <i class="bi bi-shield-x mr-1"></i> @Localizer["Charge Deposit"]
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Early Return + Deposit Resolution Modal -->
+<div id="early-return-modal" class="fixed inset-0 z-50 hidden items-center justify-center" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" data-action="close-early-return"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl">
+        <button type="button" data-action="close-early-return" class="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" aria-label="@Localizer["Close"]">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <h2 class="text-lg font-semibold font-outfit text-slate-900 dark:text-white mb-5">
+            <i class="bi bi-flag mr-2"></i>@Localizer["End Rental & Resolve Deposit"]
+        </h2>
+        <input type="hidden" id="er-rental-id" />
+
+        <div class="mb-5 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500 dark:text-slate-400">@Localizer["Deposit amount"]</span>
+                <span id="er-amount" class="font-semibold text-slate-900 dark:text-white"></span>
+            </div>
+        </div>
+
+        <!-- Release Full -->
+        <button onclick="completeWithDeposit('release')" id="er-release-btn"
+                class="w-full mb-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:brightness-110">
+            <i class="bi bi-shield-check mr-1"></i> @Localizer["Release Full Deposit"]
+        </button>
+
+        <!-- Or Charge -->
+        <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
+            <div class="relative flex justify-center"><span class="bg-white dark:bg-slate-800 px-3 text-xs text-slate-500 dark:text-slate-400">@Localizer["or charge from deposit"]</span></div>
+        </div>
+
+        <div class="space-y-3">
+            <div>
+                <label for="er-charge-amount" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Amount to charge"]</label>
+                <input type="number" id="er-charge-amount" step="0.01" min="0.01"
+                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm text-slate-900 dark:text-white dark:bg-slate-700 focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20" />
+            </div>
+            <div>
+                <label for="er-charge-reason" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Reason (visible to renter)"]</label>
+                <textarea id="er-charge-reason" rows="2"
+                          class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm text-slate-900 dark:text-white dark:bg-slate-700 resize-none focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20"
+                          placeholder="@Localizer["e.g., Item returned with scratches on the surface"]"></textarea>
+            </div>
+            <button onclick="completeWithDeposit('charge')" id="er-charge-btn"
+                    class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                <i class="bi bi-shield-x mr-1"></i> @Localizer["Charge Deposit"]
+            </button>
+            <div class="relative my-2">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
+            </div>
+            <button onclick="completeWithDeposit('charge-full')" id="er-charge-full-btn"
+                    class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                <i class="bi bi-shield-exclamation mr-1"></i> @Localizer["Charge Full Deposit"]
             </button>
         </div>
     </div>
@@ -1116,6 +1271,20 @@
             } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
         }
 
+        async function cancelExtension(extensionId) {
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/CancelExtension', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'extensionId=' + extensionId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) setTimeout(function () { location.reload(); }, 1000);
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+        }
+
         // === Deposit Resolution Modal ===
         var depState = { rentalId: 0, amount: 0 };
 
@@ -1183,6 +1352,82 @@
                 if (data.success) { closeDepositModal(); setTimeout(function () { location.reload(); }, 1000); }
                 else { btn.disabled = false; }
             } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
+        }
+
+        // === Early Return + Deposit Modal ===
+        var erState = { rentalId: 0, amount: 0 };
+
+        function openEarlyReturnModal(rentalId, amount) {
+            erState.rentalId = rentalId;
+            erState.amount = amount;
+            document.getElementById('er-rental-id').value = rentalId;
+            document.getElementById('er-amount').textContent = formatCurrency(amount);
+            document.getElementById('er-charge-amount').value = '';
+            document.getElementById('er-charge-amount').max = amount;
+            document.getElementById('er-charge-reason').value = '';
+
+            var modal = document.getElementById('early-return-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeEarlyReturnModal() {
+            var modal = document.getElementById('early-return-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('[data-action="close-early-return"]').forEach(function (el) {
+            el.addEventListener('click', closeEarlyReturnModal);
+        });
+
+        async function completeWithDeposit(action) {
+            var amount = null;
+            var reason = '';
+            if (action === 'charge') {
+                amount = parseFloat(document.getElementById('er-charge-amount').value);
+                reason = document.getElementById('er-charge-reason').value.trim();
+                if (!amount || amount <= 0) { showToast('@Localizer["Enter a valid amount"]', 'error'); return; }
+                if (amount > erState.amount) { showToast('@Localizer["Amount exceeds deposit"]', 'error'); return; }
+                if (!reason) { showToast('@Localizer["Please provide a reason"]', 'error'); return; }
+            }
+
+            // Disable all buttons
+            ['er-release-btn', 'er-charge-btn', 'er-charge-full-btn'].forEach(function(id) {
+                var btn = document.getElementById(id);
+                if (btn) btn.disabled = true;
+            });
+
+            try {
+                var token = getToken();
+                var body = 'rentalId=' + erState.rentalId + '&action=' + action;
+                if (amount) body += '&amount=' + amount;
+                if (reason) body += '&reason=' + encodeURIComponent(reason);
+                if (token) body += '&__RequestVerificationToken=' + encodeURIComponent(token);
+
+                var response = await fetch('/Dashboard/CompleteWithDeposit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: body
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) { closeEarlyReturnModal(); setTimeout(function () { location.reload(); }, 1000); }
+                else {
+                    ['er-release-btn', 'er-charge-btn', 'er-charge-full-btn'].forEach(function(id) {
+                        var btn = document.getElementById(id);
+                        if (btn) btn.disabled = false;
+                    });
+                }
+            } catch (err) {
+                showToast('@Localizer["Something went wrong"]', 'error');
+                ['er-release-btn', 'er-charge-btn', 'er-charge-full-btn'].forEach(function(id) {
+                    var btn = document.getElementById(id);
+                    if (btn) btn.disabled = false;
+                });
+            }
         }
 
         // === Review Modal ===
@@ -1274,6 +1519,7 @@
             if (e.key === 'Escape') {
                 closeExtensionModal();
                 closeDepositModal();
+                closeEarlyReturnModal();
                 closeReviewModal();
             }
         });

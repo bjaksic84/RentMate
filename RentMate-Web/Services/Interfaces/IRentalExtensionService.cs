@@ -36,5 +36,15 @@ namespace RentMate.Services.Interfaces
         /// Gets all pending extension requests for items owned by this user.
         /// </summary>
         Task<List<RentalExtension>> GetPendingExtensionsForOwnerAsync(string ownerUserId);
+
+        /// <summary>
+        /// Finalizes an accepted extension after payment. Updates rental dates and price.
+        /// </summary>
+        Task<RentalExtension> FinalizeExtensionAsync(int extensionId, string userId);
+
+        /// <summary>
+        /// Cancels an accepted extension (renter decided not to pay).
+        /// </summary>
+        Task<RentalExtension> CancelExtensionAsync(int extensionId, string userId);
     }
 }

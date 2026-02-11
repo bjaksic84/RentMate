@@ -9,6 +9,8 @@ using RentMate.Models.Domain;
 using RentMate.Models.ViewModels;
 using RentMate.Shared.Contracts.Responses;
 using RentMate.Services.Interfaces;
+using Microsoft.AspNetCore.SignalR;
+using RentMate.Hubs;
 
 namespace RentMate.Controllers.Mvc
 {
@@ -21,14 +23,20 @@ namespace RentMate.Controllers.Mvc
         private readonly ILogger<PaymentController> _logger;
         private readonly IPaymentService _paymentService;
         private readonly IConfiguration _configuration;
+        private readonly IRentalExtensionService _extensionService;
+        private readonly IDepositService _depositService;
+        private readonly IHubContext<RentMateHub> _hubContext;
 
         public PaymentController(
-            RentMateContext context, 
+            RentMateContext context,
             UserManager<ApplicationUser> userManager,
             IStringLocalizer<PaymentController> localizer,
             ILogger<PaymentController> logger,
             IPaymentService paymentService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IRentalExtensionService extensionService,
+            IDepositService depositService,
+            IHubContext<RentMateHub> hubContext)
         {
             _context = context;
             _userManager = userManager;
@@ -36,6 +44,9 @@ namespace RentMate.Controllers.Mvc
             _logger = logger;
             _paymentService = paymentService;
             _configuration = configuration;
+            _extensionService = extensionService;
+            _depositService = depositService;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
@@ -142,14 +153,142 @@ namespace RentMate.Controllers.Mvc
                     rental.Status = RentalStatus.Active;
                     _context.Payments.Add(payment);
                     await _context.SaveChangesAsync();
+
+                    // Create deposit hold if item requires a deposit
+                    if (rental.Item?.DepositAmount is > 0)
+                    {
+                        try
+                        {
+                            await _depositService.CreateAndAuthorizeDepositAsync(rentalId, rental.Item.DepositAmount.Value);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Deposit authorization failed for rental {RentalId}. Deposit will need manual resolution.", rentalId);
+                        }
+                    }
                  }
                 
                 return View(rental);
             }
-            else 
+            else
             {
                 TempData["Error"] = "Payment failed or was cancelled.";
                 return RedirectToAction("Checkout", new { rentalId });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExtensionCheckout(int extensionId)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var extension = await _context.RentalExtensions
+                .Include(e => e.Rental)
+                    .ThenInclude(r => r!.Item)
+                .FirstOrDefaultAsync(e => e.Id == extensionId);
+
+            if (extension == null)
+                return NotFound();
+
+            if (extension.Rental?.RenterId != userId)
+                return Forbid();
+
+            if (extension.Status != Models.Domain.ExtensionStatus.Accepted)
+            {
+                TempData["Error"] = _localizer["This extension must be accepted by the owner before payment."].Value;
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
+
+            var clientSecret = "";
+            var publishableKey = _configuration["Stripe:PublishableKey"];
+
+            try
+            {
+                var result = await _paymentService.AuthorizeAsync(userId, extension.AdditionalCost,
+                    $"Extension Payment for {extension.Rental!.Item!.Title} (Extension ID: {extension.Id})");
+
+                if (!result.Success)
+                {
+                    TempData["Error"] = _localizer["Failed to initialize payment: "].Value + result.ErrorMessage;
+                    return RedirectToAction("UserDashboard", "Dashboard");
+                }
+
+                clientSecret = result.ClientSecret;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating payment intent for extension {ExtensionId}", extensionId);
+                TempData["Error"] = _localizer["An unexpected error occurred."].Value;
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
+
+            ViewBag.ClientSecret = clientSecret;
+            ViewBag.PublishableKey = publishableKey;
+            ViewBag.IsExtension = true;
+            ViewBag.ExtensionId = extensionId;
+            ViewBag.ExtensionCost = extension.AdditionalCost;
+            ViewBag.ExtensionNewEndDate = extension.NewEndDate;
+
+            return View("Checkout", extension.Rental);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExtensionSuccess(int extensionId, string payment_intent, string payment_intent_client_secret, string redirect_status)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            var extension = await _context.RentalExtensions
+                .Include(e => e.Rental)
+                    .ThenInclude(r => r!.Item)
+                .FirstOrDefaultAsync(e => e.Id == extensionId);
+
+            if (extension == null)
+                return NotFound();
+
+            if (redirect_status == "succeeded")
+            {
+                if (extension.Status == Models.Domain.ExtensionStatus.Accepted)
+                {
+                    // Record payment
+                    var payment = new Payment
+                    {
+                        RentalId = extension.RentalId,
+                        UserId = userId,
+                        Amount = extension.AdditionalCost,
+                        Status = PaymentStatus.Success,
+                        TransactionId = payment_intent,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Payments.Add(payment);
+                    await _context.SaveChangesAsync();
+
+                    // Finalize the extension (update dates + price)
+                    await _extensionService.FinalizeExtensionAsync(extensionId, userId);
+
+                    // Notify the owner
+                    if (extension.Rental?.OwnerId != null)
+                    {
+                        await _hubContext.Clients.User(extension.Rental.OwnerId).SendAsync(
+                            RentMateHub.ExtensionStatusChangedEvent, new
+                            {
+                                extensionId,
+                                status = "Paid",
+                                itemTitle = extension.Rental.Item?.Title,
+                                newEndDate = extension.NewEndDate.ToString("yyyy-MM-dd")
+                            });
+                    }
+                }
+
+                return View("Success", extension.Rental);
+            }
+            else
+            {
+                TempData["Error"] = "Payment failed or was cancelled.";
+                return RedirectToAction("ExtensionCheckout", new { extensionId });
             }
         }
     }

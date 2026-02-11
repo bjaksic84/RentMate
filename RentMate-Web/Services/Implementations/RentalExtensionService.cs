@@ -112,18 +112,14 @@ namespace RentMate.Services.Implementations
                 throw new InvalidOperationException(
                     "Cannot approve — a scheduling conflict now exists for the requested period.");
 
-            extension.Status = ExtensionStatus.Approved;
+            extension.Status = ExtensionStatus.Accepted;
             extension.UpdatedAt = DateTime.UtcNow;
 
-            // Update the rental
-            extension.Rental!.EndDate = extension.NewEndDate;
-            extension.Rental.TotalPrice += extension.AdditionalCost;
-            extension.Rental.UpdatedAt = DateTime.UtcNow;
-
+            // Do NOT update rental dates/price yet — that happens after renter pays
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Extension {ExtensionId} approved for rental {RentalId} by owner {OwnerId}",
+                "Extension {ExtensionId} accepted (awaiting payment) for rental {RentalId} by owner {OwnerId}",
                 extensionId, extension.RentalId, approvedByUserId);
 
             return extension;
@@ -188,6 +184,62 @@ namespace RentMate.Services.Implementations
                 .OrderBy(r => r.StartDate)
                 .Select(r => (DateTime?)r.StartDate)
                 .FirstOrDefaultAsync();
+        }
+
+        /// <inheritdoc/>
+        public async Task<RentalExtension> FinalizeExtensionAsync(int extensionId, string userId)
+        {
+            var extension = await _context.RentalExtensions
+                .Include(e => e.Rental)
+                .FirstOrDefaultAsync(e => e.Id == extensionId)
+                ?? throw new InvalidOperationException($"Extension {extensionId} not found.");
+
+            if (extension.Status != ExtensionStatus.Accepted)
+                throw new InvalidOperationException($"Extension is not accepted (status: {extension.Status}).");
+
+            if (extension.Rental?.RenterId != userId)
+                throw new UnauthorizedAccessException("Only the renter can finalize an extension payment.");
+
+            extension.Status = ExtensionStatus.Approved;
+            extension.UpdatedAt = DateTime.UtcNow;
+
+            extension.Rental!.EndDate = extension.NewEndDate;
+            extension.Rental.TotalPrice += extension.AdditionalCost;
+            extension.Rental.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Extension {ExtensionId} finalized (paid) for rental {RentalId}",
+                extensionId, extension.RentalId);
+
+            return extension;
+        }
+
+        /// <inheritdoc/>
+        public async Task<RentalExtension> CancelExtensionAsync(int extensionId, string userId)
+        {
+            var extension = await _context.RentalExtensions
+                .Include(e => e.Rental)
+                .FirstOrDefaultAsync(e => e.Id == extensionId)
+                ?? throw new InvalidOperationException($"Extension {extensionId} not found.");
+
+            if (extension.Status != ExtensionStatus.Accepted)
+                throw new InvalidOperationException($"Extension is not accepted (status: {extension.Status}).");
+
+            if (extension.Rental?.RenterId != userId)
+                throw new UnauthorizedAccessException("Only the renter can cancel an accepted extension.");
+
+            extension.Status = ExtensionStatus.Declined;
+            extension.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Extension {ExtensionId} cancelled by renter for rental {RentalId}",
+                extensionId, extension.RentalId);
+
+            return extension;
         }
 
         /// <inheritdoc/>

@@ -1,4 +1,4 @@
-﻿@page
+@page
 @using Microsoft.AspNetCore.Mvc.Localization
 @model DeletePersonalDataModel
 @inject IViewLocalizer Localizer
@@ -9,48 +9,152 @@
 
 <div class="space-y-6">
     <!-- Page Header -->
-    <div class="border-b border-slate-200 pb-4">
-        <h2 class="font-heading text-xl font-bold text-slate-900">@Localizer["Delete Account"]</h2>
-        <p class="text-sm text-slate-500 mt-1">@Localizer["Permanently delete your account and all data"]</p>
+    <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
+        <h2 class="font-heading text-xl font-bold text-slate-900 dark:text-white">@Localizer["Delete Account"]</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">@Localizer["Permanently delete your account and all data"]</p>
     </div>
 
-    <!-- Warning Box -->
-    <div class="p-4 bg-red-50 border border-red-200 rounded-xl" role="alert">
-        <div class="flex items-start gap-3">
-            <i class="bi bi-exclamation-triangle-fill text-red-600 text-2xl mt-0.5"></i>
-            <div>
-                <p class="font-semibold text-red-800">@Localizer["This action is permanent and cannot be undone"]</p>
-                <p class="text-sm text-red-600 mt-1">@Localizer["Deleting your account will permanently remove all your personal data, items, rentals, and reviews. You will not be able to recover this information."]</p>
-            </div>
-        </div>
-    </div>
-
-    <form id="delete-user" method="post" class="space-y-6 max-w-md">
-        <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm" role="alert"></div>
-        
-        @if (Model.RequirePassword)
-        {
-            <div>
-                <label asp-for="Input.Password" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Confirm your password"]</label>
-                <div class="relative">
-                    <input asp-for="Input.Password" type="password" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" autocomplete="current-password" aria-required="true" placeholder="@Localizer["Enter your password to confirm"]" />
+    @if (Model.HasActiveRentals)
+    {
+        <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl" role="alert">
+            <div class="flex items-start gap-3">
+                <i class="bi bi-shield-exclamation text-amber-600 dark:text-amber-400 text-2xl mt-0.5"></i>
+                <div>
+                    <p class="font-semibold text-amber-800 dark:text-amber-300">@Localizer["Cannot delete account with active rentals"]</p>
+                    <p class="text-sm text-amber-600 dark:text-amber-400 mt-1">@Localizer["You have active, pending, or accepted rentals. Please complete or cancel all rentals before deleting your account."]</p>
                 </div>
-                <span asp-validation-for="Input.Password" class="text-red-500 text-sm"></span>
             </div>
-        }
-
-        <div class="flex items-center gap-4 pt-4 border-t border-slate-200">
-            <a asp-page="./PersonalData" class="px-5 py-3 text-slate-600 hover:text-slate-800 font-medium">
-                @Localizer["Cancel"]
-            </a>
-            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-sm transition-all">
-                <i class="bi bi-trash3"></i>
-                @Localizer["Delete My Account"]
-            </button>
         </div>
-    </form>
+
+        <div class="flex items-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <a asp-controller="Dashboard" asp-action="UserDashboard" class="inline-flex items-center gap-2 px-6 py-3 bg-trust-blue-600 hover:bg-trust-blue-700 text-white font-semibold rounded-xl shadow-sm transition-all">
+                <i class="bi bi-arrow-left"></i>
+                @Localizer["Go to Dashboard"]
+            </a>
+        </div>
+    }
+    else
+    {
+        <form id="delete-user" method="post" class="space-y-6 max-w-lg">
+            <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm" role="alert"></div>
+
+            <!-- Deletion Mode Selection -->
+            <div class="space-y-3">
+                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Choose what happens to your data:"]</p>
+
+                <!-- Option 1: Delete Account (keep footprint) -->
+                <label id="option-keep" class="deletion-option flex items-start gap-3 p-4 border-2 border-trust-blue-500 bg-trust-blue-50 dark:bg-trust-blue-900/20 dark:border-trust-blue-600 rounded-xl cursor-pointer transition-all">
+                    <input type="radio" name="delete-mode" value="account-only" checked
+                           class="mt-1 w-4 h-4 text-trust-blue-600 border-slate-300 focus:ring-trust-blue-500"
+                           onchange="toggleDeleteMode(false)" />
+                    <div>
+                        <p class="font-semibold text-slate-900 dark:text-white">@Localizer["Delete Account"]</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            @Localizer["Your account will be deactivated and personal information removed. Your reviews, items, and rental history will remain visible on the platform under \"Deleted account\"."]
+                        </p>
+                    </div>
+                </label>
+
+                <!-- Option 2: Delete Everything -->
+                <label id="option-all" class="deletion-option flex items-start gap-3 p-4 border-2 border-slate-200 dark:border-slate-700 rounded-xl cursor-pointer transition-all hover:border-slate-300 dark:hover:border-slate-600">
+                    <input type="radio" name="delete-mode" value="delete-all"
+                           class="mt-1 w-4 h-4 text-red-600 border-slate-300 focus:ring-red-500"
+                           onchange="toggleDeleteMode(true)" />
+                    <div>
+                        <p class="font-semibold text-slate-900 dark:text-white">@Localizer["Delete All Personal Data"]</p>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            @Localizer["Permanently remove everything: your account, all items you listed, every review you wrote, and your full rental history. Other users will lose access to your item listings and reviews. This cannot be undone."]
+                        </p>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Warning box (changes based on selection) -->
+            <div id="warning-keep" class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                <div class="flex items-start gap-3">
+                    <i class="bi bi-info-circle text-amber-600 dark:text-amber-400 text-lg mt-0.5"></i>
+                    <div class="text-sm text-amber-700 dark:text-amber-300">
+                        <p class="font-medium">@Localizer["What stays on the platform:"]</p>
+                        <ul class="mt-1.5 space-y-1 list-disc list-inside text-amber-600 dark:text-amber-400">
+                            <li>@Localizer["Your reviews (shown as \"Deleted account\")"]</li>
+                            <li>@Localizer["Your listed items (still visible to renters)"]</li>
+                            <li>@Localizer["Rental history for other users involved"]</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="warning-all" class="hidden p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                <div class="flex items-start gap-3">
+                    <i class="bi bi-exclamation-triangle-fill text-red-600 dark:text-red-400 text-lg mt-0.5"></i>
+                    <div class="text-sm text-red-700 dark:text-red-300">
+                        <p class="font-medium">@Localizer["This will permanently delete:"]</p>
+                        <ul class="mt-1.5 space-y-1 list-disc list-inside text-red-600 dark:text-red-400">
+                            <li>@Localizer["All reviews you have written"]</li>
+                            <li>@Localizer["All items you have listed"]</li>
+                            <li>@Localizer["Your complete rental history"]</li>
+                            <li>@Localizer["All personal information and account data"]</li>
+                        </ul>
+                        <p class="mt-2 font-medium text-red-700 dark:text-red-300">@Localizer["This action cannot be undone."]</p>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" asp-for="Input.DeleteAllData" id="deleteAllDataInput" value="false" />
+
+            @if (Model.RequirePassword)
+            {
+                <div>
+                    <label asp-for="Input.Password" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Confirm your password"]</label>
+                    <div class="relative">
+                        <input asp-for="Input.Password" type="password" class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all" autocomplete="current-password" aria-required="true" placeholder="@Localizer["Enter your password to confirm"]" />
+                    </div>
+                    <span asp-validation-for="Input.Password" class="text-red-500 text-sm"></span>
+                </div>
+            }
+
+            <div class="flex items-center gap-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <a asp-page="./PersonalData" class="px-5 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-medium">
+                    @Localizer["Cancel"]
+                </a>
+                <button type="submit" id="deleteBtn" class="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-sm transition-all">
+                    <i class="bi bi-trash3"></i>
+                    <span id="deleteBtnText">@Localizer["Delete My Account"]</span>
+                </button>
+            </div>
+        </form>
+    }
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleDeleteMode(deleteAll) {
+            document.getElementById('deleteAllDataInput').value = deleteAll ? 'true' : 'false';
+
+            var warningKeep = document.getElementById('warning-keep');
+            var warningAll = document.getElementById('warning-all');
+            var optionKeep = document.getElementById('option-keep');
+            var optionAll = document.getElementById('option-all');
+            var btnText = document.getElementById('deleteBtnText');
+
+            if (deleteAll) {
+                warningKeep.classList.add('hidden');
+                warningAll.classList.remove('hidden');
+                optionKeep.classList.remove('border-trust-blue-500', 'bg-trust-blue-50', 'dark:bg-trust-blue-900/20', 'dark:border-trust-blue-600');
+                optionKeep.classList.add('border-slate-200', 'dark:border-slate-700');
+                optionAll.classList.remove('border-slate-200', 'dark:border-slate-700');
+                optionAll.classList.add('border-red-500', 'bg-red-50', 'dark:bg-red-900/20', 'dark:border-red-600');
+                btnText.textContent = '@Localizer["Delete All My Data"]';
+            } else {
+                warningKeep.classList.remove('hidden');
+                warningAll.classList.add('hidden');
+                optionAll.classList.remove('border-red-500', 'bg-red-50', 'dark:bg-red-900/20', 'dark:border-red-600');
+                optionAll.classList.add('border-slate-200', 'dark:border-slate-700');
+                optionKeep.classList.remove('border-slate-200', 'dark:border-slate-700');
+                optionKeep.classList.add('border-trust-blue-500', 'bg-trust-blue-50', 'dark:bg-trust-blue-900/20', 'dark:border-trust-blue-600');
+                btnText.textContent = '@Localizer["Delete My Account"]';
+            }
+        }
+    </script>
 }

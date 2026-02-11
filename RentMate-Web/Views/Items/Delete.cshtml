@@ -10,19 +10,19 @@
 <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = Localizer["Back to Dashboard"].Value })
+        @await Html.PartialAsync("_BackLink", new { Controller = "Items", Action = "Edit", RouteId = Model.Id, Text = Localizer["Back to Edit"].Value })
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         <!-- Warning Header -->
-        <div class="bg-red-50 border-b border-red-100 px-6 py-4">
+        <div class="bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-800 px-6 py-4">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                    <i class="bi bi-exclamation-triangle text-red-600 text-lg"></i>
+                <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                    <i class="bi bi-exclamation-triangle text-red-600 dark:text-red-400 text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-heading text-xl font-bold text-red-900">@Localizer["Delete Item"]</h1>
-                    <p class="text-red-600 text-sm">@Localizer["Are you sure you want to delete this?"]</p>
+                    <h1 class="font-outfit text-xl font-bold text-red-900 dark:text-red-300">@Localizer["Delete Item"]</h1>
+                    <p class="text-red-600 dark:text-red-400 text-sm">@Localizer["Are you sure you want to delete this?"]</p>
                 </div>
             </div>
         </div>
@@ -30,40 +30,61 @@
         <!-- Item Preview -->
         <div class="p-6">
             <div class="flex gap-4 items-start">
-                @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.ImageUrl, Size = "lg", Alt = Model.Title })
+                <div class="w-24 h-24 shrink-0 rounded-xl overflow-hidden">
+                    @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.ImageUrl, Size = "fill", Alt = Model.Title })
+                </div>
                 <div class="flex-1 min-w-0">
-                    <h2 class="font-heading text-xl font-bold text-slate-900">@Model.Title</h2>
-                    <p class="text-slate-500 text-sm mt-1 line-clamp-2">@Model.Description</p>
+                    <h2 class="font-outfit text-xl font-bold text-slate-900 dark:text-white">@Model.Title</h2>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm mt-1 line-clamp-2">@Model.Description</p>
                     <div class="flex items-center gap-4 mt-3">
-                        <span class="text-lg font-bold text-green-600">@CurrencyService.Format(Model.Price)/@Localizer["day"]</span>
+                        <span class="text-lg font-bold text-emerald-600 dark:text-emerald-400">@CurrencyService.Format(Model.Price)/@Localizer["day"]</span>
                         @await Html.PartialAsync("_StatusBadge", new { Type = "normal", Text = Model.Category ?? "Uncategorized" })
                     </div>
                 </div>
             </div>
 
-            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                <div class="flex items-start gap-3">
-                    <i class="bi bi-info-circle text-amber-600 mt-0.5"></i>
-                    <div class="text-sm text-amber-700">
-                        <p class="font-medium">@Localizer["This action cannot be undone."]</p>
-                        <p class="mt-1">@Localizer["All associated rentals and reviews will remain but the item will no longer be available."]</p>
+            @if (ViewBag.HasActiveRentals == true)
+            {
+                <div class="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <i class="bi bi-shield-exclamation text-red-600 dark:text-red-400 mt-0.5"></i>
+                        <div class="text-sm text-red-700 dark:text-red-300">
+                            <p class="font-medium">@Localizer["Cannot delete item with active rentals. Please wait until all rentals are completed or cancelled."]</p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            }
+            else
+            {
+                <div class="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                    <div class="flex items-start gap-3">
+                        <i class="bi bi-info-circle text-amber-600 dark:text-amber-400 mt-0.5"></i>
+                        <div class="text-sm text-amber-700 dark:text-amber-300">
+                            <p class="font-medium">@Localizer["This action cannot be undone."]</p>
+                            <p class="mt-1">@Localizer["All associated rentals and reviews will remain but the item will no longer be available."]</p>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
 
         <!-- Actions -->
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">
-            <a asp-controller="Dashboard" asp-action="UserDashboard" class="px-6 py-3 border border-slate-200 bg-white rounded-xl text-slate-600 hover:bg-slate-50 transition-colors text-center font-medium">
+        <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-3 justify-end">
+            <a asp-controller="Items" asp-action="Edit" asp-route-id="@Model.Id"
+               class="px-6 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-center font-medium">
                 @Localizer["Cancel"]
             </a>
-            <form asp-action="Delete" class="inline">
-                <input type="hidden" asp-for="Id" />
-                <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
-                    <i class="bi bi-trash"></i>
-                    @Localizer["Delete"]
-                </button>
-            </form>
+            @if (ViewBag.HasActiveRentals != true)
+            {
+                <form asp-action="Delete" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Id" />
+                    <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
+                        <i class="bi bi-trash"></i>
+                        @Localizer["Delete"]
+                    </button>
+                </form>
+            }
         </div>
     </div>
 </div>

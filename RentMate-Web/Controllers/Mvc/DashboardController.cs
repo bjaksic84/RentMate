@@ -195,11 +195,12 @@ namespace RentMate.Controllers.Mvc
                 {
                     await _hubContext.Clients.User(ext.RequestedByUserId!).SendAsync(RentMateHub.ExtensionStatusChangedEvent, new
                     {
-                        extensionId, status = "Approved", itemTitle = ext.Rental.Item?.Title, newEndDate = ext.NewEndDate.ToString("yyyy-MM-dd")
+                        extensionId, status = "Accepted", itemTitle = ext.Rental.Item?.Title, newEndDate = ext.NewEndDate.ToString("yyyy-MM-dd"),
+                        additionalCost = ext.AdditionalCost
                     });
                 }
 
-                return Json(new { success = true, message = "Extension approved." });
+                return Json(new { success = true, message = "Extension accepted — awaiting renter payment." });
             }
             catch (Exception ex)
             {
@@ -236,6 +237,38 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Extension decline failed for {ExtensionId}", extensionId);
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Cancels an accepted extension (renter decided not to pay).
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelExtension(int extensionId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            try
+            {
+                var extension = await _extensionService.CancelExtensionAsync(extensionId, user.Id);
+
+                var cancelExt = await _context.RentalExtensions.Include(e => e.Rental).ThenInclude(r => r!.Item).FirstOrDefaultAsync(e => e.Id == extensionId);
+                if (cancelExt?.Rental != null)
+                {
+                    await _hubContext.Clients.User(cancelExt.Rental.OwnerId!).SendAsync(RentMateHub.ExtensionStatusChangedEvent, new
+                    {
+                        extensionId, status = "CancelledByRenter", itemTitle = cancelExt.Rental.Item?.Title
+                    });
+                }
+
+                return Json(new { success = true, message = "Extension cancelled." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Extension cancel failed for {ExtensionId}", extensionId);
                 return Json(new { success = false, message = ex.Message });
             }
         }
@@ -300,6 +333,74 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Deposit charge failed for rental {RentalId}", rentalId);
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Completes a rental early and resolves its deposit in one step (owner action).
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CompleteWithDeposit(int rentalId, string action, decimal? amount, string? reason)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            try
+            {
+                var rental = await _context.Rentals
+                    .Include(r => r.Item)
+                    .Include(r => r.Deposit)
+                    .FirstOrDefaultAsync(r => r.Id == rentalId);
+
+                if (rental == null)
+                    return Json(new { success = false, message = "Rental not found." });
+
+                if (rental.OwnerId != user.Id)
+                    return Json(new { success = false, message = "Not authorized." });
+
+                // Resolve deposit first
+                if (rental.Deposit != null && rental.Deposit.Status == DepositStatus.Authorized)
+                {
+                    if (action == "release")
+                    {
+                        await _depositService.ReleaseDepositAsync(rentalId, user.Id);
+                    }
+                    else if (action == "charge" && amount.HasValue && amount.Value > 0)
+                    {
+                        await _depositService.ChargeDepositAsync(rentalId, amount.Value, reason ?? "", user.Id);
+                    }
+                    else if (action == "charge-full")
+                    {
+                        await _depositService.ChargeDepositAsync(rentalId, rental.Deposit.Amount, reason ?? "Full deposit charged", user.Id);
+                    }
+
+                    // Notify renter about deposit resolution
+                    if (rental.RenterId != null)
+                    {
+                        await _hubContext.Clients.User(rental.RenterId).SendAsync(RentMateHub.DepositStatusChangedEvent, new
+                        {
+                            rentalId,
+                            status = action == "release" ? "Released" : "Charged",
+                            itemTitle = rental.Item?.Title
+                        });
+                    }
+                }
+
+                // Complete the rental
+                rental.Status = RentalStatus.Completed;
+                rental.EndDate = DateTime.UtcNow;
+                if (rental.Item != null)
+                    rental.Item.IsRented = false;
+
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Rental completed and deposit resolved." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "CompleteWithDeposit failed for rental {RentalId}", rentalId);
                 return Json(new { success = false, message = ex.Message });
             }
         }
@@ -397,7 +498,7 @@ namespace RentMate.Controllers.Mvc
                     .ThenInclude(i => i!.Reviews.Where(rev => !rev.IsDeleted))
                 .Include(r => r.Deposit)
                 .Include(r => r.Accessories)
-                .Include(r => r.Extensions.Where(e => e.Status == ExtensionStatus.Pending));
+                .Include(r => r.Extensions.Where(e => e.Status == ExtensionStatus.Pending || e.Status == ExtensionStatus.Accepted));
 
             if (asRenter)
             {
