@@ -195,9 +195,9 @@ namespace RentMate.Controllers.Mvc
             if (extension.Rental?.RenterId != userId)
                 return Forbid();
 
-            if (extension.Status != Models.Domain.ExtensionStatus.Accepted)
+            if (extension.Status != Models.Domain.ExtensionStatus.Accepted && extension.Status != Models.Domain.ExtensionStatus.AutoApproved)
             {
-                TempData["Error"] = _localizer["This extension must be accepted by the owner before payment."].Value;
+                TempData["Error"] = _localizer["This extension must be accepted or auto-approved before payment."].Value;
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
@@ -251,7 +251,7 @@ namespace RentMate.Controllers.Mvc
 
             if (redirect_status == "succeeded")
             {
-                if (extension.Status == Models.Domain.ExtensionStatus.Accepted)
+                if (extension.Status == Models.Domain.ExtensionStatus.Accepted || extension.Status == Models.Domain.ExtensionStatus.AutoApproved)
                 {
                     // Record payment
                     var payment = new Payment

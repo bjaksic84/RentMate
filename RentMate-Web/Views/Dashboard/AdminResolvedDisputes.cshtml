@@ -1,0 +1,275 @@
+@model List<RentMate.Models.Domain.RentalDeposit>
+@using RentMate.Services.Interfaces
+@inject ICurrencyService CurrencyService
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    ViewData["Title"] = Localizer["Dispute Archive"];
+}
+
+@functions {
+    public class TimelineItem {
+        public DateTime Date { get; set; }
+        public string Type { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string ActorName { get; set; } = "";
+        public string ActorRole { get; set; } = "";
+        public string? Description { get; set; }
+        public decimal? Amount { get; set; }
+        public string Icon { get; set; } = "";
+        public string Color { get; set; } = "slate";
+        public string? Url { get; set; }
+    }
+}
+
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h1 class="font-heading text-3xl font-bold text-slate-900 dark:text-white">@Localizer["Dispute Archive"]</h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1">@Localizer["History of all resolved deposit disputes"]</p>
+        </div>
+        <a asp-action="AdminDashboard" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            <i class="bi bi-arrow-left"></i>
+            @Localizer["Back to Dashboard"]
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-400 mx-auto mb-4">
+                <i class="bi bi-archive text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white">@Localizer["No Resolved Disputes"]</h3>
+            <p class="text-slate-500 dark:text-slate-400">@Localizer["Disputes will appear here after they are resolved."]</p>
+        </div>
+    }
+    else
+    {
+        <div class="space-y-4">
+            @foreach (var deposit in Model)
+            {
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden transition-all shadow-sm hover:shadow-md">
+                    <!-- Summary Header (Clickable) -->
+                    <div onclick="toggleDetails(@deposit.Id)" class="p-6 cursor-pointer flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        <div class="flex items-center gap-6">
+                            <!-- Status Icon -->
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0
+                                @(deposit.Status == RentMate.Models.Domain.DepositStatus.Released ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400")">
+                                <i class="bi @(deposit.Status == RentMate.Models.Domain.DepositStatus.Released ? "bi-check-lg" : "bi-shield-check") text-xl"></i>
+                            </div>
+
+                            <!-- Rental Info -->
+                            <div>
+                                <h3 class="text-base font-bold text-slate-900 dark:text-white">
+                                    @deposit.Rental?.Item?.Title <span class="text-slate-400 font-normal">#@deposit.RentalId</span>
+                                </h3>
+                                <div class="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                    <span><i class="bi bi-calendar-check mr-1"></i> @deposit.AdminResolvedAt?.ToString("MMM dd, yyyy")</span>
+                                    <span>&bull;</span>
+                                    <span>@Localizer["Resolution"]: 
+                                        <strong class="@(deposit.Status == RentMate.Models.Domain.DepositStatus.Released ? "text-emerald-600" : "text-slate-700 dark:text-slate-300")">
+                                            @(deposit.Status == RentMate.Models.Domain.DepositStatus.Released ? "Released (No Charge)" : CurrencyService.Format(deposit.ChargedAmount ?? 0))
+                                        </strong>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Toggle Icon -->
+                        <div id="chevron-@deposit.Id" class="text-slate-400 transform transition-transform duration-200">
+                            <i class="bi bi-chevron-down"></i>
+                        </div>
+                    </div>
+
+                    <!-- Detailed History (Expandable) -->
+                    <div id="details-@deposit.Id" class="hidden border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+                        <div class="p-6 sm:p-8">
+                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-6">@Localizer["Full Dispute History"]</h4>
+
+                            <div class="relative space-y-8 pl-8 before:absolute before:left-3.5 before:top-2 before:bottom-0 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+                                @{
+                                    var updates = new List<TimelineItem>();
+                                    
+                                    // 1. Charge
+                                    if (deposit.ChargedAt.HasValue)
+                                    {
+                                        updates.Add(new TimelineItem { 
+                                            Date = deposit.ChargedAt.Value, 
+                                            Type = "Charge", 
+                                            Title = "Deposit Charged",
+                                            ActorName = deposit.Rental?.Owner?.FirstName ?? deposit.Rental?.Owner?.Email ?? "Owner",
+                                            ActorRole = "Owner",
+                                            Description = deposit.ChargeReason,
+                                            Amount = deposit.ChargedAmount,
+                                            Icon = "bi-cash-coin",
+                                            Color = "rose"
+                                        });
+                                    }
+
+                                    // 2. Dispute
+                                    if (deposit.DisputedAt.HasValue)
+                                    {
+                                        updates.Add(new TimelineItem { 
+                                            Date = deposit.DisputedAt.Value, 
+                                            Type = "Dispute", 
+                                            Title = "Charge Disputed",
+                                            ActorName = deposit.Rental?.Renter?.FirstName ?? deposit.Rental?.Renter?.Email ?? "Renter",
+                                            ActorRole = "Renter",
+                                            Description = deposit.DisputeReason,
+                                            Icon = "bi-exclamation-triangle",
+                                            Color = "amber"
+                                        });
+                                    }
+
+                                    // 3. Counter-Offer
+                                    if (deposit.CounterOfferAt.HasValue)
+                                    {
+                                        updates.Add(new TimelineItem { 
+                                            Date = deposit.CounterOfferAt.Value, 
+                                            Type = "CounterOffer", 
+                                            Title = "Counter-Offer Sent",
+                                            ActorName = deposit.Rental?.Owner?.FirstName ?? deposit.Rental?.Owner?.Email ?? "Owner",
+                                            ActorRole = "Owner",
+                                            Description = deposit.OwnerDisputeResponse,
+                                            Amount = deposit.CounterOfferAmount,
+                                            Icon = "bi-arrow-left-right",
+                                            Color = "indigo"
+                                        });
+                                    }
+
+                                    // 4. Escalation
+                                    if (deposit.EscalatedAt.HasValue)
+                                    {
+                                        updates.Add(new TimelineItem { 
+                                            Date = deposit.EscalatedAt.Value, 
+                                            Type = "Escalation", 
+                                            Title = "Dispute Escalated",
+                                            ActorName = "System",
+                                            ActorRole = "System",
+                                            Description = "Case escalated for admin review.",
+                                            Icon = "bi-shield-exclamation",
+                                            Color = "blue"
+                                        });
+                                    }
+
+                                    // 5. Resolution
+                                    if (deposit.AdminResolvedAt.HasValue)
+                                    {
+                                        updates.Add(new TimelineItem { 
+                                            Date = deposit.AdminResolvedAt.Value, 
+                                            Type = "Resolution", 
+                                            Title = "Case Resolved",
+                                            ActorName = "Admin",
+                                            ActorRole = "Admin",
+                                            Description = deposit.AdminNotes,
+                                            Amount = deposit.ChargedAmount, // Final amount
+                                            Icon = "bi-check-circle-fill",
+                                            Color = "emerald"
+                                        });
+                                    }
+
+                                    // 6. Evidence
+                                    if (deposit.Evidence != null)
+                                    {
+                                        foreach (var ev in deposit.Evidence)
+                                        {
+                                            var isRenter = ev.SubmittedByUserId == deposit.Rental?.RenterId || (ev.SubmittedBy != null && ev.SubmittedBy.Id == deposit.Rental?.RenterId);
+                                            if (deposit.Rental?.Renter != null && ev.SubmittedByUserId == deposit.Rental.Renter.Id) isRenter = true;
+
+                                            updates.Add(new TimelineItem { 
+                                                Date = ev.CreatedAt, 
+                                                Type = "Evidence", 
+                                                Title = "Evidence Uploaded",
+                                                ActorName = isRenter ? (deposit.Rental?.Renter?.FirstName ?? "Renter") : (deposit.Rental?.Owner?.FirstName ?? "Owner"),
+                                                ActorRole = isRenter ? "Renter" : "Owner",
+                                                Description = ev.Notes,
+                                                Url = ev.Url,
+                                                Icon = "bi-image",
+                                                Color = "slate"
+                                            });
+                                        }
+                                    }
+
+                                    var sortedUpdates = updates.OrderBy(u => u.Date).ToList();
+                                }
+
+                                @foreach (var update in sortedUpdates)
+                                {
+                                    <div class="relative group">
+                                        <!-- Node -->
+                                        <div class="absolute -left-[45px] top-1 w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 bg-@(update.Color)-100 dark:bg-@(update.Color)-900/50 flex items-center justify-center text-@(update.Color)-600 dark:text-@(update.Color)-400 z-10">
+                                            <i class="bi @(update.Icon) text-sm"></i>
+                                        </div>
+
+                                        <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                                            <!-- Date Mobile -->
+                                            <div class="sm:hidden text-xs text-slate-400 mb-1">
+                                                @update.Date.ToString("MMM dd, HH:mm")
+                                            </div>
+
+                                            <!-- Content Card -->
+                                            <div class="flex-1 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                                                <div class="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h5 class="text-sm font-bold text-slate-900 dark:text-white">@update.Title</h5>
+                                                        <div class="flex items-center gap-2 mt-0.5">
+                                                            <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                                                                @update.ActorRole
+                                                            </span>
+                                                            <span class="text-xs text-slate-500">by @update.ActorName</span>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Date Desktop -->
+                                                    <span class="hidden sm:block text-xs text-slate-400 whitespace-nowrap ml-4">
+                                                        @update.Date.ToString("MMM dd, HH:mm")
+                                                    </span>
+                                                </div>
+
+                                                @if (!string.IsNullOrEmpty(update.Description))
+                                                {
+                                                    <p class="text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 italic">
+                                                        "@update.Description"
+                                                    </p>
+                                                }
+
+                                                @if (update.Amount != null)
+                                                {
+                                                    <div class="mt-2 text-sm font-semibold text-slate-900 dark:text-white">
+                                                        @Localizer["Amount"]: @CurrencyService.Format(update.Amount.Value)
+                                                    </div>
+                                                }
+
+                                                @if (!string.IsNullOrEmpty(update.Url))
+                                                {
+                                                    <div class="mt-3">
+                                                        <a href="@update.Url" target="_blank" class="block w-full max-w-xs rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:opacity-90 transition-opacity">
+                                                            <img src="@update.Url" alt="Evidence" class="w-full h-auto object-cover" />
+                                                        </a>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<script>
+    function toggleDetails(id) {
+        var el = document.getElementById('details-' + id);
+        var chevron = document.getElementById('chevron-' + id);
+        
+        if (el && chevron) {
+            el.classList.toggle('hidden');
+            chevron.classList.toggle('rotate-180');
+        }
+    }
+</script>

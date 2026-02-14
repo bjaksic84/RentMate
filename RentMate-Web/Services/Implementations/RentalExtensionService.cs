@@ -78,12 +78,8 @@ namespace RentMate.Services.Implementations
             if (rental.Item?.AutoApproveExtensions == true)
             {
                 extension.Status = ExtensionStatus.AutoApproved;
-                rental.EndDate = newEndDate;
-                rental.TotalPrice += extension.AdditionalCost;
-                rental.UpdatedAt = DateTime.UtcNow;
-
                 _logger.LogInformation(
-                    "Extension auto-approved for rental {RentalId}: {OldDate} → {NewDate}",
+                    "Extension auto-approved for rental {RentalId}: {OldDate} → {NewDate} (Awaiting payment)",
                     rentalId, extension.OriginalEndDate, newEndDate);
             }
 
@@ -115,7 +111,6 @@ namespace RentMate.Services.Implementations
             extension.Status = ExtensionStatus.Accepted;
             extension.UpdatedAt = DateTime.UtcNow;
 
-            // Do NOT update rental dates/price yet — that happens after renter pays
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
@@ -194,8 +189,8 @@ namespace RentMate.Services.Implementations
                 .FirstOrDefaultAsync(e => e.Id == extensionId)
                 ?? throw new InvalidOperationException($"Extension {extensionId} not found.");
 
-            if (extension.Status != ExtensionStatus.Accepted)
-                throw new InvalidOperationException($"Extension is not accepted (status: {extension.Status}).");
+            if (extension.Status != ExtensionStatus.Accepted && extension.Status != ExtensionStatus.AutoApproved)
+                throw new InvalidOperationException($"Extension is not accepted or auto-approved (status: {extension.Status}).");
 
             if (extension.Rental?.RenterId != userId)
                 throw new UnauthorizedAccessException("Only the renter can finalize an extension payment.");
@@ -224,8 +219,8 @@ namespace RentMate.Services.Implementations
                 .FirstOrDefaultAsync(e => e.Id == extensionId)
                 ?? throw new InvalidOperationException($"Extension {extensionId} not found.");
 
-            if (extension.Status != ExtensionStatus.Accepted)
-                throw new InvalidOperationException($"Extension is not accepted (status: {extension.Status}).");
+            if (extension.Status != ExtensionStatus.Accepted && extension.Status != ExtensionStatus.AutoApproved)
+                throw new InvalidOperationException($"Extension is not accepted or auto-approved (status: {extension.Status}).");
 
             if (extension.Rental?.RenterId != userId)
                 throw new UnauthorizedAccessException("Only the renter can cancel an accepted extension.");

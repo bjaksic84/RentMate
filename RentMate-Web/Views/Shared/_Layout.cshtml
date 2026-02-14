@@ -377,7 +377,7 @@
                         }
                         @if (User.IsInRole("Admin"))
                         {
-                            <a asp-controller="Dashboard" asp-action="AdminDashboard" class="hidden lg:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                            <a asp-controller="Dashboard" asp-action="AdminDashboard" class="hidden md:block px-4 py-2 text-sm font-bold text-blue-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition-all duration-200">
                                 @Localizer["Admin"]
                             </a>
                         }
@@ -504,6 +504,13 @@
                                     <i class="bi bi-chevron-down text-xs text-slate-500"></i>
                                 </button>
                                 <div class="hidden absolute right-0 mt-2 w-48 py-2 bg-white rounded-xl shadow-md border border-slate-100">
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <a asp-controller="Dashboard" asp-action="AdminDashboard" class="flex items-center gap-3 px-4 py-2 text-sm text-blue-600 font-bold hover:bg-blue-50 transition-colors">
+                                            <i class="bi bi-shield-lock"></i> @Localizer["Admin Panel"]
+                                        </a>
+                                        <hr class="my-2 border-slate-100">
+                                    }
                                     <a asp-controller="Profile" asp-action="Index" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                                         <i class="bi bi-person"></i> @Localizer["Profile"]
                                     </a>
@@ -560,6 +567,12 @@
                         <a asp-controller="Dashboard" asp-action="UserDashboard" class="md:hidden block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
                             <i class="bi bi-grid mr-2"></i>@Localizer["Dashboard"]
                         </a>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <a asp-controller="Dashboard" asp-action="AdminDashboard" class="block px-4 py-2 text-sm font-medium text-blue-600 rounded-lg hover:bg-blue-50">
+                                <i class="bi bi-shield-lock mr-2"></i>@Localizer["Admin Panel"]
+                            </a>
+                        }
                     }
 
                     <hr class="lg:hidden my-2 border-slate-100">

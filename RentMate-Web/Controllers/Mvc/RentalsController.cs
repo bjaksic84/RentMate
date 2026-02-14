@@ -422,7 +422,8 @@ namespace RentMate.Controllers.Mvc
             rental.Status = RentalStatus.Completed;
             rental.Item!.IsRented = false;
             rental.UpdatedAt = DateTime.UtcNow;
-            rental.EndDate = DateTime.UtcNow;
+            if (DateTime.UtcNow < rental.EndDate)
+                rental.EndDate = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             var message = string.Format(_localizer["Rental for '{0}' was marked as completed."], rental.Item.Title);

@@ -17,6 +17,10 @@
             <p class="text-slate-500 mt-1">@Localizer["Admin Dashboard"]</p>
         </div>
         <div class="flex items-center gap-3">
+            <a asp-action="AdminResolvedDisputes" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl shadow-sm transition-all">
+                <i class="bi bi-archive"></i>
+                @Localizer["Dispute Archive"]
+            </a>
             <a href="#" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
                 <i class="bi bi-download"></i>
                 @Localizer["Export Report"]
@@ -34,7 +38,87 @@
         @await Html.PartialAsync("_StatCard", new { Icon = "bi-arrow-repeat", IconColor = "amber", Value = Model.ActiveRentals, Label = "In Progress" })
     </div>
 
-    <div class="grid lg:grid-cols-3 gap-6 mb-8">
+    <!-- Escalated Disputes Section -->
+    @if (Model.EscalatedDisputes?.Any() ?? false)
+    {
+        <div class="mb-8 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-2xl overflow-hidden shadow-sm">
+            <div class="px-6 py-4 border-b border-rose-200 dark:border-rose-800 bg-rose-100/50 dark:bg-rose-900/20 flex items-center justify-between">
+                <h2 class="font-heading text-lg font-bold text-rose-900 dark:text-rose-100 flex items-center gap-2">
+                    <i class="bi bi-shield-exclamation text-rose-600"></i>
+                    @Localizer["Escalated Disputes Awaiting Review"]
+                    <span class="ml-2 px-2 py-0.5 bg-rose-600 text-white text-xs font-bold rounded-full">@Model.EscalatedDisputes.Count</span>
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-rose-100/30 dark:bg-rose-900/30 text-rose-800 dark:text-rose-300">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">@Localizer["Rental"]</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">@Localizer["Parties"]</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">@Localizer["Amount"]</th>
+                            <th class="px-6 py-3 text-left text-xs font-bold uppercase tracking-wider">@Localizer["Escalated At"]</th>
+                            <th class="px-6 py-3 text-right text-xs font-bold uppercase tracking-wider">@Localizer["Action"]</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-rose-100 dark:divide-rose-800/50">
+                        @foreach (var dep in Model.EscalatedDisputes)
+                        {
+                            <tr class="hover:bg-rose-100/20 transition-colors">
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-bold text-slate-900 dark:text-white">#@dep.RentalId</div>
+                                    <div class="text-xs text-slate-500 truncate max-w-[150px]">@dep.Rental?.Item?.Title</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-xs text-slate-700 dark:text-slate-300"><span class="font-medium text-blue-600">R:</span> @dep.Rental?.Renter?.Email</div>
+                                    <div class="text-xs text-slate-700 dark:text-slate-300"><span class="font-medium text-emerald-600">O:</span> @dep.Rental?.Owner?.Email</div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="text-sm font-bold text-rose-700 dark:text-rose-400">@CurrencyService.Format(dep.ChargedAmount ?? 0)</div>
+                                    <div class="text-xs text-slate-500 truncate max-w-[200px] break-words overflow-hidden">"@dep.DisputeReason"</div>
+                                    @if (dep.Evidence != null && dep.Evidence.Any())
+                                    {
+                                        <div class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px] font-bold rounded-md">
+                                            <i class="bi bi-paperclip"></i>
+                                            <span>@dep.Evidence.Count @Localizer["files"]</span>
+                                        </div>
+                                    }
+                                </td>
+                                <td class="px-6 py-4 text-xs text-slate-500">
+                                    @dep.EscalatedAt?.ToString("g")
+                                </td>
+                                <td class="px-6 py-4 text-right">
+                                    <a asp-controller="Dashboard" asp-action="AdminReviewDispute" asp-route-id="@dep.RentalId" 
+                                       class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all uppercase tracking-wider">
+                                        @Localizer["Review"]
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="mb-8 p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <i class="bi bi-check-circle text-xl"></i>
+                </div>
+                <div>
+                    <h3 class="font-heading font-bold text-slate-900 dark:text-white">@Localizer["No Active Disputes"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["All escalated cases have been resolved."] @Localizer["Great job!"]</p>
+                </div>
+            </div>
+            <a asp-action="AdminResolvedDisputes" class="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 uppercase tracking-wider">
+                <i class="bi bi-archive"></i>
+                @Localizer["Dispute Archive"]
+            </a>
+        </div>
+    }
+
         <!-- Recent Rentals Table -->
         <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">

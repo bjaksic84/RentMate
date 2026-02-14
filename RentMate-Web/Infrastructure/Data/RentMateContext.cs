@@ -28,6 +28,7 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
     public DbSet<RentalAccessory> RentalAccessories { get; set; }
     public DbSet<RentalDeposit> RentalDeposits { get; set; }
     public DbSet<RentalExtension> RentalExtensions { get; set; }
+    public DbSet<DisputeEvidence> DisputeEvidences { get; set; }
 
     #endregion
 
@@ -46,6 +47,7 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         ConfigureAccessoryEntities(modelBuilder);
         ConfigureDepositEntity(modelBuilder);
         ConfigureExtensionEntity(modelBuilder);
+        ConfigureDisputeEvidenceEntity(modelBuilder);
         ConfigurePerformanceIndexes(modelBuilder);
     }
 
@@ -255,6 +257,22 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(e => new { e.RentalId, e.Status });
+        });
+    }
+
+    private static void ConfigureDisputeEvidenceEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DisputeEvidence>(entity =>
+        {
+            entity.HasOne(e => e.RentalDeposit)
+                  .WithMany(d => d.Evidence)
+                  .HasForeignKey(e => e.RentalDepositId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.SubmittedBy)
+                  .WithMany()
+                  .HasForeignKey(e => e.SubmittedByUserId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 

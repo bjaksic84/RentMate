@@ -46,6 +46,9 @@ public class DashboardViewModel
     /// <summary>Recent payments (admin view).</summary>
     public List<Payment>? RecentPayments { get; set; }
 
+    /// <summary>Escalated deposit disputes awaiting admin review.</summary>
+    public List<RentalDeposit>? EscalatedDisputes { get; set; }
+
     #endregion
 
     #region User Data Lists

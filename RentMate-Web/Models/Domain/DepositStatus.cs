@@ -9,6 +9,10 @@ namespace RentMate.Models.Domain
         Authorized = 1,
         Released = 2,
         Charged = 3,
-        PartiallyCharged = 4
+        PartiallyCharged = 4,
+        Disputed = 5,
+        CounterOffered = 6,
+        Escalated = 7,
+        ChargeUpheld = 8
     }
 }

@@ -34,10 +34,11 @@ namespace RentMate.Services.Implementations
                 try
                 {
                     await CheckOverdueRentalsAsync(stoppingToken);
+                    await CheckDisputeDeadlinesAsync(stoppingToken);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error checking overdue rentals.");
+                    _logger.LogError(ex, "Error checking overdue rentals or dispute deadlines.");
                 }
 
                 await Task.Delay(CheckInterval, stoppingToken);
@@ -86,6 +87,94 @@ namespace RentMate.Services.Implementations
                         RentMateHub.RentalOverdueEvent, data, ct);
                 }
             }
+        }
+
+        private async Task CheckDisputeDeadlinesAsync(CancellationToken ct)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<RentMateContext>();
+            var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<RentMateHub>>();
+
+            var now = DateTime.UtcNow;
+
+            var expiredDeposits = await context.RentalDeposits
+                .Include(d => d.Rental).ThenInclude(r => r!.Item)
+                .Where(d => d.DisputeDeadline != null && d.DisputeDeadline < now)
+                .ToListAsync(ct);
+
+            if (expiredDeposits.Count == 0) return;
+
+            _logger.LogInformation("Found {Count} deposits with expired deadlines.", expiredDeposits.Count);
+
+            foreach (var deposit in expiredDeposits)
+            {
+                var rental = deposit.Rental;
+                string? notifyUserId = null;
+                string statusText = "";
+
+                switch (deposit.Status)
+                {
+                    case DepositStatus.Charged:
+                    case DepositStatus.PartiallyCharged:
+                        // Renter didn't dispute in time → charge accepted (final)
+                        deposit.DisputeDeadline = null;
+                        deposit.UpdatedAt = now;
+                        notifyUserId = rental?.OwnerId;
+                        statusText = "ChargeAccepted";
+                        _logger.LogInformation(
+                            "Auto-accepted charge for rental {RentalId} (renter did not dispute in time).",
+                            deposit.RentalId);
+                        break;
+
+                    case DepositStatus.Disputed:
+                        // Owner didn't respond in time → release deposit
+                        deposit.Status = DepositStatus.Released;
+                        deposit.ReleasedAt = now;
+                        deposit.ChargedAmount = null;
+                        deposit.DisputeDeadline = null;
+                        deposit.UpdatedAt = now;
+                        notifyUserId = rental?.RenterId;
+                        statusText = "Released";
+                        _logger.LogInformation(
+                            "Auto-released deposit for rental {RentalId} (owner did not respond to dispute in time).",
+                            deposit.RentalId);
+                        break;
+
+                    case DepositStatus.CounterOffered:
+                        // Renter didn't respond to counter-offer → accept counter amount
+                        deposit.ChargedAmount = deposit.CounterOfferAmount;
+                        deposit.Status = DepositStatus.PartiallyCharged;
+                        deposit.DisputeDeadline = null;
+                        deposit.UpdatedAt = now;
+                        notifyUserId = rental?.OwnerId;
+                        statusText = "CounterAccepted";
+                        _logger.LogInformation(
+                            "Auto-accepted counter-offer of {Amount} for rental {RentalId} (renter did not respond in time).",
+                            deposit.CounterOfferAmount, deposit.RentalId);
+                        break;
+
+                    default:
+                        // Escalated or other states with deadline shouldn't happen, but clear it
+                        deposit.DisputeDeadline = null;
+                        deposit.UpdatedAt = now;
+                        break;
+                }
+
+                // Send SignalR notification
+                if (!string.IsNullOrEmpty(notifyUserId))
+                {
+                    await hubContext.Clients.User(notifyUserId).SendAsync(
+                        RentMateHub.DepositStatusChangedEvent,
+                        new
+                        {
+                            rentalId = deposit.RentalId,
+                            status = statusText,
+                            itemTitle = rental?.Item?.Title
+                        }, ct);
+                }
+            }
+
+            await context.SaveChangesAsync(ct);
         }
     }
 }

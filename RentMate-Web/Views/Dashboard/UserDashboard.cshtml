@@ -15,6 +15,13 @@
     var activeMyRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
     var activeOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
     var hasAttentionItems = pendingOwnerRentals.Any() || overdueRentals.Any() || (Model.PendingExtensions?.Any() ?? false);
+
+    // Defensive date range formatter — ensures earlier date is always shown first
+    string FormatDateRange(DateTime a, DateTime b) {
+        var first = a <= b ? a : b;
+        var second = a <= b ? b : a;
+        return $"{first.ToString("dd MMM")} → {second.ToString("dd MMM yyyy")}";
+    }
 }
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -32,6 +39,14 @@
             <span id="connectionIndicator" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-full">
                 @Localizer["Offline"]
             </span>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-action="AdminDashboard"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 border border-trust-blue-200 dark:border-trust-blue-800 text-trust-blue-600 dark:text-trust-blue-400 font-medium rounded-xl hover:bg-trust-blue-50 dark:hover:bg-trust-blue-900/20 transition-all">
+                    <i class="bi bi-shield-lock"></i>
+                    @Localizer["Admin Panel"]
+                </a>
+            }
             <a asp-controller="Items" asp-action="Create"
                class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 hover:brightness-110 text-white font-medium rounded-xl shadow-sm transition-all">
                 <i class="bi bi-plus-lg"></i>
@@ -107,7 +122,7 @@
                                     @Localizer["Rental request"]: <strong>@rental.Item?.Title</strong>
                                 </p>
                                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.Email) &mdash; @rental.StartDate.ToString("dd MMM") → @rental.EndDate.ToString("dd MMM yyyy")
+                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.Email) &mdash; @FormatDateRange(rental.StartDate, rental.EndDate)
                                 </p>
                             </div>
                         </div>
@@ -183,7 +198,14 @@
                 </div>
 
                 @{
-                    var activeMyRentalsList = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted).ToList() ?? new();
+                    var activeMyRentalsList = Model.MyRentals?.Where(r =>
+                        r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted
+                        || (r.Status == RentalStatus.Completed && r.Deposit != null
+                            && (r.Deposit.Status == DepositStatus.Disputed || r.Deposit.Status == DepositStatus.CounterOffered
+                                || r.Deposit.Status == DepositStatus.Escalated
+                                || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged) 
+                                    && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+                    ).ToList() ?? new();
                 }
                 @if (activeMyRentalsList.Any())
                 {
@@ -195,7 +217,7 @@
                             var urgency = daysRemaining < 0 ? "overdue" : daysRemaining <= 1 ? "urgent" : daysRemaining <= 3 ? "warning" : "normal";
                             var existingReview = rental.Item?.Reviews?.FirstOrDefault(r => r.ReviewerId == currentUserId && !r.IsDeleted);
                             var hasPendingExt = rental.Extensions?.Any(e => e.Status == ExtensionStatus.Pending) ?? false;
-                            var acceptedExt = rental.Extensions?.FirstOrDefault(e => e.Status == ExtensionStatus.Accepted);
+                            var acceptedExt = rental.Extensions?.FirstOrDefault(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved);
 
                             <article class="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm transition-shadow hover:shadow-md">
                                 <!-- Image + Badges -->
@@ -222,9 +244,11 @@
                                             @(rental.Deposit.Status switch {
                                                 DepositStatus.Authorized => "bg-sky-500/20 text-white",
                                                 DepositStatus.Released => "bg-emerald-500/20 text-white",
+                                                DepositStatus.Charged or DepositStatus.PartiallyCharged => "bg-rose-500/20 text-white",
+                                                DepositStatus.Disputed => "bg-amber-500/20 text-white",
                                                 _ => "bg-slate-500/20 text-white"
                                             })">
-                                            <i class="bi bi-shield-check"></i>
+                                            <i class="bi @(rental.Deposit.Status == DepositStatus.Disputed ? "bi-exclamation-triangle" : "bi-shield-check")"></i>
                                             @CurrencyService.Format(rental.Deposit.Amount)
                                         </div>
                                     }
@@ -270,7 +294,7 @@
                                     {
                                         <div class="mb-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                                             <i class="bi bi-calendar-range"></i>
-                                            <span>@rental.StartDate.ToString("dd MMM") &rarr; @rental.EndDate.ToString("dd MMM yyyy")</span>
+                                            <span>@FormatDateRange(rental.StartDate, rental.EndDate)</span>
                                         </div>
                                     }
 
@@ -281,6 +305,264 @@
                                             <i class="bi bi-shield-check text-sky-500"></i>
                                             <span>@Localizer["Deposit"]: <strong class="text-slate-700 dark:text-slate-200">@CurrencyService.Format(rental.Item.DepositAmount.Value)</strong></span>
                                         </div>
+                                    }
+
+                                    <!-- Deposit Charge Info (renter sees charge reason + dispute option) -->
+                                    @if (rental.Deposit != null)
+                                    {
+                                        var dep = rental.Deposit;
+                                        @if (dep.Status == DepositStatus.Charged || dep.Status == DepositStatus.PartiallyCharged)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="bi bi-shield-x text-rose-500 mt-0.5 shrink-0"></i>
+                                                    <div class="flex-1">
+                                                        <p class="text-xs font-medium text-rose-700 dark:text-rose-300">
+                                                            @CurrencyService.Format(dep.ChargedAmount ?? 0) @Localizer["charged from your deposit"]
+                                                        </p>
+                                                        @if (!string.IsNullOrEmpty(dep.ChargeReason))
+                                                        {
+                                                            <p class="text-xs text-rose-600 dark:text-rose-400 mt-0.5">"@dep.ChargeReason"</p>
+                                                        }
+
+                                                        @if (dep.Evidence != null && dep.Evidence.Any(e => e.SubmittedByUserId != currentUserId))
+                                                        {
+                                                            <div class="mt-3 pt-2 border-t border-rose-200/50 dark:border-rose-800/50">
+                                                                <p class="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-500 mb-1.5 tracking-wider">@Localizer["Owner's Evidence"]</p>
+                                                                <div class="flex flex-wrap gap-2">
+                                                                    @foreach (var ev in dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId))
+                                                                    {
+                                                                        <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-rose-200 dark:border-rose-800 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                            <img src="@ev.Url" class="w-full h-full object-cover" />
+                                                                        </a>
+                                                                    }
+                                                                </div>
+                                                            </div>
+                                                        }
+                                                        
+                                                        @if (dep.DisputeDeadline.HasValue && dep.DisputeDeadline > DateTime.UtcNow)
+                                                        {
+                                                            <div class="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                                                                <i class="bi bi-clock"></i>
+                                                                <span>@Localizer["Dispute deadline"]: @dep.DisputeDeadline.Value.ToString("dd MMM HH:mm")</span>
+                                                            </div>
+                                                        }
+
+                                                        <div class="mt-3 flex gap-2">
+                                                             <button onclick='openDisputeModal(@rental.Id, @Html.Raw(System.Text.Json.JsonSerializer.Serialize((dep.Evidence ?? new List<DisputeEvidence>()).Where(e => e.SubmittedByUserId != currentUserId).Select(e => new { e.Url, e.Notes }))))'
+                                                                    class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-800 text-rose-600 border border-rose-200 dark:border-rose-800 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/10 transition">
+                                                                <i class="bi bi-exclamation-triangle mr-1"></i>@Localizer["Dispute"]
+                                                            </button>
+                                                            <button onclick="acceptCharge(@rental.Id)"
+                                                                    class="px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:brightness-110 transition">
+                                                                @Localizer["Accept Charge"]
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (dep.Status == DepositStatus.Disputed)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="bi bi-exclamation-triangle text-amber-500 mt-0.5 shrink-0"></i>
+                                                    <div class="flex-1">
+                                                        <p class="text-xs font-medium text-amber-700 dark:text-amber-300">@Localizer["You disputed this charge"]</p>
+                                                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">@Localizer["Waiting for owner's response..."]</p>
+                                                        
+                                                        <button onclick="escalateDispute(@rental.Id)"
+                                                                id="escalate-btn-@rental.Id"
+                                                                class="mt-3 px-3 py-1.5 text-xs font-medium border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                                            @Localizer["Escalate to Support"]
+                                                        </button>
+
+
+                                                         @if (dep.Evidence != null && dep.Evidence.Any())
+                                                         {
+                                                             var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
+                                                             var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
+                                                             
+                                                             @if (otherEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-500 mb-2 tracking-wider">@Localizer["Owner's Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-amber-200 dark:border-amber-800 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover" />
+                                                                             </a>
+                                                                         }
+                                                                     </div>
+                                                                 </div>
+                                                             }
+                                                             
+                                                             @if (yourEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
+                                                                             </a>
+                                                                         }
+                                                                         <button onclick="openAddEvidenceModal(@rental.Id)" class="w-10 h-10 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
+                                                                             <i class="bi bi-plus-lg"></i>
+                                                                         </button>
+                                                                     </div>
+                                                                 </div>
+                                                             }
+                                                         }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (dep.Status == DepositStatus.CounterOffered)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3 shadow-sm">
+                                                <div class="flex items-start gap-2">
+                                                    <div class="w-2 h-2 rounded-full bg-amber-500 mt-1.5 animate-pulse shrink-0"></div>
+                                                    <div class="flex-1">
+                                                        <p class="text-xs font-bold text-amber-800 dark:text-amber-300">@Localizer["New Counter-Offer"]</p>
+                                                        <p class="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                                                            @Localizer["Owner offered to settle for"] <strong class="text-slate-900 dark:text-white">@CurrencyService.Format(dep.CounterOfferAmount ?? 0)</strong>
+                                                        </p>
+                                                        @if (!string.IsNullOrEmpty(dep.OwnerDisputeResponse))
+                                                        {
+                                                            <div class="mt-2 p-2 bg-white/50 dark:bg-slate-900/50 rounded-lg italic text-[11px] text-slate-600 dark:text-slate-400 break-words overflow-hidden">
+                                                                "@dep.OwnerDisputeResponse"
+                                                            </div>
+                                                        }
+                                                        <div class="mt-3 flex gap-2">
+                                                            <button onclick="acceptCounterOffer(@rental.Id)"
+                                                                    class="px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-lg hover:brightness-110 transition">
+                                                                @Localizer["Accept & Pay"] @CurrencyService.Format(dep.CounterOfferAmount ?? 0)
+                                                            </button>
+                                                            <button onclick="escalateDispute(@rental.Id)"
+                                                                    id="escalate-btn-co-@rental.Id"
+                                                                    class="px-3 py-1.5 text-xs font-medium border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                                                @Localizer["Reject & Escalate"]
+                                                            </button>
+                                                        </div>
+
+
+                                                         @if (dep.Evidence != null && dep.Evidence.Any())
+                                                         {
+                                                             var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
+                                                             var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
+
+                                                             @if (otherEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-500 mb-2 tracking-wider">@Localizer["Owner's Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-amber-200 dark:border-amber-800 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover" />
+                                                                             </a>
+                                                                         }
+                                                                     </div>
+                                                                 </div>
+                                                             }
+
+                                                             @if (yourEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
+                                                                             </a>
+                                                                         }
+                                                                         <button onclick="openAddEvidenceModal(@rental.Id)" class="w-10 h-10 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
+                                                                             <i class="bi bi-plus-lg"></i>
+                                                                         </button>
+                                                                     </div>
+                                                                 </div>
+                                                             }
+                                                         }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (dep.Status == DepositStatus.Escalated)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="bi bi-shield-shaded text-blue-500 mt-0.5 shrink-0"></i>
+                                                    <div>
+                                                        <p class="text-xs font-medium text-blue-700 dark:text-blue-300">@Localizer["Under Internal Review"]</p>
+                                                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">@Localizer["Our team is reviewing this dispute. We'll contact you shortly."]</p>
+                                                        
+                                                         @if (dep.Evidence != null && dep.Evidence.Any())
+                                                         {
+                                                             var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
+                                                             var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
+
+                                                             @if (otherEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-blue-200/50 dark:border-blue-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-500 mb-2 tracking-wider">@Localizer["Owner's Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-blue-200 dark:border-blue-800 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover" />
+                                                                             </a>
+                                                                         }
+                                                                     </div>
+                                                                 </div>
+                                                             }
+
+                                                             @if (yourEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-blue-200/50 dark:border-blue-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
+                                                                             </a>
+                                                                         }
+                                                                         <button onclick="openAddEvidenceModal(@rental.Id)" class="w-8 h-8 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
+                                                                             <i class="bi bi-plus"></i>
+                                                                         </button>
+                                                                     </div>
+                                                                 </div>
+                                                             }
+                                                         }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (dep.Status == DepositStatus.ChargeUpheld)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="bi bi-shield-check text-slate-400 mt-0.5 shrink-0"></i>
+                                                    <div>
+                                                        <p class="text-xs font-medium text-slate-700 dark:text-slate-300">@Localizer["Dispute Resolved"]</p>
+                                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["The original charge was upheld by support review."]</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (dep.Status == DepositStatus.Released && dep.DisputedAt.HasValue)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-3">
+                                                <div class="flex items-center gap-2">
+                                                    <i class="bi bi-shield-check text-emerald-500 shrink-0"></i>
+                                                    <p class="text-xs font-medium text-emerald-700 dark:text-emerald-300">@Localizer["Dispute Won - Deposit released"]</p>
+                                                </div>
+                                            </div>
+                                        }
                                     }
 
                                     <!-- Accessories -->
@@ -396,7 +678,14 @@
                 </div>
 
                 @{
-                    var activeOwnerRentalsList = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted).ToList() ?? new();
+                    var activeOwnerRentalsList = Model.OwnerRentals?.Where(r =>
+                        r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted
+                        || (r.Status == RentalStatus.Completed && r.Deposit != null
+                            && (r.Deposit.Status == DepositStatus.Disputed || r.Deposit.Status == DepositStatus.CounterOffered
+                                || r.Deposit.Status == DepositStatus.Escalated
+                                || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged) 
+                                    && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+                    ).ToList() ?? new();
                 }
                 @if (activeOwnerRentalsList.Any())
                 {
@@ -429,6 +718,7 @@
                                             DepositStatus.Authorized => "deposit-held",
                                             DepositStatus.Released => "deposit-released",
                                             DepositStatus.Charged or DepositStatus.PartiallyCharged => "deposit-charged",
+                                            DepositStatus.Disputed => "overdue",
                                             _ => "pending"
                                         };
                                         <div class="absolute top-3 right-3">
@@ -468,7 +758,7 @@
                                     {
                                         <div class="mb-3 flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                                             <i class="bi bi-calendar-range"></i>
-                                            <span>@rental.StartDate.ToString("dd MMM") &rarr; @rental.EndDate.ToString("dd MMM yyyy")</span>
+                                            <span>@FormatDateRange(rental.StartDate, rental.EndDate)</span>
                                         </div>
                                     }
 
@@ -483,7 +773,7 @@
 
                                     <!-- Extension Status -->
                                     @{
-                                        var ownerAcceptedExt = rental.Extensions?.FirstOrDefault(e => e.Status == ExtensionStatus.Accepted);
+                                        var ownerAcceptedExt = rental.Extensions?.FirstOrDefault(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved);
                                     }
                                     @if (ownerAcceptedExt != null)
                                     {
@@ -491,6 +781,192 @@
                                             <i class="bi bi-hourglass-split text-amber-500"></i>
                                             <span class="text-amber-700 dark:text-amber-300">@Localizer["Extension accepted — awaiting payment"] (+@CurrencyService.Format(ownerAcceptedExt.AdditionalCost))</span>
                                         </div>
+                                    }
+
+                                    <!-- Deposit Dispute Banner (owner sees when renter disputed) -->
+                                    @if (rental.Deposit != null)
+                                    {
+                                        var dep = rental.Deposit;
+                                        @if (dep.Status == DepositStatus.Disputed)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="bi bi-exclamation-triangle text-rose-500 mt-0.5 shrink-0"></i>
+                                                    <div class="flex-1">
+                                                        <p class="text-xs font-bold text-rose-700 dark:text-rose-300">@Localizer["Renter disputed the deposit charge"]</p>
+                                                        @if (!string.IsNullOrEmpty(dep.DisputeReason))
+                                                        {
+                                                            <p class="text-xs text-rose-600 dark:text-rose-400 mt-0.5 italic">"@dep.DisputeReason"</p>
+                                                        }
+                                                        
+                                                        @if (dep.DisputeDeadline.HasValue && dep.DisputeDeadline > DateTime.UtcNow)
+                                                        {
+                                                            <div class="mt-2 flex items-center gap-1.5 text-[10px] font-medium text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+                                                                <i class="bi bi-clock"></i>
+                                                                <span>@Localizer["Your response deadline"]: @dep.DisputeDeadline.Value.ToString("dd MMM HH:mm")</span>
+                                                            </div>
+                                                        }
+
+                                                        <div class="mt-3 flex flex-wrap gap-2">
+                                                             <button onclick='openCounterOfferModal(@rental.Id, @(dep.ChargedAmount ?? 0), @Html.Raw(System.Text.Json.JsonSerializer.Serialize((dep.Evidence ?? new List<DisputeEvidence>()).Where(e => e.SubmittedByUserId != currentUserId).Select(e => new { e.Url, e.Notes }))))'
+                                                                    class="px-3 py-1.5 text-xs font-medium bg-white dark:bg-slate-800 text-trust-blue-600 border border-trust-blue-200 dark:border-trust-blue-800 rounded-lg hover:bg-trust-blue-50 dark:hover:bg-trust-blue-900/10 transition">
+                                                                <i class="bi bi-pencil-square mr-1"></i>@Localizer["Counter-Offer"]
+                                                            </button>
+                                                             <button onclick='openMaintainChargeModal(@rental.Id, @Html.Raw(System.Text.Json.JsonSerializer.Serialize((dep.Evidence ?? new List<DisputeEvidence>()).Where(e => e.SubmittedByUserId != currentUserId).Select(e => new { e.Url, e.Notes }))))'
+                                                                    class="px-3 py-1.5 text-xs font-medium bg-trust-blue-600 text-white rounded-lg hover:brightness-110 transition">
+                                                                @Localizer["Maintain Charge"]
+                                                            </button>
+                                                            <button onclick="releaseDisputedDeposit(@rental.Id)"
+                                                                    class="px-3 py-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition">
+                                                                <i class="bi bi-shield-check mr-1"></i>@Localizer["Release & Close"]
+                                                            </button>
+                                                        </div>
+
+                                                         @if (dep.Evidence != null && dep.Evidence.Any())
+                                                         {
+                                                             var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
+                                                             var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
+
+                                                             @if (otherEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-rose-100 dark:border-rose-900/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-rose-500 dark:text-rose-400 mb-2 tracking-wider">@Localizer["Renter's Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-rose-200 dark:border-rose-800 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover" />
+                                                                             </a>
+                                                                         }
+                                                                     </div>
+                                                                 </div>
+                                                             }
+
+                                                             @if (yourEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-rose-100 dark:border-rose-900/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
+                                                                             </a>
+                                                                         }
+                                                                         <button onclick="openAddEvidenceModal(@rental.Id)" class="w-10 h-10 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
+                                                                             <i class="bi bi-plus-lg"></i>
+                                                                         </button>
+                                                                     </div>
+                                                                 </div>
+                                                             }
+                                                         }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (dep.Status == DepositStatus.CounterOffered)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="bi bi-hourglass-split text-amber-500 mt-0.5 shrink-0"></i>
+                                                    <div>
+                                                        <p class="text-xs font-medium text-amber-700 dark:text-amber-300">@Localizer["Counter-offer sent"]</p>
+                                                        <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">@Localizer["Waiting for renter to accept or escalate..."]</p>
+                                                        <p class="text-[11px] font-semibold mt-1">@Localizer["Amount"]: @CurrencyService.Format(dep.CounterOfferAmount ?? 0)</p>
+
+                                                         @if (dep.Evidence != null && dep.Evidence.Any())
+                                                         {
+                                                             var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
+                                                             var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
+
+                                                             @if (otherEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-500 mb-2 tracking-wider">@Localizer["Renter's Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-amber-200 dark:border-amber-800 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover" />
+                                                                             </a>
+                                                                         }
+                                                                     </div>
+                                                                 </div>
+                                                             }
+
+                                                             @if (yourEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
+                                                                             </a>
+                                                                         }
+                                                                         <button onclick="openAddEvidenceModal(@rental.Id)" class="w-8 h-8 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
+                                                                             <i class="bi bi-plus"></i>
+                                                                         </button>
+                                                                     </div>
+                                                                 </div>
+                                                             }
+                                                         }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (dep.Status == DepositStatus.Escalated)
+                                        {
+                                            <div class="mb-3 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="bi bi-info-circle text-blue-500 mt-0.5 shrink-0"></i>
+                                                    <div>
+                                                        <p class="text-xs font-medium text-blue-700 dark:text-blue-300">@Localizer["Dispute Escalated"]</p>
+                                                        <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">@Localizer["Admin review in progress. No further action needed."]</p>
+
+                                                         @if (dep.Evidence != null && dep.Evidence.Any())
+                                                         {
+                                                             var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
+                                                             var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
+
+                                                             @if (otherEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-blue-200/50 dark:border-blue-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-500 mb-2 tracking-wider">@Localizer["Renter's Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-blue-200 dark:border-blue-800 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover" />
+                                                                             </a>
+                                                                         }
+                                                                     </div>
+                                                                 </div>
+                                                             }
+
+                                                             @if (yourEv.Any())
+                                                             {
+                                                                 <div class="mt-4 pt-3 border-t border-blue-200/50 dark:border-blue-800/50">
+                                                                     <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
+                                                                     <div class="flex flex-wrap gap-2">
+                                                                         @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
+                                                                         {
+                                                                             <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
+                                                                                 <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
+                                                                             </a>
+                                                                         }
+                                                                         <button onclick="openAddEvidenceModal(@rental.Id)" class="w-8 h-8 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
+                                                                             <i class="bi bi-plus"></i>
+                                                                         </button>
+                                                                     </div>
+                                                                 </div>
+                                                             }
+                                                         }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
                                     }
 
                                     <!-- Price -->
@@ -561,12 +1037,25 @@
                 }
             </section>
 
-            <!-- Rental History -->
             @{
-                var completedRentals = (Model.MyRentals?.Where(r => r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled).ToList() ?? new())
-                    .Concat(Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled) ?? Enumerable.Empty<Rental>())
+                var completedRentals = (Model.MyRentals?.Where(r =>
+                        (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled)
+                        && !(r.Deposit != null && (r.Deposit.Status == DepositStatus.Disputed
+                            || r.Deposit.Status == DepositStatus.Escalated
+                            || r.Deposit.Status == DepositStatus.CounterOffered
+                            || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged) 
+                                && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+                    ).ToList() ?? new())
+                    .Concat(Model.OwnerRentals?.Where(r =>
+                        (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled)
+                        && !(r.Deposit != null && (r.Deposit.Status == DepositStatus.Disputed
+                            || r.Deposit.Status == DepositStatus.Escalated
+                            || r.Deposit.Status == DepositStatus.CounterOffered
+                            || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged) 
+                                && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+                    ) ?? Enumerable.Empty<Rental>())
                     .OrderByDescending(r => r.EndDate)
-                    .Take(10)
+                    .Take(12)
                     .ToList();
             }
             @if (completedRentals.Any())
@@ -610,7 +1099,7 @@
                                         <div>
                                             <p class="text-sm font-medium text-slate-900 dark:text-white">@rental.Item?.Title</p>
                                             <p class="text-xs text-slate-500 dark:text-slate-400">
-                                                @rental.StartDate.ToString("dd MMM") → @rental.EndDate.ToString("dd MMM yyyy")
+                                                @FormatDateRange(rental.StartDate, rental.EndDate)
                                                 &middot; @(isOwner ? Localizer["As owner"] : Localizer["As renter"])
                                             </p>
                                         </div>
@@ -638,6 +1127,15 @@
                                             <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId"
                                                class="px-2.5 py-1 text-xs font-medium text-trust-blue-600 hover:text-trust-blue-700 border border-trust-blue-200 dark:border-trust-blue-800 rounded-lg hover:bg-trust-blue-50 dark:hover:bg-trust-blue-900/20 transition">
                                                 @Localizer["Rent Again"]
+                                            </a>
+                                        }
+
+                                        @if (rental.Deposit != null && rental.Deposit.ChargedAt.HasValue)
+                                        {
+                                            <a asp-action="DisputeHistory" asp-route-id="@rental.Id"
+                                               class="px-2.5 py-1 text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
+                                               title="@Localizer["View dispute process details"]">
+                                                <i class="bi bi-shield-check mr-1"></i>@Localizer["Dispute History"]
                                             </a>
                                         }
                                     </div>
@@ -918,6 +1416,11 @@
         </div>
 
         <div class="space-y-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="dep-charge-full" class="w-4 h-4 text-rose-500 border-slate-300 rounded focus:ring-rose-500"
+                       onchange="toggleDepChargeFull(this.checked)">
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Charge full amount"]</span>
+            </label>
             <div>
                 <label for="dep-charge-amount" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Amount to charge"]</label>
                 <input type="number" id="dep-charge-amount" step="0.01" min="0.01"
@@ -925,9 +1428,30 @@
             </div>
             <div>
                 <label for="dep-charge-reason" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Reason (visible to renter)"]</label>
-                <textarea id="dep-charge-reason" rows="2"
-                          class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm text-slate-900 dark:text-white dark:bg-slate-700 resize-none focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20"
+                <textarea id="dep-charge-reason" rows="2" required
+                          class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-sm text-slate-900 dark:text-white dark:bg-slate-700 resize-none focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20"
                           placeholder="@Localizer["e.g., Item returned with scratches on the surface"]"></textarea>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Picture Evidence (Required)"]</label>
+                <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <div class="flex flex-col items-center justify-center">
+                            <i class="bi bi-camera text-xl text-slate-400 mb-1"></i>
+                            <p class="text-[10px] text-slate-500 font-medium text-center px-2">@Localizer["Upload proof for this charge"]</p>
+                        </div>
+                        <input type="file" id="dep-charge-evidence" class="hidden" accept="image/*" onchange="updateDepChargeFilename(this)" />
+                    </label>
+                </div>
+                <div id="dep-charge-preview" class="mt-2 hidden">
+                    <div class="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-xl">
+                        <i class="bi bi-file-earmark-check text-rose-600"></i>
+                        <span class="text-xs text-rose-700 dark:text-rose-400 font-medium truncate" id="dep-charge-filename"></span>
+                        <button onclick="clearDepChargeEvidence()" class="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-800 rounded-lg">
+                            <i class="bi bi-x text-rose-600"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
             <button onclick="chargeDeposit()" id="dep-charge-btn"
                     class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
@@ -969,6 +1493,11 @@
         </div>
 
         <div class="space-y-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="er-charge-full" class="w-4 h-4 text-rose-500 border-slate-300 rounded focus:ring-rose-500"
+                       onchange="toggleErChargeFull(this.checked)">
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Charge full amount"]</span>
+            </label>
             <div>
                 <label for="er-charge-amount" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Amount to charge"]</label>
                 <input type="number" id="er-charge-amount" step="0.01" min="0.01"
@@ -976,24 +1505,305 @@
             </div>
             <div>
                 <label for="er-charge-reason" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Reason (visible to renter)"]</label>
-                <textarea id="er-charge-reason" rows="2"
-                          class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm text-slate-900 dark:text-white dark:bg-slate-700 resize-none focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20"
+                <textarea id="er-charge-reason" rows="2" required
+                          class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-sm text-slate-900 dark:text-white dark:bg-slate-700 resize-none focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20"
                           placeholder="@Localizer["e.g., Item returned with scratches on the surface"]"></textarea>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Picture Evidence (Required)"]</label>
+                <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <div class="flex flex-col items-center justify-center">
+                            <i class="bi bi-camera text-xl text-slate-400 mb-1"></i>
+                            <p class="text-[10px] text-slate-500 font-medium text-center px-2">@Localizer["Upload proof for this charge"]</p>
+                        </div>
+                        <input type="file" id="er-charge-evidence" class="hidden" accept="image/*" onchange="updateErChargeFilename(this)" />
+                    </label>
+                </div>
+                <div id="er-charge-preview" class="mt-2 hidden">
+                    <div class="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-xl">
+                        <i class="bi bi-file-earmark-check text-rose-600"></i>
+                        <span class="text-xs text-rose-700 dark:text-rose-400 font-medium truncate" id="er-charge-filename"></span>
+                        <button onclick="clearErChargeEvidence()" class="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-800 rounded-lg">
+                            <i class="bi bi-x text-rose-600"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
             <button onclick="completeWithDeposit('charge')" id="er-charge-btn"
                     class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
                 <i class="bi bi-shield-x mr-1"></i> @Localizer["Charge Deposit"]
             </button>
-            <div class="relative my-2">
-                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
-            </div>
-            <button onclick="completeWithDeposit('charge-full')" id="er-charge-full-btn"
-                    class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
-                <i class="bi bi-shield-exclamation mr-1"></i> @Localizer["Charge Full Deposit"]
-            </button>
         </div>
     </div>
 </div>
+
+    <!-- Dispute Modal (Renter) -->
+    <div id="dispute-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-exclamation-triangle text-rose-500"></i>
+                    @Localizer["Dispute Charge"]
+                </h3>
+                <button data-action="close-dispute" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <i class="bi bi-x-lg text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <!-- Expectation text -->
+                <div class="mb-5 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-2xl">
+                    <h4 class="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-2">@Localizer["What to expect"]</h4>
+                    <p class="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+                        @Localizer["Once submitted, the owner will have 48 hours to respond. They can accept your dispute, offer a settlement (Counter-offer), or maintain the charge for admin review."]
+                    </p>
+                </div>
+
+                <div id="dispute-existing-evidence" class="hidden mb-6">
+                    <h4 class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Evidence Provided by Owner"]</h4>
+                    <div class="evidence-container flex flex-wrap gap-2"></div>
+                </div>
+
+                <input type="hidden" id="dispute-rental-id" />
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Your Reason"]</label>
+                        <textarea id="dispute-reason" rows="4" required
+                                  class="w-full px-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-rose-500 focus:border-rose-500 dark:text-white"
+                                  placeholder="@Localizer["Explain why you are disputing this charge..."]"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Add Evidence (Photo/Document)"]</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <i class="bi bi-cloud-upload text-3xl text-slate-400 mb-2"></i>
+                                    <p class="text-xs text-slate-500 font-medium">@Localizer["Click to upload evidence"]</p>
+                                </div>
+                                <input type="file" id="dispute-evidence-file" class="hidden" accept="image/*" />
+                            </label>
+                        </div>
+                        <div id="dispute-evidence-preview" class="mt-3 hidden">
+                            <div class="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
+                                <i class="bi bi-file-earmark-check text-emerald-600"></i>
+                                <span class="text-xs text-emerald-700 dark:text-emerald-400 font-medium truncate" id="dispute-filename"></span>
+                                <button onclick="clearDisputeEvidence()" class="ml-auto p-1 hover:bg-emerald-100 dark:hover:bg-emerald-800 rounded-lg">
+                                    <i class="bi bi-x text-emerald-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button data-action="close-dispute" class="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button id="dispute-submit-btn" onclick="submitDispute()" class="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-600/20 transition-all">
+                        @Localizer["Submit Dispute"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Counter-Offer Modal (Owner) -->
+    <div id="counter-offer-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-pencil-square text-trust-blue-600"></i>
+                    @Localizer["Make Counter-Offer"]
+                </h3>
+                <button onclick="closeCounterOfferModal()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <i class="bi bi-x-lg text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-5 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl">
+                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                        @Localizer["Instead of the full charge, offer a reduced settlement amount to the renter to resolve the dispute quickly."]
+                    </p>
+                </div>
+
+                <div id="co-existing-evidence" class="hidden mb-6">
+                    <h4 class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Evidence Provided by Renter"]</h4>
+                    <div class="evidence-container flex flex-wrap gap-2"></div>
+                </div>
+
+                <input type="hidden" id="co-rental-id" />
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">@Localizer["Settlement Amount"]</label>
+                            <span id="co-max-hint" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"></span>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">@CurrencyService.GetCurrentCurrency().Symbol</span>
+                            <input type="number" id="co-amount" step="0.01"
+                                   class="w-full pl-8 pr-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-trust-blue-500 focus:border-trust-blue-500 dark:text-white font-bold"
+                                   placeholder="0.00" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Message to Renter"]</label>
+                        <textarea id="co-reason" rows="3" 
+                                  class="w-full px-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-trust-blue-500 focus:border-trust-blue-500 dark:text-white"
+                                  placeholder="@Localizer["Explain why you are offering this amount..."]"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Add Evidence"]</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="bi bi-camera text-2xl text-slate-400 mb-1"></i>
+                                    <p class="text-[10px] text-slate-500 font-medium">@Localizer["Upload proof for your response"]</p>
+                                </div>
+                                <input type="file" id="co-evidence-file" class="hidden" accept="image/*" />
+                            </label>
+                        </div>
+                        <div id="co-evidence-preview" class="mt-2 hidden">
+                            <div class="flex items-center gap-2 p-2 bg-trust-blue-50 dark:bg-trust-blue-900/20 border border-trust-blue-100 dark:border-trust-blue-800 rounded-xl">
+                                <i class="bi bi-file-earmark-check text-trust-blue-600"></i>
+                                <span class="text-xs text-trust-blue-700 dark:text-trust-blue-400 font-medium truncate" id="co-filename"></span>
+                                <button onclick="clearCoEvidence()" class="ml-auto p-1 hover:bg-trust-blue-100 dark:hover:bg-trust-blue-800 rounded-lg">
+                                    <i class="bi bi-x text-trust-blue-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button onclick="closeCounterOfferModal()" class="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button id="co-submit-btn" onclick="submitCounterOffer()" class="flex-1 px-6 py-3 bg-trust-blue-600 hover:bg-trust-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-trust-blue-600/20 transition-all">
+                        @Localizer["Send Counter-Offer"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintain Charge Modal (Owner) -->
+    <div id="maintain-charge-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-shield-lock text-rose-500"></i>
+                    @Localizer["Maintain Charge"]
+                </h3>
+                <button onclick="closeMaintainChargeModal()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <i class="bi bi-x-lg text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-5 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-2xl">
+                    <p class="text-sm text-rose-800 dark:text-rose-300">
+                        @Localizer["By maintaining this charge, you are sending the dispute to admin review. You should provide a final explanation and any additional evidence to support your claim."]
+                    </p>
+                </div>
+
+                <div id="mc-existing-evidence" class="hidden mb-6">
+                    <h4 class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Evidence Provided by Renter"]</h4>
+                    <div class="evidence-container flex flex-wrap gap-2"></div>
+                </div>
+
+                <input type="hidden" id="mc-rental-id" />
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Final Message to Renter & Admin"]</label>
+                        <textarea id="mc-reason" rows="4" 
+                                  class="w-full px-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-rose-500 focus:border-rose-500 dark:text-white"
+                                  placeholder="@Localizer["Explain why the full charge is justified..."]"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Add Supporting Evidence"]</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="bi bi-camera text-2xl text-slate-400 mb-1"></i>
+                                    <p class="text-[10px] text-slate-500 font-medium">@Localizer["Upload proof to justify the charge"]</p>
+                                </div>
+                                <input type="file" id="mc-evidence-file" class="hidden" accept="image/*" />
+                            </label>
+                        </div>
+                        <div id="mc-evidence-preview" class="mt-2 hidden">
+                            <div class="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-xl">
+                                <i class="bi bi-file-earmark-check text-rose-600"></i>
+                                <span class="text-xs text-rose-700 dark:text-rose-400 font-medium truncate" id="mc-filename"></span>
+                                <button onclick="clearMcEvidence()" class="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-800 rounded-lg">
+                                    <i class="bi bi-x text-rose-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button onclick="closeMaintainChargeModal()" class="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button id="mc-submit-btn" onclick="submitMaintainCharge()" class="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-600/20 transition-all">
+                        @Localizer["Confirm & Send to Admin"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Evidence Modal -->
+    <div id="add-evidence-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-cloud-upload text-trust-blue-600"></i>
+                    @Localizer["Add More Evidence"]
+                </h3>
+                <button onclick="closeAddEvidenceModal()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <i class="bi bi-x-lg text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <input type="hidden" id="ae-rental-id" />
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["File"]</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="bi bi-camera text-2xl text-slate-400 mb-1"></i>
+                                    <p class="text-[10px] text-slate-500 font-medium">@Localizer["Click to upload photo"]</p>
+                                </div>
+                                <input type="file" id="ae-evidence-file" class="hidden" accept="image/*" />
+                            </label>
+                        </div>
+                        <div id="ae-evidence-preview" class="mt-2 hidden">
+                            <div class="flex items-center gap-2 p-2 bg-trust-blue-50 dark:bg-trust-blue-900/20 border border-trust-blue-100 dark:border-trust-blue-800 rounded-xl">
+                                <i class="bi bi-file-earmark-check text-trust-blue-600"></i>
+                                <span class="text-xs text-trust-blue-700 dark:text-trust-blue-400 font-medium truncate" id="ae-filename"></span>
+                                <button onclick="clearAeEvidence()" class="ml-auto p-1 hover:bg-trust-blue-100 dark:hover:bg-trust-blue-800 rounded-lg">
+                                    <i class="bi bi-x text-trust-blue-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Notes (Optional)"]</label>
+                        <textarea id="ae-notes" rows="2" 
+                                  class="w-full px-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-trust-blue-500 focus:border-trust-blue-500 dark:text-white"
+                                  placeholder="@Localizer["Brief explanation of this evidence..."]"></textarea>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button onclick="closeAddEvidenceModal()" class="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button id="ae-submit-btn" onclick="submitAddEvidence()" class="flex-1 px-6 py-3 bg-trust-blue-600 hover:bg-trust-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-trust-blue-600/20 transition-all">
+                        @Localizer["Upload"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <!-- Review Modal -->
 <div id="reviewModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
@@ -1045,6 +1855,50 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Final Warning Modal for Escalation -->
+<div id="escalationWarningModal" class="hidden fixed inset-0 z-[1200] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <input type="hidden" id="escalateRentalId" />
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-slate-900/75 transition-opacity" aria-hidden="true" onclick="closeEscalationWarningModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+            <div class="bg-white dark:bg-slate-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                        <i class="bi bi-exclamation-triangle text-amber-600 dark:text-amber-400 text-lg"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3 class="text-lg leading-6 font-medium text-slate-900 dark:text-white" id="modal-title">
+                            @Localizer["Are you sure you want to escalate?"]
+                        </h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-slate-500 dark:text-slate-400">
+                                @Localizer["Admin intervention typically takes 3-7 days. We strongly encourage you to try resolving this directly with the other party first."]
+                            </p>
+                            <div class="mt-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                <ul class="text-sm text-slate-600 dark:text-slate-300 list-disc list-inside space-y-1">
+                                    <li>@Localizer["Check if you can agree on a partial amount."]</li>
+                                    <li>@Localizer["Ensure all your evidence is uploaded."]</li>
+                                    <li>@Localizer["False claims may result in account suspension."]</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-900/20 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="_processEscalation(document.getElementById('escalateRentalId').value); closeEscalationWarningModal();" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-amber-600 text-base font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    @Localizer["Yes, Escalate Dispute"]
+                </button>
+                <button type="button" class="mt-3 w-full inline-flex justify-center rounded-xl border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-800 text-base font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-trust-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeEscalationWarningModal()">
+                    @Localizer["Cancel & Keep Negotiating"]
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -1308,6 +2162,22 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             document.body.style.overflow = '';
+            clearDepChargeEvidence();
+        }
+
+        function updateDepChargeFilename(input) {
+            var fileName = input.files[0]?.name;
+            if (fileName) {
+                document.getElementById('dep-charge-filename').textContent = fileName;
+                document.getElementById('dep-charge-preview').classList.remove('hidden');
+            }
+        }
+
+        function clearDepChargeEvidence() {
+            var input = document.getElementById('dep-charge-evidence');
+            if (input) input.value = '';
+            var preview = document.getElementById('dep-charge-preview');
+            if (preview) preview.classList.add('hidden');
         }
 
         document.querySelectorAll('[data-action="close-deposit"]').forEach(function (el) {
@@ -1334,23 +2204,38 @@
         async function chargeDeposit() {
             var amount = parseFloat(document.getElementById('dep-charge-amount').value);
             var reason = document.getElementById('dep-charge-reason').value.trim();
+            var fileInput = document.getElementById('dep-charge-evidence');
+
             if (!amount || amount <= 0) { showToast('@Localizer["Enter a valid amount"]', 'error'); return; }
             if (amount > depState.amount) { showToast('@Localizer["Amount exceeds deposit"]', 'error'); return; }
             if (!reason) { showToast('@Localizer["Please provide a reason"]', 'error'); return; }
+            if (!fileInput || fileInput.files.length === 0) { showToast('@Localizer["Please provide a picture for proof"]', 'error'); return; }
 
             var btn = document.getElementById('dep-charge-btn');
             btn.disabled = true;
             try {
                 var token = getToken();
+                var formData = new FormData();
+                formData.append('rentalId', depState.rentalId);
+                formData.append('amount', amount);
+                formData.append('reason', reason);
+                formData.append('evidence', fileInput.files[0]);
+                if (token) formData.append('__RequestVerificationToken', token);
+
                 var response = await fetch('/Dashboard/ChargeDeposit', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
-                    body: 'rentalId=' + depState.rentalId + '&amount=' + amount + '&reason=' + encodeURIComponent(reason) + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                    headers: { 'X-CSRF-TOKEN': token },
+                    body: formData
                 });
                 var data = await response.json();
-                showToast(data.message, data.success ? 'success' : 'error');
-                if (data.success) { closeDepositModal(); setTimeout(function () { location.reload(); }, 1000); }
-                else { btn.disabled = false; }
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeDepositModal(); 
+                    setTimeout(function () { location.reload(); }, 1000); 
+                } else {
+                    showToast(data.message, 'error');
+                    btn.disabled = false;
+                }
             } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
         }
 
@@ -1377,6 +2262,22 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             document.body.style.overflow = '';
+            clearErChargeEvidence();
+        }
+
+        function updateErChargeFilename(input) {
+            var fileName = input.files[0]?.name;
+            if (fileName) {
+                document.getElementById('er-charge-filename').textContent = fileName;
+                document.getElementById('er-charge-preview').classList.remove('hidden');
+            }
+        }
+
+        function clearErChargeEvidence() {
+            var input = document.getElementById('er-charge-evidence');
+            if (input) input.value = '';
+            var preview = document.getElementById('er-charge-preview');
+            if (preview) preview.classList.add('hidden');
         }
 
         document.querySelectorAll('[data-action="close-early-return"]').forEach(function (el) {
@@ -1386,12 +2287,15 @@
         async function completeWithDeposit(action) {
             var amount = null;
             var reason = '';
+            var fileInput = document.getElementById('er-charge-evidence');
+
             if (action === 'charge') {
                 amount = parseFloat(document.getElementById('er-charge-amount').value);
                 reason = document.getElementById('er-charge-reason').value.trim();
                 if (!amount || amount <= 0) { showToast('@Localizer["Enter a valid amount"]', 'error'); return; }
                 if (amount > erState.amount) { showToast('@Localizer["Amount exceeds deposit"]', 'error'); return; }
                 if (!reason) { showToast('@Localizer["Please provide a reason"]', 'error'); return; }
+                if (!fileInput || fileInput.files.length === 0) { showToast('@Localizer["Please provide a picture for proof"]', 'error'); return; }
             }
 
             // Disable all buttons
@@ -1402,19 +2306,27 @@
 
             try {
                 var token = getToken();
-                var body = 'rentalId=' + erState.rentalId + '&action=' + action;
-                if (amount) body += '&amount=' + amount;
-                if (reason) body += '&reason=' + encodeURIComponent(reason);
-                if (token) body += '&__RequestVerificationToken=' + encodeURIComponent(token);
+                var formData = new FormData();
+                formData.append('rentalId', erState.rentalId);
+                formData.append('action', action);
+                if (amount) formData.append('amount', amount);
+                if (reason) formData.append('reason', reason);
+                if (action === 'charge' && fileInput && fileInput.files.length > 0) {
+                    formData.append('evidence', fileInput.files[0]);
+                }
+                if (token) formData.append('__RequestVerificationToken', token);
 
                 var response = await fetch('/Dashboard/CompleteWithDeposit', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
-                    body: body
+                    headers: { 'X-CSRF-TOKEN': token },
+                    body: formData
                 });
                 var data = await response.json();
-                showToast(data.message, data.success ? 'success' : 'error');
-                if (data.success) { closeEarlyReturnModal(); setTimeout(function () { location.reload(); }, 1000); }
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeEarlyReturnModal(); 
+                    setTimeout(function () { location.reload(); }, 1000); 
+                }
                 else {
                     ['er-release-btn', 'er-charge-btn', 'er-charge-full-btn'].forEach(function(id) {
                         var btn = document.getElementById(id);
@@ -1430,8 +2342,383 @@
             }
         }
 
+        // === Charge Full Checkbox (Early Return) ===
+        function toggleErChargeFull(checked) {
+            var amountInput = document.getElementById('er-charge-amount');
+            if (checked) {
+                amountInput.value = erState.amount;
+                amountInput.readOnly = true;
+                amountInput.classList.add('opacity-60');
+            } else {
+                amountInput.value = '';
+                amountInput.readOnly = false;
+                amountInput.classList.remove('opacity-60');
+            }
+        }
+
+        // === Charge Full Checkbox (Deposit Modal) ===
+        function toggleDepChargeFull(checked) {
+            var amountInput = document.getElementById('dep-charge-amount');
+            if (checked) {
+                amountInput.value = depState.amount;
+                amountInput.readOnly = true;
+                amountInput.classList.add('opacity-60');
+            } else {
+                amountInput.value = '';
+                amountInput.readOnly = false;
+                amountInput.classList.remove('opacity-60');
+            }
+        }
+
+        // === Dispute Modal (Renter) ===
+        var disputeState = { rentalId: 0 };
+
+        function openDisputeModal(rentalId, evidenceJson) {
+            disputeState.rentalId = rentalId;
+            document.getElementById('dispute-rental-id').value = rentalId;
+            document.getElementById('dispute-reason').value = '';
+            
+            // Populating existing evidence
+            renderModalEvidence('dispute-existing-evidence', evidenceJson);
+
+            var modal = document.getElementById('dispute-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            clearDisputeEvidence();
+        }
+
+        function clearDisputeEvidence() {
+            document.getElementById('dispute-evidence-file').value = '';
+            document.getElementById('dispute-evidence-preview').classList.add('hidden');
+        }
+
+        document.getElementById('dispute-evidence-file')?.addEventListener('change', function(e) {
+            var fileName = e.target.files[0]?.name;
+            if (fileName) {
+                document.getElementById('dispute-filename').textContent = fileName;
+                document.getElementById('dispute-evidence-preview').classList.remove('hidden');
+            }
+        });
+
+        function closeDisputeModal() {
+            var modal = document.getElementById('dispute-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        document.querySelectorAll('[data-action="close-dispute"]').forEach(function (el) {
+            el.addEventListener('click', closeDisputeModal);
+        });
+
+        async function submitDispute() {
+            var reason = document.getElementById('dispute-reason').value.trim();
+            if (!reason) { showToast('@Localizer["Please provide a reason"]', 'error'); return; }
+
+            var btn = document.getElementById('dispute-submit-btn');
+            btn.disabled = true;
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/DisputeDeposit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'rentalId=' + disputeState.rentalId + '&reason=' + encodeURIComponent(reason) + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                if (data.success) {
+                    var fileInput = document.getElementById('dispute-evidence-file');
+                    if (fileInput.files.length > 0) {
+                        var uploadResult = await uploadEvidence(disputeState.rentalId, fileInput.files[0], reason);
+                        if (!uploadResult.success) {
+                            showToast('@Localizer["Dispute submitted, but evidence upload failed."]', 'warning');
+                        }
+                    }
+                    showToast(data.message, 'success');
+                    closeDisputeModal();
+                    setTimeout(function () { location.reload(); }, 1000);
+                } else {
+                    showToast(data.message, 'error');
+                    btn.disabled = false;
+                }
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
+        }
+
+        // === Counter-Offer Modal (Owner) ===
+        var counterState = { rentalId: 0, originalAmount: 0 };
+
+        function openCounterOfferModal(rentalId, currentAmount, evidenceJson) {
+            counterState.rentalId = rentalId;
+            counterState.originalAmount = currentAmount;
+            
+            document.getElementById('co-rental-id').value = rentalId;
+            document.getElementById('co-amount').value = '';
+            document.getElementById('co-reason').value = '';
+            document.getElementById('co-max-hint').textContent = '@Localizer["Maximum"]: ' + formatCurrency(currentAmount);
+            
+            // Populating existing evidence
+            renderModalEvidence('co-existing-evidence', evidenceJson);
+
+            var modal = document.getElementById('counter-offer-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            clearCoEvidence();
+        }
+
+        function clearCoEvidence() {
+            document.getElementById('co-evidence-file').value = '';
+            document.getElementById('co-evidence-preview').classList.add('hidden');
+        }
+
+        document.getElementById('co-evidence-file')?.addEventListener('change', function(e) {
+            var fileName = e.target.files[0]?.name;
+            if (fileName) {
+                document.getElementById('co-filename').textContent = fileName;
+                document.getElementById('co-evidence-preview').classList.remove('hidden');
+            }
+        });
+
+        function closeCounterOfferModal() {
+            var modal = document.getElementById('counter-offer-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        async function submitCounterOffer() {
+            var amount = parseFloat(document.getElementById('co-amount').value);
+            var reason = document.getElementById('co-reason').value.trim();
+
+            if (!amount || amount <= 0) { showToast('@Localizer["Enter a valid amount"]', 'error'); return; }
+            if (amount >= counterState.originalAmount) { showToast('@Localizer["Counter-offer must be less than current charge"]', 'error'); return; }
+            if (!reason) { showToast('@Localizer["Please provide a reason"]', 'error'); return; }
+            
+            var fileInput = document.getElementById('co-evidence-file');
+            // Evidence is now optional for counter-offers
+            var hasFile = fileInput && fileInput.files.length > 0;
+
+            var btn = document.getElementById('co-submit-btn');
+            btn.disabled = true;
+            try {
+                var token = getToken();
+                var formData = new FormData();
+                formData.append('rentalId', counterState.rentalId);
+                formData.append('amount', amount);
+                formData.append('response', reason);
+                if (hasFile) formData.append('evidence', fileInput.files[0]);
+                if (token) formData.append('__RequestVerificationToken', token);
+
+                var response = await fetch('/Dashboard/CounterOfferDeposit', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': token },
+                    body: formData
+                });
+                var data = await response.json();
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeCounterOfferModal();
+                    setTimeout(function () { location.reload(); }, 1000);
+                } else {
+                    showToast(data.message, 'error');
+                    btn.disabled = false;
+                }
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
+        }
+
+        // === Add Evidence (Global) ===
+        function openAddEvidenceModal(rentalId) {
+            document.getElementById('ae-rental-id').value = rentalId;
+            document.getElementById('ae-notes').value = '';
+            clearAeEvidence();
+            var modal = document.getElementById('add-evidence-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeAddEvidenceModal() {
+            var modal = document.getElementById('add-evidence-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+
+        function clearAeEvidence() {
+            document.getElementById('ae-evidence-file').value = '';
+            document.getElementById('ae-evidence-preview').classList.add('hidden');
+        }
+
+        document.getElementById('ae-evidence-file')?.addEventListener('change', function(e) {
+            if (e.target.files && e.target.files[0]) {
+                var fileName = e.target.files[0].name;
+                document.getElementById('ae-filename').textContent = fileName;
+                document.getElementById('ae-evidence-preview').classList.remove('hidden');
+            }
+        });
+
+        async function submitAddEvidence() {
+            var rentalId = document.getElementById('ae-rental-id').value;
+            var notes = document.getElementById('ae-notes').value.trim();
+            var fileInput = document.getElementById('ae-evidence-file');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showToast('@Localizer["Please select a file."]', 'warning');
+                return;
+            }
+
+            var btn = document.getElementById('ae-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-hourglass-split animate-spin mr-2"></i>@Localizer["Uploading..."]';
+
+            try {
+                var result = await uploadEvidence(rentalId, fileInput.files[0], notes);
+                if (result.success) {
+                    showToast('@Localizer["Evidence added successfully."]', 'success');
+                    closeAddEvidenceModal();
+                    // Refresh dash to show new evidence
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    showToast(result.message || '@Localizer["Upload failed."]', 'error');
+                }
+            } catch (err) {
+                showToast('@Localizer["An unexpected error occurred."]', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '@Localizer["Upload"]';
+            }
+        }
+
+        // === Maintain Charge (Owner) ===
+        function openMaintainChargeModal(rentalId, evidenceJson) {
+            // mcState is not defined, assuming it should be a local variable or passed
+            // For now, using rentalId directly as it's the only state needed here.
+            document.getElementById('mc-rental-id').value = rentalId;
+            document.getElementById('mc-reason').value = '';
+
+            // Populating existing evidence
+            renderModalEvidence('mc-existing-evidence', evidenceJson);
+
+            var modal = document.getElementById('maintain-charge-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeMaintainChargeModal() {
+            document.getElementById('maintain-charge-modal').classList.add('hidden');
+            document.getElementById('maintain-charge-modal').classList.remove('flex');
+            clearMcEvidence();
+        }
+
+        function clearMcEvidence() {
+            document.getElementById('mc-evidence-file').value = '';
+            document.getElementById('mc-evidence-preview').classList.add('hidden');
+        }
+
+        document.getElementById('mc-evidence-file')?.addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name;
+            if (fileName) {
+                document.getElementById('mc-filename').textContent = fileName;
+                document.getElementById('mc-evidence-preview').classList.remove('hidden');
+            }
+        });
+
+        async function submitMaintainCharge() {
+            var rentalId = document.getElementById('mc-rental-id').value;
+            var reason = document.getElementById('mc-reason').value;
+            var btn = document.getElementById('mc-submit-btn');
+            var fileInput = document.getElementById('mc-evidence-file');
+            // Evidence is now optional for maintaining charges
+            var hasFile = fileInput && fileInput.files.length > 0;
+            
+            if (!confirm('@Localizer["Maintain current charge and send to admin review?"]')) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> Processing...';
+
+            try {
+                var token = getToken();
+                var formData = new FormData();
+                formData.append('rentalId', rentalId);
+                formData.append('response', reason);
+                if (hasFile) formData.append('evidence', fileInput.files[0]);
+                if (token) formData.append('__RequestVerificationToken', token);
+
+                var response = await fetch('/Dashboard/MaintainCharge', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': token },
+                    body: formData
+                });
+                var data = await response.json();
+                
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    closeMaintainChargeModal();
+                    setTimeout(function () { location.reload(); }, 1000);
+                } else {
+                    showToast(data.message, 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '@Localizer["Confirm & Send to Admin"]';
+                }
+            } catch (err) { 
+                showToast('@Localizer["Something went wrong"]', 'error'); 
+                btn.disabled = false;
+                btn.innerHTML = '@Localizer["Confirm & Send to Admin"]';
+            }
+        }
+
+        // === Accept Charge (Renter) ===
+        async function acceptCharge(rentalId) {
+            if (!confirm('@Localizer["Accept this charge and close the dispute?"]')) return;
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/AcceptCharge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'rentalId=' + rentalId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) setTimeout(function () { location.reload(); }, 1000);
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+        }
+
+        // === Accept Counter-Offer (Renter) ===
+        async function acceptCounterOffer(rentalId) {
+            if (!confirm('@Localizer["Accept counter-offer and pay the settled amount?"]')) return;
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/AcceptCounterOffer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'rentalId=' + rentalId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) setTimeout(function () { location.reload(); }, 1000);
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+        }
+
+
+        // === Escalate Dispute (Renter) - Internal Process ===
+        async function _processEscalation(rentalId) {
+            // Confirmation handled by Modal
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/EscalateDispute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'rentalId=' + rentalId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) setTimeout(function () { location.reload(); }, 1000);
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+        }
+
         // === Review Modal ===
         async function openReviewModal(rentalId, itemId, reviewId) {
+
             var modal = document.getElementById('reviewModal');
             document.getElementById('reviewRentalId').value = rentalId;
             document.getElementById('reviewItemId').value = itemId;
@@ -1526,19 +2813,50 @@
 
         // === SignalR ===
         var connection = new signalR.HubConnectionBuilder()
-            .withUrl("/rentMateHub")
+            .withUrl("/rentmateHub")
             .withAutomaticReconnect()
             .build();
 
-        connection.on("RentalRequested", function () { location.reload(); });
-        connection.on("RentalApproved", function () { location.reload(); });
-        connection.on("RentalCompleted", function () { location.reload(); });
-        connection.on("RentalCancelled", function () { location.reload(); });
-        connection.on("ExtensionRequested", function () { location.reload(); });
-        connection.on("ExtensionApproved", function () { location.reload(); });
-        connection.on("ExtensionDeclined", function () { location.reload(); });
-        connection.on("DepositReleased", function () { location.reload(); });
-        connection.on("DepositCharged", function () { location.reload(); });
+        connection.on("RentalRequested", function (data) {
+            showToast("@Localizer["New rental request for"] " + data.itemTitle, "info");
+            setTimeout(function() { location.reload(); }, 2000);
+        });
+
+        connection.on("RentalStatusChanged", function (data) {
+            showToast(data.message || "@Localizer["Rental status updated for"] " + data.itemTitle, "info");
+            setTimeout(function() { location.reload(); }, 2000);
+        });
+
+        connection.on("ExtensionRequested", function (data) {
+            showToast("@Localizer["New extension request for"] " + data.itemTitle, "info");
+            setTimeout(function() { location.reload(); }, 2000);
+        });
+
+        connection.on("ExtensionStatusChanged", function (data) {
+            showToast(data.message || "@Localizer["Extension status updated for"] " + data.itemTitle, "info");
+            setTimeout(function() { location.reload(); }, 2000);
+        });
+
+        connection.on("RentalOverdue", function (data) {
+            showToast("@Localizer["Rental for"] " + data.itemTitle + " @Localizer["is overdue by"] " + data.daysOverdue + " @Localizer["days"]", "warning");
+            setTimeout(function() { location.reload(); }, 3000);
+        });
+
+        connection.on("DepositStatusChanged", function (data) {
+            var msg = "@Localizer["Deposit status updated for"] " + data.itemTitle;
+            if (data.status === "Escalated") msg = "@Localizer["Dispute escalated for"] " + data.itemTitle;
+            if (data.status === "Released") msg = "@Localizer["Deposit released for"] " + data.itemTitle;
+            if (data.status === "ChargeAccepted" || data.status === "ChargeUpheld") msg = "@Localizer["Dispute resolved for"] " + data.itemTitle;
+            if (data.status === "CounterAccepted") msg = "@Localizer["Settlement reached for"] " + data.itemTitle;
+            if (data.status === "CounterOffered") msg = "@Localizer["New counter-offer for"] " + data.itemTitle;
+            
+            if (data.adminNotes) {
+                msg += " - " + data.adminNotes;
+            }
+            
+            showToast(msg, "info");
+            setTimeout(function() { location.reload(); }, 2500);
+        });
 
         connection.start()
             .then(function () {
@@ -1547,5 +2865,77 @@
                 indicator.textContent = '@Localizer["Live"]';
             })
             .catch(function (err) { console.error('SignalR Error:', err); });
+        
+        async function uploadEvidence(rentalId, file, notes) {
+            if (!file) return { success: true };
+            
+            var formData = new FormData();
+            formData.append('rentalId', rentalId);
+            formData.append('file', file);
+            if (notes) formData.append('notes', notes);
+            var token = getToken();
+            if (token) formData.append('__RequestVerificationToken', token);
+            
+            try {
+                var response = await fetch('/Dashboard/UploadDisputeEvidence', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': getToken() },
+                    body: formData
+                });
+                return await response.json();
+            } catch (err) {
+                console.error('Evidence upload error:', err);
+                return { success: false, message: 'Upload failed' };
+            }
+        }
+
+        function renderModalEvidence(containerId, evidenceJson) {
+            var container = document.getElementById(containerId);
+            if (!container) return;
+            
+            var list = container.querySelector('.evidence-container');
+            if (!list) { // Create if it doesn't exist
+                list = document.createElement('div');
+                list.className = 'evidence-container flex flex-wrap gap-2 mt-2';
+                container.appendChild(list);
+            }
+            list.innerHTML = '';
+            
+            if (evidenceJson && evidenceJson.length > 0) {
+                evidenceJson.forEach(function(ev) {
+                    var a = document.createElement('a');
+                    a.href = ev.Url;
+                    a.target = '_blank';
+                    a.className = 'w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform';
+                    if (ev.Notes) a.title = ev.Notes;
+                    
+                    var img = document.createElement('img');
+                    img.src = ev.Url;
+                    img.className = 'w-full h-full object-cover';
+                    
+                    a.appendChild(img);
+                    list.appendChild(a);
+                });
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        window.escalateDispute = function(rentalId) {
+            showEscalationWarning(rentalId);
+        };
+
+        window.showEscalationWarning = function(rentalId) {
+            document.getElementById('escalateRentalId').value = rentalId;
+            document.getElementById('escalationWarningModal').classList.remove('hidden');
+        };
+
+        window.closeEscalationWarningModal = function() {
+            document.getElementById('escalationWarningModal').classList.add('hidden');
+        };
+
+
+
     </script>
 }

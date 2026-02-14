@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RentMate.Infrastructure.Data;
@@ -11,9 +12,11 @@ using RentMate.Infrastructure.Data;
 namespace RentMate.Migrations
 {
     [DbContext(typeof(RentMateContext))]
-    partial class RentMateContextModelSnapshot : ModelSnapshot
+    [Migration("20260212122351_AddDepositDispute")]
+    partial class AddDepositDispute
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -254,42 +257,6 @@ namespace RentMate.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("RentMate.Models.Domain.DisputeEvidence", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("RentalDepositId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SubmittedByUserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RentalDepositId");
-
-                    b.HasIndex("SubmittedByUserId");
-
-                    b.ToTable("DisputeEvidences");
-                });
-
             modelBuilder.Entity("RentMate.Models.Domain.Item", b =>
                 {
                     b.Property<int>("Id")
@@ -528,16 +495,6 @@ namespace RentMate.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("AdminNotes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTime?>("AdminResolvedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("AdminResolvedByUserId")
-                        .HasColumnType("text");
-
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(10,2)");
 
@@ -554,16 +511,7 @@ namespace RentMate.Migrations
                     b.Property<DateTime?>("ChargedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<decimal?>("CounterOfferAmount")
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<DateTime?>("CounterOfferAt")
-                        .HasColumnType("timestamp without time zone");
-
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("DisputeDeadline")
                         .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("DisputeReason")
@@ -572,13 +520,6 @@ namespace RentMate.Migrations
 
                     b.Property<DateTime?>("DisputedAt")
                         .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("EscalatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("OwnerDisputeResponse")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("PaymentReference")
                         .HasMaxLength(255)
@@ -774,25 +715,6 @@ namespace RentMate.Migrations
                     b.Navigation("Item");
                 });
 
-            modelBuilder.Entity("RentMate.Models.Domain.DisputeEvidence", b =>
-                {
-                    b.HasOne("RentMate.Models.Domain.RentalDeposit", "RentalDeposit")
-                        .WithMany("Evidence")
-                        .HasForeignKey("RentalDepositId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RentMate.Models.Domain.ApplicationUser", "SubmittedBy")
-                        .WithMany()
-                        .HasForeignKey("SubmittedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("RentalDeposit");
-
-                    b.Navigation("SubmittedBy");
-                });
-
             modelBuilder.Entity("RentMate.Models.Domain.Item", b =>
                 {
                     b.HasOne("RentMate.Models.Domain.ApplicationUser", "User")
@@ -967,11 +889,6 @@ namespace RentMate.Migrations
                     b.Navigation("Extensions");
 
                     b.Navigation("Reviews");
-                });
-
-            modelBuilder.Entity("RentMate.Models.Domain.RentalDeposit", b =>
-                {
-                    b.Navigation("Evidence");
                 });
 #pragma warning restore 612, 618
         }
