@@ -222,7 +222,7 @@
                             <article class="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm transition-shadow hover:shadow-md">
                                 <!-- Image + Badges -->
                                 <div class="relative h-40 overflow-hidden">
-                                    @if (!string.IsNullOrEmpty(rental.Item?.ImageUrl))
+                                    @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
                                     {
                                         var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
                                         <img src="@thumbUrl" alt="@rental.Item?.Title" class="h-full w-full object-cover transition-transform group-hover:scale-105" />
@@ -698,7 +698,7 @@
 
                             <article class="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm transition-shadow hover:shadow-md">
                                 <div class="relative h-40 overflow-hidden">
-                                    @if (!string.IsNullOrEmpty(rental.Item?.ImageUrl))
+                                    @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
                                     {
                                         var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
                                         <img src="@thumbUrl" alt="@rental.Item?.Title" class="h-full w-full object-cover transition-transform group-hover:scale-105" />
@@ -1086,7 +1086,7 @@
                                 <div class="px-6 py-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0">
-                                            @if (!string.IsNullOrEmpty(rental.Item?.ImageUrl))
+                                            @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
                                             {
                                                 var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
                                                 <img src="@thumbUrl" class="w-full h-full object-cover" />
@@ -1169,9 +1169,9 @@
                             <div class="px-5 py-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden">
-                                        @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                        @if (!string.IsNullOrEmpty(item.PrimaryImageUrl))
                                         {
-                                            var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
+                                            var thumbUrl = item.PrimaryImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
                                             <img src="@thumbUrl" class="w-full h-full object-cover" />
                                         }
                                         else
@@ -1255,9 +1255,9 @@
                             <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id"
                                class="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                                 <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden">
-                                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                    @if (!string.IsNullOrEmpty(item.PrimaryImageUrl))
                                     {
-                                        var thumbUrl = item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
+                                        var thumbUrl = item.PrimaryImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
                                         <img src="@thumbUrl" class="w-full h-full object-cover" />
                                     }
                                     else

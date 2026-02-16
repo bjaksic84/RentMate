@@ -58,6 +58,7 @@ namespace RentMate.Controllers.Mvc
             // TODO: Move this query to a repository later
             var item = await _db.Items
                 .Include(i => i.User)
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder))
                 .Include(i => i.Reviews.Where(r => !r.IsDeleted))
                     .ThenInclude(r => r.Reviewer)
                 .Include(i => i.FavoritedBy.Where(f => f.AccountId == currentUserId))
@@ -88,18 +89,13 @@ namespace RentMate.Controllers.Mvc
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category,Location,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item item, IFormFile? image)
+        public async Task<IActionResult> Create([Bind("Title,Description,Price,Category,Location,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item item, List<IFormFile>? images)
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Unauthorized();
 
             if (ModelState.IsValid)
             {
-                if (image != null)
-                {
-                    item.ImageUrl = await _fileUploadService.UploadFileAsync(image, "items");
-                }
-
                 item.UserId = user.Id;
                 item.IsListed = false;
                 item.IsRented = false;
@@ -108,6 +104,24 @@ namespace RentMate.Controllers.Mvc
 
                 _db.Add(item);
                 await _db.SaveChangesAsync();
+
+                // Handle multiple image uploads
+                if (images != null && images.Count > 0)
+                {
+                    var uploadedUrls = await _fileUploadService.UploadFilesAsync(images, "items");
+                    for (int i = 0; i < uploadedUrls.Count; i++)
+                    {
+                        var itemImage = new ItemImage
+                        {
+                            ItemId = item.Id,
+                            ImageUrl = uploadedUrls[i],
+                            DisplayOrder = i,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _db.ItemImages.Add(itemImage);
+                    }
+                    await _db.SaveChangesAsync();
+                }
 
                 TempData["SuccessMessage"] = string.Format(_localizer["Item '{0}' created successfully!"], item.Title);
                 return RedirectToAction("UserDashboard", "Dashboard");
@@ -123,6 +137,7 @@ namespace RentMate.Controllers.Mvc
 
             var item = await _db.Items
                 .Include(i => i.Accessories)
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder))
                 .FirstOrDefaultAsync(i => i.Id == id);
 
             if (item == null) return NotFound();
@@ -137,11 +152,13 @@ namespace RentMate.Controllers.Mvc
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item updatedItem, IFormFile? image)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item updatedItem, List<IFormFile>? images)
         {
             if (id != updatedItem.Id) return NotFound();
 
-            var item = await _db.Items.FindAsync(id);
+            var item = await _db.Items
+                .Include(i => i.Images)
+                .FirstOrDefaultAsync(i => i.Id == id);
             if (item == null) return NotFound();
 
             var user = await _userManager.GetUserAsync(User);
@@ -161,13 +178,23 @@ namespace RentMate.Controllers.Mvc
                 item.MaxRentalDays = updatedItem.MaxRentalDays;
                 item.UpdatedAt = DateTime.UtcNow;
 
-                if (image != null)
+                // Handle new image uploads (append to existing)
+                if (images != null && images.Count > 0)
                 {
-                    if (!string.IsNullOrEmpty(item.ImageUrl))
+                    var currentMaxOrder = item.Images.Any() ? item.Images.Max(i => i.DisplayOrder) : -1;
+                    var uploadedUrls = await _fileUploadService.UploadFilesAsync(images, "items");
+
+                    for (int i = 0; i < uploadedUrls.Count; i++)
                     {
-                        _fileUploadService.DeleteFile(item.ImageUrl);
+                        var itemImage = new ItemImage
+                        {
+                            ItemId = item.Id,
+                            ImageUrl = uploadedUrls[i],
+                            DisplayOrder = currentMaxOrder + 1 + i,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        _db.ItemImages.Add(itemImage);
                     }
-                    item.ImageUrl = await _fileUploadService.UploadFileAsync(image, "items");
                 }
 
                 await _db.SaveChangesAsync();
@@ -202,7 +229,9 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var item = await _db.Items.FindAsync(id);
+            var item = await _db.Items
+                .Include(i => i.Images)
+                .FirstOrDefaultAsync(i => i.Id == id);
             var user = await _userManager.GetUserAsync(User);
 
             if (item != null && user != null && item.UserId == user.Id)
@@ -218,11 +247,14 @@ namespace RentMate.Controllers.Mvc
                     return RedirectToAction(nameof(Delete), new { id });
                 }
 
+                // Delete all images from Cloudinary
+                var imageUrls = item.Images.Select(i => i.ImageUrl).ToList();
                 if (!string.IsNullOrEmpty(item.ImageUrl))
                 {
-                    _fileUploadService.DeleteFile(item.ImageUrl);
+                    imageUrls.Add(item.ImageUrl); // Include legacy ImageUrl if exists
                 }
-                
+                _fileUploadService.DeleteFiles(imageUrls);
+
                 _db.Items.Remove(item);
                 await _db.SaveChangesAsync();
             }
@@ -370,6 +402,170 @@ namespace RentMate.Controllers.Mvc
             await _db.SaveChangesAsync();
 
             return Json(new { success = true, isAdminHidden = item.IsAdminHidden });
+        }
+
+        // Image Management Endpoints
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetImages(int itemId)
+        {
+            var item = await _db.Items.FindAsync(itemId);
+            if (item == null) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            if (item.UserId != userId) return Forbid();
+
+            var images = await _db.ItemImages
+                .Where(i => i.ItemId == itemId)
+                .OrderBy(i => i.DisplayOrder)
+                .Select(i => new { i.Id, i.ImageUrl, i.DisplayOrder })
+                .ToListAsync();
+
+            return Json(images);
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteImage(int imageId)
+        {
+            var image = await _db.ItemImages
+                .Include(i => i.Item)
+                .FirstOrDefaultAsync(i => i.Id == imageId);
+
+            if (image == null) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            if (image.Item?.UserId != userId) return Forbid();
+
+            // Delete from Cloudinary
+            _fileUploadService.DeleteFile(image.ImageUrl);
+
+            // Remove from database
+            _db.ItemImages.Remove(image);
+            await _db.SaveChangesAsync();
+
+            // Reorder remaining images
+            var remainingImages = await _db.ItemImages
+                .Where(i => i.ItemId == image.ItemId)
+                .OrderBy(i => i.DisplayOrder)
+                .ToListAsync();
+
+            for (int i = 0; i < remainingImages.Count; i++)
+            {
+                remainingImages[i].DisplayOrder = i;
+            }
+            await _db.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetPrimaryImage(int imageId)
+        {
+            var image = await _db.ItemImages
+                .Include(i => i.Item)
+                .FirstOrDefaultAsync(i => i.Id == imageId);
+
+            if (image == null) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            if (image.Item?.UserId != userId) return Forbid();
+
+            // Get all images for this item and reorder
+            var allImages = await _db.ItemImages
+                .Where(i => i.ItemId == image.ItemId)
+                .OrderBy(i => i.DisplayOrder)
+                .ToListAsync();
+
+            // Set the selected image to DisplayOrder 0, shift others
+            var currentOrder = image.DisplayOrder;
+            foreach (var img in allImages)
+            {
+                if (img.Id == imageId)
+                {
+                    img.DisplayOrder = 0;
+                }
+                else if (img.DisplayOrder < currentOrder)
+                {
+                    img.DisplayOrder += 1;
+                }
+            }
+            await _db.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReorderImages(int itemId, [FromBody] List<int> imageIds)
+        {
+            var item = await _db.Items.FindAsync(itemId);
+            if (item == null) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            if (item.UserId != userId) return Forbid();
+
+            var images = await _db.ItemImages
+                .Where(i => i.ItemId == itemId)
+                .ToListAsync();
+
+            for (int i = 0; i < imageIds.Count; i++)
+            {
+                var image = images.FirstOrDefault(img => img.Id == imageIds[i]);
+                if (image != null)
+                {
+                    image.DisplayOrder = i;
+                }
+            }
+
+            await _db.SaveChangesAsync();
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadImages(int itemId, List<IFormFile> images)
+        {
+            var item = await _db.Items
+                .Include(i => i.Images)
+                .FirstOrDefaultAsync(i => i.Id == itemId);
+
+            if (item == null) return NotFound();
+
+            var userId = _userManager.GetUserId(User);
+            if (item.UserId != userId) return Forbid();
+
+            if (images == null || images.Count == 0)
+            {
+                return BadRequest(new { success = false, message = "No images provided" });
+            }
+
+            var currentMaxOrder = item.Images.Any() ? item.Images.Max(i => i.DisplayOrder) : -1;
+            var uploadedUrls = await _fileUploadService.UploadFilesAsync(images, "items");
+            var newImages = new List<object>();
+
+            for (int i = 0; i < uploadedUrls.Count; i++)
+            {
+                var itemImage = new ItemImage
+                {
+                    ItemId = item.Id,
+                    ImageUrl = uploadedUrls[i],
+                    DisplayOrder = currentMaxOrder + 1 + i,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.ItemImages.Add(itemImage);
+                await _db.SaveChangesAsync(); // Save to get the ID
+
+                newImages.Add(new { itemImage.Id, itemImage.ImageUrl, itemImage.DisplayOrder });
+            }
+
+            return Json(new { success = true, images = newImages });
         }
     }
 }

@@ -68,5 +68,17 @@ namespace RentMate.Models.Domain
         /// Use this to get favorite count: item.FavoritedBy.Count
         /// </summary>
         public virtual List<AccountItemFavorite> FavoritedBy { get; set; } = new();
+
+        /// <summary>
+        /// Collection of images for this item.
+        /// Images are ordered by DisplayOrder, with 0 being the primary image.
+        /// </summary>
+        public virtual List<ItemImage> Images { get; set; } = new();
+
+        /// <summary>
+        /// Gets the primary image URL (first image by DisplayOrder).
+        /// Falls back to legacy ImageUrl if no images exist.
+        /// </summary>
+        public string? PrimaryImageUrl => Images?.OrderBy(i => i.DisplayOrder).FirstOrDefault()?.ImageUrl ?? ImageUrl;
     }
 }

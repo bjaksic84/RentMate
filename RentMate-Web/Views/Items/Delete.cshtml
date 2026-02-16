@@ -31,7 +31,7 @@
         <div class="p-6">
             <div class="flex gap-4 items-start">
                 <div class="w-24 h-24 shrink-0 rounded-xl overflow-hidden">
-                    @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.ImageUrl, Size = "fill", Alt = Model.Title })
+                    @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.PrimaryImageUrl, Size = "fill", Alt = Model.Title })
                 </div>
                 <div class="flex-1 min-w-0">
                     <h2 class="font-outfit text-xl font-bold text-slate-900 dark:text-white">@Model.Title</h2>

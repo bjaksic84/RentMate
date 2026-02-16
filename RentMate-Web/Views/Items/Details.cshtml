@@ -53,12 +53,68 @@
     <div class="grid lg:grid-cols-3 gap-8">
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-8">
-            <!-- Image -->
+            <!-- Image Gallery -->
+            @{
+                var allImages = Model.Images?.OrderBy(i => i.DisplayOrder).ToList() ?? new List<RentMate.Models.Domain.ItemImage>();
+                // Include legacy ImageUrl if no Images exist but ImageUrl does
+                if (!allImages.Any() && !string.IsNullOrEmpty(Model.ImageUrl))
+                {
+                    allImages = new List<RentMate.Models.Domain.ItemImage>
+                    {
+                        new RentMate.Models.Domain.ItemImage { ImageUrl = Model.ImageUrl, DisplayOrder = 0 }
+                    };
+                }
+                var hasMultipleImages = allImages.Count > 1;
+            }
+
             <div class="relative rounded-2xl overflow-hidden shadow-lg">
-                @if(!string.IsNullOrEmpty(Model.ImageUrl)) {
-                    var urlLarge = Model.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/");
-                    <img src="@urlLarge" class="w-full h-[400px] md:h-[500px] object-cover" alt="@Model.Title">
-                } else {
+                @if (allImages.Any())
+                {
+                    <!-- Main Image Display -->
+                    <div id="mainImageContainer" class="relative">
+                        @{
+                            var primaryImage = allImages.FirstOrDefault();
+                            var primaryUrl = primaryImage?.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/") ?? "";
+                        }
+                        <img id="mainImage" src="@primaryUrl" class="w-full h-[400px] md:h-[500px] object-cover transition-opacity duration-300" alt="@Model.Title">
+
+                        @if (hasMultipleImages)
+                        {
+                            <!-- Navigation Arrows -->
+                            <button type="button" onclick="prevImage()" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105">
+                                <i class="bi bi-chevron-left text-xl text-slate-700"></i>
+                            </button>
+                            <button type="button" onclick="nextImage()" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105">
+                                <i class="bi bi-chevron-right text-xl text-slate-700"></i>
+                            </button>
+
+                            <!-- Image Counter -->
+                            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 text-white text-sm font-medium rounded-full">
+                                <span id="imageCounter">1</span> / @allImages.Count
+                            </div>
+                        }
+                    </div>
+
+                    @if (hasMultipleImages)
+                    {
+                        <!-- Thumbnail Strip -->
+                        <div class="flex gap-2 p-3 bg-slate-50 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300">
+                            @for (int i = 0; i < allImages.Count; i++)
+                            {
+                                var img = allImages[i];
+                                var thumbUrl = img.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_100,h_100,q_auto/");
+                                var fullUrl = img.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/");
+                                <button type="button"
+                                        onclick="showImage(@i, '@fullUrl')"
+                                        class="shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all thumbnail-btn @(i == 0 ? "border-blue-500 ring-2 ring-blue-200" : "border-transparent hover:border-slate-300")">
+                                    <img src="@thumbUrl" class="w-full h-full object-cover" alt="@Model.Title - @Localizer["Image"] @(i + 1)">
+                                </button>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
                     <div class="w-full h-[400px] bg-slate-100 flex items-center justify-center">
                         <div class="text-center text-slate-400">
                             <i class="bi bi-image text-6xl"></i>
@@ -66,8 +122,9 @@
                         </div>
                     </div>
                 }
+
                 <!-- Favorite button -->
-                <div class="absolute top-4 right-4">
+                <div class="absolute top-4 right-4 z-10">
                     @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel {
                         ItemId = Model.Id,
                         IsFavorited = Model.FavoritedBy?.Any(f => f.AccountId == ViewBag.CurrentUserId) ?? false,
@@ -302,6 +359,72 @@
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
 
     <script>
+        // Image Gallery
+        var imageUrls = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(allImages.Select(i => i.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/")).ToList()));
+        var currentImageIndex = 0;
+        var totalImages = imageUrls.length;
+
+        function showImage(index, url) {
+            if (index < 0 || index >= totalImages) return;
+            currentImageIndex = index;
+
+            var mainImage = document.getElementById('mainImage');
+            mainImage.style.opacity = '0';
+            setTimeout(function() {
+                mainImage.src = url || imageUrls[index];
+                mainImage.style.opacity = '1';
+            }, 150);
+
+            // Update counter
+            var counter = document.getElementById('imageCounter');
+            if (counter) counter.textContent = (index + 1);
+
+            // Update thumbnail highlight
+            document.querySelectorAll('.thumbnail-btn').forEach(function(btn, i) {
+                if (i === index) {
+                    btn.classList.add('border-blue-500', 'ring-2', 'ring-blue-200');
+                    btn.classList.remove('border-transparent');
+                } else {
+                    btn.classList.remove('border-blue-500', 'ring-2', 'ring-blue-200');
+                    btn.classList.add('border-transparent');
+                }
+            });
+        }
+
+        function nextImage() {
+            var nextIndex = (currentImageIndex + 1) % totalImages;
+            showImage(nextIndex, null);
+        }
+
+        function prevImage() {
+            var prevIndex = (currentImageIndex - 1 + totalImages) % totalImages;
+            showImage(prevIndex, null);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') prevImage();
+            if (e.key === 'ArrowRight') nextImage();
+        });
+
+        // Swipe support for mobile
+        var touchStartX = 0;
+        var mainImageContainer = document.getElementById('mainImageContainer');
+        if (mainImageContainer) {
+            mainImageContainer.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            mainImageContainer.addEventListener('touchend', function(e) {
+                var touchEndX = e.changedTouches[0].screenX;
+                var diff = touchStartX - touchEndX;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0) nextImage();
+                    else prevImage();
+                }
+            }, { passive: true });
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             var lat = @(((double)ViewBag.MapLat).ToString(System.Globalization.CultureInfo.InvariantCulture));
             var lng = @(((double)ViewBag.MapLng).ToString(System.Globalization.CultureInfo.InvariantCulture));

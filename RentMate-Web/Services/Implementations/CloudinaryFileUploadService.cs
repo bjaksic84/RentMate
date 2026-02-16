@@ -68,6 +68,26 @@ public class CloudinaryFileUploadService : IFileUploadService
     }
 
     /// <inheritdoc/>
+    public async Task<List<string>> UploadFilesAsync(IEnumerable<IFormFile> files, string folderName)
+    {
+        var uploadedUrls = new List<string>();
+
+        foreach (var file in files)
+        {
+            if (file == null || file.Length == 0)
+                continue;
+
+            var url = await UploadFileAsync(file, folderName);
+            if (!string.IsNullOrEmpty(url))
+            {
+                uploadedUrls.Add(url);
+            }
+        }
+
+        return uploadedUrls;
+    }
+
+    /// <inheritdoc/>
     public void DeleteFile(string fileUrl)
     {
         if (string.IsNullOrEmpty(fileUrl))
@@ -85,6 +105,15 @@ public class CloudinaryFileUploadService : IFileUploadService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error deleting image from Cloudinary: {FileUrl}", fileUrl);
+        }
+    }
+
+    /// <inheritdoc/>
+    public void DeleteFiles(IEnumerable<string> fileUrls)
+    {
+        foreach (var fileUrl in fileUrls)
+        {
+            DeleteFile(fileUrl);
         }
     }
 

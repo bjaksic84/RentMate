@@ -32,7 +32,7 @@
         <div class="p-6">
             <!-- Item Info -->
             <div class="flex gap-4 items-start mb-6">
-                @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.Item?.ImageUrl, Size = "thumb", Alt = Model.Item?.Title, CssClass = "w-20 h-20 rounded-xl shrink-0" })
+                @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.Item?.PrimaryImageUrl, Size = "thumb", Alt = Model.Item?.Title, CssClass = "w-20 h-20 rounded-xl shrink-0" })
                 <div class="flex-1 min-w-0">
                     <h1 class="font-heading text-2xl font-bold text-slate-900">@Model.Item?.Title</h1>
                     <p class="text-slate-400 text-sm mt-1">@Localizer["Rental ID"]: #@Model.Id</p>

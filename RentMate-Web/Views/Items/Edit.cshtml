@@ -22,31 +22,67 @@
 
         <!-- Image Section -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-            <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Item Photo"]</h2>
-            
-            <div class="flex flex-col sm:flex-row gap-6 items-start">
-                <!-- Image Preview -->
-                <div class="shrink-0">
-                    <img id="imgPreview" 
-                         src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/200x200?text=No+Image" : Model.ImageUrl)" 
-                         class="w-48 h-48 rounded-xl object-cover border-2 border-slate-200" />
-                </div>
-                
-                <!-- Upload Buttons -->
-                <div class="flex-1 space-y-3">
-                    <p class="text-sm text-slate-500 mb-3">@Localizer["Replace image"]:</p>
-                    <label class="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:bg-blue-50 cursor-pointer transition-colors">
-                        <i class="bi bi-camera text-xl"></i>
-                        <span class="font-medium">@Localizer["Take Photo"]</span>
-                        <input type="file" name="image" id="cameraInput" class="hidden" accept="image/*" capture="environment" onchange="previewImage(this)" />
-                    </label>
-                    <label class="flex items-center justify-center gap-2 w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
-                        <i class="bi bi-image text-xl"></i>
-                        <span class="font-medium">@Localizer["Choose File"]</span>
-                        <input type="file" name="image" id="fileInput" class="hidden" accept="image/*" onchange="previewImage(this)" />
-                    </label>
+            <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-1">@Localizer["Item Photos"]</h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">@Localizer["Manage your item photos. Drag to reorder. The first image is the main photo."]</p>
+
+            <!-- Existing Images -->
+            <div id="existingImagesContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+                @if (Model.Images != null && Model.Images.Any())
+                {
+                    foreach (var image in Model.Images.OrderBy(i => i.DisplayOrder))
+                    {
+                        var thumbUrl = image.ImageUrl.Replace("/upload/", "/upload/c_fill,w_200,h_200,q_auto/");
+                        <div class="relative group aspect-square existing-image" data-id="@image.Id" data-order="@image.DisplayOrder">
+                            <img src="@thumbUrl" class="w-full h-full object-cover rounded-xl border-2 @(image.DisplayOrder == 0 ? "border-blue-500" : "border-slate-200 dark:border-slate-600")" draggable="false" />
+                            @if (image.DisplayOrder == 0)
+                            {
+                                <span class="absolute top-2 left-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-medium rounded-full">@Localizer["Main"]</span>
+                            }
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
+                                <button type="button" onclick="setAsPrimary(@image.Id)" class="w-8 h-8 bg-white hover:bg-blue-50 text-blue-600 rounded-full flex items-center justify-center" title="@Localizer["Set as main"]">
+                                    <i class="bi bi-star-fill text-sm"></i>
+                                </button>
+                                <button type="button" onclick="deleteExistingImage(@image.Id)" class="w-8 h-8 bg-white hover:bg-red-50 text-red-600 rounded-full flex items-center justify-center" title="@Localizer["Delete"]">
+                                    <i class="bi bi-trash text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (!string.IsNullOrEmpty(Model.ImageUrl))
+                {
+                    <!-- Legacy single image -->
+                    var legacyThumbUrl = Model.ImageUrl.Replace("/upload/", "/upload/c_fill,w_200,h_200,q_auto/");
+                    <div class="relative group aspect-square">
+                        <img src="@legacyThumbUrl" class="w-full h-full object-cover rounded-xl border-2 border-blue-500" />
+                        <span class="absolute top-2 left-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-medium rounded-full">@Localizer["Main"]</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Add More Images -->
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer">
+                <div class="space-y-2">
+                    <i class="bi bi-cloud-arrow-up text-2xl text-slate-400"></i>
+                    <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Add more photos"]</p>
+                    <div class="flex flex-wrap justify-center gap-2">
+                        <label class="inline-flex items-center gap-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg cursor-pointer transition-colors">
+                            <i class="bi bi-camera"></i>
+                            @Localizer["Camera"]
+                            <input type="file" name="images" id="cameraInput" class="hidden" accept="image/*" capture="environment" onchange="handleNewFiles(this.files)" />
+                        </label>
+                        <label class="inline-flex items-center gap-1 px-3 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 text-sm font-medium rounded-lg cursor-pointer transition-colors">
+                            <i class="bi bi-images"></i>
+                            @Localizer["Browse"]
+                            <input type="file" name="images" id="fileInput" class="hidden" accept="image/*" multiple onchange="handleNewFiles(this.files)" />
+                        </label>
+                    </div>
                 </div>
             </div>
+
+            <!-- New Image Previews (for images to be uploaded) -->
+            <div id="newImagePreviews" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 hidden"></div>
+            <p id="imageStatus" class="text-sm text-slate-500 dark:text-slate-400 mt-2"></p>
         </div>
 
         <!-- Basic Info -->
@@ -232,20 +268,148 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
-        // Image preview
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
-                if (input.id === 'cameraInput') {
-                    document.getElementById('fileInput').value = '';
-                } else {
-                    document.getElementById('cameraInput').value = '';
-                }
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    document.getElementById('imgPreview').src = e.target.result;
-                }
-                reader.readAsDataURL(input.files[0]);
+        // Multi-image handling
+        var itemId = @Model.Id;
+        var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        var newFiles = [];
+        var dropZone = document.getElementById('dropZone');
+        var newPreviewContainer = document.getElementById('newImagePreviews');
+        var statusEl = document.getElementById('imageStatus');
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-400', 'bg-blue-50');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+            handleNewFiles(e.dataTransfer.files);
+        });
+
+        dropZone.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL' && !e.target.closest('label')) {
+                document.getElementById('fileInput').click();
             }
+        });
+
+        function handleNewFiles(files) {
+            var validFiles = Array.from(files).filter(function(file) {
+                var validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                var maxSize = 10 * 1024 * 1024; // 10MB
+                return validTypes.includes(file.type) && file.size <= maxSize;
+            });
+
+            var existingCount = document.querySelectorAll('.existing-image').length;
+            var maxImages = 10;
+            if (existingCount + newFiles.length + validFiles.length > maxImages) {
+                alert('@Localizer["Maximum {0} images allowed", 10]');
+                validFiles = validFiles.slice(0, maxImages - existingCount - newFiles.length);
+            }
+
+            newFiles = newFiles.concat(validFiles);
+            updateNewFilePreviews();
+            updateFileInput();
+        }
+
+        function updateNewFilePreviews() {
+            newPreviewContainer.innerHTML = '';
+            if (newFiles.length === 0) {
+                newPreviewContainer.classList.add('hidden');
+                return;
+            }
+
+            newPreviewContainer.classList.remove('hidden');
+            statusEl.textContent = newFiles.length + ' @Localizer["new image(s) to upload"]';
+
+            newFiles.forEach(function(file, index) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var div = document.createElement('div');
+                    div.className = 'relative group aspect-square';
+                    div.innerHTML = '<img src="' + e.target.result + '" class="w-full h-full object-cover rounded-xl border-2 border-dashed border-green-400" />' +
+                        '<span class="absolute top-2 left-2 px-2 py-0.5 bg-green-500 text-white text-xs font-medium rounded-full">@Localizer["New"]</span>' +
+                        '<button type="button" onclick="removeNewFile(' + index + ')" class="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><i class="bi bi-x"></i></button>';
+                    newPreviewContainer.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeNewFile(index) {
+            newFiles.splice(index, 1);
+            updateNewFilePreviews();
+            updateFileInput();
+        }
+
+        function updateFileInput() {
+            var dt = new DataTransfer();
+            newFiles.forEach(function(file) { dt.items.add(file); });
+            document.getElementById('fileInput').files = dt.files;
+        }
+
+        function deleteExistingImage(imageId) {
+            if (!confirm('@Localizer["Delete this image?"]')) return;
+
+            fetch('/Items/DeleteImage?imageId=' + imageId, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var el = document.querySelector('.existing-image[data-id="' + imageId + '"]');
+                    if (el) el.remove();
+                    refreshExistingImages();
+                } else {
+                    alert(data.message || '@Localizer["Failed to delete image"]');
+                }
+            });
+        }
+
+        function setAsPrimary(imageId) {
+            fetch('/Items/SetPrimaryImage?imageId=' + imageId, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    refreshExistingImages();
+                } else {
+                    alert(data.message || '@Localizer["Failed to set primary image"]');
+                }
+            });
+        }
+
+        function refreshExistingImages() {
+            fetch('/Items/GetImages?itemId=' + itemId)
+                .then(function(r) { return r.json(); })
+                .then(function(images) {
+                    var container = document.getElementById('existingImagesContainer');
+                    container.innerHTML = '';
+                    images.forEach(function(img) {
+                        var thumbUrl = img.imageUrl.replace('/upload/', '/upload/c_fill,w_200,h_200,q_auto/');
+                        var isPrimary = img.displayOrder === 0;
+                        var div = document.createElement('div');
+                        div.className = 'relative group aspect-square existing-image';
+                        div.setAttribute('data-id', img.id);
+                        div.setAttribute('data-order', img.displayOrder);
+                        div.innerHTML = '<img src="' + thumbUrl + '" class="w-full h-full object-cover rounded-xl border-2 ' + (isPrimary ? 'border-blue-500' : 'border-slate-200 dark:border-slate-600') + '" draggable="false" />' +
+                            (isPrimary ? '<span class="absolute top-2 left-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-medium rounded-full">@Localizer["Main"]</span>' : '') +
+                            '<div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">' +
+                            '<button type="button" onclick="setAsPrimary(' + img.id + ')" class="w-8 h-8 bg-white hover:bg-blue-50 text-blue-600 rounded-full flex items-center justify-center" title="@Localizer["Set as main"]"><i class="bi bi-star-fill text-sm"></i></button>' +
+                            '<button type="button" onclick="deleteExistingImage(' + img.id + ')" class="w-8 h-8 bg-white hover:bg-red-50 text-red-600 rounded-full flex items-center justify-center" title="@Localizer["Delete"]"><i class="bi bi-trash text-sm"></i></button>' +
+                            '</div>';
+                        container.appendChild(div);
+                    });
+                });
         }
 
         // Location modal

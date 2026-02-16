@@ -1,8 +1,8 @@
 @*
     Item Thumbnail Partial View
     
-    Usage: @await Html.PartialAsync("_ItemThumbnail", new { 
-        ImageUrl = item.ImageUrl, 
+    Usage: @await Html.PartialAsync("_ItemThumbnail", new {
+        ImageUrl = item.PrimaryImageUrl,
         Size = "md",
         Alt = item.Title,
         CssClass = "custom-class",  // Optional: override default size class

@@ -21,35 +21,39 @@
 
         <!-- Image Upload Section -->
         <div class="bg-white rounded-2xl border border-slate-200 p-6">
-            <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Item Photo"]</h2>
-            
-            <div class="flex flex-col md:flex-row gap-6">
-                <!-- Preview -->
-                <div class="shrink-0">
-                    <img id="imgPreview" src="https://via.placeholder.com/200x200?text=No+Image" 
-                         class="w-48 h-48 rounded-xl object-cover border-2 border-dashed border-slate-300" />
-                </div>
-                
-                <!-- Upload Buttons -->
-                <div class="flex-1 space-y-4">
-                    <p class="text-sm text-slate-500">@Localizer["Upload a clear photo of your item. Good photos help renters trust your listing."]</p>
-                    
-                    <div class="flex flex-wrap gap-3">
+            <h2 class="font-heading text-lg font-semibold text-slate-900 mb-1">@Localizer["Item Photos"]</h2>
+            <p class="text-sm text-slate-500 mb-4">@Localizer["Upload multiple photos of your item. The first image will be the main photo."]</p>
+
+            <!-- Drop Zone -->
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-colors cursor-pointer">
+                <div class="space-y-3">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
+                        <i class="bi bi-cloud-arrow-up text-3xl text-slate-400"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-slate-700">@Localizer["Drag & drop images here"]</p>
+                        <p class="text-sm text-slate-500">@Localizer["or click to browse"]</p>
+                    </div>
+                    <div class="flex flex-wrap justify-center gap-2">
                         <label class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl cursor-pointer transition-colors">
                             <i class="bi bi-camera"></i>
                             @Localizer["Take Photo"]
-                            <input type="file" name="image" id="cameraInput" class="hidden" accept="image/*" capture="environment" onchange="previewImage(this)" />
+                            <input type="file" name="images" id="cameraInput" class="hidden" accept="image/*" capture="environment" onchange="handleFileSelect(this.files)" />
                         </label>
                         <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium rounded-xl cursor-pointer transition-colors">
-                            <i class="bi bi-image"></i>
-                            @Localizer["Choose File"]
-                            <input type="file" name="image" id="fileInput" class="hidden" accept="image/*" onchange="previewImage(this)" />
+                            <i class="bi bi-images"></i>
+                            @Localizer["Choose Files"]
+                            <input type="file" name="images" id="fileInput" class="hidden" accept="image/*" multiple onchange="handleFileSelect(this.files)" />
                         </label>
                     </div>
-                    
-                    <p class="text-xs text-slate-400">@Localizer["Supported formats: JPG, PNG, WebP. Max 10MB."]</p>
+                    <p class="text-xs text-slate-400">@Localizer["Supported formats: JPG, PNG, WebP. Max 10MB per image. Up to 10 images."]</p>
                 </div>
             </div>
+
+            <!-- Image Previews -->
+            <div id="imagePreviewContainer" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 hidden">
+            </div>
+            <p id="imageCount" class="text-sm text-slate-500 mt-2 hidden"></p>
         </div>
 
         <!-- Item Details -->
@@ -305,14 +309,98 @@
             form.addEventListener('submit', clearDraftOnSubmit);
         });
         
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
+        // Multi-image handling
+        let selectedFiles = [];
+        const maxImages = 10;
+        const dropZone = document.getElementById('dropZone');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        const imageCountEl = document.getElementById('imageCount');
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-400', 'bg-blue-50');
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-400', 'bg-blue-50');
+            const files = e.dataTransfer.files;
+            handleFileSelect(files);
+        });
+
+        dropZone.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'LABEL' && !e.target.closest('label')) {
+                document.getElementById('fileInput').click();
+            }
+        });
+
+        function handleFileSelect(files) {
+            const validFiles = Array.from(files).filter(file => {
+                const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                return validTypes.includes(file.type) && file.size <= maxSize;
+            });
+
+            if (selectedFiles.length + validFiles.length > maxImages) {
+                alert('@Localizer["Maximum 10 images allowed"]');
+                validFiles.splice(maxImages - selectedFiles.length);
+            }
+
+            selectedFiles = selectedFiles.concat(validFiles);
+            updatePreviews();
+            updateFileInput();
+        }
+
+        function updatePreviews() {
+            previewContainer.innerHTML = '';
+
+            if (selectedFiles.length === 0) {
+                previewContainer.classList.add('hidden');
+                imageCountEl.classList.add('hidden');
+                return;
+            }
+
+            previewContainer.classList.remove('hidden');
+            imageCountEl.classList.remove('hidden');
+            imageCountEl.textContent = `${selectedFiles.length} @Localizer["image(s) selected"]`;
+
+            selectedFiles.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('imgPreview').src = e.target.result;
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
+                    const div = document.createElement('div');
+                    div.className = 'relative group aspect-square';
+                    div.innerHTML = `
+                        <img src="${e.target.result}" class="w-full h-full object-cover rounded-xl border-2 ${index === 0 ? 'border-blue-500' : 'border-slate-200'}" />
+                        ${index === 0 ? '<span class="absolute top-2 left-2 px-2 py-0.5 bg-blue-600 text-white text-xs font-medium rounded-full">@Localizer["Main"]</span>' : ''}
+                        <button type="button" onclick="removeImage(${index})" class="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    `;
+                    previewContainer.appendChild(div);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeImage(index) {
+            selectedFiles.splice(index, 1);
+            updatePreviews();
+            updateFileInput();
+        }
+
+        function updateFileInput() {
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+
+            // Update both file inputs with the same files
+            document.getElementById('fileInput').files = dt.files;
+            document.getElementById('cameraInput').files = new DataTransfer().files;
         }
 
         let locationConsented = false;

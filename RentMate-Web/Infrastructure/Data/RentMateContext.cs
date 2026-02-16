@@ -29,6 +29,7 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
     public DbSet<RentalDeposit> RentalDeposits { get; set; }
     public DbSet<RentalExtension> RentalExtensions { get; set; }
     public DbSet<DisputeEvidence> DisputeEvidences { get; set; }
+    public DbSet<ItemImage> ItemImages { get; set; }
 
     #endregion
 
@@ -48,6 +49,7 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         ConfigureDepositEntity(modelBuilder);
         ConfigureExtensionEntity(modelBuilder);
         ConfigureDisputeEvidenceEntity(modelBuilder);
+        ConfigureItemImageEntity(modelBuilder);
         ConfigurePerformanceIndexes(modelBuilder);
     }
 
@@ -273,6 +275,21 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
                   .WithMany()
                   .HasForeignKey(e => e.SubmittedByUserId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    private static void ConfigureItemImageEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<ItemImage>(entity =>
+        {
+            // ItemImage → Item
+            entity.HasOne(img => img.Item)
+                  .WithMany(i => i.Images)
+                  .HasForeignKey(img => img.ItemId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Index for efficient queries by ItemId and ordering
+            entity.HasIndex(img => new { img.ItemId, img.DisplayOrder });
         });
     }
 

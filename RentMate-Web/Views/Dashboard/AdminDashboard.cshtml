@@ -232,9 +232,9 @@
                         <tr class="hover:bg-slate-50 transition-colors" data-item-id="@item.Id">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                    @if (!string.IsNullOrEmpty(item.PrimaryImageUrl))
                                     {
-                                        <img src="@item.ImageUrl" class="w-10 h-10 rounded-lg object-cover" />
+                                        <img src="@item.PrimaryImageUrl" class="w-10 h-10 rounded-lg object-cover" />
                                     }
                                     else
                                     {

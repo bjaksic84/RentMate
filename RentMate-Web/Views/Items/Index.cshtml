@@ -37,7 +37,7 @@
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = item.ImageUrl, Size = "sm", Alt = item.Title })
+                                    @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = item.PrimaryImageUrl, Size = "sm", Alt = item.Title })
                                     <span class="font-medium text-slate-900">@item.Title</span>
                                 </div>
                             </td>

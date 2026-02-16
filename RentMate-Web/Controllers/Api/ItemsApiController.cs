@@ -50,13 +50,16 @@ namespace RentMate.Controllers.Api
             var items = await _context.Items
                 .Include(i => i.User)
                 .Include(i => i.Reviews)
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder).Take(1))
                 .Where(i => i.IsListed && !i.IsAdminHidden)
                 .Select(i => new ItemWithOwner(
                     i.Id,
                     i.Title ?? "",
                     i.Description,
                     i.Price ?? 0,
-                    i.ImageUrl,
+                    i.Images.OrderBy(img => img.DisplayOrder).FirstOrDefault() != null
+                        ? i.Images.OrderBy(img => img.DisplayOrder).First().ImageUrl
+                        : i.ImageUrl,
                     i.Location ?? i.User!.City,
                     i.Category,
                     i.IsListed,
@@ -89,6 +92,7 @@ namespace RentMate.Controllers.Api
             var item = await _context.Items
                 .Include(i => i.User)
                 .Include(i => i.Reviews)
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder))
                 .FirstOrDefaultAsync(i => i.Id == id);
 
             if (item == null)
@@ -99,7 +103,7 @@ namespace RentMate.Controllers.Api
                 item.Title ?? "",
                 item.Description,
                 item.Price ?? 0,
-                item.ImageUrl,
+                item.PrimaryImageUrl,
                 item.Location ?? item.User?.City,
                 item.Category,
                 item.IsListed,
@@ -285,12 +289,15 @@ namespace RentMate.Controllers.Api
             var items = await _context.Items
                 .Where(i => i.UserId == userId)
                 .Include(i => i.Reviews)
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder).Take(1))
                 .Select(i => new ItemSummary(
                     i.Id,
                     i.Title ?? "Untitled",
                     i.Description,
                     i.Price ?? 0,
-                    i.ImageUrl,
+                    i.Images.OrderBy(img => img.DisplayOrder).FirstOrDefault() != null
+                        ? i.Images.OrderBy(img => img.DisplayOrder).First().ImageUrl
+                        : i.ImageUrl,
                     i.Location,
                     i.Category,
                     i.IsListed,
@@ -315,6 +322,7 @@ namespace RentMate.Controllers.Api
             var query = _context.Items
                 .Include(i => i.User)
                 .Include(i => i.Reviews)
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder).Take(1))
                 .Where(i => i.IsListed && !i.IsAdminHidden);
 
             // Apply filters
@@ -376,7 +384,9 @@ namespace RentMate.Controllers.Api
                     i.Title ?? "",
                     i.Description,
                     i.Price ?? 0,
-                    i.ImageUrl,
+                    i.Images.OrderBy(img => img.DisplayOrder).FirstOrDefault() != null
+                        ? i.Images.OrderBy(img => img.DisplayOrder).First().ImageUrl
+                        : i.ImageUrl,
                     i.Location ?? i.User!.City,
                     i.Category,
                     i.IsListed,

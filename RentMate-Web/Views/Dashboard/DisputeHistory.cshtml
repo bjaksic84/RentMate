@@ -46,7 +46,7 @@
     <!-- Rental Context -->
     <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 mb-8 shadow-sm">
         <div class="flex items-center gap-4">
-            @if (!string.IsNullOrEmpty(Model.Item?.ImageUrl))
+            @if (!string.IsNullOrEmpty(Model.Item?.PrimaryImageUrl))
             {
                 <img src="@Model.Item.ImageUrl" class="w-16 h-16 rounded-xl object-cover shadow-sm" />
             }

@@ -147,6 +147,7 @@ namespace RentMate.Controllers.Mvc
             return _context.Items
                 .AsNoTracking()
                 .Include(i => i.User)
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder).Take(1))
                 .Include(i => i.Rentals.Where(r =>
                     (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted) &&
                     r.EndDate >= DateTime.Today))
