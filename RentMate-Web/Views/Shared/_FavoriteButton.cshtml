@@ -29,15 +29,14 @@
 }
 
 <button type="button"
-        class="favorite-btn group @buttonSizeClasses rounded-full bg-white/80 hover:bg-white shadow-lg transition-all duration-200 ease-in-out hover:scale-110 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 flex items-center justify-center"
-        style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);"
+        class="favorite-btn group @buttonSizeClasses rounded-full bg-white hover:bg-white shadow-sm transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-2 flex items-center justify-center"
         data-item-id="@itemId"
         data-favorited="@(((bool)isFavorited).ToString().ToLower())"
         aria-label="@(((bool)isFavorited) ? "Remove from favorites" : "Add to favorites")"
         title="@(((bool)isFavorited) ? "Remove from favorites" : "Add to favorites")">
-    
+
     @* Outline Heart (shown when not favorited) *@
-    <svg class="favorite-icon-outline @sizeClasses transition-all duration-200 @(((bool)isFavorited) ? "hidden" : "") text-slate-400 group-hover:text-red-500"
+    <svg class="favorite-icon-outline @sizeClasses transition-colors duration-150 @(((bool)isFavorited) ? "hidden" : "") text-stone-400 group-hover:text-red-500"
          xmlns="http://www.w3.org/2000/svg"
          fill="none"
          viewBox="0 0 24 24"
@@ -47,9 +46,9 @@
               stroke-linejoin="round"
               d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
     </svg>
-    
+
     @* Filled Heart (shown when favorited) *@
-    <svg class="favorite-icon-filled @sizeClasses transition-all duration-200 @(((bool)isFavorited) ? "" : "hidden") text-red-500"
+    <svg class="favorite-icon-filled @sizeClasses transition-colors duration-150 @(((bool)isFavorited) ? "" : "hidden") text-red-500"
          xmlns="http://www.w3.org/2000/svg"
          viewBox="0 0 24 24"
          fill="currentColor">

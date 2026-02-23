@@ -1,0 +1,85 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Models.Domain
+@model List<Item>
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@if (Model == null || !Model.Any())
+{
+    @await Html.PartialAsync("_EmptyState", new {
+        Icon = "bi-heart",
+        Message = "No saved items yet",
+        ActionLink = "/Items",
+        ActionText = "Browse Marketplace"
+    })
+}
+else
+{
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach (var item in Model)
+        {
+            var thumbUrl = !string.IsNullOrEmpty(item.ImageUrl)
+                ? item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_300,q_auto/")
+                : "";
+
+            <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="group">
+                <div class="bg-white dark:bg-ledger-900 rounded-xl overflow-hidden border border-ledger-100 dark:border-ledger-800 hover:shadow-md dark:hover:shadow-ledger-900/50 transition-shadow duration-150">
+                    <!-- Image -->
+                    <div class="aspect-[4/3] relative overflow-hidden bg-ledger-100 dark:bg-ledger-800">
+                        @if (!string.IsNullOrEmpty(thumbUrl))
+                        {
+                            <img src="@thumbUrl"
+                                 alt="@item.Title"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                 loading="lazy" />
+                        }
+                        else
+                        {
+                            <div class="w-full h-full flex items-center justify-center">
+                                <i class="bi bi-image text-4xl text-ledger-300 dark:text-ledger-600" aria-hidden="true"></i>
+                            </div>
+                        }
+                        <!-- Favorite button (unfavorite) -->
+                        <div class="absolute top-3 right-3 z-10">
+                            @await Html.PartialAsync("_FavoriteButton", new { ItemId = item.Id, IsFavorited = true })
+                        </div>
+                        <!-- Rating badge -->
+                        @if (item.AverageRating.HasValue)
+                        {
+                            <div class="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-white dark:bg-ledger-900 shadow-sm rounded-lg text-sm font-semibold">
+                                <i class="bi bi-star-fill text-amber-400" aria-hidden="true"></i>
+                                <span class="text-ledger-900 dark:text-white">@item.AverageRating.Value.ToString("0.0")</span>
+                            </div>
+                        }
+                    </div>
+                    <!-- Content -->
+                    <div class="p-4">
+                        <h3 class="font-semibold text-sm text-ledger-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors line-clamp-1 mb-1">
+                            @item.Title
+                        </h3>
+                        @if (!string.IsNullOrEmpty(item.Location))
+                        {
+                            <p class="text-xs text-ledger-400 dark:text-ledger-500 flex items-center gap-1 mb-2">
+                                <i class="bi bi-geo-alt"></i> @item.Location
+                            </p>
+                        }
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-base font-bold text-ledger-900 dark:text-white">@CurrencyService.Format(item.Price)</span>
+                                <span class="text-xs text-ledger-400 dark:text-ledger-500 lowercase">/ @Localizer["day"]</span>
+                            </div>
+                            @if (item.DepositAmount > 0)
+                            {
+                                <div class="flex items-center gap-1 px-1.5 py-0.5 bg-ledger-50 dark:bg-ledger-800 rounded border border-ledger-200 dark:border-ledger-700"
+                                     title="@Localizer["Security deposit (refundable)"]">
+                                    <i class="bi bi-shield-check text-emerald-500 text-[10px]"></i>
+                                    <span class="text-[10px] font-bold text-ledger-600 dark:text-ledger-400 uppercase tracking-tight">@CurrencyService.Format(item.DepositAmount.Value)</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+}

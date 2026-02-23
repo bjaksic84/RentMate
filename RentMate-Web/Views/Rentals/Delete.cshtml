@@ -13,7 +13,7 @@
         @await Html.PartialAsync("_BackLink", new { Controller = "Rentals", Action = "MyRentals", Text = Localizer["Back to My Rentals"].Value })
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-lg border border-stone-200 overflow-hidden">
         <!-- Warning Header -->
         <div class="bg-red-50 border-b border-red-100 px-6 py-4">
             <div class="flex items-center gap-3">
@@ -21,7 +21,7 @@
                     <i class="bi bi-exclamation-triangle text-red-600 text-lg"></i>
                 </div>
                 <div>
-                    <h1 class="font-heading text-xl font-bold text-red-900">@Localizer["Cancel Rental"]</h1>
+                    <h1 class="text-xl font-bold text-red-900">@Localizer["Cancel Rental"]</h1>
                     <p class="text-red-600 text-sm">@Localizer["Are you sure you want to cancel this rental?"]</p>
                 </div>
             </div>
@@ -32,36 +32,36 @@
             <div class="space-y-4">
                 <div class="flex gap-4 items-start">
                     @if(!string.IsNullOrEmpty(Model.Item?.ImageUrl)) {
-                        <img src="@Model.Item.ImageUrl" class="w-20 h-20 rounded-xl object-cover shrink-0" />
+                        <img src="@Model.Item.ImageUrl" class="w-20 h-20 rounded-lg object-cover shrink-0" />
                     } else {
-                        <div class="w-20 h-20 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                            <i class="bi bi-image text-slate-300 text-xl"></i>
+                        <div class="w-20 h-20 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
+                            <i class="bi bi-image text-stone-300 text-xl"></i>
                         </div>
                     }
                     <div>
-                        <h2 class="font-heading text-xl font-bold text-slate-900">@Model.Item?.Title</h2>
-                        <p class="text-slate-500 text-sm mt-1">@Localizer["Renter"]: @Model.Renter?.Email</p>
+                        <h2 class="text-xl font-bold text-stone-900">@Model.Item?.Title</h2>
+                        <p class="text-stone-500 text-sm mt-1">@Localizer["Renter"]: @Model.Renter?.Email</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-slate-50 rounded-xl p-4">
-                        <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">@Localizer["Start Date"]</p>
-                        <p class="font-semibold text-slate-900">@Model.StartDate.ToString("dd MMM yyyy")</p>
+                    <div class="bg-stone-50 rounded-lg p-4">
+                        <p class="text-xs text-stone-400 uppercase tracking-wide mb-1">@Localizer["Start Date"]</p>
+                        <p class="font-semibold text-stone-900">@Model.StartDate.ToString("dd MMM yyyy")</p>
                     </div>
-                    <div class="bg-slate-50 rounded-xl p-4">
-                        <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">@Localizer["End Date"]</p>
-                        <p class="font-semibold text-slate-900">@Model.EndDate.ToString("dd MMM yyyy")</p>
+                    <div class="bg-stone-50 rounded-lg p-4">
+                        <p class="text-xs text-stone-400 uppercase tracking-wide mb-1">@Localizer["End Date"]</p>
+                        <p class="font-semibold text-stone-900">@Model.EndDate.ToString("dd MMM yyyy")</p>
                     </div>
                 </div>
 
-                <div class="bg-slate-50 rounded-xl p-4">
-                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">@Localizer["Status"]</p>
-                    <p class="font-semibold text-slate-900">@Localizer[Model.Status.ToString()]</p>
+                <div class="bg-stone-50 rounded-lg p-4">
+                    <p class="text-xs text-stone-400 uppercase tracking-wide mb-1">@Localizer["Status"]</p>
+                    <p class="font-semibold text-stone-900">@Localizer[Model.Status.ToString()]</p>
                 </div>
             </div>
 
-            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <div class="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
                 <div class="flex items-start gap-3">
                     <i class="bi bi-info-circle text-amber-600 mt-0.5"></i>
                     <p class="text-sm text-amber-700">
@@ -72,13 +72,13 @@
         </div>
 
         <!-- Actions -->
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">
-            <a asp-controller="Rentals" asp-action="MyRentals" class="px-6 py-3 border border-slate-200 bg-white rounded-xl text-slate-600 hover:bg-slate-50 transition-colors text-center font-medium">
+        <div class="px-6 py-4 bg-stone-50 border-t border-stone-200 flex flex-col sm:flex-row gap-3 justify-end">
+            <a asp-controller="Rentals" asp-action="MyRentals" class="px-6 py-3 border border-stone-200 bg-white rounded-lg text-stone-600 hover:bg-stone-50 transition-colors duration-150 text-center font-medium">
                 @Localizer["Keep Rental"]
             </a>
             <form asp-action="Delete" class="inline">
                 <input type="hidden" asp-for="Id" />
-                <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center justify-center gap-2">
+                <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors duration-150 flex items-center justify-center gap-2">
                     <i class="bi bi-x-circle"></i>
                     @Localizer["Cancel Rental"]
                 </button>

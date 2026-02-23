@@ -34,7 +34,7 @@
             {
                 var statusType = rental.Status.ToString().ToLower();
                 
-                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                <div class="bg-white rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-shadow duration-150">
                     <!-- Item Image -->
                     <div class="relative h-40 overflow-hidden">
                         @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = rental.Item?.ImageUrl, Size = "sm", Alt = rental.Item?.Title })
@@ -47,36 +47,36 @@
                     
                     <!-- Content -->
                     <div class="p-5">
-                        <h3 class="font-heading text-lg font-bold text-slate-900 truncate">@rental.Item?.Title</h3>
+                        <h3 class="text-lg font-bold text-stone-900 truncate">@rental.Item?.Title</h3>
                         
                         <!-- Date Range -->
-                        <div class="flex items-center justify-between mt-4 py-3 px-4 bg-slate-50 rounded-xl">
+                        <div class="flex items-center justify-between mt-4 py-3 px-4 bg-stone-50 rounded-lg">
                             <div class="text-center">
-                                <p class="text-xs text-slate-400 uppercase tracking-wide">@Localizer["Start"]</p>
-                                <p class="font-semibold text-slate-900">@rental.StartDate.ToString("dd MMM")</p>
+                                <p class="text-xs text-stone-400 uppercase tracking-wide">@Localizer["Start"]</p>
+                                <p class="font-semibold text-stone-900">@rental.StartDate.ToString("dd MMM")</p>
                             </div>
-                            <i class="bi bi-arrow-right text-slate-300"></i>
+                            <i class="bi bi-arrow-right text-stone-300"></i>
                             <div class="text-center">
-                                <p class="text-xs text-slate-400 uppercase tracking-wide">@Localizer["End"]</p>
-                                <p class="font-semibold text-slate-900">@rental.EndDate.ToString("dd MMM")</p>
+                                <p class="text-xs text-stone-400 uppercase tracking-wide">@Localizer["End"]</p>
+                                <p class="font-semibold text-stone-900">@rental.EndDate.ToString("dd MMM")</p>
                             </div>
                         </div>
                         
                         <!-- Price -->
                         <div class="flex items-center justify-between mt-4">
-                            <span class="text-slate-500 text-sm">@Localizer["Total"]</span>
+                            <span class="text-stone-500 text-sm">@Localizer["Total"]</span>
                             <span class="text-lg font-bold text-green-600">@CurrencyService.Format(rental.TotalPrice)</span>
                         </div>
                     </div>
                     
                     <!-- Actions -->
                     <div class="px-5 pb-5 pt-0 space-y-2">
-                        <a asp-action="Details" asp-route-id="@rental.Id" class="block w-full py-2.5 text-center border border-blue-600 text-blue-600 rounded-xl font-medium hover:bg-blue-50 transition-colors">
+                        <a asp-action="Details" asp-route-id="@rental.Id" class="block w-full py-2.5 text-center border border-primary-600 text-primary-600 rounded-lg font-medium hover:bg-primary-50 transition-colors duration-150">
                             @Localizer["View Details"]
                         </a>
                         @if(rental.Status.ToString() == "Accepted")
                         {
-                            <a asp-controller="Payment" asp-action="Checkout" asp-route-rentalId="@rental.Id" class="block w-full py-2.5 text-center bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 shadow-md hover:shadow-lg transition-all">
+                            <a asp-controller="Payment" asp-action="Checkout" asp-route-rentalId="@rental.Id" class="block w-full py-2.5 text-center bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors duration-150">
                                 @Localizer["Pay Now"]
                             </a>
                         }
@@ -84,7 +84,7 @@
                         {
                             <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="block w-full">
                                 <input type="hidden" name="rentalId" value="@rental.Id" />
-                                <button class="block w-full py-2.5 text-center border border-red-200 text-red-600 rounded-xl font-medium hover:bg-red-50 transition-colors">
+                                <button class="block w-full py-2.5 text-center border border-red-200 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors duration-150">
                                     @Localizer["Cancel Rental"]
                                 </button>
                             </form>

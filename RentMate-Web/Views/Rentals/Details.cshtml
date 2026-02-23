@@ -10,9 +10,9 @@
     {
         "Active" => "bg-green-100 border-green-200",
         "Pending" => "bg-amber-100 border-amber-200",
-        "Completed" => "bg-slate-100 border-slate-200",
+        "Completed" => "bg-stone-100 border-stone-200",
         "Cancelled" => "bg-red-100 border-red-200",
-        _ => "bg-blue-100 border-blue-200"
+        _ => "bg-primary-100 border-primary-200"
     };
     var days = (Model.EndDate - Model.StartDate).Days + 1;
 }
@@ -23,7 +23,7 @@
         @await Html.PartialAsync("_BackLink", new { Controller = "Rentals", Action = "MyRentals", Text = Localizer["Back to My Rentals"].Value })
     </div>
 
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-lg border border-stone-200 overflow-hidden">
         <!-- Status Header -->
         <div class="@statusBorderClass border-b px-6 py-4 text-center">
             @await Html.PartialAsync("_StatusBadge", new { Type = statusType, Text = Localizer[Model.Status.ToString()].Value })
@@ -32,51 +32,51 @@
         <div class="p-6">
             <!-- Item Info -->
             <div class="flex gap-4 items-start mb-6">
-                @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.Item?.ImageUrl, Size = "thumb", Alt = Model.Item?.Title, CssClass = "w-20 h-20 rounded-xl shrink-0" })
+                @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = Model.Item?.ImageUrl, Size = "thumb", Alt = Model.Item?.Title, CssClass = "w-20 h-20 rounded-lg shrink-0" })
                 <div class="flex-1 min-w-0">
-                    <h1 class="font-heading text-2xl font-bold text-slate-900">@Model.Item?.Title</h1>
-                    <p class="text-slate-400 text-sm mt-1">@Localizer["Rental ID"]: #@Model.Id</p>
+                    <h1 class="text-2xl font-bold text-stone-900">@Model.Item?.Title</h1>
+                    <p class="text-stone-400 text-sm mt-1">@Localizer["Rental ID"]: #@Model.Id</p>
                 </div>
             </div>
 
             <!-- Details Grid -->
             <div class="grid sm:grid-cols-2 gap-4 mb-6">
-                <div class="bg-slate-50 rounded-xl p-4">
-                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">@Localizer["Renter"]</p>
-                    <p class="font-semibold text-slate-900">@Model.Renter?.Email</p>
+                <div class="bg-stone-50 rounded-lg p-4">
+                    <p class="text-xs text-stone-400 uppercase tracking-wide mb-1">@Localizer["Renter"]</p>
+                    <p class="font-semibold text-stone-900">@Model.Renter?.Email</p>
                 </div>
-                <div class="bg-slate-50 rounded-xl p-4">
-                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-1">@Localizer["Total Price"]</p>
+                <div class="bg-stone-50 rounded-lg p-4">
+                    <p class="text-xs text-stone-400 uppercase tracking-wide mb-1">@Localizer["Total Price"]</p>
                     <p class="font-semibold text-green-600 text-lg">@CurrencyService.Format(Model.TotalPrice)</p>
                 </div>
             </div>
 
             <!-- Date Range -->
-            <div class="flex items-center justify-between py-4 px-6 bg-slate-50 rounded-xl mb-6">
+            <div class="flex items-center justify-between py-4 px-6 bg-stone-50 rounded-lg mb-6">
                 <div class="text-center">
-                    <p class="text-xs text-slate-400 uppercase tracking-wide">@Localizer["From"]</p>
-                    <p class="font-bold text-slate-900 text-lg">@Model.StartDate.ToString("dd MMM yyyy")</p>
+                    <p class="text-xs text-stone-400 uppercase tracking-wide">@Localizer["From"]</p>
+                    <p class="font-bold text-stone-900 text-lg">@Model.StartDate.ToString("dd MMM yyyy")</p>
                 </div>
                 <div class="flex flex-col items-center">
-                    <div class="w-12 h-0.5 bg-slate-200"></div>
-                    <span class="text-xs text-slate-400 mt-1">@days @Localizer["days"]</span>
+                    <div class="w-12 h-0.5 bg-stone-200"></div>
+                    <span class="text-xs text-stone-400 mt-1">@days @Localizer["days"]</span>
                 </div>
                 <div class="text-center">
-                    <p class="text-xs text-slate-400 uppercase tracking-wide">@Localizer["To"]</p>
-                    <p class="font-bold text-slate-900 text-lg">@Model.EndDate.ToString("dd MMM yyyy")</p>
+                    <p class="text-xs text-stone-400 uppercase tracking-wide">@Localizer["To"]</p>
+                    <p class="font-bold text-stone-900 text-lg">@Model.EndDate.ToString("dd MMM yyyy")</p>
                 </div>
             </div>
 
             <!-- Owner Contact -->
             @if(Model.Item?.User != null)
             {
-                <div class="border border-slate-200 rounded-xl p-4 mb-6">
-                    <p class="text-xs text-slate-400 uppercase tracking-wide mb-3">@Localizer["Item Owner"]</p>
+                <div class="border border-stone-200 rounded-lg p-4 mb-6">
+                    <p class="text-xs text-stone-400 uppercase tracking-wide mb-3">@Localizer["Item Owner"]</p>
                     <div class="flex items-center gap-3">
                         <img src="@(Model.Item.User.ProfilePictureUrl ?? "https://via.placeholder.com/40")" class="w-10 h-10 rounded-full object-cover" />
                         <div>
-                            <p class="font-semibold text-slate-900">@Model.Item.User.FirstName @Model.Item.User.LastName</p>
-                            <p class="text-sm text-slate-500">@Model.Item.User.Email</p>
+                            <p class="font-semibold text-stone-900">@Model.Item.User.FirstName @Model.Item.User.LastName</p>
+                            <p class="text-sm text-stone-500">@Model.Item.User.Email</p>
                         </div>
                     </div>
                 </div>
@@ -84,11 +84,11 @@
         </div>
 
         <!-- Actions -->
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row gap-3">
-            <a asp-controller="Items" asp-action="Details" asp-route-id="@Model.ItemId" class="flex-1 py-3 text-center border border-slate-200 bg-white text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors">
+        <div class="px-6 py-4 bg-stone-50 border-t border-stone-200 flex flex-col sm:flex-row gap-3">
+            <a asp-controller="Items" asp-action="Details" asp-route-id="@Model.ItemId" class="flex-1 py-3 text-center border border-stone-200 bg-white text-stone-600 rounded-lg font-medium hover:bg-stone-50 transition-colors duration-150">
                 @Localizer["View Item"]
             </a>
-            <a asp-controller="Rentals" asp-action="MyRentals" class="flex-1 py-3 text-center bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+            <a asp-controller="Rentals" asp-action="MyRentals" class="flex-1 py-3 text-center bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-150">
                 @Localizer["Back to rentals"]
             </a>
         </div>

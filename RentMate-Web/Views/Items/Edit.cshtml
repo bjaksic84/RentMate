@@ -11,36 +11,36 @@
     <!-- Header -->
     <div class="mb-8">
         @await Html.PartialAsync("_BackLink", new { Controller = "Dashboard", Action = "UserDashboard", Text = Localizer["Back to Dashboard"].Value })
-        <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["Edit Item"]</h1>
-        <p class="text-slate-500 mt-1">@Localizer["Update your listing details"]</p>
+        <h1 class="text-3xl font-bold text-stone-900">@Localizer["Edit Item"]</h1>
+        <p class="text-stone-500 mt-1">@Localizer["Update your listing details"]</p>
     </div>
 
     <form asp-action="Edit" enctype="multipart/form-data" class="space-y-8">
-        <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm"></div>
+        <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm"></div>
         <input type="hidden" asp-for="Id" />
         <input type="hidden" asp-for="ImageUrl" />
 
         <!-- Image Section -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-            <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Item Photo"]</h2>
+        <div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-neutral-700 p-6">
+            <h2 class="text-lg font-semibold text-stone-900 mb-4">@Localizer["Item Photo"]</h2>
             
             <div class="flex flex-col sm:flex-row gap-6 items-start">
                 <!-- Image Preview -->
                 <div class="shrink-0">
                     <img id="imgPreview" 
                          src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "https://via.placeholder.com/200x200?text=No+Image" : Model.ImageUrl)" 
-                         class="w-48 h-48 rounded-xl object-cover border-2 border-slate-200" />
+                         class="w-48 h-48 rounded-lg object-cover border-2 border-stone-200" />
                 </div>
                 
                 <!-- Upload Buttons -->
                 <div class="flex-1 space-y-3">
-                    <p class="text-sm text-slate-500 mb-3">@Localizer["Replace image"]:</p>
-                    <label class="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:bg-blue-50 cursor-pointer transition-colors">
+                    <p class="text-sm text-stone-500 mb-3">@Localizer["Replace image"]:</p>
+                    <label class="flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed border-primary-300 rounded-lg text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors duration-150">
                         <i class="bi bi-camera text-xl"></i>
                         <span class="font-medium">@Localizer["Take Photo"]</span>
                         <input type="file" name="image" id="cameraInput" class="hidden" accept="image/*" capture="environment" onchange="previewImage(this)" />
                     </label>
-                    <label class="flex items-center justify-center gap-2 w-full px-4 py-3 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 cursor-pointer transition-colors">
+                    <label class="flex items-center justify-center gap-2 w-full px-4 py-3 border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50 cursor-pointer transition-colors duration-150">
                         <i class="bi bi-image text-xl"></i>
                         <span class="font-medium">@Localizer["Choose File"]</span>
                         <input type="file" name="image" id="fileInput" class="hidden" accept="image/*" onchange="previewImage(this)" />
@@ -50,83 +50,83 @@
         </div>
 
         <!-- Basic Info -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-            <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Basic Information"]</h2>
+        <div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-neutral-700 p-6">
+            <h2 class="text-lg font-semibold text-stone-900 mb-4">@Localizer["Basic Information"]</h2>
             
             <div class="space-y-4">
                 <div>
-                    <label asp-for="Title" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Title"]</label>
-                    <input asp-for="Title" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                    <label asp-for="Title" class="block text-sm font-medium text-stone-700 mb-1">@Localizer["Title"]</label>
+                    <input asp-for="Title" class="w-full px-4 py-3 border border-stone-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" />
                     <span asp-validation-for="Title" class="text-red-500 text-sm mt-1"></span>
                 </div>
                 
                 <div class="grid sm:grid-cols-2 gap-4">
                     <div>
-                        <label asp-for="Category" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Category"]</label>
+                        <label asp-for="Category" class="block text-sm font-medium text-stone-700 mb-1">@Localizer["Category"]</label>
                         @await Html.PartialAsync("_CategorySelect", new { Name = "Category", SelectedValue = Model?.Category })
                         <span asp-validation-for="Category" class="text-red-500 text-sm mt-1"></span>
                     </div>
                     <div>
-                        <label asp-for="Price" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Price per day"]</label>
+                        <label asp-for="Price" class="block text-sm font-medium text-stone-700 mb-1">@Localizer["Price per day"]</label>
                         <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">@CurrencyService.GetSymbol()</span>
-                            <input asp-for="Price" type="number" step="0.01" min="0" class="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">@CurrencyService.GetSymbol()</span>
+                            <input asp-for="Price" type="number" step="0.01" min="0" class="w-full pl-10 pr-4 py-3 border border-stone-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" />
                         </div>
                         <span asp-validation-for="Price" class="text-red-500 text-sm mt-1"></span>
                     </div>
                 </div>
                 
                 <div>
-                    <label asp-for="Description" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Description"]</label>
-                    <textarea asp-for="Description" rows="4" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"></textarea>
+                    <label asp-for="Description" class="block text-sm font-medium text-stone-700 mb-1">@Localizer["Description"]</label>
+                    <textarea asp-for="Description" rows="4" class="w-full px-4 py-3 border border-stone-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none"></textarea>
                     <span asp-validation-for="Description" class="text-red-500 text-sm mt-1"></span>
                 </div>
             </div>
         </div>
 
         <!-- Rental Settings -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-            <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-1">@Localizer["Rental Settings"]</h2>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">@Localizer["Configure deposit, extensions, and rental limits"]</p>
+        <div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-neutral-700 p-6">
+            <h2 class="text-lg font-semibold text-stone-900 dark:text-white mb-1">@Localizer["Rental Settings"]</h2>
+            <p class="text-sm text-stone-500 dark:text-stone-400 mb-4">@Localizer["Configure deposit, extensions, and rental limits"]</p>
 
             <div class="space-y-4">
                 <div class="grid sm:grid-cols-2 gap-4">
                     <div>
-                        <label asp-for="DepositAmount" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Deposit Amount"]</label>
+                        <label asp-for="DepositAmount" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">@Localizer["Deposit Amount"]</label>
                         <div class="relative">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">@CurrencyService.GetSymbol()</span>
-                            <input asp-for="DepositAmount" type="number" step="0.01" min="0" class="w-full pl-10 pr-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="0.00" />
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">@CurrencyService.GetSymbol()</span>
+                            <input asp-for="DepositAmount" type="number" step="0.01" min="0" class="w-full pl-10 pr-4 py-3 border border-stone-200 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="0.00" />
                         </div>
-                        <p class="text-xs text-slate-400 mt-1">@Localizer["Leave empty for no deposit requirement"]</p>
+                        <p class="text-xs text-stone-400 mt-1">@Localizer["Leave empty for no deposit requirement"]</p>
                     </div>
                     <div>
-                        <label asp-for="MaxRentalDays" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Max Rental Days"]</label>
-                        <input asp-for="MaxRentalDays" type="number" min="1" class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="@Localizer["No limit"]" />
-                        <p class="text-xs text-slate-400 mt-1">@Localizer["Leave empty for no limit"]</p>
+                        <label asp-for="MaxRentalDays" class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">@Localizer["Max Rental Days"]</label>
+                        <input asp-for="MaxRentalDays" type="number" min="1" class="w-full px-4 py-3 border border-stone-200 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="@Localizer["No limit"]" />
+                        <p class="text-xs text-stone-400 mt-1">@Localizer["Leave empty for no limit"]</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                <div class="flex items-center gap-3 p-4 bg-stone-50 dark:bg-neutral-700/50 rounded-lg">
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input asp-for="AutoApproveExtensions" type="checkbox" class="sr-only peer" />
-                        <div class="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-stone-200 peer-focus:ring-2 peer-focus:ring-primary-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                     </label>
                     <div>
-                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Auto-approve Extensions"]</p>
-                        <p class="text-xs text-slate-400">@Localizer["Automatically approve extension requests when no scheduling conflict exists"]</p>
+                        <p class="text-sm font-medium text-stone-700 dark:text-stone-300">@Localizer["Auto-approve Extensions"]</p>
+                        <p class="text-xs text-stone-400">@Localizer["Automatically approve extension requests when no scheduling conflict exists"]</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Accessories -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+        <div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-neutral-700 p-6">
             <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white">@Localizer["Accessories"]</h2>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Add optional extras renters can include"]</p>
+                    <h2 class="text-lg font-semibold text-stone-900 dark:text-white">@Localizer["Accessories"]</h2>
+                    <p class="text-sm text-stone-500 dark:text-stone-400">@Localizer["Add optional extras renters can include"]</p>
                 </div>
-                <button type="button" id="addAccessoryBtn" class="px-4 py-2 text-sm font-medium text-blue-600 border border-blue-200 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                <button type="button" id="addAccessoryBtn" class="px-4 py-2 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-150">
                     <i class="bi bi-plus-lg mr-1"></i>@Localizer["Add"]
                 </button>
             </div>
@@ -134,52 +134,52 @@
             <div id="accessoriesList" class="space-y-3">
                 <!-- Populated by JS -->
             </div>
-            <div id="noAccessories" class="text-center py-8 text-slate-400 hidden">
+            <div id="noAccessories" class="text-center py-8 text-stone-400 hidden">
                 <i class="bi bi-puzzle text-3xl mb-2 block"></i>
                 <p class="text-sm">@Localizer["No accessories yet. Add extras like chargers, cases, or bags."]</p>
             </div>
 
             <!-- Add/Edit Form (hidden by default) -->
-            <div id="accessoryForm" class="hidden mt-4 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600">
+            <div id="accessoryForm" class="hidden mt-4 p-4 bg-stone-50 dark:bg-neutral-700/50 rounded-lg border border-stone-200 dark:border-neutral-600">
                 <input type="hidden" id="accEditId" value="" />
                 <div class="grid sm:grid-cols-2 gap-3 mb-3">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Accessory Name"]</label>
-                        <input id="accName" type="text" maxlength="100" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="@Localizer["e.g. Charger, Case, Tripod"]" />
+                        <label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">@Localizer["Accessory Name"]</label>
+                        <input id="accName" type="text" maxlength="100" class="w-full px-3 py-2 border border-stone-200 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-primary-500" placeholder="@Localizer["e.g. Charger, Case, Tripod"]" />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Daily Price"]</label>
+                        <label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">@Localizer["Daily Price"]</label>
                         <div class="relative">
-                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">@CurrencyService.GetSymbol()</span>
-                            <input id="accPrice" type="number" step="0.01" min="0" class="w-full pl-8 pr-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-blue-500" placeholder="0.00" />
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-sm">@CurrencyService.GetSymbol()</span>
+                            <input id="accPrice" type="number" step="0.01" min="0" class="w-full pl-8 pr-3 py-2 border border-stone-200 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-primary-500" placeholder="0.00" />
                         </div>
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Description"] <span class="text-slate-400 font-normal">(@Localizer["Optional"])</span></label>
-                    <input id="accDesc" type="text" maxlength="500" class="w-full px-3 py-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                    <label class="block text-sm font-medium text-stone-700 dark:text-stone-300 mb-1">@Localizer["Description"] <span class="text-stone-400 font-normal">(@Localizer["Optional"])</span></label>
+                    <input id="accDesc" type="text" maxlength="500" class="w-full px-3 py-2 border border-stone-200 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white rounded-lg text-sm focus:ring-2 focus:ring-primary-500" />
                 </div>
                 <div class="flex gap-2 justify-end">
-                    <button type="button" id="accCancelBtn" class="px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors">@Localizer["Cancel"]</button>
-                    <button type="button" id="accSaveBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">@Localizer["Save"]</button>
+                    <button type="button" id="accCancelBtn" class="px-4 py-2 text-sm text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-neutral-600 rounded-lg transition-colors duration-150">@Localizer["Cancel"]</button>
+                    <button type="button" id="accSaveBtn" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors duration-150">@Localizer["Save"]</button>
                 </div>
             </div>
         </div>
 
         <!-- Location -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-            <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-4">@Localizer["Pickup Location"]</h2>
+        <div class="bg-white dark:bg-stone-800 rounded-lg border border-stone-200 dark:border-neutral-700 p-6">
+            <h2 class="text-lg font-semibold text-stone-900 dark:text-white mb-4">@Localizer["Pickup Location"]</h2>
             
             <div>
-                <label asp-for="Location" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Address"]</label>
+                <label asp-for="Location" class="block text-sm font-medium text-stone-700 mb-1">@Localizer["Address"]</label>
                 <div class="flex gap-2">
-                    <input asp-for="Location" id="locationInput" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" placeholder="@Localizer["e.g. Ljubljana, Slovenia"]" />
-                    <button type="button" id="getLocationBtn" onclick="getCurrentLocation()" class="px-4 py-3 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2">
+                    <input asp-for="Location" id="locationInput" class="flex-1 px-4 py-3 border border-stone-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" placeholder="@Localizer["e.g. Ljubljana, Slovenia"]" />
+                    <button type="button" id="getLocationBtn" onclick="getCurrentLocation()" class="px-4 py-3 border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors duration-150 flex items-center gap-2">
                         <i class="bi bi-geo-alt"></i>
                         <span class="hidden sm:inline">@Localizer["Use My Location"]</span>
                     </button>
                 </div>
-                <p class="text-sm text-slate-400 mt-2">@Localizer["Enter a pickup address or use your current location"]</p>
+                <p class="text-sm text-stone-400 mt-2">@Localizer["Enter a pickup address or use your current location"]</p>
                 <span asp-validation-for="Location" class="text-red-500 text-sm"></span>
                 <div id="locationStatus" class="text-sm mt-1"></div>
             </div>
@@ -188,15 +188,15 @@
         <!-- Actions -->
         <div class="flex flex-col sm:flex-row gap-3 justify-between pt-4">
             <a asp-controller="Items" asp-action="Delete" asp-route-id="@Model.Id"
-               class="px-5 py-3 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-center font-medium flex items-center gap-2">
+               class="px-5 py-3 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-150 text-center font-medium flex items-center gap-2">
                 <i class="bi bi-trash"></i>
                 @Localizer["Delete Item"]
             </a>
             <div class="flex flex-col sm:flex-row gap-3">
-                <a asp-controller="Dashboard" asp-action="UserDashboard" class="px-6 py-3 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors text-center font-medium">
+                <a asp-controller="Dashboard" asp-action="UserDashboard" class="px-6 py-3 border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors duration-150 text-center font-medium">
                     @Localizer["Cancel"]
                 </a>
-                <button type="submit" class="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-md transition-all">
+                <button type="submit" class="px-8 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-150">
                     @Localizer["Save changes"]
                 </button>
             </div>
@@ -206,22 +206,22 @@
 
 <!-- GDPR Location Consent Modal -->
 <div id="locationConsentModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeLocationModal()"></div>
+    <div class="absolute inset-0 bg-black/50" onclick="closeLocationModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 m-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 m-4">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <i class="bi bi-geo-alt text-blue-600 text-xl"></i>
+                <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                    <i class="bi bi-geo-alt text-primary-600 text-xl"></i>
                 </div>
-                <h3 class="font-heading text-xl font-bold text-slate-900">@Localizer["Location Access"]</h3>
+                <h3 class="text-xl font-bold text-stone-900">@Localizer["Location Access"]</h3>
             </div>
-            <p class="text-slate-600 mb-2">@Localizer["We would like to access your location to set the default pickup location for your item."]</p>
-            <p class="text-sm text-slate-400 mb-6">@Localizer["Your location data will only be used to display the pickup location to potential renters. You can always enter a custom address instead."]</p>
+            <p class="text-stone-600 mb-2">@Localizer["We would like to access your location to set the default pickup location for your item."]</p>
+            <p class="text-sm text-stone-400 mb-6">@Localizer["Your location data will only be used to display the pickup location to potential renters. You can always enter a custom address instead."]</p>
             <div class="flex gap-3">
-                <button type="button" onclick="closeLocationModal()" class="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
+                <button type="button" onclick="closeLocationModal()" class="flex-1 px-4 py-3 border border-stone-200 rounded-lg text-stone-600 hover:bg-stone-50 transition-colors duration-150 font-medium">
                     @Localizer["No, thanks"]
                 </button>
-                <button type="button" onclick="requestGeolocation()" class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                <button type="button" onclick="requestGeolocation()" class="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-150">
                     @Localizer["Allow"]
                 </button>
             </div>
@@ -263,7 +263,7 @@
 
         function requestGeolocation() {
             closeLocationModal();
-            showLocationStatus('@Localizer["Getting your location..."]', 'text-blue-500');
+            showLocationStatus('@Localizer["Getting your location..."]', 'text-primary-500');
             document.getElementById('getLocationBtn').disabled = true;
             
             navigator.geolocation.getCurrentPosition(
@@ -349,22 +349,22 @@
                 noMsg.classList.add('hidden');
                 accessories.forEach(function(a) {
                     var row = document.createElement('div');
-                    row.className = 'flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl group';
+                    row.className = 'flex items-center gap-3 p-3 bg-stone-50 dark:bg-neutral-700/50 rounded-lg group';
                     row.setAttribute('data-id', a.id);
                     var availBadge = a.isAvailable
                         ? '<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">@Localizer["Available"]</span>'
-                        : '<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-slate-200 text-slate-500">@Localizer["Unavailable"]</span>';
+                        : '<span class="px-2 py-0.5 text-xs font-medium rounded-full bg-stone-200 text-stone-500">@Localizer["Unavailable"]</span>';
                     row.innerHTML = '<div class="flex-1 min-w-0">' +
                         '<div class="flex items-center gap-2">' +
-                        '<p class="text-sm font-medium text-slate-900 dark:text-white truncate">' + escapeHtml(a.name) + '</p>' +
+                        '<p class="text-sm font-medium text-stone-900 dark:text-white truncate">' + escapeHtml(a.name) + '</p>' +
                         availBadge +
                         '</div>' +
-                        (a.description ? '<p class="text-xs text-slate-400 truncate mt-0.5">' + escapeHtml(a.description) + '</p>' : '') +
+                        (a.description ? '<p class="text-xs text-stone-400 truncate mt-0.5">' + escapeHtml(a.description) + '</p>' : '') +
                         '</div>' +
-                        '<p class="text-sm font-semibold text-slate-900 dark:text-white whitespace-nowrap">' + currencySymbol + parseFloat(a.dailyPrice).toFixed(2) + '<span class="text-xs font-normal text-slate-400">/@Localizer["day"]</span></p>' +
+                        '<p class="text-sm font-semibold text-stone-900 dark:text-white whitespace-nowrap">' + currencySymbol + parseFloat(a.dailyPrice).toFixed(2) + '<span class="text-xs font-normal text-stone-400">/@Localizer["day"]</span></p>' +
                         '<div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">' +
-                        '<button type="button" class="acc-edit p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20" data-id="' + a.id + '"><i class="bi bi-pencil text-sm"></i></button>' +
-                        '<button type="button" class="acc-delete p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" data-id="' + a.id + '"><i class="bi bi-trash text-sm"></i></button>' +
+                        '<button type="button" class="acc-edit p-1.5 text-stone-400 hover:text-primary-600 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20" data-id="' + a.id + '"><i class="bi bi-pencil text-sm"></i></button>' +
+                        '<button type="button" class="acc-delete p-1.5 text-stone-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20" data-id="' + a.id + '"><i class="bi bi-trash text-sm"></i></button>' +
                         '</div>';
                     list.appendChild(row);
                 });

@@ -8,19 +8,19 @@
 
 <div class="min-h-[60vh] flex items-center justify-center px-4">
     <div class="text-center max-w-md">
-        <div class="w-24 h-24 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
-            <i class="bi bi-emoji-frown text-5xl text-blue-500"></i>
+        <div class="w-24 h-24 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
+            <i class="bi bi-emoji-frown text-5xl text-primary-500"></i>
         </div>
-        <h1 class="font-heading text-6xl font-bold text-slate-900 mb-2">@Localizer["Oops!"]</h1>
-        <h2 class="font-heading text-2xl font-semibold text-slate-700 mb-4">@Localizer["Something went wrong"]</h2>
-        <p class="text-slate-500 mb-8">@Localizer["We're sorry, but something unexpected happened. Please try again later."]</p>
-        
+        <h1 class="text-6xl font-bold text-stone-900 mb-2">@Localizer["Oops!"]</h1>
+        <h2 class="text-2xl font-semibold text-stone-700 mb-4">@Localizer["Something went wrong"]</h2>
+        <p class="text-stone-500 mb-8">@Localizer["We're sorry, but something unexpected happened. Please try again later."]</p>
+
         @if(Model?.RequestId != null)
         {
-            <p class="text-sm text-slate-400 mb-6 font-mono">Request ID: @Model.RequestId</p>
+            <p class="text-sm text-stone-400 mb-6 font-mono">Request ID: @Model.RequestId</p>
         }
-        
-        <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-md transition-all">
+
+        <a href="/" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-150">
             <i class="bi bi-house"></i>
             @Localizer["Back to Home"]
         </a>

@@ -18,54 +18,54 @@
         public string? Description { get; set; }
         public decimal? Amount { get; set; }
         public string Icon { get; set; } = "";
-        public string Color { get; set; } = "slate";
+        public string Color { get; set; } = "stone";
         public string? Url { get; set; }
     }
 }
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Breadcrumbs -->
-    <nav class="flex mb-6 text-sm font-medium text-slate-500" aria-label="Breadcrumb">
+    <nav class="flex mb-6 text-sm font-medium text-ledger-500" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
-            <li><a asp-action="UserDashboard" class="hover:text-blue-600 transition-colors">@Localizer["Dashboard"]</a></li>
+            <li><a asp-action="UserDashboard" class="hover:text-primary-600 transition-colors">@Localizer["Dashboard"]</a></li>
             <li><i class="bi bi-chevron-right mx-2 text-[10px]"></i></li>
-            <li class="text-slate-900 dark:text-white">@Localizer["Dispute History"]</li>
+            <li class="text-ledger-900 dark:text-white">@Localizer["Dispute History"]</li>
         </ol>
     </nav>
 
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h1 class="font-heading text-3xl font-bold text-slate-900 dark:text-white">@Localizer["Dispute History"]</h1>
-            <p class="text-slate-500 dark:text-slate-400 mt-1">@Localizer["Review the resolution process for rental"] #@Model.Id</p>
+            <h1 class="text-3xl font-bold text-ledger-900 dark:text-white">@Localizer["Dispute History"]</h1>
+            <p class="text-ledger-500 dark:text-ledger-400 mt-1">@Localizer["Review the resolution process for rental"] #@Model.Id</p>
         </div>
-        <div class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-full border border-slate-200 dark:border-slate-700 uppercase tracking-widest">
+        <div class="px-3 py-1 bg-ledger-100 dark:bg-ledger-800 text-ledger-600 dark:text-ledger-400 text-xs font-bold rounded-full border border-ledger-200 dark:border-neutral-700 uppercase tracking-widest">
             @Model.Deposit?.Status.ToString()
         </div>
     </div>
 
     <!-- Rental Context -->
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 mb-8 shadow-sm">
+    <div class="bg-white dark:bg-ledger-900 rounded-lg border border-ledger-200 dark:border-neutral-700 p-6 mb-8 shadow-sm">
         <div class="flex items-center gap-4">
             @if (!string.IsNullOrEmpty(Model.Item?.ImageUrl))
             {
-                <img src="@Model.Item.ImageUrl" class="w-16 h-16 rounded-xl object-cover shadow-sm" />
+                <img src="@Model.Item.ImageUrl" class="w-16 h-16 rounded-lg object-cover shadow-sm" />
             }
             <div class="flex-1 min-w-0">
-                <h3 class="font-bold text-slate-900 dark:text-white text-lg truncate">@Model.Item?.Title</h3>
-                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-slate-500 dark:text-slate-400">
+                <h3 class="font-bold text-ledger-900 dark:text-white text-lg truncate">@Model.Item?.Title</h3>
+                <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-ledger-500 dark:text-ledger-400">
                     <span><i class="bi bi-calendar-range mr-1"></i> @Model.StartDate.ToString("dd MMM") &rarr; @Model.EndDate.ToString("dd MMM yyyy")</span>
                     <span><i class="bi bi-shop mr-1"></i> @Model.Owner?.UserName</span>
                 </div>
             </div>
             <div class="text-right">
-                <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">@Localizer["Final Charge"]</p>
-                <p class="text-lg font-bold text-slate-900 dark:text-white">@CurrencyService.Format(Model.Deposit?.ChargedAmount ?? 0)</p>
+                <p class="text-xs text-ledger-400 uppercase font-bold tracking-wider">@Localizer["Final Charge"]</p>
+                <p class="text-lg font-bold text-ledger-900 dark:text-white">@CurrencyService.Format(Model.Deposit?.ChargedAmount ?? 0)</p>
             </div>
         </div>
     </div>
 
     <!-- Timeline -->
-    <div class="relative space-y-8 pl-8 before:absolute before:left-3.5 before:top-2 before:bottom-0 before:w-0.5 before:bg-slate-200 dark:before:bg-slate-700">
+    <div class="relative space-y-8 pl-8 before:absolute before:left-3.5 before:top-2 before:bottom-0 before:w-0.5 before:bg-ledger-200 dark:before:bg-neutral-700">
         @{
             var updates = new List<TimelineItem>();
             var deposit = Model.Deposit;
@@ -129,7 +129,7 @@
                         ActorRole = "System",
                         Description = Localizer["Case escalated for admin review."].Value,
                         Icon = "bi-shield-exclamation",
-                        Color = "blue"
+                        Color = "primary"
                     });
                 }
 
@@ -164,7 +164,7 @@
                             Description = ev.Notes,
                             Url = ev.Url,
                             Icon = "bi-image",
-                            Color = "slate"
+                            Color = "stone"
                         });
                     }
                 }
@@ -177,38 +177,38 @@
         {
             <div class="relative group">
                 <!-- Node -->
-                <div class="absolute -left-[45px] top-1 w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 bg-@(update.Color)-100 dark:bg-@(update.Color)-900/50 flex items-center justify-center text-@(update.Color)-600 dark:text-@(update.Color)-400 z-10 transition-all group-hover:scale-110 shadow-sm">
+                <div class="absolute -left-[45px] top-1 w-8 h-8 rounded-full border-2 border-white dark:border-neutral-700 bg-@(update.Color)-100 dark:bg-@(update.Color)-900/50 flex items-center justify-center text-@(update.Color)-600 dark:text-@(update.Color)-400 z-10 transition-colors duration-150 group-hover:scale-110 shadow-sm">
                     <i class="bi @(update.Icon) text-sm"></i>
                 </div>
 
                 <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
                     <!-- Date Desktop -->
                     <div class="hidden sm:block w-32 pt-2 text-right">
-                        <p class="text-xs font-bold text-slate-400">@update.Date.ToString("MMM dd")</p>
-                        <p class="text-[10px] text-slate-300">@update.Date.ToString("HH:mm")</p>
+                        <p class="text-xs font-bold text-ledger-400">@update.Date.ToString("MMM dd")</p>
+                        <p class="text-[10px] text-ledger-300">@update.Date.ToString("HH:mm")</p>
                     </div>
 
                     <!-- Content Card -->
-                    <div class="flex-1 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm transition-all hover:shadow-md">
+                    <div class="flex-1 bg-white dark:bg-ledger-900 rounded-lg border border-ledger-200 dark:border-neutral-700 p-5 shadow-sm transition-colors duration-150 hover:shadow-md">
                         <div class="flex justify-between items-start mb-3">
                             <div>
-                                <h5 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wide">@update.Title</h5>
+                                <h5 class="text-sm font-bold text-ledger-900 dark:text-white uppercase tracking-wide">@update.Title</h5>
                                 <div class="flex items-center gap-2 mt-1">
-                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 uppercase tracking-tighter">
+                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ledger-100 dark:bg-ledger-800 text-ledger-500 dark:text-ledger-400 uppercase tracking-tighter">
                                         @update.ActorRole
                                     </span>
-                                    <span class="text-xs text-slate-400">@update.ActorName</span>
+                                    <span class="text-xs text-ledger-400">@update.ActorName</span>
                                 </div>
                             </div>
                             <!-- Date Mobile -->
-                            <span class="sm:hidden text-[10px] font-bold text-slate-400">
+                            <span class="sm:hidden text-[10px] font-bold text-ledger-400">
                                 @update.Date.ToString("MMM dd, HH:mm")
                             </span>
                         </div>
 
                         @if (!string.IsNullOrEmpty(update.Description))
                         {
-                            <div class="text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800 italic">
+                            <div class="text-sm text-ledger-600 dark:text-ledger-300 bg-ledger-50 dark:bg-ledger-800/50 p-4 rounded-lg border border-ledger-200 dark:border-neutral-700 italic">
                                 "@update.Description"
                             </div>
                         }
@@ -216,15 +216,15 @@
                         @if (update.Amount != null)
                         {
                             <div class="mt-4 flex items-center gap-2">
-                                <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">@Localizer["Amount"]:</span>
-                                <span class="text-sm font-bold text-slate-900 dark:text-white">@CurrencyService.Format(update.Amount.Value)</span>
+                                <span class="text-[10px] uppercase font-bold text-ledger-400 tracking-wider">@Localizer["Amount"]:</span>
+                                <span class="text-sm font-bold text-ledger-900 dark:text-white">@CurrencyService.Format(update.Amount.Value)</span>
                             </div>
                         }
 
                         @if (!string.IsNullOrEmpty(update.Url))
                         {
                             <div class="mt-4">
-                                <a href="@update.Url" target="_blank" class="block w-full max-w-sm rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:opacity-95 transition-opacity">
+                                <a href="@update.Url" target="_blank" class="block w-full max-w-sm rounded-lg overflow-hidden border border-ledger-200 dark:border-neutral-700 hover:opacity-95 transition-opacity">
                                     <img src="@update.Url" alt="Evidence" class="w-full h-auto object-cover" />
                                 </a>
                             </div>
@@ -236,8 +236,8 @@
     </div>
 
     <!-- Back Button -->
-    <div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-center">
-        <a asp-action="UserDashboard" class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all shadow-lg hover:shadow-slate-400/20">
+    <div class="mt-12 pt-8 border-t border-ledger-200 dark:border-neutral-700 flex justify-center">
+        <a asp-action="UserDashboard" class="inline-flex items-center gap-2 px-6 py-2.5 bg-ledger-900 dark:bg-ledger-800 text-white font-bold rounded-lg hover:bg-ledger-800 dark:hover:bg-neutral-700 transition-colors duration-150 shadow-lg hover:shadow-stone-400/20">
             <i class="bi bi-house-fill"></i>
             @Localizer["Return to Dashboard"]
         </a>

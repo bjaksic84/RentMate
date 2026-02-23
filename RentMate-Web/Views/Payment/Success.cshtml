@@ -7,35 +7,35 @@
 }
 
 <div class="max-w-2xl mx-auto px-4 py-16 text-center">
-    <div class="bg-white rounded-2xl shadow-xl p-8 sm:p-12">
+    <div class="bg-white rounded-lg shadow-xl p-8 sm:p-12">
         <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <i class="bi bi-check-lg text-4xl text-green-600"></i>
         </div>
         
-        <h1 class="text-3xl font-bold text-slate-900 mb-4">Payment Successful!</h1>
-        <p class="text-slate-600 mb-8 text-lg">
-            Your payment for <span class="font-semibold text-slate-900">@Model.Item?.Title</span> has been processed successfully.
+        <h1 class="text-3xl font-bold text-stone-900 mb-4">Payment Successful!</h1>
+        <p class="text-stone-600 mb-8 text-lg">
+            Your payment for <span class="font-semibold text-stone-900">@Model.Item?.Title</span> has been processed successfully.
         </p>
         
-        <div class="bg-slate-50 rounded-xl p-6 mb-8 text-left">
-            <h3 class="font-semibold text-slate-900 mb-4 border-b border-slate-200 pb-2">Rental Details</h3>
+        <div class="bg-stone-50 rounded-lg p-6 mb-8 text-left">
+            <h3 class="font-semibold text-stone-900 mb-4 border-b border-stone-200 pb-2">Rental Details</h3>
             <div class="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                    <p class="text-slate-500">Rental Period</p>
-                    <p class="font-medium text-slate-900">@Model.StartDate.ToString("MMM dd") - @Model.EndDate.ToString("MMM dd")</p>
+                    <p class="text-stone-500">Rental Period</p>
+                    <p class="font-medium text-stone-900">@Model.StartDate.ToString("MMM dd") - @Model.EndDate.ToString("MMM dd")</p>
                 </div>
                 <div>
-                    <p class="text-slate-500">Owner</p>
-                    <p class="font-medium text-slate-900">@Model.Item?.User?.UserName ?? "Unknown"</p>
+                    <p class="text-stone-500">Owner</p>
+                    <p class="font-medium text-stone-900">@Model.Item?.User?.UserName ?? "Unknown"</p>
                 </div>
             </div>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a asp-controller="Dashboard" asp-action="UserDashboard" class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/30 transition-all">
+            <a asp-controller="Dashboard" asp-action="UserDashboard" class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-150">
                 Go to Dashboard
             </a>
-            <a asp-controller="Rentals" asp-action="Index" class="inline-flex justify-center items-center px-6 py-3 border border-slate-300 text-base font-medium rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition-all">
+            <a asp-controller="Rentals" asp-action="Index" class="inline-flex justify-center items-center px-6 py-3 border border-stone-300 text-base font-medium rounded-lg text-stone-700 bg-white hover:bg-stone-50 transition-colors duration-150">
                 Browse More Items
             </a>
         </div>

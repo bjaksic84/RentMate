@@ -13,37 +13,37 @@
 
 <div class="max-w-3xl mx-auto px-4 py-12">
     <script src="https://js.stripe.com/v3/"></script>
-    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div class="p-8 bg-slate-50 border-b border-slate-100">
-            <h1 class="text-2xl font-bold text-slate-900">Checkout</h1>
-            <p class="text-slate-500 mt-1">
+    <div class="bg-white rounded-lg shadow-xl overflow-hidden">
+        <div class="p-8 bg-stone-50 border-b border-stone-200">
+            <h1 class="text-2xl font-bold text-stone-900">Checkout</h1>
+            <p class="text-stone-500 mt-1">
                 @if (isExtension)
                 {
-                    @:Complete your extension payment for <span class="font-semibold text-slate-700">@Model.Item?.Title</span>
+                    @:Complete your extension payment for <span class="font-semibold text-stone-700">@Model.Item?.Title</span>
                 }
                 else
                 {
-                    @:Complete your rental payment for <span class="font-semibold text-slate-700">@Model.Item?.Title</span>
+                    @:Complete your rental payment for <span class="font-semibold text-stone-700">@Model.Item?.Title</span>
                 }
             </p>
         </div>
 
         <div class="p-8">
-            <div class="flex items-center justify-between mb-8 p-4 bg-blue-50 rounded-xl">
+            <div class="flex items-center justify-between mb-8 p-4 bg-primary-50 rounded-lg">
                 <div>
-                    <p class="text-sm text-blue-600 font-medium uppercase tracking-wide">Total Amount</p>
-                    <p class="text-3xl font-bold text-blue-900">@CurrencyService.Format(displayAmount)</p>
+                    <p class="text-sm text-primary-600 font-medium uppercase tracking-wide">Total Amount</p>
+                    <p class="text-3xl font-bold text-stone-900">@CurrencyService.Format(displayAmount)</p>
                 </div>
                 <div class="text-right">
                     @if (isExtension && extensionNewEndDate.HasValue)
                     {
-                        <p class="text-sm text-slate-500">Extension Period</p>
-                        <p class="font-medium text-slate-900">@Model.EndDate.ToString("MMM dd") - @extensionNewEndDate.Value.ToString("MMM dd")</p>
+                        <p class="text-sm text-stone-500">Extension Period</p>
+                        <p class="font-medium text-stone-900">@Model.EndDate.ToString("MMM dd") - @extensionNewEndDate.Value.ToString("MMM dd")</p>
                     }
                     else
                     {
-                        <p class="text-sm text-slate-500">Rental Period</p>
-                        <p class="font-medium text-slate-900">@Model.StartDate.ToString("MMM dd") - @Model.EndDate.ToString("MMM dd")</p>
+                        <p class="text-sm text-stone-500">Rental Period</p>
+                        <p class="font-medium text-stone-900">@Model.StartDate.ToString("MMM dd") - @Model.EndDate.ToString("MMM dd")</p>
                     }
                 </div>
             </div>
@@ -55,7 +55,7 @@
                 
                 <div id="error-message" class="hidden mt-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm"></div>
 
-                <button id="submit" class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-lg hover:shadow-blue-500/30 flex items-center justify-center">
+                <button id="submit" class="w-full mt-8 bg-primary-600 hover:bg-primary-700 text-white font-bold py-4 px-6 rounded-lg transition-colors duration-150 flex items-center justify-center">
                     <div class="spinner hidden mr-3" id="spinner"></div>
                     <span id="button-text">Pay now</span>
                 </button>

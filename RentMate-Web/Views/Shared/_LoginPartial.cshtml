@@ -16,23 +16,23 @@
     var displayName = user?.FirstName ?? User.Identity?.Name ?? Localizer["User"].Value;
 
     <div class="relative" x-data="{ open: false }">
-        <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors">
+        <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-stone-100 transition-colors duration-150">
             <img src="@profilePic" class="w-8 h-8 rounded-full object-cover ring-2 ring-white shadow" alt="@Localizer["Profile"]" />
-            <span class="font-medium text-slate-700">@displayName</span>
-            <i class="bi bi-chevron-down text-slate-400 text-sm"></i>
+            <span class="font-medium text-stone-700">@displayName</span>
+            <i class="bi bi-chevron-down text-stone-400 text-sm"></i>
         </button>
-        <div class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
-            <a asp-controller="Dashboard" asp-action="UserDashboard" class="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors">
-                <i class="bi bi-speedometer2 text-slate-400"></i>
+        <div class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-stone-200 py-2 z-50">
+            <a asp-controller="Dashboard" asp-action="UserDashboard" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50 transition-colors duration-150">
+                <i class="bi bi-speedometer2 text-stone-400"></i>
                 <span>@Localizer["Dashboard"]</span>
             </a>
-            <a asp-area="Identity" asp-page="/Account/Manage/Index" class="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors">
-                <i class="bi bi-person-gear text-slate-400"></i>
+            <a asp-area="Identity" asp-page="/Account/Manage/Index" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50 transition-colors duration-150">
+                <i class="bi bi-person-gear text-stone-400"></i>
                 <span>@Localizer["Settings"]</span>
             </a>
-            <hr class="my-2 border-slate-200" />
+            <hr class="my-2 border-stone-200" />
             <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-                <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors">
+                <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors duration-150">
                     <i class="bi bi-box-arrow-right"></i>
                     <span>@Localizer["Logout"]</span>
                 </button>
@@ -42,10 +42,10 @@
 }
 else
 {
-    <a asp-area="Identity" asp-page="/Account/Register" class="px-4 py-2 text-slate-600 hover:text-blue-600 font-medium transition-colors">
+    <a asp-area="Identity" asp-page="/Account/Register" class="px-4 py-2 text-stone-600 hover:text-primary-600 font-medium transition-colors duration-150">
         @Localizer["Register"]
     </a>
-    <a asp-area="Identity" asp-page="/Account/Login" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+    <a asp-area="Identity" asp-page="/Account/Login" class="px-5 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors duration-150">
         @Localizer["Login"]
     </a>
 }

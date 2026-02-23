@@ -7,25 +7,25 @@
 }
 
 <div class="relative" id="currencyDropdown">
-    <button onclick="document.getElementById('currencyMenu').classList.toggle('hidden')" 
-            class="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm">
+    <button onclick="document.getElementById('currencyMenu').classList.toggle('hidden')"
+            class="flex items-center gap-2 px-3 py-2 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors duration-150 text-sm">
         <span>@currentCurrency.Flag</span>
-        <span class="font-medium text-slate-700">@currentCurrency.Code</span>
-        <i class="bi bi-chevron-down text-slate-400 text-xs"></i>
+        <span class="font-medium text-stone-700">@currentCurrency.Code</span>
+        <i class="bi bi-chevron-down text-stone-400 text-xs"></i>
     </button>
-    <div id="currencyMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 max-h-64 overflow-y-auto">
+    <div id="currencyMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-stone-200 py-2 z-50 max-h-64 overflow-y-auto">
         @foreach (var curr in CurrencyService.SupportedCurrencies)
         {
             var isActive = curr.Code == currentCurrency.Code;
             <form asp-controller="Currency" asp-action="SetCurrency" asp-route-returnUrl="@returnUrl" method="post">
-                <button type="submit" name="currency" value="@curr.Code" 
-                        class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-50 transition-colors @(isActive ? "bg-blue-50 text-blue-700" : "text-slate-700")">
+                <button type="submit" name="currency" value="@curr.Code"
+                        class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-stone-50 transition-colors duration-150 @(isActive ? "bg-primary-50 text-primary-700" : "text-stone-700")">
                     <span class="text-lg">@curr.Flag</span>
                     <span class="flex-1 font-medium">@curr.Code</span>
-                    <span class="text-slate-400 text-sm">@curr.Symbol</span>
+                    <span class="text-stone-400 text-sm">@curr.Symbol</span>
                     @if(isActive)
                     {
-                        <i class="bi bi-check text-blue-600"></i>
+                        <i class="bi bi-check text-primary-600"></i>
                     }
                 </button>
             </form>

@@ -92,13 +92,14 @@ namespace RentMate.Services.Implementations
                 .FirstOrDefaultAsync(d => d.RentalId == rentalId)
                 ?? throw new InvalidOperationException($"No deposit found for rental {rentalId}.");
 
-            if (deposit.Status != DepositStatus.Authorized)
+            if (deposit.Status != DepositStatus.Authorized && deposit.Status != DepositStatus.Disputed)
                 throw new InvalidOperationException(
                     $"Cannot release deposit in status {deposit.Status}.");
 
-            // Verify the user is the owner
             if (deposit.Rental?.OwnerId != releasedByUserId)
                 throw new UnauthorizedAccessException("Only the item owner can release a deposit.");
+
+            bool wasAuthorized = deposit.Status == DepositStatus.Authorized;
 
             if (deposit.PaymentReference != null)
             {
@@ -113,21 +114,25 @@ namespace RentMate.Services.Implementations
 
             deposit.Status = DepositStatus.Released;
             deposit.ReleasedAt = DateTime.UtcNow;
+            deposit.ChargedAmount = null;
             deposit.UpdatedAt = DateTime.UtcNow;
 
-            // Mark rental as completed when owner releases deposit (premature end)
-            var rental = deposit.Rental!;
-            rental.Status = RentalStatus.Completed;
-            if (DateTime.UtcNow < rental.EndDate)
-                rental.EndDate = DateTime.UtcNow;
-            rental.UpdatedAt = DateTime.UtcNow;
-            if (rental.Item != null)
-                rental.Item.IsRented = false;
+            // Mark rental as completed when releasing from Authorized (premature end)
+            if (wasAuthorized)
+            {
+                var rental = deposit.Rental!;
+                rental.Status = RentalStatus.Completed;
+                if (DateTime.UtcNow < rental.EndDate)
+                    rental.EndDate = DateTime.UtcNow;
+                rental.UpdatedAt = DateTime.UtcNow;
+                if (rental.Item != null)
+                    rental.Item.IsRented = false;
+            }
 
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Deposit of {Amount:C} released for rental {RentalId} by user {UserId}; rental marked completed.",
+                "Deposit of {Amount:C} released for rental {RentalId} by user {UserId}.",
                 deposit.Amount, rentalId, releasedByUserId);
 
             return deposit;
@@ -241,46 +246,6 @@ namespace RentMate.Services.Implementations
         }
 
         /// <inheritdoc/>
-        public async Task<RentalDeposit> ReleaseDisputedDepositAsync(int rentalId, string ownerUserId)
-        {
-            var deposit = await _context.RentalDeposits
-                .Include(d => d.Rental).ThenInclude(r => r!.Item)
-                .FirstOrDefaultAsync(d => d.RentalId == rentalId)
-                ?? throw new InvalidOperationException($"No deposit found for rental {rentalId}.");
-
-            if (deposit.Status != DepositStatus.Disputed)
-                throw new InvalidOperationException(
-                    $"Cannot release deposit in status {deposit.Status}. Must be Disputed.");
-
-            if (deposit.Rental?.OwnerId != ownerUserId)
-                throw new UnauthorizedAccessException("Only the item owner can release a disputed deposit.");
-
-            if (deposit.PaymentReference != null)
-            {
-                var result = await _paymentService.ReleaseAsync(deposit.PaymentReference);
-                if (!result.Success)
-                {
-                    _logger.LogWarning(
-                        "Stripe release skipped for disputed deposit on rental {RentalId}: {Error}. Proceeding with application-level release.",
-                        rentalId, result.ErrorMessage);
-                }
-            }
-
-            deposit.Status = DepositStatus.Released;
-            deposit.ReleasedAt = DateTime.UtcNow;
-            deposit.ChargedAmount = null;
-            deposit.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation(
-                "Disputed deposit for rental {RentalId} released by owner {UserId}",
-                rentalId, ownerUserId);
-
-            return deposit;
-        }
-
-        /// <inheritdoc/>
         public async Task<RentalDeposit> AcceptChargeAsync(int rentalId, string renterUserId)
         {
             var deposit = await _context.RentalDeposits
@@ -288,20 +253,21 @@ namespace RentMate.Services.Implementations
                 .FirstOrDefaultAsync(d => d.RentalId == rentalId)
                 ?? throw new InvalidOperationException($"No deposit found for rental {rentalId}.");
 
-            if (deposit.Status != DepositStatus.Charged && deposit.Status != DepositStatus.PartiallyCharged)
+            if (deposit.Status != DepositStatus.Charged && deposit.Status != DepositStatus.PartiallyCharged && deposit.Status != DepositStatus.Disputed)
                 throw new InvalidOperationException(
                     $"Cannot accept charge in status {deposit.Status}.");
 
             if (deposit.Rental?.RenterId != renterUserId)
                 throw new UnauthorizedAccessException("Only the renter can accept a deposit charge.");
 
+            deposit.Status = DepositStatus.ChargeUpheld;
             deposit.DisputeDeadline = null;
             deposit.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Deposit charge accepted by renter for rental {RentalId}",
+                "Deposit charge accepted by renter for rental {RentalId}. Status → ChargeUpheld.",
                 rentalId);
 
             return deposit;
@@ -402,14 +368,14 @@ namespace RentMate.Services.Implementations
                 throw new UnauthorizedAccessException("Only the renter can accept a counter-offer.");
 
             deposit.ChargedAmount = deposit.CounterOfferAmount;
-            deposit.Status = DepositStatus.PartiallyCharged;
+            deposit.Status = DepositStatus.ChargeUpheld;
             deposit.DisputeDeadline = null;
             deposit.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Renter accepted counter-offer of {Amount:C} for rental {RentalId}",
+                "Renter accepted counter-offer of {Amount:C} for rental {RentalId}. Status → ChargeUpheld.",
                 deposit.CounterOfferAmount, rentalId);
 
             return deposit;

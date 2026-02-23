@@ -1,0 +1,282 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Models.ViewModels
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+<!-- Extension Modal -->
+<div id="extension-modal" class="fixed inset-0 hidden items-center justify-center" style="z-index: var(--z-modal)" role="dialog" aria-modal="true" aria-labelledby="extension-modal-title">
+    <div class="absolute inset-0 bg-ledger-900/50 " data-action="close-extension"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-lg border border-ledger-200 dark:border-neutral-700 bg-white dark:bg-ledger-800 p-6 shadow-lg">
+        <button type="button" data-action="close-extension" class="absolute top-4 right-4 rounded-lg p-1 text-ledger-400 hover:bg-ledger-100 dark:hover:bg-neutral-700 hover:text-ledger-600 dark:hover:text-ledger-300 transition" aria-label="@Localizer["Close"]">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <div class="mb-5">
+            <h2 id="extension-modal-title" class="text-lg font-semibold text-ledger-900 dark:text-white">@Localizer["Extend Rental"]</h2>
+        </div>
+        <div id="ext-current-info" class="mb-5 rounded-lg bg-ledger-50 dark:bg-ledger-900/50 p-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-ledger-500 dark:text-ledger-400">@Localizer["Your rental period"]</span>
+                <span id="ext-rental-period" class="font-medium text-ledger-900 dark:text-white"></span>
+            </div>
+            <div class="mt-2 flex justify-between text-sm">
+                <span class="text-ledger-500 dark:text-ledger-400">@Localizer["Daily rate"]</span>
+                <span id="ext-daily-rate" class="font-medium text-ledger-900 dark:text-white"></span>
+            </div>
+        </div>
+        <form id="extension-form" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="RentalId" id="ext-rental-id" />
+            <div class="mb-4">
+                <label class="mb-1.5 block text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["New return date"]</label>
+                @await Html.PartialAsync("_SmartCalendar", new SmartCalendarModel {
+                    Id = "extCalendar",
+                    Mode = CalendarMode.Single,
+                    StartDateField = "NewEndDate",
+                    MinDate = DateOnly.FromDateTime(DateTime.Today.AddDays(1)),
+                    Placeholder = Localizer["Pick new return date..."].Value
+                })
+            </div>
+            <div id="ext-blocked-notice" class="mb-4 hidden rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3">
+                <div class="flex items-start gap-2">
+                    <i class="bi bi-calendar-x text-rose-500 mt-0.5 shrink-0"></i>
+                    <div>
+                        <p class="text-xs font-medium text-rose-700 dark:text-rose-300">@Localizer["Extension limited"]</p>
+                        <p class="text-xs text-rose-600 dark:text-rose-400 mt-0.5">@Localizer["Another booking starts on"] <strong id="ext-blocked-date"></strong>. @Localizer["You can extend up to the day before. To rent beyond that, create a new booking after their rental ends."]</p>
+                    </div>
+                </div>
+            </div>
+            <div id="ext-cost-preview" class="mb-5 hidden rounded-lg border border-primary-200 dark:border-primary-800 bg-primary-50 dark:bg-primary-900/20 p-4">
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between text-ledger-600 dark:text-ledger-400">
+                        <span>@Localizer["Additional days"]</span>
+                        <span id="ext-extra-days">0</span>
+                    </div>
+                    <div class="flex justify-between border-t border-primary-200 dark:border-primary-700 pt-2">
+                        <span class="font-medium text-ledger-900 dark:text-white">@Localizer["Additional cost"]</span>
+                        <span id="ext-additional-cost" class="text-base font-semibold text-primary-700 dark:text-primary-300"></span>
+                    </div>
+                </div>
+            </div>
+            <div id="ext-approval-notice" class="mb-5 flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-3">
+                <i class="bi bi-info-circle text-amber-500 mt-0.5 shrink-0"></i>
+                <p class="text-xs text-amber-700 dark:text-amber-300">@Localizer["This extension request will be sent to the owner for approval."]</p>
+            </div>
+            <div class="flex gap-3">
+                <button type="button" data-action="close-extension"
+                        class="flex-1 rounded-lg border border-ledger-200 dark:border-neutral-600 px-4 py-2.5 text-sm font-medium text-ledger-700 dark:text-ledger-300 transition hover:bg-ledger-50 dark:hover:bg-neutral-700">
+                    @Localizer["Cancel"]
+                </button>
+                <button type="submit" id="ext-submit-btn" disabled
+                        class="flex-1 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    @Localizer["Request Extension"]
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Deposit Resolution Modal -->
+<div id="deposit-modal" class="fixed inset-0 hidden items-center justify-center" style="z-index: var(--z-modal)" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-ledger-900/50 " data-action="close-deposit"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-lg border border-ledger-200 dark:border-neutral-700 bg-white dark:bg-ledger-800 p-6 shadow-lg">
+        <button type="button" data-action="close-deposit" class="absolute top-4 right-4 rounded-lg p-1 text-ledger-400 hover:bg-ledger-100 dark:hover:bg-neutral-700 transition" aria-label="@Localizer["Close"]">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <h2 class="text-lg font-semibold text-ledger-900 dark:text-white mb-5">@Localizer["Resolve Deposit"]</h2>
+        <input type="hidden" id="dep-rental-id" />
+
+        <div class="mb-5 rounded-lg bg-ledger-50 dark:bg-ledger-900/50 p-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-ledger-500 dark:text-ledger-400">@Localizer["Deposit amount"]</span>
+                <span id="dep-amount" class="font-semibold text-ledger-900 dark:text-white"></span>
+            </div>
+        </div>
+
+        <!-- Release Full -->
+        <button onclick="releaseDeposit()" id="dep-release-btn"
+                class="w-full mb-3 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
+            <i class="bi bi-shield-check mr-1"></i> @Localizer["Release Full Deposit"]
+        </button>
+
+        <!-- Or Charge -->
+        <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-ledger-200 dark:border-neutral-700"></div></div>
+            <div class="relative flex justify-center"><span class="bg-white dark:bg-ledger-800 px-3 text-xs text-ledger-500 dark:text-ledger-400">@Localizer["or charge from deposit"]</span></div>
+        </div>
+
+        <div class="space-y-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="dep-charge-full" class="w-4 h-4 text-rose-500 border-ledger-300 rounded focus:ring-rose-500"
+                       onchange="toggleDepChargeFull(this.checked)">
+                <span class="text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["Charge full amount"]</span>
+            </label>
+            <div>
+                <label for="dep-charge-amount" class="mb-1 block text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["Amount to charge"]</label>
+                <input type="number" id="dep-charge-amount" step="0.01" min="0.01"
+                       class="w-full rounded-lg border border-ledger-300 dark:border-neutral-600 px-4 py-2.5 text-sm text-ledger-900 dark:text-white dark:bg-neutral-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20" />
+            </div>
+            <div>
+                <label for="dep-charge-reason" class="mb-1 block text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["Reason (visible to renter)"]</label>
+                <textarea id="dep-charge-reason" rows="2" required
+                          class="w-full rounded-lg border border-ledger-300 dark:border-neutral-600 px-4 py-3 text-sm text-ledger-900 dark:text-white dark:bg-neutral-700 resize-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                          placeholder="@Localizer["e.g., Item returned with scratches on the surface"]"></textarea>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["Picture Evidence (Required)"]</label>
+                <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-ledger-300 border-dashed rounded-lg cursor-pointer bg-ledger-50 dark:bg-neutral-700/50 hover:bg-ledger-100 dark:hover:bg-neutral-700 transition-colors">
+                        <div class="flex flex-col items-center justify-center">
+                            <i class="bi bi-camera text-xl text-ledger-400 mb-1"></i>
+                            <p class="text-[10px] text-ledger-500 font-medium text-center px-2">@Localizer["Upload proof for this charge"]</p>
+                        </div>
+                        <input type="file" id="dep-charge-evidence" class="hidden" accept="image/*" onchange="updateDepChargeFilename(this)" />
+                    </label>
+                </div>
+                <div id="dep-charge-preview" class="mt-2 hidden">
+                    <div class="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-lg">
+                        <i class="bi bi-file-earmark-check text-rose-600"></i>
+                        <span class="text-xs text-rose-700 dark:text-rose-400 font-medium truncate" id="dep-charge-filename"></span>
+                        <button onclick="clearDepChargeEvidence()" class="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-800 rounded-lg">
+                            <i class="bi bi-x text-rose-600"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="chargeDeposit()" id="dep-charge-btn"
+                    class="w-full rounded-lg border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                <i class="bi bi-shield-x mr-1"></i> @Localizer["Charge Deposit"]
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Early Return + Deposit Resolution Modal -->
+<div id="early-return-modal" class="fixed inset-0 hidden items-center justify-center" style="z-index: var(--z-modal)" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-ledger-900/50 " data-action="close-early-return"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-lg border border-ledger-200 dark:border-neutral-700 bg-white dark:bg-ledger-800 p-6 shadow-lg">
+        <button type="button" data-action="close-early-return" class="absolute top-4 right-4 rounded-lg p-1 text-ledger-400 hover:bg-ledger-100 dark:hover:bg-neutral-700 transition" aria-label="@Localizer["Close"]">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <h2 class="text-lg font-semibold text-ledger-900 dark:text-white mb-5">
+            <i class="bi bi-flag mr-2"></i>@Localizer["End Rental & Resolve Deposit"]
+        </h2>
+        <input type="hidden" id="er-rental-id" />
+
+        <div class="mb-5 rounded-lg bg-ledger-50 dark:bg-ledger-900/50 p-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-ledger-500 dark:text-ledger-400">@Localizer["Deposit amount"]</span>
+                <span id="er-amount" class="font-semibold text-ledger-900 dark:text-white"></span>
+            </div>
+        </div>
+
+        <!-- Release Full -->
+        <button onclick="completeWithDeposit('release')" id="er-release-btn"
+                class="w-full mb-3 rounded-lg bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700">
+            <i class="bi bi-shield-check mr-1"></i> @Localizer["Release Full Deposit"]
+        </button>
+
+        <!-- Or Charge -->
+        <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-ledger-200 dark:border-neutral-700"></div></div>
+            <div class="relative flex justify-center"><span class="bg-white dark:bg-ledger-800 px-3 text-xs text-ledger-500 dark:text-ledger-400">@Localizer["or charge from deposit"]</span></div>
+        </div>
+
+        <div class="space-y-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="er-charge-full" class="w-4 h-4 text-rose-500 border-ledger-300 rounded focus:ring-rose-500"
+                       onchange="toggleErChargeFull(this.checked)">
+                <span class="text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["Charge full amount"]</span>
+            </label>
+            <div>
+                <label for="er-charge-amount" class="mb-1 block text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["Amount to charge"]</label>
+                <input type="number" id="er-charge-amount" step="0.01" min="0.01"
+                       class="w-full rounded-lg border border-ledger-300 dark:border-neutral-600 px-4 py-2.5 text-sm text-ledger-900 dark:text-white dark:bg-neutral-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20" />
+            </div>
+            <div>
+                <label for="er-charge-reason" class="mb-1 block text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["Reason (visible to renter)"]</label>
+                <textarea id="er-charge-reason" rows="2" required
+                          class="w-full rounded-lg border border-ledger-300 dark:border-neutral-600 px-4 py-3 text-sm text-ledger-900 dark:text-white dark:bg-neutral-700 resize-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20"
+                          placeholder="@Localizer["e.g., Item returned with scratches on the surface"]"></textarea>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-ledger-700 dark:text-ledger-300">@Localizer["Picture Evidence (Required)"]</label>
+                <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-ledger-300 border-dashed rounded-lg cursor-pointer bg-ledger-50 dark:bg-neutral-700/50 hover:bg-ledger-100 dark:hover:bg-neutral-700 transition-colors">
+                        <div class="flex flex-col items-center justify-center">
+                            <i class="bi bi-camera text-xl text-ledger-400 mb-1"></i>
+                            <p class="text-[10px] text-ledger-500 font-medium text-center px-2">@Localizer["Upload proof for this charge"]</p>
+                        </div>
+                        <input type="file" id="er-charge-evidence" class="hidden" accept="image/*" onchange="updateErChargeFilename(this)" />
+                    </label>
+                </div>
+                <div id="er-charge-preview" class="mt-2 hidden">
+                    <div class="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-lg">
+                        <i class="bi bi-file-earmark-check text-rose-600"></i>
+                        <span class="text-xs text-rose-700 dark:text-rose-400 font-medium truncate" id="er-charge-filename"></span>
+                        <button onclick="clearErChargeEvidence()" class="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-800 rounded-lg">
+                            <i class="bi bi-x text-rose-600"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="completeWithDeposit('charge')" id="er-charge-btn"
+                    class="w-full rounded-lg border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                <i class="bi bi-shield-x mr-1"></i> @Localizer["Charge Deposit"]
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div id="reviewModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
+    <div class="absolute inset-0 bg-black/50 " onclick="closeReviewModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: var(--z-modal, 1200);">
+        <div class="bg-white dark:bg-ledger-800 rounded-lg shadow-lg m-4 overflow-hidden">
+            <div class="bg-amber-500 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h3 id="reviewModalTitle" class="text-white text-lg font-bold">@Localizer["Leave a Review"]</h3>
+                    <button type="button" onclick="closeReviewModal()" class="text-white/80 hover:text-white"><i class="bi bi-x-lg"></i></button>
+                </div>
+            </div>
+            <form id="reviewForm" class="p-6">
+                <input type="hidden" id="reviewRentalId" name="rentalId" />
+                <input type="hidden" id="reviewItemId" name="itemId" />
+                <input type="hidden" id="reviewId" name="reviewId" />
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-ledger-700 dark:text-ledger-300 mb-2">@Localizer["Rating"]</label>
+                    <div class="flex gap-2" id="starRating">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <button type="button" class="star-btn text-3xl text-ledger-300 hover:text-amber-400 transition-colors" data-rating="@i"><i class="bi bi-star-fill"></i></button>
+                        }
+                    </div>
+                    <input type="hidden" id="ratingValue" name="rating" value="0" />
+                </div>
+                <div class="mb-5">
+                    <label for="reviewTitle" class="block text-sm font-medium text-ledger-700 dark:text-ledger-300 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
+                    <input type="text" id="reviewTitle" name="title" maxlength="100"
+                           class="w-full px-4 py-3 border border-ledger-200 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                           placeholder="@Localizer["Summarize your experience"]">
+                </div>
+                <div class="mb-5">
+                    <label for="reviewBody" class="block text-sm font-medium text-ledger-700 dark:text-ledger-300 mb-2">@Localizer["Your Review"]</label>
+                    <textarea id="reviewBody" name="body" rows="4" required
+                              class="w-full px-4 py-3 border border-ledger-200 dark:border-neutral-600 dark:bg-neutral-700 dark:text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors resize-none"
+                              placeholder="@Localizer["Share your experience with this item..."]"></textarea>
+                </div>
+                <div class="mb-5">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="isAnonymous" name="isAnonymous" class="w-4 h-4 text-amber-500 border-ledger-300 rounded focus:ring-amber-500">
+                        <span class="text-sm text-ledger-600 dark:text-ledger-400">@Localizer["Post anonymously"]</span>
+                    </label>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeReviewModal()" class="flex-1 px-4 py-3 border border-ledger-200 dark:border-neutral-600 text-ledger-600 dark:text-ledger-300 font-medium rounded-lg hover:bg-ledger-50 dark:hover:bg-neutral-700 transition-colors">@Localizer["Cancel"]</button>
+                    <button type="submit" id="reviewSubmitBtn" class="flex-1 px-4 py-3 bg-amber-500 text-white font-semibold rounded-lg hover:shadow-md transition-colors duration-150">
+                        <i class="bi bi-check-lg me-1"></i> <span id="reviewSubmitText">@Localizer["Submit Review"]</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

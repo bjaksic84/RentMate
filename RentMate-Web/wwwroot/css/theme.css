@@ -1,34 +1,40 @@
 :root {
-  --bg: #ffffff;
-  --text: #0f1720;
-  --muted-bg: #f8f9fa;
+  --bg: #fafaf9;
+  --text: #1c1917;
+  --muted-bg: #f5f5f4;
   --card-bg: #ffffff;
-  --primary: #2563eb;
-  --muted-text: #6c757d;
-  --border: rgba(0, 0, 0, 0.08);
-  --badge-bg: #f1f3f5;
-  --navbar-bg: var(--card-bg);
+  --primary: #0d9488;
+  --muted-text: #78716c;
+  --border: #e7e5e4;
+  --badge-bg: #f5f5f4;
+  --navbar-bg: #ffffff;
   --row-hover: rgba(0, 0, 0, 0.03);
   --panel-white: #ffffff;
-  --panel-white-text: #0f1720;
-  --surface-soft: #f7f9fb;
+  --panel-white-text: #1c1917;
+  --surface-soft: #fafaf9;
+  --surface-alt: #f9fafb;
+  --stat-bg: #f5f5f5;
+  --row-active-border: #0d9488;
 }
 
 /* Dark theme overrides */
 .dark {
-  --bg: #0f172a;
-  --text: #e2e8f0;
-  --muted-bg: #1e293b;
-  --card-bg: #1e293b;
-  --primary: #3b82f6;
-  --muted-text: #94a3b8;
-  --border: #334155;
-  --badge-bg: #334155;
-  --navbar-bg: rgba(15, 23, 42, 0.85);
-  --row-hover: #334155;
-  --panel-white: #1e293b;
-  --panel-white-text: #e2e8f0;
-  --surface-soft: #1e293b;
+  --bg: #1a1a1a;
+  --text: #e7e5e4;
+  --muted-bg: #262626;
+  --card-bg: #262626;
+  --primary: #2dd4bf;
+  --muted-text: #a8a29e;
+  --border: #3a3a3a;
+  --badge-bg: #3a3a3a;
+  --navbar-bg: #262626;
+  --row-hover: #3a3a3a;
+  --panel-white: #262626;
+  --panel-white-text: #e7e5e4;
+  --surface-soft: #262626;
+  --surface-alt: #141414;
+  --stat-bg: #1a1a1a;
+  --row-active-border: #2dd4bf;
 }
 
 
@@ -172,8 +178,6 @@ small {
 
 
 
-/* Floating-label autofill handling reverted — using Bootstrap defaults */
-
 /* High-impact UX tweaks */
 /* Focus styles: visible, accessible focus rings */
 .btn:focus,
@@ -181,8 +185,8 @@ small {
 .form-control:focus,
 .form-select:focus {
   outline: none !important;
-  box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.16) !important;
-  border-color: rgba(37, 99, 235, 0.18) !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 148, 136, 0.16) !important;
+  border-color: rgba(13, 148, 136, 0.18) !important;
 }
 
 
@@ -201,10 +205,7 @@ small {
 }
 
 
-/* Make icons adapt to the active theme
-   - SVG/bootstrap icons: inherit `currentColor` so `color` changes affect them
-   - Raster images used as icons: apply a gentle filter if needed */
-
+/* Make icons adapt to the active theme */
 svg,
 svg.bi {
   fill: currentColor;
@@ -223,21 +224,17 @@ svg.bi {
   color: var(--text);
 }
 
-/* Dark mode: glassmorphism and scrollbar adjustments */
-.dark .glass {
-  background: rgba(15, 23, 42, 0.8);
-}
-
+/* Dark mode: scrollbar adjustments */
 .dark ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: #262626;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #525252;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: #737373;
 }
 
 /* Dark mode: dropdown menus */
@@ -246,58 +243,50 @@ svg.bi {
 }
 
 /* Dark mode: text color overrides for Tailwind utility classes */
-.dark .text-slate-900 {
-  color: #e2e8f0 !important;
+.dark .text-stone-900 {
+  color: #fafaf9 !important;
 }
 
-.dark .text-slate-600 {
-  color: #94a3b8 !important;
+.dark .text-stone-600 {
+  color: #a8a29e !important;
 }
 
-.dark .text-slate-500 {
-  color: #94a3b8 !important;
-}
-
-.dark .text-slate-400 {
-  color: #64748b !important;
+.dark .text-stone-500 {
+  color: #78716c !important;
 }
 
 /* Dark mode: background overrides */
-.dark .bg-slate-50 {
-  background-color: #0f172a !important;
+.dark .bg-stone-50 {
+  background-color: #1a1a1a !important;
 }
 
-.dark .bg-slate-100 {
-  background-color: #1e293b !important;
+.dark .bg-stone-100 {
+  background-color: #262626 !important;
 }
 
-.dark .bg-slate-200 {
-  background-color: #334155 !important;
+.dark .bg-stone-200 {
+  background-color: #3a3a3a !important;
 }
 
 /* Dark mode: hover states */
-.dark .hover\:bg-blue-50:hover {
-  background-color: rgba(37, 99, 235, 0.15) !important;
+.dark .hover\:bg-primary-50:hover {
+  background-color: rgba(13, 148, 136, 0.15) !important;
 }
 
-.dark .hover\:bg-slate-50:hover {
-  background-color: #334155 !important;
+.dark .hover\:bg-stone-50:hover {
+  background-color: #3a3a3a !important;
 }
 
-.dark .hover\:bg-slate-200:hover {
-  background-color: #475569 !important;
+.dark .hover\:bg-stone-200:hover {
+  background-color: #404040 !important;
 }
 
 /* Dark mode: borders */
-.dark .border-slate-100 {
-  border-color: #334155 !important;
+.dark .border-stone-200 {
+  border-color: #404040 !important;
 }
 
-.dark .border-white\/20 {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Dark mode: active language/currency items */
-.dark .bg-blue-50 {
-  background-color: rgba(37, 99, 235, 0.15) !important;
+/* Dark mode: active primary items */
+.dark .bg-primary-50 {
+  background-color: rgba(13, 148, 136, 0.15) !important;
 }

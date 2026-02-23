@@ -38,7 +38,7 @@
     };
     
     var sizeClass = customClass ?? defaultSizeClass;
-    var hoverClass = hoverZoom ? " group-hover:scale-105 transition-transform duration-300" : "";
+    var hoverClass = hoverZoom ? " transition-transform duration-150" : "";
     
     // Generate Cloudinary thumbnail URL if image exists
     var thumbUrl = !string.IsNullOrEmpty(imageUrl) 
@@ -55,7 +55,7 @@
 }
 else
 {
-    <div class="@sizeClass bg-slate-100 flex items-center justify-center">
-        <i class="bi bi-image text-4xl text-slate-300"></i>
+    <div class="@sizeClass bg-stone-100 flex items-center justify-center">
+        <i class="bi bi-image text-4xl text-stone-300"></i>
     </div>
 }

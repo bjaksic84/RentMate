@@ -10,19 +10,19 @@
 
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Breadcrumbs -->
-    <nav class="flex mb-6 text-sm font-medium text-slate-500" aria-label="Breadcrumb">
+    <nav class="flex mb-6 text-sm font-medium text-ledger-500" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
-            <li><a asp-action="AdminDashboard" class="hover:text-blue-600 transition-colors">@Localizer["Admin Dashboard"]</a></li>
+            <li><a asp-action="AdminDashboard" class="hover:text-primary-600 transition-colors">@Localizer["Admin Dashboard"]</a></li>
             <li><i class="bi bi-chevron-right mx-2 text-[10px]"></i></li>
-            <li class="text-slate-900 dark:text-white">@Localizer["Dispute Review"] #@Model.Id</li>
+            <li class="text-ledger-900 dark:text-white">@Localizer["Dispute Review"] #@Model.Id</li>
         </ol>
     </nav>
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h1 class="font-heading text-3xl font-bold text-slate-900 dark:text-white">@Localizer["Resolve Dispute"]</h1>
-            <p class="text-slate-500 mt-1">@Localizer["Review statements and make a final decision"]</p>
+            <h1 class="text-3xl font-bold text-ledger-900 dark:text-white">@Localizer["Resolve Dispute"]</h1>
+            <p class="text-ledger-500 mt-1">@Localizer["Review statements and make a final decision"]</p>
         </div>
         <div class="px-4 py-1.5 bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 text-sm font-bold rounded-full border border-rose-200 dark:border-rose-800 uppercase tracking-wider">
             @Localizer["Escalated"]
@@ -33,20 +33,20 @@
         <!-- Main Content -->
         <div class="md:col-span-2 space-y-8">
             <!-- Dispute Details -->
-            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                    <h2 class="font-bold text-slate-900 dark:text-white uppercase text-xs tracking-widest">@Localizer["Conflict Details"]</h2>
+            <div class="bg-white dark:bg-ledger-900 rounded-lg border border-ledger-200 dark:border-neutral-700 overflow-hidden shadow-sm">
+                <div class="px-6 py-4 border-b border-ledger-200 dark:border-neutral-700 bg-ledger-50 dark:bg-ledger-800/50">
+                    <h2 class="font-bold text-ledger-900 dark:text-white uppercase text-xs tracking-widest">@Localizer["Conflict Details"]</h2>
                 </div>
                 <div class="p-6 space-y-6">
                     <!-- Renter's Case -->
                     <div>
                         <div class="flex items-center gap-2 mb-2">
-                            <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                            <div class="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
                                 <i class="bi bi-person"></i>
                             </div>
-                            <span class="font-bold text-sm text-slate-900 dark:text-white">@Localizer["Renter's Dispute Reason"]</span>
+                            <span class="font-bold text-sm text-ledger-900 dark:text-white">@Localizer["Renter's Dispute Reason"]</span>
                         </div>
-                        <div class="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl text-slate-700 dark:text-slate-300 italic border-l-4 border-blue-500 break-words overflow-hidden">
+                        <div class="bg-ledger-50 dark:bg-ledger-800/80 p-4 rounded-lg text-ledger-700 dark:text-ledger-300 italic border-l-4 border-primary-500 break-words overflow-hidden">
                             "@Model.Deposit?.DisputeReason"
                         </div>
                     </div>
@@ -57,25 +57,25 @@
                             <div class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600">
                                 <i class="bi bi-shop"></i>
                             </div>
-                            <span class="font-bold text-sm text-slate-900 dark:text-white">@Localizer["Owner's Final Response"]</span>
+                            <span class="font-bold text-sm text-ledger-900 dark:text-white">@Localizer["Owner's Final Response"]</span>
                         </div>
-                        <div class="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-xl text-slate-700 dark:text-slate-300 italic border-l-4 border-emerald-500 break-words overflow-hidden">
+                        <div class="bg-ledger-50 dark:bg-ledger-800/80 p-4 rounded-lg text-ledger-700 dark:text-ledger-300 italic border-l-4 border-emerald-500 break-words overflow-hidden">
                             "@(string.IsNullOrEmpty(Model.Deposit?.OwnerDisputeResponse) ? Model.Deposit?.ChargeReason : Model.Deposit?.OwnerDisputeResponse)"
                         </div>
                     </div>
 
                     @if (Model.Deposit?.Evidence != null && Model.Deposit.Evidence.Any())
                     {
-                        <div class="pt-6 border-t border-slate-100 dark:border-slate-800">
-                            <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">@Localizer["Submitted Evidence"]</h3>
+                        <div class="pt-6 border-t border-ledger-200 dark:border-neutral-700">
+                            <h3 class="text-xs font-bold uppercase tracking-widest text-ledger-400 mb-4">@Localizer["Submitted Evidence"]</h3>
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 @foreach (var evidence in Model.Deposit.Evidence.OrderBy(e => e.CreatedAt))
                                 {
-                                    <div class="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                    <div class="group relative aspect-square rounded-lg overflow-hidden bg-ledger-100 dark:bg-ledger-800 border border-ledger-200 dark:border-neutral-700">
                                         <img src="@evidence.Url" class="w-full h-full object-cover" />
-                                        <div class="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div class="absolute inset-x-0 bottom-0 p-2 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <p class="text-[10px] text-white font-medium truncate">@evidence.Notes</p>
-                                            <p class="text-[8px] text-slate-300">@evidence.SubmittedBy?.UserName • @evidence.CreatedAt.ToString("g")</p>
+                                            <p class="text-[8px] text-ledger-300">@evidence.SubmittedBy?.UserName • @evidence.CreatedAt.ToString("g")</p>
                                         </div>
                                         <a href="@evidence.Url" target="_blank" class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <i class="bi bi-zoom-in text-white text-xl"></i>
@@ -88,8 +88,8 @@
 
                     @if (Model.Deposit?.CounterOfferAmount > 0)
                     {
-                        <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
-                            <div class="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/30">
+                        <div class="pt-4 border-t border-ledger-200 dark:border-neutral-700">
+                            <div class="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/30">
                                 <div class="text-sm">
                                     <span class="text-amber-800 dark:text-amber-300 font-semibold">@Localizer["Owner offered settlement:"]</span>
                                     <span class="text-amber-900 dark:text-amber-100 font-bold ml-1">@CurrencyService.Format(Model.Deposit.CounterOfferAmount.Value)</span>
@@ -102,24 +102,24 @@
             </div>
 
             <!-- Rental Context -->
-            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
-                    <h2 class="font-bold text-slate-900 dark:text-white uppercase text-xs tracking-widest">@Localizer["Rental Context"]</h2>
+            <div class="bg-white dark:bg-ledger-900 rounded-lg border border-ledger-200 dark:border-neutral-700 overflow-hidden shadow-sm">
+                <div class="px-6 py-4 border-b border-ledger-200 dark:border-neutral-700">
+                    <h2 class="font-bold text-ledger-900 dark:text-white uppercase text-xs tracking-widest">@Localizer["Rental Context"]</h2>
                 </div>
                 <div class="p-6">
                     <div class="flex items-start gap-4">
                         @if (!string.IsNullOrEmpty(Model.Item?.ImageUrl))
                         {
-                            <img src="@Model.Item.ImageUrl" class="w-20 h-20 rounded-xl object-cover shadow-sm" />
+                            <img src="@Model.Item.ImageUrl" class="w-20 h-20 rounded-lg object-cover shadow-sm" />
                         }
                         <div class="flex-1">
-                            <h3 class="font-bold text-slate-900 dark:text-white text-lg">@Model.Item?.Title</h3>
+                            <h3 class="font-bold text-ledger-900 dark:text-white text-lg">@Model.Item?.Title</h3>
                             <div class="grid grid-cols-2 gap-y-2 mt-3 text-sm">
-                                <div class="text-slate-500">@Localizer["Total Price"]:</div>
-                                <div class="text-slate-900 dark:text-white font-medium text-right">@CurrencyService.Format(Model.TotalPrice)</div>
-                                <div class="text-slate-500">@Localizer["Security Deposit"]:</div>
-                                <div class="text-slate-900 dark:text-white font-medium text-right">@CurrencyService.Format(Model.Deposit?.Amount ?? 0)</div>
-                                <div class="text-slate-500">@Localizer["Amount in Dispute"]:</div>
+                                <div class="text-ledger-500">@Localizer["Total Price"]:</div>
+                                <div class="text-ledger-900 dark:text-white font-medium text-right">@CurrencyService.Format(Model.TotalPrice)</div>
+                                <div class="text-ledger-500">@Localizer["Security Deposit"]:</div>
+                                <div class="text-ledger-900 dark:text-white font-medium text-right">@CurrencyService.Format(Model.Deposit?.Amount ?? 0)</div>
+                                <div class="text-ledger-500">@Localizer["Amount in Dispute"]:</div>
                                 <div class="text-rose-600 font-bold text-right">@CurrencyService.Format(Model.Deposit?.ChargedAmount ?? 0)</div>
                             </div>
                         </div>
@@ -130,9 +130,9 @@
 
         <!-- Action Sidebar -->
         <div class="space-y-6">
-            <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-200/60 dark:border-slate-800 transition-all">
-                <h3 class="font-heading text-lg font-bold mb-5 text-slate-900 dark:text-white flex items-center gap-2">
-                    <i class="bi bi-shield-lock text-blue-600"></i>
+            <div class="bg-white dark:bg-ledger-900 rounded-lg p-6 shadow-lg shadow-stone-200/50 dark:shadow-none border border-ledger-200/60 dark:border-neutral-700 transition-colors duration-150">
+                <h3 class="text-lg font-bold mb-5 text-ledger-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-shield-lock text-primary-600"></i>
                     @Localizer["Admin Decision"]
                 </h3>
                 
@@ -142,12 +142,12 @@
                     <input type="hidden" id="resolutionAmount" name="amount" value="@(Model.Deposit?.ChargedAmount ?? 0)" />
                     
                     <div class="space-y-4">
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">@Localizer["Final Outcome"]</label>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-ledger-400 dark:text-ledger-500">@Localizer["Final Outcome"]</label>
                         
                         <div class="grid grid-cols-1 gap-3">
                             <!-- Full Uphold -->
                             <button type="button" id="upholdBtn" onclick="setOutcome(@(Model.Deposit?.ChargedAmount ?? 0), this, 'uphold')" 
-                                    class="outcome-btn flex items-center justify-between p-4 bg-rose-50 dark:bg-rose-900/40 border-rose-500 text-rose-700 dark:text-white rounded-2xl border-2 transition-all shadow-sm">
+                                    class="outcome-btn flex items-center justify-between p-4 bg-rose-50 dark:bg-rose-900/40 border-rose-500 text-rose-700 dark:text-white rounded-lg border-2 transition-colors duration-150 shadow-sm">
                                 <div class="flex items-center gap-2">
                                     <i class="bi bi-shield-check"></i>
                                     <span class="text-sm font-bold">@Localizer["Full Uphold"]</span>
@@ -159,7 +159,7 @@
                             {
                                 <!-- Settlement Enforce -->
                                 <button type="button" id="settlementBtn" onclick="setOutcome(@Model.Deposit.CounterOfferAmount.Value, this, 'settle')" 
-                                        class="outcome-btn flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl border-2 hover:border-amber-500/50 transition-all">
+                                        class="outcome-btn flex items-center justify-between p-4 bg-ledger-50 dark:bg-ledger-800 border-ledger-200 dark:border-neutral-700 text-ledger-500 dark:text-ledger-400 rounded-lg border-2 hover:border-amber-500/50 transition-colors duration-150">
                                     <div class="flex items-center gap-2">
                                         <i class="bi bi-hand-thumbs-up"></i>
                                         <span class="text-sm font-bold">@Localizer["Enforce Settlement"]</span>
@@ -169,22 +169,22 @@
                             }
                             
                             <!-- Custom Amount Entry -->
-                            <div class="relative py-2 px-1 border-y border-slate-100 dark:border-slate-800 my-1">
+                            <div class="relative py-2 px-1 border-y border-ledger-200 dark:border-neutral-700 my-1">
                                 <div class="flex items-center justify-between mb-2">
-                                    <label class="text-[10px] font-bold text-slate-500 dark:text-slate-500 uppercase">@Localizer["Custom Resolve Amount"]</label>
-                                    <span class="text-[9px] text-slate-400">@Localizer["Max:"] @CurrencyService.Format(Model.Deposit?.Amount ?? 0)</span>
+                                    <label class="text-[10px] font-bold text-ledger-500 dark:text-ledger-500 uppercase">@Localizer["Custom Resolve Amount"]</label>
+                                    <span class="text-[9px] text-ledger-400">@Localizer["Max:"] @CurrencyService.Format(Model.Deposit?.Amount ?? 0)</span>
                                 </div>
                                 <div class="relative group">
-                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 font-bold transition-colors">@currency.Symbol</span>
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-ledger-400 group-focus-within:text-primary-500 font-bold transition-colors">@currency.Symbol</span>
                                     <input type="number" id="customAmountInput" step="0.01" min="0" max="@Model.Deposit?.Amount" 
-                                           class="w-full pl-8 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none" 
+                                           class="w-full pl-8 pr-4 py-3 bg-ledger-50 dark:bg-ledger-800 border-ledger-200 dark:border-neutral-700 rounded-lg text-sm font-bold text-ledger-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors duration-150 outline-none" 
                                            placeholder="0.00" oninput="updateCustomAmount(this.value)">
                                 </div>
                             </div>
 
                             <!-- Full Release -->
                             <button type="button" id="releaseBtn" onclick="setOutcome(0, this, 'release')" 
-                                    class="outcome-btn flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl border-2 hover:border-emerald-500/50 transition-all">
+                                    class="outcome-btn flex items-center justify-between p-4 bg-ledger-50 dark:bg-ledger-800 border-ledger-200 dark:border-neutral-700 text-ledger-500 dark:text-ledger-400 rounded-lg border-2 hover:border-emerald-500/50 transition-colors duration-150">
                                 <div class="flex items-center gap-2">
                                     <i class="bi bi-reply-all"></i>
                                     <span class="text-sm font-bold">@Localizer["Full Release"]</span>
@@ -195,20 +195,20 @@
                     </div>
 
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">@Localizer["Admin Notes (Optional)"]</label>
+                        <label class="block text-[10px] font-bold uppercase tracking-widest text-ledger-400 dark:text-ledger-500 mb-2">@Localizer["Admin Notes (Optional)"]</label>
                         <textarea name="adminNotes" rows="4" 
-                                  class="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-2xl text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none" 
+                                  class="w-full px-4 py-3 bg-ledger-50 dark:bg-ledger-800 border-ledger-200 dark:border-neutral-700 rounded-lg text-sm text-ledger-900 dark:text-white focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-colors duration-150 resize-none" 
                                   placeholder="@Localizer["Explain your reasoning..."]"></textarea>
                     </div>
 
                     <div class="pt-2">
                         <button type="button" onclick="submitResolution()" id="submitBtn" 
-                                class="w-full py-4 bg-gradient-to-br from-blue-600 to-blue-700 hover:brightness-110 active:scale-[0.98] text-white font-bold rounded-2xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2">
+                                class="w-full py-4 bg-primary-600 hover:bg-primary-700 active:scale-[0.98] text-white font-bold rounded-lg shadow-lg shadow-primary-500/25 transition-colors duration-150 flex items-center justify-center gap-2">
                             <i class="bi bi-check-circle"></i>
                             @Localizer["Submit Decision"]
                         </button>
                         
-                        <p class="text-[10px] text-slate-400 dark:text-slate-500 text-center italic mt-4">
+                        <p class="text-[10px] text-ledger-400 dark:text-ledger-500 text-center italic mt-4">
                             <i class="bi bi-info-circle mr-1"></i>
                             @Localizer["This action is final and will notify both parties."]
                         </p>
@@ -218,18 +218,18 @@
 
             <!-- Party Cards -->
             <div class="space-y-4">
-                <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center gap-3">
+                <div class="p-4 bg-white dark:bg-ledger-900 border border-ledger-200 dark:border-neutral-700 rounded-lg flex items-center gap-3">
                     <img src="@(Model.Renter?.ProfilePictureUrl ?? "https://ui-avatars.com/api/?name=" + Model.Renter?.Email)" class="w-10 h-10 rounded-full" />
                     <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">@Localizer["Renter"]</p>
-                        <p class="text-sm font-bold text-slate-900 dark:text-white">@Model.Renter?.UserName</p>
+                        <p class="text-[10px] font-bold text-ledger-400 uppercase tracking-widest">@Localizer["Renter"]</p>
+                        <p class="text-sm font-bold text-ledger-900 dark:text-white">@Model.Renter?.UserName</p>
                     </div>
                 </div>
-                <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center gap-3">
+                <div class="p-4 bg-white dark:bg-ledger-900 border border-ledger-200 dark:border-neutral-700 rounded-lg flex items-center gap-3">
                     <img src="@(Model.Owner?.ProfilePictureUrl ?? "https://ui-avatars.com/api/?name=" + Model.Owner?.Email)" class="w-10 h-10 rounded-full" />
                     <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">@Localizer["Owner"]</p>
-                        <p class="text-sm font-bold text-slate-900 dark:text-white">@Model.Owner?.UserName</p>
+                        <p class="text-[10px] font-bold text-ledger-400 uppercase tracking-widest">@Localizer["Owner"]</p>
+                        <p class="text-sm font-bold text-ledger-900 dark:text-white">@Model.Owner?.UserName</p>
                     </div>
                 </div>
             </div>
@@ -246,11 +246,11 @@
                 b.classList.remove('bg-emerald-50', 'bg-emerald-900/40', 'border-emerald-500', 'text-emerald-700');
                 b.classList.remove('bg-amber-50', 'bg-amber-900/40', 'border-amber-500', 'text-amber-700');
                 
-                b.classList.add('bg-slate-50', 'dark:bg-slate-800', 'border-slate-200', 'dark:border-slate-700', 'text-slate-500', 'dark:text-slate-400');
+                b.classList.add('bg-ledger-50', 'dark:bg-ledger-800', 'border-ledger-200', 'dark:border-neutral-700', 'text-ledger-500', 'dark:text-ledger-400');
             });
 
             // Remove neutral classes from active element
-            el.classList.remove('bg-slate-50', 'dark:bg-slate-800', 'border-slate-200', 'dark:border-slate-700', 'text-slate-500', 'dark:text-slate-400');
+            el.classList.remove('bg-ledger-50', 'dark:bg-ledger-800', 'border-ledger-200', 'dark:border-neutral-700', 'text-ledger-500', 'dark:text-ledger-400');
             
             if (type === 'release') {
                 el.classList.add('bg-emerald-50', 'dark:bg-emerald-900/40', 'border-emerald-500', 'text-emerald-700', 'dark:text-white', 'shadow-sm');
@@ -269,7 +269,7 @@
             // Clear button states
             document.querySelectorAll('.outcome-btn').forEach(b => {
                 b.classList.remove('bg-rose-50', 'dark:bg-rose-900/40', 'bg-emerald-50', 'dark:bg-emerald-900/40', 'bg-amber-50', 'dark:bg-amber-900/40', 'border-rose-500', 'border-emerald-500', 'border-amber-500', 'text-rose-700', 'text-emerald-700', 'text-amber-700', 'text-white', 'shadow-sm');
-                b.classList.add('bg-slate-50', 'dark:bg-slate-800', 'border-slate-200', 'dark:border-slate-700', 'text-slate-500', 'dark:text-slate-400');
+                b.classList.add('bg-ledger-50', 'dark:bg-ledger-800', 'border-ledger-200', 'dark:border-neutral-700', 'text-ledger-500', 'dark:text-ledger-400');
             });
         }
 

@@ -46,50 +46,44 @@
 @Html.AntiForgeryToken()
 
 <!-- Mini Hero with Search -->
-<section class="relative bg-gradient-to-r from-blue-600 to-blue-700 py-12 overflow-visible" style="z-index: 10;">
-    <!-- Decorative background elements -->
-    <div class="absolute inset-0 opacity-20 pointer-events-none">
-        <div class="absolute top-0 left-1/4 w-64 h-64 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-    </div>
-
+<section class="relative bg-primary-700 py-12 overflow-visible" style="z-index: 10;">
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-visible" style="z-index: var(--z-base, 1);">
         <div class="text-center mb-8">
-            <h1 class="font-heading text-3xl sm:text-4xl font-bold text-white mb-2">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">
                 @Localizer["Find the perfect item to rent"]
             </h1>
-            <p class="text-blue-100 opacity-90">@Model.Count() @Localizer["items available in our community"]</p>
+            <p class="text-primary-100 opacity-90">@Model.Count() @Localizer["items available in our community"]</p>
         </div>
-        
+
         <div class="max-w-4xl mx-auto overflow-visible">
             <form asp-action="Index" method="get" id="marketplaceSearchForm"
-                  class="glass rounded-2xl sm:rounded-full p-2 shadow-xl border border-white/30 relative overflow-visible" style="z-index: var(--z-dropdown, 100);">
+                  class="bg-white shadow-md border border-stone-200 rounded-lg p-2 relative overflow-visible" style="z-index: var(--z-dropdown, 100);">
                 <div class="flex flex-col sm:flex-row items-stretch gap-2 overflow-visible">
                     <!-- What (Search Input) -->
                     <div class="flex-[1.5] min-w-0 group relative overflow-visible">
-                        <div onclick="document.getElementById('mktSearch').focus()" 
-                             class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full 
-                                    bg-white/60 hover:bg-white/90 
-                                    focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2
-                                    transition-all duration-200 cursor-text h-full">
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
+                        <div onclick="document.getElementById('mktSearch').focus()"
+                             class="flex items-center gap-3 px-4 py-3 rounded-md
+                                    bg-white hover:bg-stone-50
+                                    focus-within:bg-white focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2
+                                    transition-colors duration-150 cursor-text h-full">
+                            <div class="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
                                 <i class="bi bi-search text-white text-sm"></i>
                             </div>
                             <div class="flex-1 min-w-0 relative">
-                                <input type="text" id="mktSearch" name="search" value="@ViewBag.Search" 
+                                <input type="text" id="mktSearch" name="search" value="@ViewBag.Search"
                                        placeholder="@Localizer["What are you looking for?"]"
                                        oninput="toggleClearButton(this)"
-                                       class="w-full bg-transparent border-none text-slate-900 font-medium placeholder-slate-500 focus:outline-none text-sm pr-8">
+                                       class="w-full bg-transparent border-none text-stone-900 font-medium placeholder-stone-500 focus:outline-none text-sm pr-8">
                                 <button type="button" id="mktSearchClear" onclick="clearSearchInput()"
-                                        class="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-500 transition-all opacity-0 invisible">
+                                        class="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-stone-200 hover:bg-stone-300 flex items-center justify-center text-stone-500 transition-colors duration-150 opacity-0 invisible">
                                     <i class="bi bi-x text-sm"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
-                    
+
+                    <div class="hidden sm:block w-px bg-stone-300/50 my-2"></div>
+
                     <!-- Date Range -->
                     <div class="flex-1 min-w-0 relative overflow-visible" style="z-index: var(--z-popover, 700);">
                         @{
@@ -109,17 +103,17 @@
                             Placeholder = Localizer["When?"].Value
                         })
                     </div>
-                    
-                    <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
-                    
+
+                    <div class="hidden sm:block w-px bg-stone-300/50 my-2"></div>
+
                     <!-- Location -->
                     <div class="flex-1 min-w-0 group relative overflow-visible">
-                        <div onclick="document.querySelector('[name=city]').focus()" 
-                             class="flex items-center gap-3 px-4 py-3 rounded-xl sm:rounded-full bg-white/60 hover:bg-white/90 focus-within:bg-white transition-all cursor-pointer h-full">
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
+                        <div onclick="document.querySelector('[name=city]').focus()"
+                             class="flex items-center gap-3 px-4 py-3 rounded-md bg-white hover:bg-stone-50 focus-within:bg-white transition-colors duration-150 cursor-pointer h-full">
+                            <div class="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
                                 <i class="bi bi-geo-alt-fill text-white text-sm"></i>
                             </div>
-                            <select name="city" class="flex-1 min-w-0 bg-transparent border-none text-slate-900 font-medium focus:outline-none text-sm cursor-pointer">
+                            <select name="city" class="flex-1 min-w-0 bg-transparent border-none text-stone-900 font-medium focus:outline-none text-sm cursor-pointer">
                                 <option value="">@Localizer["Where?"]</option>
                                 @foreach (var city in cities)
                                 {
@@ -128,10 +122,10 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <!-- Search Button -->
-                    <button type="submit" class="px-7 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl sm:rounded-full shadow-md transition-all duration-300 flex items-center justify-center gap-2 group">
-                        <i class="bi bi-search text-lg group-hover:scale-110 transition-transform"></i>
+                    <button type="submit" class="px-7 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-md shadow-md transition-colors duration-150 flex items-center justify-center gap-2">
+                        <i class="bi bi-search text-lg"></i>
                         <span class="sm:hidden lg:inline">@Localizer["Search"]</span>
                     </button>
                 </div>
@@ -147,41 +141,41 @@
         <!-- Sidebar Filters (Desktop) -->
         <aside class="hidden lg:block w-80 flex-shrink-0">
             <div class="sticky top-24 space-y-4" style="z-index: var(--z-sticky, 200);">
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-white rounded-lg border border-stone-200 shadow-sm overflow-hidden">
                     <!-- Filter Header -->
-                    <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                    <div class="flex items-center justify-between p-5 border-b border-stone-200 bg-stone-50">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                                <i class="bi bi-sliders text-blue-600"></i>
+                            <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                                <i class="bi bi-sliders text-primary-600"></i>
                             </div>
                             <div>
-                                <h3 class="font-heading font-bold text-slate-900">@Localizer["Filters"]</h3>
+                                <h3 class="font-bold text-stone-900">@Localizer["Filters"]</h3>
                                 @if (hasActiveFilters)
                                 {
-                                    <p class="text-xs text-slate-500">@Localizer["Active filters applied"]</p>
+                                    <p class="text-xs text-stone-500">@Localizer["Active filters applied"]</p>
                                 }
                             </div>
                         </div>
                         @if (hasActiveFilters)
                         {
-                            <a asp-action="Index" class="text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1 transition-colors">
+                            <a asp-action="Index" class="text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1 transition-colors duration-150">
                                 <i class="bi bi-x-circle"></i>
                                 @Localizer["Reset"]
                             </a>
                         }
                     </div>
                     
-                    <form asp-action="Index" method="get" id="filterForm" class="divide-y divide-slate-100">
+                    <form asp-action="Index" method="get" id="filterForm" class="divide-y divide-stone-200">
                         <input type="hidden" name="search" value="@ViewBag.Search" />
                         
                         <!-- Category Filter -->
                         <details class="group" open>
-                            <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors list-none">
+                            <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-stone-50 transition-colors list-none">
                                 <div class="flex items-center gap-3">
-                                    <i class="bi bi-grid-3x3-gap text-slate-400"></i>
-                                    <span class="font-semibold text-slate-900">@Localizer["Category"]</span>
+                                    <i class="bi bi-grid-3x3-gap text-stone-400"></i>
+                                    <span class="font-semibold text-stone-900">@Localizer["Category"]</span>
                                 </div>
-                                <i class="bi bi-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                                <i class="bi bi-chevron-down text-stone-400 group-open:rotate-180 transition-transform duration-200"></i>
                             </summary>
                             <div class="px-5 pb-5 space-y-1">
                                 @foreach (var cat in categories)
@@ -195,13 +189,13 @@
                                         {"Fun", "bi-controller"},
                                         {"Other", "bi-three-dots"}
                                     };
-                                    <label class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 @(isSelected ? "bg-blue-50 border border-blue-200" : "hover:bg-slate-50 border border-transparent")">
+                                    <label class="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 @(isSelected ? "bg-primary-50 border border-primary-200" : "hover:bg-stone-50 border border-transparent")">
                                         <input type="checkbox" name="category" value="@cat" class="hidden" @(isSelected ? "checked" : "") onchange="this.form.submit()">
-                                        <i class="bi @iconMap.GetValueOrDefault(cat, "bi-tag") @(isSelected ? "text-blue-600" : "text-slate-400")"></i>
-                                        <span class="flex-1 @(isSelected ? "text-blue-700 font-medium" : "text-slate-600")">@Localizer[cat ?? "Other"]</span>
+                                        <i class="bi @iconMap.GetValueOrDefault(cat, "bi-tag") @(isSelected ? "text-primary-600" : "text-stone-400")"></i>
+                                        <span class="flex-1 @(isSelected ? "text-primary-700 font-medium" : "text-stone-600")">@Localizer[cat ?? "Other"]</span>
                                         @if (isSelected)
                                         {
-                                            <i class="bi bi-check-lg text-blue-600"></i>
+                                            <i class="bi bi-check-lg text-primary-600"></i>
                                         }
                                     </label>
                                 }
@@ -210,26 +204,26 @@
                         
                         <!-- Price Range with Visual Slider -->
                         <details class="group" open>
-                            <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors list-none">
+                            <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-stone-50 transition-colors list-none">
                                 <div class="flex items-center gap-3">
-                                    <span class="text-slate-400 font-medium">@currency.Symbol</span>
-                                    <span class="font-semibold text-slate-900">@Localizer["Price range"]</span>
+                                    <span class="text-stone-400 font-medium">@currency.Symbol</span>
+                                    <span class="font-semibold text-stone-900">@Localizer["Price range"]</span>
                                 </div>
-                                <i class="bi bi-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                                <i class="bi bi-chevron-down text-stone-400 group-open:rotate-180 transition-transform duration-200"></i>
                             </summary>
                             <div class="px-5 pb-5">
                                 <!-- Price display -->
                                 <div class="flex items-center justify-between mb-4">
-                                    <div class="px-3 py-1.5 bg-slate-100 rounded-lg">
-                                        <span id="minPriceDisplay" class="font-semibold text-slate-900">@currency.Symbol@((int)CurrencyService.Convert(currentMin))</span>
+                                    <div class="px-3 py-1.5 bg-stone-100 rounded-lg">
+                                        <span id="minPriceDisplay" class="font-semibold text-stone-900">@currency.Symbol@((int)CurrencyService.Convert(currentMin))</span>
                                     </div>
                                     <div class="flex-1 mx-3 flex items-center">
-                                        <div class="flex-1 border-t-2 border-dashed border-slate-200"></div>
-                                        <i class="bi bi-arrow-left-right text-slate-300 mx-2"></i>
-                                        <div class="flex-1 border-t-2 border-dashed border-slate-200"></div>
+                                        <div class="flex-1 border-t-2 border-dashed border-stone-200"></div>
+                                        <i class="bi bi-arrow-left-right text-stone-300 mx-2"></i>
+                                        <div class="flex-1 border-t-2 border-dashed border-stone-200"></div>
                                     </div>
-                                    <div class="px-3 py-1.5 bg-slate-100 rounded-lg">
-                                        <span id="maxPriceDisplay" class="font-semibold text-slate-900">@currency.Symbol@((int)CurrencyService.Convert(currentMax))</span>
+                                    <div class="px-3 py-1.5 bg-stone-100 rounded-lg">
+                                        <span id="maxPriceDisplay" class="font-semibold text-stone-900">@currency.Symbol@((int)CurrencyService.Convert(currentMax))</span>
                                     </div>
                                 </div>
                                 
@@ -239,12 +233,12 @@
                                     var minPercent = absMax > 0 ? ((int)currentMin * 100 / absMax) : 0;
                                     var maxPercent = absMax > 0 ? (100 - (int)currentMax * 100 / absMax) : 0;
                                 }
-                                <div class="relative h-2 bg-slate-200 rounded-full mb-6">
-                                    <div id="priceTrack" class="absolute h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full" style="left: @(minPercent)%; right: @(maxPercent)%;"></div>
+                                <div class="relative h-2 bg-stone-200 rounded-full mb-6">
+                                    <div id="priceTrack" class="absolute h-full bg-primary-500 rounded-full" style="left: @(minPercent)%; right: @(maxPercent)%;"></div>
                                     <input type="range" id="minPriceSlider" min="0" max="@absMax" value="@((int)currentMin)" step="5"
-                                           class="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-blue-500 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:cursor-pointer">
+                                           class="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-primary-500 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:cursor-pointer">
                                     <input type="range" id="maxPriceSlider" min="0" max="@absMax" value="@((int)currentMax)" step="5"
-                                           class="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-blue-500 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:cursor-pointer">
+                                           class="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-primary-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-primary-500 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:cursor-pointer">
                                 </div>
                                 
                                 <!-- Quick price buttons -->
@@ -256,7 +250,7 @@
                                     @foreach (var (min, max, label) in priceRanges)
                                     {
                                         <button type="button" onclick="setPriceRange(@min, @max)"
-                                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all">
+                                                class="px-3 py-1.5 text-xs font-medium rounded-lg border border-stone-200 text-stone-600 hover:bg-primary-50 hover:border-primary-200 hover:text-primary-600 transition-all">
                                             @label
                                         </button>
                                     }
@@ -270,12 +264,12 @@
                         
                         <!-- Rating Filter with visual stars -->
                         <details class="group" open>
-                            <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors list-none">
+                            <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-stone-50 transition-colors list-none">
                                 <div class="flex items-center gap-3">
-                                    <i class="bi bi-star text-slate-400"></i>
-                                    <span class="font-semibold text-slate-900">@Localizer["Minimum rating"]</span>
+                                    <i class="bi bi-star text-stone-400"></i>
+                                    <span class="font-semibold text-stone-900">@Localizer["Minimum rating"]</span>
                                 </div>
-                                <i class="bi bi-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                                <i class="bi bi-chevron-down text-stone-400 group-open:rotate-180 transition-transform duration-200"></i>
                             </summary>
                             <div class="px-5 pb-5">
                                 <div class="flex gap-2">
@@ -283,9 +277,9 @@
                                     {
                                         var isRatingSelected = ViewBag.MinRating?.ToString() == rating.ToString();
                                         <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@ViewBag.Category" asp-route-city="@ViewBag.City" asp-route-minRating="@(isRatingSelected ? "" : rating.ToString())"
-                                           class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl cursor-pointer transition-all duration-200 @(isRatingSelected ? "bg-amber-50 border-2 border-amber-400 shadow-sm" : "bg-slate-50 border-2 border-transparent hover:bg-amber-50/50 hover:border-amber-200")">
+                                           class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-lg cursor-pointer transition-all duration-200 @(isRatingSelected ? "bg-amber-50 border-2 border-amber-400 shadow-sm" : "bg-stone-50 border-2 border-transparent hover:bg-amber-50/50 hover:border-amber-200")">
                                             <i class="bi bi-star-fill text-lg @(isRatingSelected ? "text-amber-500" : "text-amber-300")"></i>
-                                            <span class="text-sm font-semibold @(isRatingSelected ? "text-amber-700" : "text-slate-500")">@rating+</span>
+                                            <span class="text-sm font-semibold @(isRatingSelected ? "text-amber-700" : "text-stone-500")">@rating+</span>
                                         </a>
                                     }
                                 </div>
@@ -294,7 +288,7 @@
                         
                         <!-- Apply Button -->
                         <div class="p-5">
-                            <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm  transition-all duration-300 flex items-center justify-center gap-2">
+                            <button type="submit" class="w-full py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors duration-150 flex items-center justify-center gap-2">
                                 <i class="bi bi-funnel-fill"></i>
                                 @Localizer["Apply Filters"]
                             </button>
@@ -312,62 +306,62 @@
                 <div class="flex flex-wrap items-center gap-2">
                     @foreach (var cat in selectedCategories)
                     {
-                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200 text-blue-700 rounded-full text-sm font-medium">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-50 border border-primary-200 text-primary-700 rounded-full text-sm font-medium">
                             <i class="bi bi-tag"></i> @Localizer[cat]
                             @{
                                 var remainingCategories = selectedCategories.Where(c => c != cat).ToArray();
                             }
-                            <a asp-action="Index" 
-                               asp-all-route-data='new Dictionary<string, string?> { 
-                                   {"search", ViewBag.Search}, 
-                                   {"city", ViewBag.City}, 
-                                   {"minPrice", ViewBag.MinPrice?.ToString()}, 
+                            <a asp-action="Index"
+                               asp-all-route-data='new Dictionary<string, string?> {
+                                   {"search", ViewBag.Search},
+                                   {"city", ViewBag.City},
+                                   {"minPrice", ViewBag.MinPrice?.ToString()},
                                    {"maxPrice", ViewBag.MaxPrice?.ToString()},
                                    {"minRating", ViewBag.MinRating?.ToString()},
                                    {"sort", ViewBag.Sort}
                                }'
                                asp-route-category="@remainingCategories"
-                               class="w-5 h-5 rounded-full bg-blue-200 hover:bg-blue-300 flex items-center justify-center transition-colors">
+                               class="w-5 h-5 rounded-full bg-primary-200 hover:bg-primary-300 flex items-center justify-center transition-colors duration-150">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
                         </span>
                     }
                     @if (!string.IsNullOrEmpty(ViewBag.Search as string))
                     {
-                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-slate-50 to-white border border-slate-200 text-slate-700 rounded-full text-sm font-medium">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-stone-50 border border-stone-200 text-stone-700 rounded-full text-sm font-medium">
                             <i class="bi bi-search"></i> "@ViewBag.Search"
                             <a asp-action="Index" asp-all-route-data='new Dictionary<string, string?> { {"category", string.Join(",", selectedCategories)}, {"city", ViewBag.City}, {"minPrice", ViewBag.MinPrice?.ToString()}, {"maxPrice", ViewBag.MaxPrice?.ToString()}, {"minRating", ViewBag.MinRating?.ToString()}, {"sort", ViewBag.Sort} }'
-                               class="w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors">
+                               class="w-5 h-5 rounded-full bg-stone-200 hover:bg-stone-300 flex items-center justify-center transition-colors duration-150">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
                         </span>
                     }
                     @if (!string.IsNullOrEmpty(ViewBag.City as string))
                     {
-                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-full text-sm font-medium">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 rounded-full text-sm font-medium">
                             <i class="bi bi-geo-alt-fill"></i> @ViewBag.City
-                            <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" 
-                               class="w-5 h-5 rounded-full bg-green-200 hover:bg-green-300 flex items-center justify-center transition-colors">
+                            <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories"
+                               class="w-5 h-5 rounded-full bg-green-200 hover:bg-green-300 flex items-center justify-center transition-colors duration-150">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
                         </span>
                     }
                     @if (ViewBag.MinPrice != null || ViewBag.MaxPrice != null)
                     {
-                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 text-purple-700 rounded-full text-sm font-medium">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 border border-purple-200 text-purple-700 rounded-full text-sm font-medium">
                             <i class="bi bi-currency-euro"></i> @currency.Symbol@((int)CurrencyService.Convert(ViewBag.MinPrice ?? 0)) - @currency.Symbol@((int)CurrencyService.Convert(ViewBag.MaxPrice ?? ViewBag.AbsoluteMaxPrice))
                             <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" asp-route-city="@ViewBag.City"
-                               class="w-5 h-5 rounded-full bg-purple-200 hover:bg-purple-300 flex items-center justify-center transition-colors">
+                               class="w-5 h-5 rounded-full bg-purple-200 hover:bg-purple-300 flex items-center justify-center transition-colors duration-150">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
                         </span>
                     }
                     @if (!string.IsNullOrEmpty(ViewBag.MinRating?.ToString()))
                     {
-                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-amber-700 rounded-full text-sm font-medium">
+                        <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-full text-sm font-medium">
                             <i class="bi bi-star-fill"></i> @ViewBag.MinRating+ @Localizer["stars"]
                             <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" asp-route-city="@ViewBag.City"
-                               class="w-5 h-5 rounded-full bg-amber-200 hover:bg-amber-300 flex items-center justify-center transition-colors">
+                               class="w-5 h-5 rounded-full bg-amber-200 hover:bg-amber-300 flex items-center justify-center transition-colors duration-150">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
                         </span>
@@ -376,10 +370,10 @@
                 
                 <!-- Sort dropdown -->
                 <div class="flex items-center gap-3">
-                    <span class="text-sm text-slate-500 hidden sm:inline">@Localizer["Sort by:"]</span>
+                    <span class="text-sm text-stone-500 hidden sm:inline">@Localizer["Sort by:"]</span>
                     <div class="relative">
                         <select onchange="window.location.href=this.value" 
-                                class="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white cursor-pointer hover:border-slate-300 transition-colors">
+                                class="appearance-none pl-4 pr-10 py-2.5 border border-stone-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white cursor-pointer hover:border-stone-300 transition-colors">
                             @{
                                 var sortNewest = ViewBag.Sort == "newest" || ViewBag.Sort == null;
                                 var sortPriceAsc = ViewBag.Sort == "price_asc";
@@ -395,19 +389,19 @@
                             <option value="@Url.Action("Index", new { search = ViewBag.Search, category = selectedCategories, city = ViewBag.City, sort = "rating" })"
                                     selected="@sortRating">@Localizer["Highest rated"]</option>
                         </select>
-                        <i class="bi bi-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                        <i class="bi bi-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none"></i>
                     </div>
                 </div>
             </div>
             
             <!-- Mobile Filter Button -->
             <button onclick="openMobileFilters()" 
-                    class="lg:hidden w-full mb-6 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 transition-all focus-ring"
+                    class="lg:hidden w-full mb-6 py-3.5 bg-white border border-stone-200 rounded-lg text-stone-700 font-medium flex items-center justify-center gap-2 hover:bg-stone-50 hover:border-stone-300 transition-all focus-ring"
                     aria-label="@Localizer["Open filters"]">
                 <i class="bi bi-sliders" aria-hidden="true"></i> @Localizer["Filters"]
                 @if (hasActiveFilters)
                 {
-                    <span class="w-6 h-6 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    <span class="w-6 h-6 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
                         @{
                             var filterCount = 0;
                             if (selectedCategories.Any()) filterCount++;
@@ -421,40 +415,40 @@
             </button>
             
             <!-- Mobile Filters Drawer -->
-            <div id="mobileFiltersOverlay" class="fixed inset-0 bg-black/50 hidden lg:hidden" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); z-index: var(--z-modal-backdrop, 1100);" onclick="closeMobileFilters()"></div>
-            <div id="mobileFiltersDrawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 lg:hidden overflow-hidden flex flex-col" style="z-index: var(--z-modal, 1200);">
+            <div id="mobileFiltersOverlay" class="fixed inset-0 bg-black/50 hidden lg:hidden" style="z-index: var(--z-modal-backdrop, 1100);" onclick="closeMobileFilters()"></div>
+            <div id="mobileFiltersDrawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 lg:hidden overflow-hidden flex flex-col rounded-lg" style="z-index: var(--z-modal, 1200);">
                 <!-- Drawer Header -->
-                <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                <div class="flex items-center justify-between p-5 border-b border-stone-200 bg-stone-50">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                            <i class="bi bi-sliders text-blue-600"></i>
+                        <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                            <i class="bi bi-sliders text-primary-600"></i>
                         </div>
-                        <h3 class="font-heading font-bold text-lg text-slate-900">@Localizer["Filters"]</h3>
+                        <h3 class="font-bold text-lg text-stone-900">@Localizer["Filters"]</h3>
                     </div>
-                    <button onclick="closeMobileFilters()" 
-                            class="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors touch-target focus-ring"
+                    <button onclick="closeMobileFilters()"
+                            class="w-10 h-10 rounded-lg hover:bg-stone-100 flex items-center justify-center transition-colors duration-150 touch-target focus-ring"
                             aria-label="@Localizer["Close filters"]">
-                        <i class="bi bi-x-lg text-slate-500" aria-hidden="true"></i>
+                        <i class="bi bi-x-lg text-stone-500" aria-hidden="true"></i>
                     </button>
                 </div>
                 
                 <!-- Drawer Content -->
                 <div class="flex-1 overflow-y-auto">
-                    <form asp-action="Index" method="get" id="mobileFilterForm" class="divide-y divide-slate-100">
+                    <form asp-action="Index" method="get" id="mobileFilterForm" class="divide-y divide-stone-200">
                         <input type="hidden" name="search" value="@ViewBag.Search" />
                         
                         <!-- Category -->
                         <div class="p-5">
-                            <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                <i class="bi bi-grid-3x3-gap text-slate-400"></i> @Localizer["Category"]
+                            <h4 class="font-semibold text-stone-900 mb-3 flex items-center gap-2">
+                                <i class="bi bi-grid-3x3-gap text-stone-400"></i> @Localizer["Category"]
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
                                 @foreach (var cat in categories)
                                 {
                                     var isCatSelected = selectedCategories.Contains(cat);
-                                    <label class="flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all @(isCatSelected ? "bg-blue-50 border-2 border-blue-500" : "bg-slate-50 border-2 border-transparent hover:bg-slate-100")">
+                                    <label class="flex items-center gap-2 p-3 rounded-lg cursor-pointer transition-all @(isCatSelected ? "bg-primary-50 border-2 border-primary-500" : "bg-stone-50 border-2 border-transparent hover:bg-stone-100")">
                                         <input type="checkbox" name="category" value="@cat" class="sr-only" @(isCatSelected ? "checked" : "")>
-                                        <span class="text-sm font-medium @(isCatSelected ? "text-blue-700" : "text-slate-600")">@Localizer[cat ?? "Other"]</span>
+                                        <span class="text-sm font-medium @(isCatSelected ? "text-primary-700" : "text-stone-600")">@Localizer[cat ?? "Other"]</span>
                                     </label>
                                 }
                             </div>
@@ -462,35 +456,35 @@
                         
                         <!-- Price Range -->
                         <div class="p-5">
-                            <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                <i class="bi bi-currency-euro text-slate-400"></i> @Localizer["Price range"]
+                            <h4 class="font-semibold text-stone-900 mb-3 flex items-center gap-2">
+                                <i class="bi bi-currency-euro text-stone-400"></i> @Localizer["Price range"]
                             </h4>
                             <div class="flex items-center gap-3">
                                 <div class="flex-1">
                                     <input type="number" name="minPrice" value="@(ViewBag.MinPrice)" placeholder="Min"
-                                           class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                           class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                                 </div>
-                                <span class="text-slate-300">—</span>
+                                <span class="text-stone-300">—</span>
                                 <div class="flex-1">
                                     <input type="number" name="maxPrice" value="@(ViewBag.MaxPrice)" placeholder="Max"
-                                           class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                           class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Rating -->
                         <div class="p-5">
-                            <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                <i class="bi bi-star text-slate-400"></i> @Localizer["Minimum rating"]
+                            <h4 class="font-semibold text-stone-900 mb-3 flex items-center gap-2">
+                                <i class="bi bi-star text-stone-400"></i> @Localizer["Minimum rating"]
                             </h4>
                             <div class="flex gap-2">
                                 @for (int rating = 1; rating <= 5; rating++)
                                 {
                                     var isMobileRatingSelected = ViewBag.MinRating?.ToString() == rating.ToString();
-                                    <label class="flex-1 flex flex-col items-center gap-1 p-3 rounded-xl cursor-pointer transition-all @(isMobileRatingSelected ? "bg-amber-50 border-2 border-amber-400" : "bg-slate-50 border-2 border-transparent hover:bg-slate-100")">
+                                    <label class="flex-1 flex flex-col items-center gap-1 p-3 rounded-lg cursor-pointer transition-all @(isMobileRatingSelected ? "bg-amber-50 border-2 border-amber-400" : "bg-stone-50 border-2 border-transparent hover:bg-stone-100")">
                                         <input type="radio" name="minRating" value="@rating" class="sr-only" @(isMobileRatingSelected ? "checked" : "")>
                                         <i class="bi bi-star-fill text-amber-400"></i>
-                                        <span class="text-xs font-medium @(isMobileRatingSelected ? "text-amber-700" : "text-slate-500")">@rating+</span>
+                                        <span class="text-xs font-medium @(isMobileRatingSelected ? "text-amber-700" : "text-stone-500")">@rating+</span>
                                     </label>
                                 }
                             </div>
@@ -498,10 +492,10 @@
                         
                         <!-- City -->
                         <div class="p-5">
-                            <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                                <i class="bi bi-geo-alt text-slate-400"></i> @Localizer["City"]
+                            <h4 class="font-semibold text-stone-900 mb-3 flex items-center gap-2">
+                                <i class="bi bi-geo-alt text-stone-400"></i> @Localizer["City"]
                             </h4>
-                            <select name="city" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                            <select name="city" class="w-full px-4 py-3 border border-stone-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
                                 <option value="">@Localizer["All cities"]</option>
                                 @foreach (var city in cities)
                                 {
@@ -514,13 +508,13 @@
                 </div>
                 
                 <!-- Drawer Footer -->
-                <div class="p-5 border-t border-slate-100 bg-white space-y-3">
-                    <button type="submit" form="mobileFilterForm" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-sm transition-all">
+                <div class="p-5 border-t border-stone-200 bg-white space-y-3">
+                    <button type="submit" form="mobileFilterForm" class="w-full py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors duration-150">
                         @Localizer["Apply Filters"]
                     </button>
                     @if (hasActiveFilters)
                     {
-                        <a asp-action="Index" class="block w-full py-3 text-center text-red-500 font-medium hover:bg-red-50 rounded-xl transition-colors">
+                        <a asp-action="Index" class="block w-full py-3 text-center text-red-500 font-medium hover:bg-red-50 rounded-lg transition-colors duration-150">
                             @Localizer["Clear all filters"]
                         </a>
                     }
@@ -534,21 +528,21 @@
                     @foreach (var item in Model)
                     {
                         <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="group">
-                            <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-200 h-full flex flex-col">
+                            <div class="bg-white rounded-lg overflow-hidden border border-stone-200 h-full flex flex-col hover:shadow-md transition-shadow duration-150">
                                 <!-- Image Container -->
                                 <div class="aspect-[4/3] relative overflow-hidden">
                                     @if (!string.IsNullOrEmpty(item.ImageUrl))
                                     {
-                                        <img src="@item.ImageUrl" alt="@item.Title" 
-                                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                        <img src="@item.ImageUrl" alt="@item.Title"
+                                             class="w-full h-full object-cover">
                                     }
                                     else
                                     {
-                                        <div class="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                                            <i class="bi bi-image text-5xl text-slate-300"></i>
+                                        <div class="w-full h-full bg-stone-100 flex items-center justify-center">
+                                            <i class="bi bi-image text-5xl text-stone-300"></i>
                                         </div>
                                     }
-                                    
+
                                     <!-- Favorite Button -->
                                     <div class="absolute top-3 right-3">
                                         @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel {
@@ -556,53 +550,53 @@
                                             IsFavorited = item.FavoritedBy?.Any(f => f.AccountId == ViewBag.CurrentUserId) ?? false
                                         })
                                     </div>
-                                    
+
                                     <!-- Category Badge -->
                                     @if (!string.IsNullOrEmpty(item.Category))
                                     {
-                                        <div class="absolute top-3 left-3 px-3 py-1 bg-white/90 rounded-lg text-xs font-bold text-blue-600 shadow-sm" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+                                        <div class="absolute top-3 left-3 px-3 py-1 bg-white rounded-lg text-xs font-bold text-primary-600 shadow-sm">
                                             @Localizer[item.Category ?? "Uncategorized"]
                                         </div>
                                     }
-                                    
+
                                     <!-- Rating Badge -->
                                     @if (item.AverageRating.HasValue)
                                     {
-                                        <div class="absolute flex items-center gap-1.5 px-2.5 py-1 bg-white/90 rounded-lg text-sm font-semibold shadow-sm" style="bottom: clamp(8px, 2vw, 12px); left: clamp(8px, 2vw, 12px); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+                                        <div class="absolute flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-lg text-sm font-semibold shadow-sm" style="bottom: clamp(8px, 2vw, 12px); left: clamp(8px, 2vw, 12px);">
                                             <i class="bi bi-star-fill text-amber-400" aria-hidden="true"></i>
-                                            <span class="text-slate-800">@item.AverageRating.Value.ToString("0.0")</span>
-                                            <span class="text-slate-400">(@item.ReviewCount)</span>
+                                            <span class="text-stone-800">@item.AverageRating.Value.ToString("0.0")</span>
+                                            <span class="text-stone-400">(@item.ReviewCount)</span>
                                         </div>
                                     }
                                 </div>
-                                
+
                                 <!-- Content -->
                                 <div class="p-5 flex flex-col flex-1">
-                                    <h3 class="font-heading font-semibold text-lg text-slate-900 group-hover:text-blue-600 transition-colors mb-2 line-clamp-1">
+                                    <h3 class="font-semibold text-lg text-stone-900 group-hover:text-primary-600 transition-colors duration-150 mb-2 line-clamp-1">
                                         @item.Title
                                     </h3>
-                                    
+
                                     @if (!string.IsNullOrEmpty(item.Location))
                                     {
-                                        <p class="text-sm text-slate-500 flex items-center gap-1.5 mb-3">
-                                            <i class="bi bi-geo-alt text-blue-500"></i> 
+                                        <p class="text-sm text-stone-500 flex items-center gap-1.5 mb-3">
+                                            <i class="bi bi-geo-alt text-primary-500"></i>
                                             @item.Location
                                         </p>
                                     }
-                                    
+
                                     @if (!string.IsNullOrEmpty(item.Description))
                                     {
-                                        <p class="text-sm text-slate-600 line-clamp-2 mb-4 flex-1">
+                                        <p class="text-sm text-stone-600 line-clamp-2 mb-4 flex-1">
                                             @item.Description
                                         </p>
                                     }
-                                    
+
                                     <!-- Price & Owner -->
-                                    <div class="flex items-end justify-between mt-auto pt-4 border-t border-slate-100">
+                                    <div class="flex items-end justify-between mt-auto pt-4 border-t border-stone-200">
                                         <div>
                                             <div class="flex items-baseline gap-1">
-                                                <span class="text-2xl font-bold text-slate-900">@CurrencyService.Format(item.Price)</span>
-                                                <span class="text-slate-500 text-xs font-medium lowercase">/ @Localizer["day"]</span>
+                                                <span class="text-2xl font-bold text-stone-900">@CurrencyService.Format(item.Price)</span>
+                                                <span class="text-stone-500 text-xs font-medium lowercase">/ @Localizer["day"]</span>
                                             </div>
                                             @if (item.DepositAmount > 0)
                                             {
@@ -617,13 +611,13 @@
                                             <div class="flex items-center gap-2">
                                                 @if (!string.IsNullOrEmpty(item.User.ProfilePictureUrl))
                                                 {
-                                                    <img src="@item.User.ProfilePictureUrl" 
-                                                         alt="@(item.User.FirstName ?? item.User.UserName)" 
+                                                    <img src="@item.User.ProfilePictureUrl"
+                                                         alt="@(item.User.FirstName ?? item.User.UserName)"
                                                          class="w-8 h-8 rounded-full object-cover ring-2 ring-white shadow-sm" />
                                                 }
                                                 else
                                                 {
-                                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold">
+                                                    <div class="w-8 h-8 rounded-full bg-primary-500 flex items-center justify-center text-white text-xs font-bold">
                                                         @(item.User.UserName?.Substring(0, 1).ToUpper() ?? "?")
                                                     </div>
                                                 }
@@ -640,12 +634,12 @@
             {
                 <!-- Empty State -->
                 <div class="text-center py-20">
-                    <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-slate-100 flex items-center justify-center">
-                        <i class="bi bi-search text-4xl text-slate-400"></i>
+                    <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-stone-100 flex items-center justify-center">
+                        <i class="bi bi-search text-4xl text-stone-400"></i>
                     </div>
-                    <h3 class="font-heading text-xl font-bold text-slate-900 mb-2">@Localizer["No items found"]</h3>
-                    <p class="text-slate-500 mb-6">@Localizer["Try adjusting your filters or search terms"]</p>
-                    <a asp-action="Index" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full transition-colors">
+                    <h3 class="font-sans text-xl font-bold text-stone-900 mb-2">@Localizer["No items found"]</h3>
+                    <p class="text-stone-500 mb-6">@Localizer["Try adjusting your filters or search terms"]</p>
+                    <a asp-action="Index" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-full transition-colors">
                         <i class="bi bi-arrow-counterclockwise"></i>
                         @Localizer["Clear all filters"]
                     </a>
@@ -661,7 +655,7 @@
                         {
                             var isActive = i == (ViewBag.CurrentPage ?? 1);
                             <a asp-action="Index" asp-route-page="@i" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" asp-route-city="@ViewBag.City"
-                               class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors @(isActive ? "bg-blue-600 text-white" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50")">
+                               class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors @(isActive ? "bg-primary-600 text-white" : "bg-white border border-stone-200 text-stone-700 hover:bg-stone-50")">
                                 @i
                             </a>
                         }
@@ -673,18 +667,6 @@
 </div>
 
 <style>
-    .hover-lift {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .hover-lift:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.2);
-    }
-    .glass {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }
     .line-clamp-1 {
         display: -webkit-box;
         -webkit-line-clamp: 1;

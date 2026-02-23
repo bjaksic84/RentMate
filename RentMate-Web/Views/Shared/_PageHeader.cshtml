@@ -26,18 +26,18 @@
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
     <div>
-        <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer[title]</h1>
+        <h1 class="text-3xl font-bold text-stone-900">@Localizer[title]</h1>
         @if (!string.IsNullOrEmpty(subtitle))
         {
-            <p class="text-slate-500 mt-1">@Localizer[subtitle]</p>
+            <p class="text-stone-500 mt-1">@Localizer[subtitle]</p>
         }
     </div>
     @if (!string.IsNullOrEmpty(actionText))
     {
         @if (!string.IsNullOrEmpty(actionController) && !string.IsNullOrEmpty(actionAction))
         {
-            <a asp-controller="@actionController" asp-action="@actionAction" 
-               class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-md transition-all">
+            <a asp-controller="@actionController" asp-action="@actionAction"
+               class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-150">
                 @if (!string.IsNullOrEmpty(actionIcon))
                 {
                     <i class="bi @actionIcon"></i>
@@ -47,7 +47,7 @@
         }
         else if (!string.IsNullOrEmpty(actionLink))
         {
-            <a href="@actionLink" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-md transition-all">
+            <a href="@actionLink" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-150">
                 @if (!string.IsNullOrEmpty(actionIcon))
                 {
                     <i class="bi @actionIcon"></i>

@@ -1,17 +1,11 @@
 @*
     Status Badge Partial View
-    
+
     Usage: @await Html.PartialAsync("_StatusBadge", new { Type = "active", Text = "Active" })
-    
-    Types: 
-      - active: Blue badge for active rentals
-      - pending: Amber badge for pending items
-      - completed/success/listed: Green badge for completed transactions
-      - cancelled/hidden/error/banned: Red badge for cancelled items
-      - normal/default: Slate badge
-      - warning: Yellow badge
-      - info: Purple badge
-    
+
+    Types: active, pending, completed/success/listed, cancelled/hidden/error/banned,
+           overdue, moderated, extension-pending, deposit-*, normal/default, warning, info
+
     Optional: ShowIcon = true, SmallPadding = true
 *@
 
@@ -25,26 +19,25 @@
     var localizedText = !string.IsNullOrEmpty(text) ? Localizer[text].Value : "";
     var showIcon = (bool?)(modelType?.GetProperty("ShowIcon")?.GetValue(Model) ?? ViewData["ShowIcon"]) ?? false;
     var smallPadding = (bool?)(modelType?.GetProperty("SmallPadding")?.GetValue(Model) ?? ViewData["SmallPadding"]) ?? false;
-    
-    // Badge color and icon configurations
+
     var (bgColor, textColor, icon) = badgeType.ToLower() switch
     {
-        "active" => ("bg-emerald-500/10", "text-emerald-700 dark:text-emerald-400", "bi-play-circle"),
-        "pending" => ("bg-amber-500/10", "text-amber-700 dark:text-amber-400", "bi-clock"),
-        "completed" or "success" or "listed" => ("bg-green-100", "text-green-700 dark:text-green-400", "bi-check-circle"),
-        "cancelled" or "hidden" or "error" or "banned" => ("bg-red-100", "text-red-700 dark:text-red-400", "bi-x-circle"),
-        "overdue" => ("bg-rose-500/10", "text-rose-700 dark:text-rose-400", "bi-exclamation-triangle"),
-        "moderated" => ("bg-amber-100", "text-amber-700 dark:text-amber-400", "bi-shield-exclamation"),
-        "extension-pending" => ("bg-sky-500/10", "text-sky-700 dark:text-sky-400", "bi-calendar-plus"),
-        "deposit-held" or "deposit-authorized" => ("bg-sky-500/10", "text-sky-700 dark:text-sky-400", "bi-shield-check"),
-        "deposit-released" => ("bg-emerald-500/10", "text-emerald-700 dark:text-emerald-400", "bi-shield-check"),
-        "deposit-charged" => ("bg-rose-500/10", "text-rose-700 dark:text-rose-400", "bi-shield-x"),
-        "normal" or "default" => ("bg-slate-100", "text-slate-600 dark:text-slate-400", ""),
-        "warning" => ("bg-yellow-100", "text-yellow-700 dark:text-yellow-400", "bi-exclamation-triangle"),
-        "info" => ("bg-purple-100", "text-purple-700 dark:text-purple-400", "bi-info-circle"),
-        _ => ("bg-slate-100", "text-slate-600 dark:text-slate-400", "")
+        "active" => ("bg-emerald-50 dark:bg-emerald-900/10", "text-emerald-700 dark:text-emerald-400", "bi-play-circle"),
+        "pending" => ("bg-amber-50 dark:bg-amber-900/10", "text-amber-700 dark:text-amber-400", "bi-clock"),
+        "completed" or "success" or "listed" => ("bg-ledger-100 dark:bg-ledger-800", "text-ledger-600 dark:text-ledger-400", "bi-check-circle"),
+        "cancelled" or "hidden" or "error" or "banned" => ("bg-red-50 dark:bg-red-900/10", "text-red-600 dark:text-red-400", "bi-x-circle"),
+        "overdue" => ("bg-clay-50 dark:bg-clay-900/10", "text-clay-700 dark:text-clay-400", "bi-exclamation-triangle"),
+        "moderated" => ("bg-clay-50 dark:bg-clay-900/10", "text-clay-700 dark:text-clay-400", "bi-shield-exclamation"),
+        "extension-pending" => ("bg-sky-50 dark:bg-sky-900/10", "text-sky-700 dark:text-sky-400", "bi-calendar-plus"),
+        "deposit-held" or "deposit-authorized" => ("bg-sky-50 dark:bg-sky-900/10", "text-sky-700 dark:text-sky-400", "bi-shield-check"),
+        "deposit-released" => ("bg-emerald-50 dark:bg-emerald-900/10", "text-emerald-700 dark:text-emerald-400", "bi-shield-check"),
+        "deposit-charged" => ("bg-red-50 dark:bg-red-900/10", "text-red-600 dark:text-red-400", "bi-shield-x"),
+        "normal" or "default" => ("bg-ledger-100 dark:bg-ledger-800", "text-ledger-600 dark:text-ledger-400", ""),
+        "warning" => ("bg-clay-50 dark:bg-clay-900/10", "text-clay-700 dark:text-clay-400", "bi-exclamation-triangle"),
+        "info" => ("bg-purple-50 dark:bg-purple-900/10", "text-purple-700 dark:text-purple-400", "bi-info-circle"),
+        _ => ("bg-ledger-100 dark:bg-ledger-800", "text-ledger-600 dark:text-ledger-400", "")
     };
-    
+
     var paddingClass = smallPadding ? "px-2 py-0.5" : "px-2 py-1";
 }
 

@@ -34,12 +34,12 @@
      data-initial-end="@initialEnd"
      data-disabled="@disabledJson">
     
-    <div class="smart-calendar-input flex items-center gap-3 px-4 py-3 rounded-xl md:rounded-full
+    <div class="smart-calendar-input flex items-center gap-3 px-4 py-3 rounded-lg md:rounded-full
                 bg-white/60 hover:bg-white/90
-                focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md
-                transition-all duration-200 cursor-pointer h-full"
+                focus-within:bg-white focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2 focus-within:shadow-md
+                transition-all duration-150 cursor-pointer h-full"
          onclick="SmartCalendar.toggle('@calId')">
-        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+        <div class="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0" aria-hidden="true">
             <i class="bi bi-calendar-event text-white text-sm"></i>
         </div>
         <input type="text" 
@@ -50,15 +50,15 @@
                aria-expanded="false"
                autocomplete="off"
                readonly
-               class="flex-1 min-w-0 bg-transparent border-none text-slate-900 font-medium 
-                      placeholder-slate-500 focus:outline-none text-sm cursor-pointer">
+               class="flex-1 min-w-0 bg-transparent border-none text-stone-900 font-medium 
+                      placeholder-stone-500 focus:outline-none text-sm cursor-pointer">
         <button type="button"
                 id="@(calId)_clear"
                 onclick="event.stopPropagation(); SmartCalendar.clear('@calId');"
                 aria-label="@Localizer["Clear dates"]"
-                class="hidden w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 
-                       flex items-center justify-center text-slate-500 hover:text-slate-700 
-                       transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="hidden w-6 h-6 rounded-full bg-stone-200 hover:bg-stone-300 
+                       flex items-center justify-center text-stone-500 hover:text-stone-700 
+                       transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500">
             <i class="bi bi-x text-sm" aria-hidden="true"></i>
         </button>
     </div>
@@ -74,7 +74,7 @@
          aria-modal="true"
          aria-label="@Localizer["Calendar"]"
          class="smart-calendar-panel hidden absolute
-                bg-white rounded-2xl shadow-2xl ring-1 ring-slate-900/5
+                bg-white rounded-lg shadow-xl ring-1 ring-stone-900/5
                 p-4 sm:p-6 origin-top
                 w-[calc(100vw-2rem)] sm:w-auto sm:min-w-[340px] max-w-[95vw]
                 @(isRangeMode ? "lg:w-[680px]" : "")">
@@ -83,21 +83,21 @@
         
         <div class="flex items-center justify-between mb-4 sm:mb-6">
             <button type="button" id="@(calId)_prev" onclick="SmartCalendar.prevMonth('@calId')"
-                    class="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-slate-100 flex items-center justify-center 
-                           text-slate-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    class="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-stone-100 flex items-center justify-center 
+                           text-stone-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label="@Localizer["Previous month"]">
                 <i class="bi bi-chevron-left text-lg" aria-hidden="true"></i>
             </button>
             <div class="flex-1 flex @(isRangeMode ? "lg:justify-around justify-center" : "justify-center")">
-                <h2 id="@(calId)_monthLabel1" class="text-sm sm:text-base font-semibold text-slate-900"></h2>
+                <h2 id="@(calId)_monthLabel1" class="text-sm sm:text-base font-semibold text-stone-900"></h2>
                 @if (isRangeMode)
                 {
-                    <h2 id="@(calId)_monthLabel2" class="hidden lg:block text-base font-semibold text-slate-900"></h2>
+                    <h2 id="@(calId)_monthLabel2" class="hidden lg:block text-base font-semibold text-stone-900"></h2>
                 }
             </div>
             <button type="button" id="@(calId)_next" onclick="SmartCalendar.nextMonth('@calId')"
-                    class="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-slate-100 flex items-center justify-center 
-                           text-slate-600 transition-colors"
+                    class="w-8 h-8 sm:w-10 sm:h-10 rounded-full hover:bg-stone-100 flex items-center justify-center 
+                           text-stone-600 transition-colors"
                     aria-label="@Localizer["Next month"]">
                 <i class="bi bi-chevron-right text-lg" aria-hidden="true"></i>
             </button>
@@ -106,23 +106,23 @@
         <div class="flex flex-col lg:flex-row @(isRangeMode ? "lg:gap-10" : "")">
             <div class="flex-1 min-w-0">
                 <div class="grid grid-cols-7 mb-2">
-                    @foreach (var day in weekdaysShort) { <div class="h-8 sm:h-10 flex items-center justify-center text-xs font-semibold text-slate-400 uppercase tracking-wide">@Localizer[day]</div> }
+                    @foreach (var day in weekdaysShort) { <div class="h-8 sm:h-10 flex items-center justify-center text-xs font-semibold text-stone-400 uppercase tracking-wide">@Localizer[day]</div> }
                 </div>
                 <div id="@(calId)_grid1" role="grid" aria-label="@Localizer["Calendar days"]" class="grid grid-cols-7"></div>
             </div>
             @if (isRangeMode)
             {
-                <div class="hidden lg:block w-px bg-slate-100" aria-hidden="true"></div>
+                <div class="hidden lg:block w-px bg-stone-100" aria-hidden="true"></div>
                 <div class="hidden lg:block flex-1 min-w-0">
                     <div class="grid grid-cols-7 mb-2">
-                        @foreach (var day in weekdaysShort) { <div class="h-8 sm:h-10 flex items-center justify-center text-xs font-semibold text-slate-400 uppercase tracking-wide">@Localizer[day]</div> }
+                        @foreach (var day in weekdaysShort) { <div class="h-8 sm:h-10 flex items-center justify-center text-xs font-semibold text-stone-400 uppercase tracking-wide">@Localizer[day]</div> }
                     </div>
                     <div id="@(calId)_grid2" role="grid" aria-label="@Localizer["Calendar days"]" class="grid grid-cols-7"></div>
                 </div>
             }
         </div>
         
-        <div id="@(calId)_legend" class="hidden flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 text-xs text-slate-500 dark:text-slate-400">
+        <div id="@(calId)_legend" class="hidden flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 text-xs text-stone-500 dark:text-stone-400">
             <span data-legend="highlight" class="hidden items-center gap-1.5">
                 <span class="inline-block w-3.5 h-3.5 rounded" style="background-color: #fef3c7;"></span>
                 @Localizer["Your booking"]
@@ -136,18 +136,18 @@
                 @Localizer["Booked"]
             </span>
             <span data-legend="unavailable" class="hidden items-center gap-1.5">
-                <span class="inline-block w-3.5 h-3.5 rounded bg-slate-200 dark:bg-slate-600 opacity-50"></span>
+                <span class="inline-block w-3.5 h-3.5 rounded bg-stone-200 dark:bg-neutral-600 opacity-50"></span>
                 @Localizer["Unavailable"]
             </span>
         </div>
-        <div class="flex items-center justify-between mt-6 pt-5 border-t border-slate-100">
+        <div class="flex items-center justify-between mt-6 pt-5 border-t border-stone-200">
             <button type="button" id="@(calId)_clearAll" onclick="SmartCalendar.clear('@calId')" 
-                    class="text-sm font-semibold text-slate-900 underline underline-offset-4 hover:text-slate-600 transition-colors hidden">
+                    class="text-sm font-semibold text-stone-900 underline underline-offset-4 hover:text-stone-600 transition-colors hidden">
                 @Localizer["Clear dates"]
             </button>
             <div class="flex-1"></div>
-            <button type="button" onclick="SmartCalendar.close('@calId')" 
-                    class="px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 rounded-full shadow-sm transition-all duration-200">
+            <button type="button" onclick="SmartCalendar.close('@calId')"
+                    class="px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-full transition-colors duration-150">
                 @Localizer["Close"]
             </button>
         </div>
@@ -209,7 +209,7 @@
     .dark .sc-day.sc-range-start::after, .dark .sc-day.sc-range-end::after { background-color: rgba(59, 130, 246, 0.15); }
     .dark .sc-day:focus-visible::before { box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #60a5fa; }
     .dark .smart-calendar-panel { background-color: #1e293b; border-color: #334155; }
-    .dark .smart-calendar-panel .border-slate-100 { border-color: #334155; }
+    .dark .smart-calendar-panel .border-stone-200 { border-color: #334155; }
 
     /* Upward-opening compact variant */
     .sc-open-up .smart-calendar-panel { bottom: 100%; top: auto; margin-top: 0; margin-bottom: 0.75rem; padding: 0.75rem; animation: scFadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }

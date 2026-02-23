@@ -20,19 +20,19 @@
     var icon = (string?)(modelType?.GetProperty("Icon")?.GetValue(Model) ?? ViewData["Icon"]);
 }
 
-<div class="bg-white rounded-2xl border border-slate-200 p-6">
+<div class="bg-white rounded-lg border border-stone-200 p-6">
     @if (!string.IsNullOrEmpty(title))
     {
-        <h2 class="font-heading text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+        <h2 class="text-lg font-semibold text-stone-900 mb-4 flex items-center gap-2">
             @if (!string.IsNullOrEmpty(icon))
             {
-                <i class="bi @icon text-blue-600"></i>
+                <i class="bi @icon text-primary-600"></i>
             }
             @Localizer[title]
         </h2>
         @if (!string.IsNullOrEmpty(subtitle))
         {
-            <p class="text-sm text-slate-500 -mt-2 mb-4">@Localizer[subtitle]</p>
+            <p class="text-sm text-stone-500 -mt-2 mb-4">@Localizer[subtitle]</p>
         }
     }
     @RenderBody()

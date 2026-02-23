@@ -1,0 +1,167 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Models.Domain
+@using RentMate.Shared.Contracts.Responses
+@model (List<Rental> Rentals, int Page, int PageSize, bool HasMore, string CurrentUserId)
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@{
+    var rentals = Model.Rentals;
+    var page = Model.Page;
+    var hasMore = Model.HasMore;
+    var currentUserId = Model.CurrentUserId;
+}
+
+@if (!rentals.Any())
+{
+    @await Html.PartialAsync("_EmptyState", new {
+        Icon = "bi-clock-history",
+        Message = "No completed rentals yet",
+        ActionLink = "/Items",
+        ActionText = "Browse Marketplace"
+    })
+}
+else
+{
+    <!-- Filter Toggle (All / Renter / Owner) -->
+    <div class="flex items-center gap-1 mb-4 p-1 bg-ledger-100 dark:bg-ledger-800 rounded-lg w-fit"
+         role="group"
+         aria-label="@Localizer["Filter by role"]">
+        <button type="button"
+                class="history-filter-btn px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-white dark:bg-ledger-700 text-ledger-900 dark:text-white shadow-sm"
+                data-filter="all"
+                onclick="filterHistory('all')">
+            @Localizer["All"]
+        </button>
+        <button type="button"
+                class="history-filter-btn px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-ledger-500 dark:text-ledger-400 hover:bg-white/60 dark:hover:bg-ledger-700/50"
+                data-filter="renter"
+                onclick="filterHistory('renter')">
+            @Localizer["As Renter"]
+        </button>
+        <button type="button"
+                class="history-filter-btn px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-ledger-500 dark:text-ledger-400 hover:bg-white/60 dark:hover:bg-ledger-700/50"
+                data-filter="owner"
+                onclick="filterHistory('owner')">
+            @Localizer["As Owner"]
+        </button>
+    </div>
+
+    <!-- History Rows -->
+    <div id="history-rows" class="space-y-2">
+        @foreach (var rental in rentals)
+        {
+            var isRenter = rental.RenterId == currentUserId;
+            var role = isRenter ? "renter" : "owner";
+            var accentClass = isRenter ? "border-l-2 border-primary-200 dark:border-primary-700" : "border-l-2 border-amber-200 dark:border-amber-700";
+            var thumbUrl = !string.IsNullOrEmpty(rental.Item?.ImageUrl)
+                ? rental.Item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/")
+                : "";
+            var dateRange = rental.StartDate <= rental.EndDate
+                ? $"{rental.StartDate:dd MMM} → {rental.EndDate:dd MMM yyyy}"
+                : $"{rental.EndDate:dd MMM} → {rental.StartDate:dd MMM yyyy}";
+            var hasReview = isRenter && rental.Reviews.Any(rv => rv.ReviewerId == currentUserId && !rv.IsDeleted);
+            var existingReview = isRenter ? rental.Reviews.FirstOrDefault(rv => rv.ReviewerId == currentUserId && !rv.IsDeleted) : null;
+
+            var hadDispute = rental.Deposit != null &&
+                (rental.Deposit.Status == DepositStatus.Disputed ||
+                 rental.Deposit.Status == DepositStatus.CounterOffered ||
+                 rental.Deposit.Status == DepositStatus.Escalated ||
+                 rental.Deposit.Status == DepositStatus.ChargeUpheld ||
+                 rental.Deposit.Status == DepositStatus.Charged ||
+                 rental.Deposit.Status == DepositStatus.PartiallyCharged);
+            var depositResolved = rental.Deposit != null &&
+                (rental.Deposit.Status == DepositStatus.Released ||
+                 rental.Deposit.Status == DepositStatus.ChargeUpheld);
+
+            <div class="history-row rounded-lg border border-ledger-100 dark:border-ledger-800 bg-white dark:bg-ledger-900 hover:bg-ledger-50 dark:hover:bg-ledger-800/50 transition-colors @accentClass px-3 py-3"
+                 data-role="@role">
+                <!-- Top row: Thumbnail + Info + Status -->
+                <div class="flex items-center gap-3">
+                    <!-- Thumbnail -->
+                    <div class="w-10 h-10 rounded-lg overflow-hidden bg-ledger-100 dark:bg-ledger-800 shrink-0">
+                        @if (!string.IsNullOrEmpty(thumbUrl))
+                        {
+                            <img src="@thumbUrl" alt="@rental.Item?.Title" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <div class="w-full h-full flex items-center justify-center">
+                                <i class="bi bi-image text-ledger-300 dark:text-ledger-600 text-sm"></i>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Info -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <p class="text-sm font-medium text-ledger-900 dark:text-white truncate">@rental.Item?.Title</p>
+                            @if (hadDispute)
+                            {
+                                <span class="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400"
+                                      title="@Localizer["This rental had a deposit dispute"]">
+                                    <i class="bi bi-shield-exclamation"></i>
+                                    @Localizer["Dispute"]
+                                </span>
+                            }
+                        </div>
+                        <p class="text-xs text-ledger-400 dark:text-ledger-500 tabular-nums whitespace-nowrap">@dateRange</p>
+                    </div>
+
+                    <!-- Status + meta (right side) -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="hidden sm:inline-flex px-1.5 py-0.5 text-[10px] font-medium rounded uppercase tracking-wide @(isRenter ? "bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400" : "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400")">
+                            @(isRenter ? Localizer["Renter"] : Localizer["Owner"])
+                        </span>
+                        <span class="text-sm font-medium text-ledger-900 dark:text-white tabular-nums hidden sm:block">@CurrencyService.Format(rental.TotalPrice)</span>
+                        @await Html.PartialAsync("_StatusBadge", new { Type = rental.Status.ToString().ToLower(), Text = rental.Status.ToString(), SmallPadding = true })
+                    </div>
+                </div>
+
+                <!-- Bottom row: Action links -->
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 ml-[52px]">
+                    @if (isRenter)
+                    {
+                        <button type="button"
+                                onclick="openReviewModal(@rental.Id, @rental.ItemId, @(existingReview != null ? existingReview.Id.ToString() : "null"))"
+                                class="text-xs text-amber-600 dark:text-amber-400 hover:underline whitespace-nowrap">
+                            @(hasReview ? Localizer["Edit Review"] : Localizer["Leave Review"])
+                        </button>
+                        @if (rental.Status == RentalStatus.Completed)
+                        {
+                            <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId"
+                               class="text-xs text-ledger-400 dark:text-ledger-500 hover:text-primary-600 dark:hover:text-primary-400 hover:underline whitespace-nowrap">
+                                @Localizer["Rent Again"]
+                            </a>
+                        }
+                    }
+                    @if (hadDispute && depositResolved)
+                    {
+                        <a href="/Dashboard/DisputeHistory/@rental.Id"
+                           class="text-xs text-rose-500 dark:text-rose-400 hover:underline whitespace-nowrap">
+                            @Localizer["Dispute History"] →
+                        </a>
+                    }
+                    <button type="button"
+                            onclick="lastClickedRentalDetailsLink=this; openRentalDetail(@rental.Id)"
+                            class="text-xs text-primary-600 dark:text-primary-400 hover:underline whitespace-nowrap">
+                        @Localizer["Details"] →
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Load More -->
+    @if (hasMore)
+    {
+        <div class="mt-4 text-center" id="history-load-more">
+            <button type="button"
+                    onclick="loadMoreHistory(@(page + 1))"
+                    class="text-sm text-primary-600 dark:text-primary-400 hover:underline font-medium">
+                @Localizer["Load more"]
+            </button>
+        </div>
+    }
+}
+

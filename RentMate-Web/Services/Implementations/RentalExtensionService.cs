@@ -189,7 +189,8 @@ namespace RentMate.Services.Implementations
                 .FirstOrDefaultAsync(e => e.Id == extensionId)
                 ?? throw new InvalidOperationException($"Extension {extensionId} not found.");
 
-            if (extension.Status != ExtensionStatus.Accepted && extension.Status != ExtensionStatus.AutoApproved)
+            var finalizableStatuses = new[] { ExtensionStatus.Accepted, ExtensionStatus.AutoApproved };
+            if (!finalizableStatuses.Contains(extension.Status))
                 throw new InvalidOperationException($"Extension is not accepted or auto-approved (status: {extension.Status}).");
 
             if (extension.Rental?.RenterId != userId)
@@ -219,11 +220,12 @@ namespace RentMate.Services.Implementations
                 .FirstOrDefaultAsync(e => e.Id == extensionId)
                 ?? throw new InvalidOperationException($"Extension {extensionId} not found.");
 
-            if (extension.Status != ExtensionStatus.Accepted && extension.Status != ExtensionStatus.AutoApproved)
-                throw new InvalidOperationException($"Extension is not accepted or auto-approved (status: {extension.Status}).");
+            var cancellableStatuses = new[] { ExtensionStatus.Pending, ExtensionStatus.Accepted, ExtensionStatus.AutoApproved };
+            if (!cancellableStatuses.Contains(extension.Status))
+                throw new InvalidOperationException($"Extension is not in a cancellable state (status: {extension.Status}).");
 
             if (extension.Rental?.RenterId != userId)
-                throw new UnauthorizedAccessException("Only the renter can cancel an accepted extension.");
+                throw new UnauthorizedAccessException("Only the renter can cancel an extension.");
 
             extension.Status = ExtensionStatus.Declined;
             extension.UpdatedAt = DateTime.UtcNow;

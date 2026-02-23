@@ -21,13 +21,13 @@
 }
 
 <div class="p-12 text-center">
-    <div class="w-16 h-16 mx-auto bg-slate-100 rounded-full flex items-center justify-center mb-4">
-        <i class="bi @icon text-2xl text-slate-300"></i>
+    <div class="w-16 h-16 mx-auto bg-stone-100 rounded-full flex items-center justify-center mb-4">
+        <i class="bi @icon text-2xl text-stone-300"></i>
     </div>
-    <p class="text-slate-500 mb-4">@Localizer[message]</p>
+    <p class="text-stone-500 mb-4">@Localizer[message]</p>
     @if (!string.IsNullOrEmpty(actionLink) && !string.IsNullOrEmpty(actionText))
     {
-        <a href="@actionLink" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+        <a href="@actionLink" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors duration-150">
             <i class="bi bi-plus-lg"></i>
             @Localizer[actionText]
         </a>

@@ -1,16 +1,16 @@
 @*
     Stat Card Partial View
-    
-    Usage: @await Html.PartialAsync("_StatCard", new { 
-        Icon = "bi-people", 
-        IconColor = "blue", 
-        Value = 42, 
+
+    Usage: @await Html.PartialAsync("_StatCard", new {
+        Icon = "bi-people",
+        IconColor = "primary",
+        Value = 42,
         Label = "Users",
         Link = "/Users",
         LinkText = "Manage"
     })
-    
-    IconColor options: blue, green, purple, amber, red, slate
+
+    IconColor options: blue, green, purple, amber, red, slate, primary
 *@
 
 @using Microsoft.AspNetCore.Mvc.Localization
@@ -24,33 +24,32 @@
     var label = (string)(modelType?.GetProperty("Label")?.GetValue(Model) ?? ViewData["Label"] ?? "");
     var link = (string?)(modelType?.GetProperty("Link")?.GetValue(Model) ?? ViewData["Link"]);
     var linkText = (string?)(modelType?.GetProperty("LinkText")?.GetValue(Model) ?? ViewData["LinkText"]);
-    
-    // Icon background and text color
+
     var (bgColor, textColor) = iconColor.ToLower() switch
     {
-        "blue" => ("bg-blue-100", "text-blue-600"),
-        "green" => ("bg-green-100", "text-green-600"),
-        "purple" => ("bg-purple-100", "text-purple-600"),
-        "amber" => ("bg-amber-100", "text-amber-600"),
-        "red" => ("bg-red-100", "text-red-500"),
-        "slate" => ("bg-slate-100", "text-slate-600"),
-        _ => ("bg-blue-100", "text-blue-600")
+        "blue" or "primary" => ("bg-primary-50 dark:bg-primary-900/20", "text-primary-600 dark:text-primary-400"),
+        "green" => ("bg-emerald-50 dark:bg-emerald-900/20", "text-emerald-600 dark:text-emerald-400"),
+        "purple" => ("bg-purple-50 dark:bg-purple-900/20", "text-purple-600 dark:text-purple-400"),
+        "amber" => ("bg-amber-50 dark:bg-amber-900/20", "text-amber-600 dark:text-amber-400"),
+        "red" => ("bg-red-50 dark:bg-red-900/20", "text-red-500 dark:text-red-400"),
+        "slate" => ("bg-ledger-100 dark:bg-ledger-800", "text-ledger-600 dark:text-ledger-400"),
+        _ => ("bg-primary-50 dark:bg-primary-900/20", "text-primary-600 dark:text-primary-400")
     };
 }
 
-<div class="bg-white rounded-2xl border border-slate-200 p-5">
+<div class="bg-white dark:bg-ledger-900 rounded-lg border border-ledger-200 dark:border-ledger-800 px-4 py-3">
     <div class="flex items-center gap-3">
-        <div class="w-12 h-12 @bgColor rounded-xl flex items-center justify-center">
-            <i class="bi @icon @textColor text-xl"></i>
+        <div class="w-9 h-9 @bgColor rounded-md flex items-center justify-center">
+            <i class="bi @icon @textColor text-base"></i>
         </div>
         <div>
-            <p class="text-2xl font-bold text-slate-900">@value</p>
-            <p class="text-sm text-slate-500">@Localizer[label]</p>
+            <p class="text-xl font-bold tabular-nums text-ledger-900 dark:text-ledger-100">@value</p>
+            <p class="text-[10px] font-medium uppercase tracking-wider text-ledger-400 dark:text-ledger-500">@Localizer[label]</p>
         </div>
     </div>
     @if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(linkText))
     {
-        <a href="@link" class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
+        <a href="@link" class="inline-block mt-2 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium">
             @Localizer[linkText] <i class="bi bi-arrow-right"></i>
         </a>
     }

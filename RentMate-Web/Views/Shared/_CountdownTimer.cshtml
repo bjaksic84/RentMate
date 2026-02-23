@@ -20,27 +20,27 @@
 
     var (borderColor, bgColor, iconColor, textColor) = urgency switch
     {
-        "overdue" => ("border-rose-200 dark:border-rose-800", "bg-rose-50 dark:bg-rose-900/20", "text-rose-500", "text-rose-700 dark:text-rose-400"),
-        "urgent" => ("border-rose-200 dark:border-rose-800", "bg-rose-50 dark:bg-rose-900/20", "text-rose-500", "text-rose-700 dark:text-rose-400"),
-        "warning" => ("border-amber-200 dark:border-amber-800", "bg-amber-50 dark:bg-amber-900/20", "text-amber-500", "text-amber-700 dark:text-amber-400"),
-        _ => ("border-slate-200 dark:border-slate-700", "bg-slate-50 dark:bg-slate-800", "text-slate-400", "text-slate-900 dark:text-white")
+        "overdue" => ("border-red-200 dark:border-red-800", "bg-red-50 dark:bg-red-900/10", "text-red-500", "text-red-700 dark:text-red-400"),
+        "urgent" => ("border-clay-200 dark:border-clay-800", "bg-clay-50 dark:bg-clay-900/10", "text-clay-500", "text-clay-700 dark:text-clay-400"),
+        "warning" => ("border-clay-200 dark:border-clay-800", "bg-clay-50/50 dark:bg-clay-900/10", "text-clay-500", "text-clay-700 dark:text-clay-400"),
+        _ => ("border-ledger-200 dark:border-ledger-800", "bg-ledger-50 dark:bg-ledger-800/50", "text-ledger-400", "text-ledger-900 dark:text-ledger-100")
     };
 }
 
-<div class="flex items-center gap-3 rounded-xl border px-4 py-2.5 @borderColor @bgColor">
+<div class="flex items-center gap-3 rounded-md border px-3 py-2 @borderColor @bgColor">
     <svg class="h-4 w-4 @iconColor shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
     <div class="flex-1">
-        <p class="text-xs text-slate-500 dark:text-slate-400">
+        <p class="text-[10px] uppercase tracking-wider font-medium text-ledger-400 dark:text-ledger-500">
             @(isOverdue ? Localizer["Overdue by"] : Localizer["Returns in"])
         </p>
-        <p class="text-2xl font-bold tabular-nums font-outfit @textColor">
+        <p class="text-lg font-bold tabular-nums @textColor">
             @Math.Abs(daysRemaining)
-            <span class="text-sm font-normal">@Localizer["days"]</span>
+            <span class="text-xs font-normal text-ledger-400">@Localizer["days"]</span>
         </p>
     </div>
-    <time class="text-xs text-slate-400" datetime="@endDate.ToString("yyyy-MM-dd")">
+    <time class="text-[10px] tabular-nums text-ledger-400" datetime="@endDate.ToString("yyyy-MM-dd")">
         @endDate.ToString("dd MMM yyyy")
     </time>
 </div>

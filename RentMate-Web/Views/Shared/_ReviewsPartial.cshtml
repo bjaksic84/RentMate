@@ -6,10 +6,10 @@
 @inject IViewLocalizer Localizer
 
 <div id="reviews-section" class="mt-8">
-    <h3 class="font-heading text-2xl font-bold text-slate-900 mb-4">@Localizer["Reviews"]</h3>
+    <h3 class="text-2xl font-bold text-stone-900 mb-4">@Localizer["Reviews"]</h3>
 
-    <div class="flex items-center gap-4 mb-6 p-4 bg-slate-50 rounded-xl">
-        <div class="text-4xl font-bold text-slate-900">@(Model.AverageRating?.ToString("0.0") ?? "—")</div>
+    <div class="flex items-center gap-4 mb-6 p-4 bg-stone-50 rounded-lg">
+        <div class="text-4xl font-bold text-stone-900">@(Model.AverageRating?.ToString("0.0") ?? "—")</div>
         <div>
             <div class="flex items-center gap-0.5 text-amber-400">
                 @for (int i = 1; i <= 5; i++)
@@ -17,40 +17,40 @@
                     <i class="bi bi-star@(i <= (Model.AverageRating ?? 0) ? "-fill" : "")"></i>
                 }
             </div>
-            <div class="text-sm text-slate-500 mt-1">@Model.ReviewCount @(Model.ReviewCount == 1 ? Localizer["review"] : Localizer["reviews"])</div>
+            <div class="text-sm text-stone-500 mt-1">@Model.ReviewCount @(Model.ReviewCount == 1 ? Localizer["review"] : Localizer["reviews"])</div>
         </div>
     </div>
 
     @if (SignInManager.IsSignedIn(User))
     {
-        <div id="add-review-form" class="mb-8 p-6 bg-white border border-slate-200 rounded-2xl">
-            <h4 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Write a Review"]</h4>
+        <div id="add-review-form" class="mb-8 p-6 bg-white border border-stone-200 rounded-lg">
+            <h4 class="text-lg font-semibold text-stone-900 mb-4">@Localizer["Write a Review"]</h4>
 
             <form id="reviewForm" method="post" class="space-y-4">
                 <input type="hidden" name="ItemId" value="@Model.Id" />
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Your Rating:"]</label>
+                    <label class="block text-sm font-medium text-stone-700 mb-2">@Localizer["Your Rating:"]</label>
                     <div id="starPicker" class="flex gap-1 text-2xl cursor-pointer"></div>
                     <input type="hidden" id="ratingInput" name="Rating" value="0" required />
                 </div>
 
                 <div>
                     <input name="Title" maxlength="200" placeholder="@Localizer["Title (optional)"]"
-                           class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                           class="w-full px-4 py-3 border border-stone-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors" />
                 </div>
 
                 <div>
                     <textarea name="Body" maxlength="2000" placeholder="@Localizer["Write your review..."]"
-                              class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none" rows="4"></textarea>
+                              class="w-full px-4 py-3 border border-stone-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors resize-none" rows="4"></textarea>
                 </div>
 
-                <label class="inline-flex items-center gap-2 text-slate-600 cursor-pointer">
-                    <input type="checkbox" name="IsAnonymous" class="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-blue-500" />
+                <label class="inline-flex items-center gap-2 text-stone-600 cursor-pointer">
+                    <input type="checkbox" name="IsAnonymous" class="w-5 h-5 text-primary-600 border-stone-300 rounded focus:ring-primary-500" />
                     <span class="text-sm">@Localizer["Post anonymously"]</span>
                 </label>
 
-                <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+                <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors duration-150">
                     @Localizer["Submit Review"]
                 </button>
             </form>
@@ -58,15 +58,15 @@
     }
     else
     {
-        <div class="mb-8 p-4 bg-slate-50 rounded-xl text-slate-500">
-            <a asp-area="Identity" asp-page="/Account/Login" class="text-blue-600 hover:underline font-medium">@Localizer["Sign in"]</a> @Localizer["to write a review."]
+        <div class="mb-8 p-4 bg-stone-50 rounded-lg text-stone-500">
+            <a asp-area="Identity" asp-page="/Account/Login" class="text-primary-600 hover:underline font-medium">@Localizer["Sign in"]</a> @Localizer["to write a review."]
         </div>
     }
 
     <div id="reviewList" class="space-y-4"></div>
 
     <div class="flex justify-center mt-6">
-        <button id="loadMoreBtn" class="hidden px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl transition-colors">
+        <button id="loadMoreBtn" class="hidden px-6 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-lg transition-colors duration-150">
             @Localizer["Load more"]
         </button>
     </div>
@@ -113,7 +113,7 @@
 
         function renderReview(r) {
             const div = document.createElement("div");
-            div.className = "p-4 bg-white border border-slate-200 rounded-xl";
+            div.className = "p-4 bg-white border border-stone-200 rounded-lg";
 
             const stars = Array.from({ length: 5 }, (_, i) =>
                 `<i class="bi bi-star${i < r.rating ? '-fill' : ''} text-amber-400"></i>`
@@ -122,18 +122,18 @@
             div.innerHTML = `
                 <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold">
+                        <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold">
                             ${(r.isAnonymous ? 'A' : (r.reviewer?.userName ?? 'U')[0].toUpperCase())}
                         </div>
                         <div>
-                            <div class="font-semibold text-slate-900">${r.isAnonymous ? locAnonymous : r.reviewer?.userName ?? locUser}</div>
-                            <div class="text-sm text-slate-400">${new Date(r.createdAt).toLocaleDateString()}</div>
+                            <div class="font-semibold text-stone-900">${r.isAnonymous ? locAnonymous : r.reviewer?.userName ?? locUser}</div>
+                            <div class="text-sm text-stone-400">${new Date(r.createdAt).toLocaleDateString()}</div>
                         </div>
                     </div>
                     <div class="flex gap-0.5">${stars}</div>
                 </div>
-                ${r.title ? `<div class="font-medium text-slate-900 mt-2">${r.title}</div>` : ""}
-                ${r.body ? `<div class="text-slate-600 mt-1">${r.body}</div>` : ""}
+                ${r.title ? `<div class="font-medium text-stone-900 mt-2">${r.title}</div>` : ""}
+                ${r.body ? `<div class="text-stone-600 mt-1">${r.body}</div>` : ""}
             `;
             return div;
         }
@@ -145,7 +145,7 @@
 
             for (let i = 1; i <= 5; i++) {
                 const star = document.createElement("i");
-                star.className = "bi bi-star text-slate-300 transition-colors";
+                star.className = "bi bi-star text-stone-300 transition-colors duration-150";
                 star.dataset.value = i;
                 picker.appendChild(star);
                 star.addEventListener("mouseover", () => highlightStars(i));
@@ -158,9 +158,9 @@
 
             function highlightStars(val) {
                 picker.querySelectorAll("i").forEach((s, idx) => {
-                    s.className = idx < val 
-                        ? "bi bi-star-fill text-amber-400 transition-colors" 
-                        : "bi bi-star text-slate-300 transition-colors";
+                    s.className = idx < val
+                        ? "bi bi-star-fill text-amber-400 transition-colors duration-150"
+                        : "bi bi-star text-stone-300 transition-colors duration-150";
                 });
             }
         }

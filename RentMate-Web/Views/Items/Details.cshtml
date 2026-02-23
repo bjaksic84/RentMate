@@ -20,29 +20,29 @@
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Breadcrumb -->
-    <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
-        <a asp-controller="Rentals" asp-action="Index" class="hover:text-blue-600 transition-colors">@Localizer["Marketplace"]</a>
+    <nav class="flex items-center gap-2 text-sm text-stone-500 mb-6">
+        <a asp-controller="Rentals" asp-action="Index" class="hover:text-primary-600 transition-colors">@Localizer["Marketplace"]</a>
         <i class="bi bi-chevron-right text-xs"></i>
-        <a asp-controller="Rentals" asp-action="Index" asp-route-category="@Model.Category" class="hover:text-blue-600 transition-colors">@Localizer[Model.Category ?? "Uncategorized"]</a>
+        <a asp-controller="Rentals" asp-action="Index" asp-route-category="@Model.Category" class="hover:text-primary-600 transition-colors">@Localizer[Model.Category ?? "Uncategorized"]</a>
         <i class="bi bi-chevron-right text-xs"></i>
-        <span class="text-slate-900 font-medium truncate max-w-[200px]">@Model.Title</span>
+        <span class="text-stone-900 font-medium truncate max-w-[200px]">@Model.Title</span>
     </nav>
 
     <!-- Title & Meta -->
     <div class="mb-6">
-        <h1 class="font-heading text-3xl md:text-4xl font-bold text-slate-900 mb-3">@Model.Title</h1>
-        <div class="flex flex-wrap items-center gap-4 text-slate-600">
+        <h1 class="text-3xl md:text-4xl font-bold text-stone-900 mb-3">@Model.Title</h1>
+        <div class="flex flex-wrap items-center gap-4 text-stone-600">
             <div class="flex items-center gap-1">
                 <i class="bi bi-star-fill text-amber-400"></i>
-                <span class="font-semibold text-slate-900">@avgRating.ToString("0.0")</span>
-                <span class="text-slate-500">(@Model.ReviewCount @Localizer["reviews"])</span>
+                <span class="font-semibold text-stone-900">@avgRating.ToString("0.0")</span>
+                <span class="text-stone-500">(@Model.ReviewCount @Localizer["reviews"])</span>
             </div>
-            <span class="text-slate-300">·</span>
+            <span class="text-stone-300">·</span>
             <div class="flex items-center gap-1">
                 <i class="bi bi-geo-alt" aria-hidden="true"></i>
                 <span>@(Model.User?.City ?? Localizer["Location not specified"].Value)</span>
             </div>
-            <span class="text-slate-300">·</span>
+            <span class="text-stone-300">·</span>
             <div class="flex items-center gap-1">
                 <i class="bi bi-tag"></i>
                 <span>@Localizer[Model.Category ?? "Uncategorized"]</span>
@@ -54,13 +54,13 @@
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-8">
             <!-- Image -->
-            <div class="relative rounded-2xl overflow-hidden shadow-lg">
+            <div class="relative rounded-lg overflow-hidden shadow-lg">
                 @if(!string.IsNullOrEmpty(Model.ImageUrl)) {
                     var urlLarge = Model.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/");
                     <img src="@urlLarge" class="w-full h-[400px] md:h-[500px] object-cover" alt="@Model.Title">
                 } else {
-                    <div class="w-full h-[400px] bg-slate-100 flex items-center justify-center">
-                        <div class="text-center text-slate-400">
+                    <div class="w-full h-[400px] bg-stone-100 flex items-center justify-center">
+                        <div class="text-center text-stone-400">
                             <i class="bi bi-image text-6xl"></i>
                             <p class="mt-2">@Localizer["No image"]</p>
                         </div>
@@ -77,45 +77,45 @@
             </div>
 
             <!-- Owner Info -->
-            <div class="flex items-center justify-between p-6 bg-white rounded-2xl border border-slate-200">
+            <div class="flex items-center justify-between p-6 bg-white rounded-lg border border-stone-200">
                 <div class="flex items-center gap-4">
                     <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="shrink-0">
                         @if(!string.IsNullOrEmpty(Model.User?.ProfilePictureUrl))
                         {
-                            <img src="@Model.User.ProfilePictureUrl" 
-                                 class="w-14 h-14 rounded-full object-cover ring-2 ring-slate-100">
+                            <img src="@Model.User.ProfilePictureUrl"
+                                 class="w-14 h-14 rounded-full object-cover ring-2 ring-stone-200">
                         }
                         else
                         {
-                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center ring-2 ring-slate-100">
+                            <div class="w-14 h-14 rounded-full bg-primary-600 flex items-center justify-center ring-2 ring-stone-200">
                                 <i class="bi bi-person-fill text-white text-xl"></i>
                             </div>
                         }
                     </a>
                     <div>
-                        <p class="text-sm text-slate-500">@Localizer["Hosted by"]</p>
-                        <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="font-semibold text-slate-900 hover:text-blue-600 transition-colors focus-ring">
+                        <p class="text-sm text-stone-500">@Localizer["Hosted by"]</p>
+                        <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="font-semibold text-stone-900 hover:text-primary-600 transition-colors duration-150 focus-ring">
                             @(!string.IsNullOrEmpty(Model.User?.FirstName) ? $"{Model.User.FirstName} {Model.User.LastName}" : (Model.User?.Email ?? Localizer["Unknown"].Value))
                         </a>
                     </div>
                 </div>
-                <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" 
-                   class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId"
+                   class="px-4 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50 rounded-md transition-colors duration-150">
                     @Localizer["View Profile"]
                 </a>
             </div>
 
             <!-- Description -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 class="font-heading text-xl font-bold text-slate-900 mb-4">@Localizer["About this item"]</h2>
-                <p class="text-slate-600 leading-relaxed whitespace-pre-line">@Model.Description</p>
+            <div class="bg-white rounded-lg border border-stone-200 p-6">
+                <h2 class="text-xl font-bold text-stone-900 mb-4">@Localizer["About this item"]</h2>
+                <p class="text-stone-600 leading-relaxed whitespace-pre-line">@Model.Description</p>
             </div>
 
             <!-- Reviews Section -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6">
+            <div class="bg-white rounded-lg border border-stone-200 p-6">
                 <div class="flex items-center gap-3 mb-6">
                     <i class="bi bi-star-fill text-amber-400 text-xl"></i>
-                    <h2 class="font-heading text-xl font-bold text-slate-900">
+                    <h2 class="text-xl font-bold text-stone-900">
                         @avgRating.ToString("0.0") · @Model.ReviewCount @Localizer["reviews"]
                     </h2>
                 </div>
@@ -135,13 +135,13 @@
                                     ? $"{review.Reviewer.FirstName} {review.Reviewer.LastName}".Trim() 
                                     : (review.Reviewer?.Email ?? Localizer["Unknown"].Value));
                             var hasReviewerPic = !review.IsAnonymous && !string.IsNullOrEmpty(review.Reviewer?.ProfilePictureUrl);
-                            
-                            <div class="p-4 bg-slate-50 rounded-xl relative">
+
+                            <div class="p-4 bg-stone-50 rounded-lg relative">
                                 <div class="absolute top-3 right-3 flex items-center gap-1">
                                     @if(isOwnReview)
                                     {
                                         <button type="button"
-                                                class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                class="p-1.5 text-stone-400 hover:text-primary-600 hover:bg-primary-50 rounded-md transition-colors duration-150"
                                                 onclick="openEditReviewModal(@review.Id, @review.ItemId, @review.Rating, '@Html.Raw(review.Title?.Replace("'", "\\'") ?? "")', '@Html.Raw(review.Body?.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "") ?? "")', @(review.IsAnonymous ? "true" : "false"))"
                                                 title="@Localizer["Edit Review"]">
                                             <i class="bi bi-pencil"></i>
@@ -150,7 +150,7 @@
                                     @if(isOwnReview || User.IsInRole("Admin"))
                                     {
                                         <button type="button"
-                                                class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                class="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors duration-150"
                                                 onclick="deleteReview(@review.Id)"
                                                 title="@Localizer["Delete Review"]">
                                             <i class="bi bi-trash"></i>
@@ -160,43 +160,43 @@
                                 <div class="flex items-center gap-3 mb-3">
                                     @if(review.IsAnonymous)
                                     {
-                                        <div class="w-10 h-10 rounded-full bg-slate-400 flex items-center justify-center">
+                                        <div class="w-10 h-10 rounded-full bg-stone-400 flex items-center justify-center">
                                             <i class="bi bi-person-fill text-white text-sm"></i>
                                         </div>
                                     }
                                     else if(hasReviewerPic)
                                     {
-                                        <img src="@review.Reviewer!.ProfilePictureUrl" 
+                                        <img src="@review.Reviewer!.ProfilePictureUrl"
                                              class="w-10 h-10 rounded-full object-cover"
                                              alt="@reviewerName">
                                     }
                                     else
                                     {
-                                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center">
+                                        <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center">
                                             <i class="bi bi-person-fill text-white text-sm"></i>
                                         </div>
                                     }
                                     <div>
-                                        <p class="font-semibold text-slate-900">@reviewerName</p>
-                                        <p class="text-xs text-slate-500">@review.CreatedAt.ToString("MMMM yyyy")</p>
+                                        <p class="font-semibold text-stone-900">@reviewerName</p>
+                                        <p class="text-xs text-stone-500">@review.CreatedAt.ToString("MMMM yyyy")</p>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-0.5 mb-2">
                                     @for(int i = 0; i < 5; i++) {
-                                        <i class="bi bi-star-fill text-sm @(i < review.Rating ? "text-amber-400" : "text-slate-200")"></i>
+                                        <i class="bi bi-star-fill text-sm @(i < review.Rating ? "text-amber-400" : "text-stone-200")"></i>
                                     }
                                 </div>
-                                <p class="text-slate-600 text-sm line-clamp-3">@review.Body</p>
+                                <p class="text-stone-600 text-sm line-clamp-3">@review.Body</p>
                             </div>
                         }
                     </div>
                     @if(Model.ReviewCount > 4) {
-                        <button class="mt-6 px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors">
+                        <button class="mt-6 px-6 py-3 border border-stone-300 text-stone-700 font-semibold rounded-md hover:bg-stone-50 transition-colors duration-150">
                             @Localizer["Show all {0} reviews", Model.ReviewCount]
                         </button>
                     }
                 } else {
-                    <div class="text-center py-8 text-slate-500">
+                    <div class="text-center py-8 text-stone-500">
                         <i class="bi bi-chat-square-text text-4xl mb-2"></i>
                         <p>@Localizer["No reviews yet"]</p>
                     </div>
@@ -204,19 +204,19 @@
             </div>
 
             <!-- Location Section -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 class="font-heading text-xl font-bold text-slate-900 mb-4">@Localizer["Pickup Location"]</h2>
-                <div class="flex items-center gap-2 text-slate-600 mb-4">
+            <div class="bg-white rounded-lg border border-stone-200 p-6">
+                <h2 class="text-xl font-bold text-stone-900 mb-4">@Localizer["Pickup Location"]</h2>
+                <div class="flex items-center gap-2 text-stone-600 mb-4">
                     <i class="bi bi-geo-alt-fill text-red-500"></i>
                     <span>@ViewBag.MapCityName</span>
-                    <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">@Localizer["Approximate location"]</span>
+                    <span class="px-2 py-0.5 bg-stone-100 text-stone-600 text-xs rounded-full">@Localizer["Approximate location"]</span>
                 </div>
-                
-                <div id="map" class="h-[300px] rounded-xl overflow-hidden shadow-inner border border-blue-200"></div>
-                
-                <div class="flex items-start gap-3 mt-4 p-4 bg-blue-50 rounded-xl">
-                    <i class="bi bi-shield-check text-blue-600 text-xl"></i>
-                    <p class="text-sm text-blue-800">
+
+                <div id="map" class="h-[300px] rounded-lg overflow-hidden shadow-inner border border-primary-200"></div>
+
+                <div class="flex items-start gap-3 mt-4 p-4 bg-primary-50 rounded-lg">
+                    <i class="bi bi-shield-check text-primary-600 text-xl"></i>
+                    <p class="text-sm text-primary-800">
                         @Localizer["For safety and privacy, we only show the approximate area where the item is located. You will receive the exact pickup address after booking confirmation."]
                     </p>
                 </div>
@@ -226,12 +226,12 @@
         <!-- Sidebar - Booking Card -->
         <div class="lg:col-span-1">
             <div class="sticky top-24">
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6">
+                <div class="bg-white rounded-lg border border-stone-200 shadow-md p-6">
                     <!-- Price -->
                     <div class="flex items-end justify-between mb-6">
                         <div>
-                            <span class="text-3xl font-bold text-slate-900">@CurrencyService.Format(Model.Price)</span>
-                            <span class="text-slate-500"> / @Localizer["day"]</span>
+                            <span class="text-3xl font-bold text-stone-900">@CurrencyService.Format(Model.Price)</span>
+                            <span class="text-stone-500"> / @Localizer["day"]</span>
                         </div>
                         <div class="flex items-center gap-1 text-sm">
                             <i class="bi bi-star-fill text-amber-400"></i>
@@ -241,7 +241,7 @@
 
                     @if(Model.DepositAmount.HasValue && Model.DepositAmount.Value > 0)
                     {
-                        <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
+                        <div class="flex items-center gap-2 text-sm text-stone-500 mb-6">
                             <i class="bi bi-shield-check"></i>
                             <span>+ @CurrencyService.Format(Model.DepositAmount.Value) @Localizer["Deposit"] (@Localizer["refundable"])</span>
                         </div>
@@ -249,36 +249,36 @@
 
                     <!-- Rent Button -->
                     <button type="button"
-                            class="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold rounded-xl shadow-sm  transition-all duration-300"
+                            class="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-md shadow-sm transition-colors duration-150"
                             onclick="document.getElementById('rentModal-@Model.Id').classList.remove('hidden')">
                         @Localizer["Rent Now"]
                     </button>
                     
-                    <p class="text-center text-sm text-slate-500 mt-4">
+                    <p class="text-center text-sm text-stone-500 mt-4">
                         <i class="bi bi-shield-lock me-1"></i>
                         @Localizer["Secure payment and rental"]
                     </p>
                     
                     <!-- Quick Stats -->
-                    <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-200">
+                    <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-stone-200">
                         <div class="text-center">
-                            <p class="text-2xl font-bold text-slate-900">@Model.ReviewCount</p>
-                            <p class="text-sm text-slate-500">@Localizer["Reviews"]</p>
+                            <p class="text-2xl font-bold text-stone-900">@Model.ReviewCount</p>
+                            <p class="text-sm text-stone-500">@Localizer["Reviews"]</p>
                         </div>
                         <div class="text-center">
-                            <p class="text-2xl font-bold text-slate-900">@(Model.Rentals?.Count ?? 0)</p>
-                            <p class="text-sm text-slate-500">@Localizer["Rentals"]</p>
+                            <p class="text-2xl font-bold text-stone-900">@(Model.Rentals?.Count ?? 0)</p>
+                            <p class="text-sm text-stone-500">@Localizer["Rentals"]</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Safety Tips -->
-                <div class="mt-6 p-4 bg-slate-50 rounded-xl">
-                    <h3 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <div class="mt-6 p-4 bg-stone-50 rounded-lg">
+                    <h3 class="font-semibold text-stone-900 mb-3 flex items-center gap-2">
                         <i class="bi bi-lightbulb text-amber-500"></i>
                         @Localizer["Safety Tips"]
                     </h3>
-                    <ul class="space-y-2 text-sm text-slate-600">
+                    <ul class="space-y-2 text-sm text-stone-600">
                         <li class="flex items-start gap-2">
                             <i class="bi bi-check-circle text-green-500 mt-0.5"></i>
                             <span>@Localizer["Always meet in a public place"]</span>
@@ -312,7 +312,7 @@
                 // Check for valid coordinates
                 if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
                     if (mapDiv) {
-                        mapDiv.innerHTML = '<div class="flex items-center justify-center h-full text-slate-500">Map unavailable for this location.</div>';
+                        mapDiv.innerHTML = '<div class="flex items-center justify-center h-full text-stone-500">Map unavailable for this location.</div>';
                     }
                     console.error('Invalid coordinates for map:', lat, lng);
                     return;
@@ -374,11 +374,11 @@
             // Update star display
             document.querySelectorAll('#editStarRating .star-btn').forEach((star, index) => {
                 if (index < rating) {
-                    star.classList.remove('text-slate-300');
+                    star.classList.remove('text-stone-300');
                     star.classList.add('text-amber-400');
                 } else {
                     star.classList.remove('text-amber-400');
-                    star.classList.add('text-slate-300');
+                    star.classList.add('text-stone-300');
                 }
             });
             
@@ -397,11 +397,11 @@
                 
                 document.querySelectorAll('#editStarRating .star-btn').forEach((star, index) => {
                     if (index < rating) {
-                        star.classList.remove('text-slate-300');
+                        star.classList.remove('text-stone-300');
                         star.classList.add('text-amber-400');
                     } else {
                         star.classList.remove('text-amber-400');
-                        star.classList.add('text-slate-300');
+                        star.classList.add('text-stone-300');
                     }
                 });
             });
@@ -462,14 +462,14 @@
     {
         @Html.AntiForgeryToken()
         <div id="editReviewModal" class="fixed inset-0 hidden" style="z-index: 1200;">
-            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEditReviewModal()"></div>
+            <div class="absolute inset-0 bg-black/50" onclick="closeEditReviewModal()"></div>
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: 1200;">
-                <div class="bg-white rounded-2xl shadow-2xl m-4 overflow-hidden">
+                <div class="bg-white rounded-lg shadow-lg m-4 overflow-hidden">
                     <!-- Header -->
-                    <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4">
+                    <div class="bg-primary-600 px-6 py-4">
                         <div class="flex items-center justify-between">
-                            <h3 class="text-white font-heading text-lg font-bold">@Localizer["Edit Review"]</h3>
-                            <button type="button" onclick="closeEditReviewModal()" class="text-white/80 hover:text-white">
+                            <h3 class="text-white text-lg font-bold">@Localizer["Edit Review"]</h3>
+                            <button type="button" onclick="closeEditReviewModal()" class="text-white/80 hover:text-white transition-colors duration-150">
                                 <i class="bi bi-x-lg"></i>
                             </button>
                         </div>
@@ -481,11 +481,11 @@
 
                         <!-- Rating -->
                         <div class="mb-5">
-                            <label class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Rating"]</label>
+                            <label class="block text-sm font-medium text-stone-700 mb-2">@Localizer["Rating"]</label>
                             <div class="flex gap-2" id="editStarRating">
                                 @for (int i = 1; i <= 5; i++)
                                 {
-                                    <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400 transition-colors" data-rating="@i">
+                                    <button type="button" class="star-btn text-3xl text-stone-300 hover:text-amber-400 transition-colors duration-150" data-rating="@i">
                                         <i class="bi bi-star-fill"></i>
                                     </button>
                                 }
@@ -495,35 +495,35 @@
 
                         <!-- Title -->
                         <div class="mb-5">
-                            <label for="editReviewTitle" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
+                            <label for="editReviewTitle" class="block text-sm font-medium text-stone-700 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
                             <input type="text" id="editReviewTitle" name="title" maxlength="100"
-                                   class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                                   class="w-full px-4 py-3 border border-stone-200 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-150"
                                    placeholder="@Localizer["Summarize your experience"]">
                         </div>
 
                         <!-- Body -->
                         <div class="mb-5">
-                            <label for="editReviewBody" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Your Review"]</label>
+                            <label for="editReviewBody" class="block text-sm font-medium text-stone-700 mb-2">@Localizer["Your Review"]</label>
                             <textarea id="editReviewBody" name="body" rows="4" required
-                                      class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
+                                      class="w-full px-4 py-3 border border-stone-200 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-150 resize-none"
                                       placeholder="@Localizer["Share your experience with this item..."]"></textarea>
                         </div>
 
                         <!-- Anonymous Option -->
                         <div class="mb-5">
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="editIsAnonymous" name="isAnonymous" class="w-4 h-4 text-blue-500 border-slate-300 rounded focus:ring-blue-500">
-                                <span class="text-sm text-slate-600">@Localizer["Post anonymously"]</span>
+                                <input type="checkbox" id="editIsAnonymous" name="isAnonymous" class="w-4 h-4 text-primary-500 border-stone-300 rounded focus:ring-primary-500">
+                                <span class="text-sm text-stone-600">@Localizer["Post anonymously"]</span>
                             </label>
                         </div>
 
                         <div class="flex gap-3">
-                            <button type="button" onclick="closeEditReviewModal()" 
-                                    class="flex-1 px-4 py-3 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors">
+                            <button type="button" onclick="closeEditReviewModal()"
+                                    class="flex-1 px-4 py-3 border border-stone-200 text-stone-600 font-medium rounded-md hover:bg-stone-50 transition-colors duration-150">
                                 @Localizer["Cancel"]
                             </button>
-                            <button type="submit" 
-                                    class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+                            <button type="submit"
+                                    class="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-md transition-colors duration-150">
                                 <i class="bi bi-check-lg me-1"></i>
                                 @Localizer["Update Review"]
                             </button>

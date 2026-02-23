@@ -19,46 +19,46 @@
     })
 
     <!-- Items Table -->
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-lg border border-stone-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-slate-50 border-b border-slate-200">
+                <thead class="bg-stone-50 border-b border-stone-200">
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Item"]</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">@Localizer["Description"]</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Price"]</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">@Localizer["Owner"]</th>
-                        <th class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Actions"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">@Localizer["Item"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider hidden sm:table-cell">@Localizer["Description"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider">@Localizer["Price"]</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-stone-500 uppercase tracking-wider hidden md:table-cell">@Localizer["Owner"]</th>
+                        <th class="px-6 py-4 text-right text-xs font-semibold text-stone-500 uppercase tracking-wider">@Localizer["Actions"]</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-stone-200">
                     @foreach (var item in Model)
                     {
-                        <tr class="hover:bg-slate-50 transition-colors">
+                        <tr class="hover:bg-stone-50 transition-colors">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     @await Html.PartialAsync("_ItemThumbnail", new { ImageUrl = item.ImageUrl, Size = "sm", Alt = item.Title })
-                                    <span class="font-medium text-slate-900">@item.Title</span>
+                                    <span class="font-medium text-stone-900">@item.Title</span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 hidden sm:table-cell">
-                                <p class="text-slate-500 text-sm truncate max-w-xs">@item.Description</p>
+                                <p class="text-stone-500 text-sm truncate max-w-xs">@item.Description</p>
                             </td>
                             <td class="px-6 py-4">
                                 <span class="font-semibold text-green-600">@CurrencyService.Format(item.Price)</span>
                             </td>
                             <td class="px-6 py-4 hidden md:table-cell">
-                                <span class="text-slate-500 text-sm">@(item.User?.Email ?? Localizer["No user"].Value)</span>
+                                <span class="text-stone-500 text-sm">@(item.User?.Email ?? Localizer["No user"].Value)</span>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-end gap-2">
-                                    <a asp-action="Details" asp-route-id="@item.Id" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="@Localizer["Details"]">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="p-2 text-stone-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="@Localizer["Details"]">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="@Localizer["Edit"]">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="p-2 text-stone-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="@Localizer["Edit"]">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a asp-action="Delete" asp-route-id="@item.Id" class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="@Localizer["Delete"]">
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="p-2 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="@Localizer["Delete"]">
                                         <i class="bi bi-trash"></i>
                                     </a>
                                 </div>

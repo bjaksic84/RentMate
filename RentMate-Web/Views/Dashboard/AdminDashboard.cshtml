@@ -13,15 +13,15 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-            <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["System Overview"]</h1>
-            <p class="text-slate-500 mt-1">@Localizer["Admin Dashboard"]</p>
+            <h1 class="text-3xl font-bold text-ledger-900">@Localizer["System Overview"]</h1>
+            <p class="text-ledger-500 mt-1">@Localizer["Admin Dashboard"]</p>
         </div>
         <div class="flex items-center gap-3">
-            <a asp-action="AdminResolvedDisputes" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl shadow-sm transition-all">
+            <a asp-action="AdminResolvedDisputes" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-ledger-800 border border-ledger-200 dark:border-neutral-700 hover:bg-ledger-50 dark:hover:bg-neutral-700 text-ledger-700 dark:text-ledger-300 font-semibold rounded-lg shadow-sm transition-colors duration-150">
                 <i class="bi bi-archive"></i>
                 @Localizer["Dispute Archive"]
             </a>
-            <a href="#" class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
+            <a href="#" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors duration-150">
                 <i class="bi bi-download"></i>
                 @Localizer["Export Report"]
             </a>
@@ -32,7 +32,7 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-people", IconColor = "blue", Value = Model.TotalUsers, Label = "Users", Link = Url.Action("Index", "Users"), LinkText = "Manage" })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-people", IconColor = "primary", Value = Model.TotalUsers, Label = "Users", Link = Url.Action("Index", "Users"), LinkText = "Manage" })
         @await Html.PartialAsync("_StatCard", new { Icon = "bi-currency-euro", IconColor = "green", Value = $"{currency.Symbol}{Model.TotalRevenue:N0}", Label = "Total Revenue" })
         @await Html.PartialAsync("_StatCard", new { Icon = "bi-box-seam", IconColor = "purple", Value = Model.ActiveListings, Label = "Active Listings" })
         @await Html.PartialAsync("_StatCard", new { Icon = "bi-arrow-repeat", IconColor = "amber", Value = Model.ActiveRentals, Label = "In Progress" })
@@ -41,9 +41,9 @@
     <!-- Escalated Disputes Section -->
     @if (Model.EscalatedDisputes?.Any() ?? false)
     {
-        <div class="mb-8 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-2xl overflow-hidden shadow-sm">
+        <div class="mb-8 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg overflow-hidden shadow-sm">
             <div class="px-6 py-4 border-b border-rose-200 dark:border-rose-800 bg-rose-100/50 dark:bg-rose-900/20 flex items-center justify-between">
-                <h2 class="font-heading text-lg font-bold text-rose-900 dark:text-rose-100 flex items-center gap-2">
+                <h2 class="text-lg font-bold text-rose-900 dark:text-rose-100 flex items-center gap-2">
                     <i class="bi bi-shield-exclamation text-rose-600"></i>
                     @Localizer["Escalated Disputes Awaiting Review"]
                     <span class="ml-2 px-2 py-0.5 bg-rose-600 text-white text-xs font-bold rounded-full">@Model.EscalatedDisputes.Count</span>
@@ -65,30 +65,30 @@
                         {
                             <tr class="hover:bg-rose-100/20 transition-colors">
                                 <td class="px-6 py-4">
-                                    <div class="text-sm font-bold text-slate-900 dark:text-white">#@dep.RentalId</div>
-                                    <div class="text-xs text-slate-500 truncate max-w-[150px]">@dep.Rental?.Item?.Title</div>
+                                    <div class="text-sm font-bold text-ledger-900 dark:text-white">#@dep.RentalId</div>
+                                    <div class="text-xs text-ledger-500 truncate max-w-[150px]">@dep.Rental?.Item?.Title</div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-xs text-slate-700 dark:text-slate-300"><span class="font-medium text-blue-600">R:</span> @dep.Rental?.Renter?.Email</div>
-                                    <div class="text-xs text-slate-700 dark:text-slate-300"><span class="font-medium text-emerald-600">O:</span> @dep.Rental?.Owner?.Email</div>
+                                    <div class="text-xs text-ledger-700 dark:text-ledger-300"><span class="font-medium text-primary-600">R:</span> @dep.Rental?.Renter?.Email</div>
+                                    <div class="text-xs text-ledger-700 dark:text-ledger-300"><span class="font-medium text-emerald-600">O:</span> @dep.Rental?.Owner?.Email</div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="text-sm font-bold text-rose-700 dark:text-rose-400">@CurrencyService.Format(dep.ChargedAmount ?? 0)</div>
-                                    <div class="text-xs text-slate-500 truncate max-w-[200px] break-words overflow-hidden">"@dep.DisputeReason"</div>
+                                    <div class="text-xs text-ledger-500 truncate max-w-[200px] break-words overflow-hidden">"@dep.DisputeReason"</div>
                                     @if (dep.Evidence != null && dep.Evidence.Any())
                                     {
-                                        <div class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-[10px] font-bold rounded-md">
+                                        <div class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 text-[10px] font-bold rounded-md">
                                             <i class="bi bi-paperclip"></i>
                                             <span>@dep.Evidence.Count @Localizer["files"]</span>
                                         </div>
                                     }
                                 </td>
-                                <td class="px-6 py-4 text-xs text-slate-500">
+                                <td class="px-6 py-4 text-xs text-ledger-500">
                                     @dep.EscalatedAt?.ToString("g")
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <a asp-controller="Dashboard" asp-action="AdminReviewDispute" asp-route-id="@dep.RentalId" 
-                                       class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all uppercase tracking-wider">
+                                       class="inline-flex items-center gap-1.5 px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors duration-150 uppercase tracking-wider">
                                         @Localizer["Review"]
                                         <i class="bi bi-arrow-right"></i>
                                     </a>
@@ -102,17 +102,17 @@
     }
     else
     {
-        <div class="mb-8 p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl flex items-center justify-between shadow-sm">
+        <div class="mb-8 p-6 bg-white dark:bg-ledger-800 border border-ledger-200 dark:border-neutral-700 rounded-lg flex items-center justify-between shadow-sm">
             <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     <i class="bi bi-check-circle text-xl"></i>
                 </div>
                 <div>
-                    <h3 class="font-heading font-bold text-slate-900 dark:text-white">@Localizer["No Active Disputes"]</h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["All escalated cases have been resolved."] @Localizer["Great job!"]</p>
+                    <h3 class="font-bold text-ledger-900 dark:text-white">@Localizer["No Active Disputes"]</h3>
+                    <p class="text-sm text-ledger-500 dark:text-ledger-400">@Localizer["All escalated cases have been resolved."] @Localizer["Great job!"]</p>
                 </div>
             </div>
-            <a asp-action="AdminResolvedDisputes" class="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 uppercase tracking-wider">
+            <a asp-action="AdminResolvedDisputes" class="text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors flex items-center gap-1 uppercase tracking-wider">
                 <i class="bi bi-archive"></i>
                 @Localizer["Dispute Archive"]
             </a>
@@ -120,33 +120,33 @@
     }
 
         <!-- Recent Rentals Table -->
-        <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <i class="bi bi-clock-history text-blue-600"></i>
+        <div class="lg:col-span-2 bg-white rounded-lg border border-ledger-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-ledger-200 flex items-center justify-between">
+                <h2 class="text-lg font-bold text-ledger-900 flex items-center gap-2">
+                    <i class="bi bi-clock-history text-primary-600"></i>
                     @Localizer["Recent Rentals"]
                 </h2>
-                <a asp-controller="Rentals" asp-action="Index" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                <a asp-controller="Rentals" asp-action="Index" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
                     @Localizer["All Rentals"] <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full">
-                    <thead class="bg-slate-50 border-b border-slate-200">
+                    <thead class="bg-ledger-50 border-b border-ledger-200">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Item"]</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Renter"]</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Date"]</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Status"]</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Item"]</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Renter"]</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Date"]</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Status"]</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-100">
+                    <tbody class="divide-y divide-ledger-200">
                         @foreach (RentMate.Models.Domain.Rental rental in Model.Rentals ?? new List<RentMate.Models.Domain.Rental>())
                         {
-                            <tr class="hover:bg-slate-50 transition-colors">
-                                <td class="px-6 py-4 text-sm text-slate-900 font-medium">@rental.Item?.Title</td>
-                                <td class="px-6 py-4 text-sm text-slate-500">@rental.Renter?.Email</td>
-                                <td class="px-6 py-4 text-sm text-slate-500">@rental.CreatedAt.ToString("dd. MM. yyyy")</td>
+                            <tr class="hover:bg-ledger-50 transition-colors">
+                                <td class="px-6 py-4 text-sm text-ledger-900 font-medium">@rental.Item?.Title</td>
+                                <td class="px-6 py-4 text-sm text-ledger-500">@rental.Renter?.Email</td>
+                                <td class="px-6 py-4 text-sm text-ledger-500">@rental.CreatedAt.ToString("dd. MM. yyyy")</td>
                                 <td class="px-6 py-4">
                                     @{
                                         var statusType = rental.Status switch
@@ -168,17 +168,17 @@
         </div>
 
         <!-- New Users List -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200">
-                <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+        <div class="bg-white rounded-lg border border-ledger-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-ledger-200">
+                <h2 class="text-lg font-bold text-ledger-900 flex items-center gap-2">
                     <i class="bi bi-person-plus text-green-600"></i>
                     @Localizer["New Users"]
                 </h2>
             </div>
-            <div class="divide-y divide-slate-100">
+            <div class="divide-y divide-ledger-200">
                 @foreach (var user in Model.Users ?? new List<ApplicationUser>())
                 {
-                    <div class="p-4 hover:bg-slate-50 transition-colors">
+                    <div class="p-4 hover:bg-ledger-50 transition-colors">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 @if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
@@ -187,16 +187,16 @@
                                 }
                                 else
                                 {
-                                    <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-sky-400 text-white rounded-full flex items-center justify-center">
+                                    <div class="w-10 h-10 bg-primary-600 text-white rounded-full flex items-center justify-center">
                                         <i class="bi bi-person"></i>
                                     </div>
                                 }
                                 <div>
-                                    <p class="font-semibold text-slate-900">@user.UserName</p>
-                                    <p class="text-sm text-slate-500">@user.Email</p>
+                                    <p class="font-semibold text-ledger-900">@user.UserName</p>
+                                    <p class="text-sm text-ledger-500">@user.Email</p>
                                 </div>
                             </div>
-                            <a asp-controller="Users" asp-action="Index" class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                            <a asp-controller="Users" asp-action="Index" class="p-2 text-ledger-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                                 <i class="bi bi-gear"></i>
                             </a>
                         </div>
@@ -207,29 +207,29 @@
     </div>
 
     <!-- All Listings Section -->
-    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200">
-            <h2 class="font-heading text-lg font-bold text-slate-900 flex items-center gap-2">
+    <div class="bg-white rounded-lg border border-ledger-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-ledger-200">
+            <h2 class="text-lg font-bold text-ledger-900 flex items-center gap-2">
                 <i class="bi bi-grid text-purple-600"></i>
                 @Localizer["All Listings"]
             </h2>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="bg-slate-50 border-b border-slate-200">
+                <thead class="bg-ledger-50 border-b border-ledger-200">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Item"]</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Owner"]</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Price"]</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Status"]</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Moderation"]</th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">@Localizer["Actions"]</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Item"]</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Owner"]</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Price"]</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Status"]</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Moderation"]</th>
+                        <th class="px-6 py-3 text-right text-xs font-semibold text-ledger-500 uppercase tracking-wider">@Localizer["Actions"]</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100">
+                <tbody class="divide-y divide-ledger-200">
                     @foreach (var item in Model.Listings ?? new List<RentMate.Models.Domain.Item>())
                     {
-                        <tr class="hover:bg-slate-50 transition-colors" data-item-id="@item.Id">
+                        <tr class="hover:bg-ledger-50 transition-colors" data-item-id="@item.Id">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     @if (!string.IsNullOrEmpty(item.ImageUrl))
@@ -238,15 +238,15 @@
                                     }
                                     else
                                     {
-                                        <div class="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
-                                            <i class="bi bi-image text-slate-400"></i>
+                                        <div class="w-10 h-10 bg-ledger-100 rounded-lg flex items-center justify-center">
+                                            <i class="bi bi-image text-ledger-400"></i>
                                         </div>
                                     }
-                                    <span class="font-medium text-slate-900">@item.Title</span>
+                                    <span class="font-medium text-ledger-900">@item.Title</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-sm text-slate-500">@item.User?.Email</td>
-                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">@CurrencyService.Format(item.Price)</td>
+                            <td class="px-6 py-4 text-sm text-ledger-500">@item.User?.Email</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-ledger-900">@CurrencyService.Format(item.Price)</td>
                             <td class="px-6 py-4">
                                 @if (item.IsListed)
                                 {
@@ -254,7 +254,7 @@
                                 }
                                 else
                                 {
-                                    <span class="px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">@Localizer["Hidden (User)"]</span>
+                                    <span class="px-2 py-1 bg-ledger-100 text-ledger-600 text-xs font-medium rounded-full">@Localizer["Hidden (User)"]</span>
                                 }
                             </td>
                             <td class="px-6 py-4 moderation-status">
@@ -264,7 +264,7 @@
                                 }
                                 else
                                 {
-                                    <span class="px-2 py-1 bg-slate-50 text-slate-500 text-xs font-medium rounded-full border border-slate-200">@Localizer["Normal"]</span>
+                                    <span class="px-2 py-1 bg-ledger-50 text-ledger-500 text-xs font-medium rounded-full border border-ledger-200">@Localizer["Normal"]</span>
                                 }
                             </td>
                             <td class="px-6 py-4 text-right">
@@ -275,7 +275,7 @@
                                         @(item.IsAdminHidden ? Localizer["Restore"] : Localizer["Hide"])
                                     </button>
                                     <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" 
-                                       class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                                       class="p-2 text-ledger-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
                                         <i class="bi bi-box-arrow-up-right"></i>
                                     </a>
                                 </div>
@@ -311,7 +311,7 @@ async function adminToggleHide(itemId, button) {
                 button.className = "admin-toggle-btn px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-green-600 hover:bg-green-700 text-white";
                 button.innerHTML = '<i class="bi bi-eye"></i> @Localizer["Restore"]';
             } else {
-                modStatusCell.innerHTML = '<span class="px-2 py-1 bg-slate-50 text-slate-500 text-xs font-medium rounded-full border border-slate-200">@Localizer["Normal"]</span>';
+                modStatusCell.innerHTML = '<span class="px-2 py-1 bg-ledger-50 text-ledger-500 text-xs font-medium rounded-full border border-ledger-200">@Localizer["Normal"]</span>';
                 button.className = "admin-toggle-btn px-3 py-1.5 text-sm font-medium rounded-lg transition-colors border border-red-300 text-red-600 hover:bg-red-50";
                 button.innerHTML = '<i class="bi bi-eye-slash"></i> @Localizer["Hide"]';
             }

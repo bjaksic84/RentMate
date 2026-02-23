@@ -195,7 +195,7 @@ namespace RentMate.Controllers.Mvc
                 {
                     await _hubContext.Clients.User(ext.RequestedByUserId!).SendAsync(RentMateHub.ExtensionStatusChangedEvent, new
                     {
-                        extensionId, status = "Accepted", itemTitle = ext.Rental.Item?.Title, newEndDate = ext.NewEndDate.ToString("yyyy-MM-dd"),
+                        extensionId, rentalId = ext.RentalId, status = "Accepted", itemTitle = ext.Rental.Item?.Title, newEndDate = ext.NewEndDate.ToString("yyyy-MM-dd"),
                         additionalCost = ext.AdditionalCost
                     });
                 }
@@ -228,7 +228,7 @@ namespace RentMate.Controllers.Mvc
                 {
                     await _hubContext.Clients.User(decExt.RequestedByUserId!).SendAsync(RentMateHub.ExtensionStatusChangedEvent, new
                     {
-                        extensionId, status = "Declined", itemTitle = decExt.Rental.Item?.Title
+                        extensionId, rentalId = decExt.RentalId, status = "Declined", itemTitle = decExt.Rental.Item?.Title
                     });
                 }
 
@@ -260,7 +260,7 @@ namespace RentMate.Controllers.Mvc
                 {
                     await _hubContext.Clients.User(cancelExt.Rental.OwnerId!).SendAsync(RentMateHub.ExtensionStatusChangedEvent, new
                     {
-                        extensionId, status = "CancelledByRenter", itemTitle = cancelExt.Rental.Item?.Title
+                        extensionId, rentalId = cancelExt.RentalId, status = "CancelledByRenter", itemTitle = cancelExt.Rental.Item?.Title
                     });
                 }
 
@@ -288,9 +288,9 @@ namespace RentMate.Controllers.Mvc
                 await _depositService.ReleaseDepositAsync(rentalId, user.Id);
 
                 var relRental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
-                if (relRental != null)
+                if (relRental?.RenterId != null)
                 {
-                    await _hubContext.Clients.User(relRental.RenterId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
+                    await _hubContext.Clients.User(relRental.RenterId).SendAsync(RentMateHub.DepositStatusChangedEvent, new
                     {
                         rentalId, status = "Released", itemTitle = relRental.Item?.Title
                     });
@@ -378,38 +378,6 @@ namespace RentMate.Controllers.Mvc
         }
 
         /// <summary>
-        /// Releases a disputed deposit back to the renter (owner action).
-        /// </summary>
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ReleaseDisputedDeposit(int rentalId)
-        {
-            var user = await _userManager.GetUserAsync(User);
-            if (user == null) return Unauthorized();
-
-            try
-            {
-                await _depositService.ReleaseDisputedDepositAsync(rentalId, user.Id);
-
-                var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
-                if (rental != null)
-                {
-                    await _hubContext.Clients.User(rental.RenterId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "Released", itemTitle = rental.Item?.Title
-                    });
-                }
-
-                return Json(new { success = true, message = "Disputed deposit released." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Disputed deposit release failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
-        /// <summary>
         /// Renter accepts a deposit charge (no dispute).
         /// </summary>
         [HttpPost]
@@ -492,6 +460,9 @@ namespace RentMate.Controllers.Mvc
             {
                 var rental = await _context.Rentals.Include(r => r.Deposit).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental == null) return Json(new { success = false, message = "Rental not found." });
+
+                if (rental.Status == RentalStatus.Completed)
+                    return Json(new { success = false, message = "This rental has already been completed." });
 
                 if (action == "release")
                 {
@@ -755,6 +726,80 @@ namespace RentMate.Controllers.Mvc
             }
 
             return View(rental);
+        }
+
+        /// <summary>
+        /// Returns the lazy-loaded History tab partial (completed/cancelled rentals, paginated).
+        /// </summary>
+        [Authorize]
+        public async Task<IActionResult> HistoryPartial(int page = 1, int pageSize = 20)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var skip = (page - 1) * pageSize;
+
+            var rentals = await _context.Rentals
+                .AsNoTracking()
+                .Include(r => r.Item)
+                .Include(r => r.Deposit)
+                .Include(r => r.Reviews.Where(rv => !rv.IsDeleted))
+                .Where(r => (r.RenterId == userId || r.OwnerId == userId)
+                    && (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled))
+                .OrderByDescending(r => r.EndDate)
+                .Skip(skip)
+                .Take(pageSize + 1) // fetch one extra to detect hasMore
+                .ToListAsync();
+
+            var hasMore = rentals.Count > pageSize;
+            if (hasMore) rentals = rentals.Take(pageSize).ToList();
+
+            return PartialView("_HistoryTab", (rentals, page, pageSize, hasMore, userId));
+        }
+
+        /// <summary>
+        /// Returns the lazy-loaded Favorites tab partial.
+        /// </summary>
+        [Authorize]
+        public async Task<IActionResult> FavoritesPartial()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var favorites = await BuildUserFavoritesQuery(userId).ToListAsync();
+
+            return PartialView("_FavoritesTab", favorites);
+        }
+
+        /// <summary>
+        /// Returns a server-rendered rental detail panel partial for a specific rental.
+        /// Used by the slide-over panel when refreshing or when data is not in window.rentalData.
+        /// </summary>
+        [Authorize]
+        public async Task<IActionResult> RentalDetailPartial(int rentalId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null) return Unauthorized();
+
+            var rental = await _context.Rentals
+                .AsNoTracking()
+                .Include(r => r.Item)
+                .Include(r => r.Owner)
+                .Include(r => r.Renter)
+                .Include(r => r.Accessories)
+                .Include(r => r.Extensions)
+                .Include(r => r.Reviews.Where(rv => !rv.IsDeleted))
+                .Include(r => r.Deposit).ThenInclude(d => d!.Evidence).ThenInclude(e => e.SubmittedBy)
+                .FirstOrDefaultAsync(r => r.Id == rentalId);
+
+            if (rental == null) return NotFound();
+
+            // Authorization: only the renter or owner may view this
+            if (rental.RenterId != userId && rental.OwnerId != userId)
+                return Forbid();
+
+            ViewData["CurrentUserId"] = userId;
+            return PartialView("_RentalDetailPanel", rental);
         }
 
 

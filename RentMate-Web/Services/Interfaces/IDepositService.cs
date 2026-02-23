@@ -13,7 +13,7 @@ namespace RentMate.Services.Interfaces
         Task<RentalDeposit> CreateAndAuthorizeDepositAsync(int rentalId, decimal amount);
 
         /// <summary>
-        /// Releases the full deposit back to the renter (item returned in good condition).
+        /// Releases the full deposit back to the renter. Accepts deposits in Authorized or Disputed status.
         /// </summary>
         Task<RentalDeposit> ReleaseDepositAsync(int rentalId, string releasedByUserId);
 
@@ -26,11 +26,6 @@ namespace RentMate.Services.Interfaces
         /// Disputes a charged deposit (renter action).
         /// </summary>
         Task<RentalDeposit> DisputeDepositAsync(int rentalId, string reason, string disputedByUserId);
-
-        /// <summary>
-        /// Releases a disputed deposit back to the renter (owner action).
-        /// </summary>
-        Task<RentalDeposit> ReleaseDisputedDepositAsync(int rentalId, string ownerUserId);
 
         /// <summary>
         /// Renter accepts the deposit charge (clears deadline, finalizes charge).

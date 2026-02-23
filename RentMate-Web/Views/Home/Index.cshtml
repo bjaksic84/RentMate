@@ -9,40 +9,28 @@
     var currency = CurrencyService.GetCurrentCurrency();
 }
 
-<!-- Hero Section - Full viewport height -->
-<section class="relative min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-5rem)] flex items-center justify-center z-10">
-    <!-- Animated gradient background -->
-    <div class="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900 overflow-hidden">
-        <!-- Decorative elements -->
-        <div class="absolute inset-0 opacity-30">
-            <div class="absolute top-20 left-10 w-72 h-72 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
-            <div class="absolute top-40 right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
-            <div class="absolute bottom-20 left-1/2 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse" style="animation-delay: 4s;"></div>
-        </div>
-        <!-- Grid pattern overlay -->
-        <div class="absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px); background-size: 40px 40px;"></div>
-    </div>
-    
+<!-- Hero Section - Content-forward, light design -->
+<section class="relative bg-stone-50 py-16 md:py-24 z-10">
     <!-- Hero Content -->
-    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center overflow-visible" style="z-index: var(--z-base, 1);">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center overflow-visible" style="z-index: var(--z-base, 1);">
         <!-- Badge -->
-        <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white/90 text-sm font-medium mb-8">
-            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+        <div class="inline-flex items-center gap-2 px-4 py-2 bg-primary-50 rounded-full border border-primary-200 text-primary-700 text-sm font-medium mb-8">
+            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
             @ViewBag.TotalItems+ @Localizer["items available near you"]
         </div>
-        
+
         <!-- Main heading -->
-        <h1 class="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-stone-900 mb-6 leading-tight">
             @Localizer["Rent anything,"]<br>
-            <span class="bg-gradient-to-r from-sky-300 to-blue-300 bg-clip-text text-transparent">@Localizer["anywhere."]</span>
+            <span class="text-primary-600">@Localizer["anywhere."]</span>
         </h1>
-        
-        <p class="text-lg sm:text-xl text-blue-100 max-w-2xl mx-auto mb-12">
+
+        <p class="text-lg sm:text-xl text-stone-600 max-w-2xl mx-auto mb-12">
             @Localizer["Forget about buying things you only need occasionally."] @Localizer["Save money, save space, save the planet."]
         </p>
-        
-        <!-- Search Widget - Glassmorphic pill-shaped (Opus Architecture) -->
-        <!-- 
+
+        <!-- Search Widget - Solid white card -->
+        <!--
             ARCHITECTURAL DECISIONS:
             1. role="search" - Semantic landmark for screen readers (WCAG 2.1)
             2. method="get" - Search actions must use GET for URL shareability/bookmarking
@@ -52,59 +40,59 @@
             6. ring-offset-2 - Creates visual gap between focus ring and element
         -->
         <div class="max-w-4xl mx-auto overflow-visible">
-            <form asp-controller="Rentals" asp-action="Index" method="get" 
-                  role="search" 
+            <form asp-controller="Rentals" asp-action="Index" method="get"
+                  role="search"
                   aria-label="@Localizer["Search marketplace"]"
                   id="heroSearchForm"
                   onsubmit="showSearchLoading()"
-                  class="glass rounded-2xl md:rounded-full p-2 shadow-lg border border-white/30 relative z-50 overflow-visible">
+                  class="bg-white rounded-lg shadow-md border border-stone-200 p-2 relative z-50 overflow-visible">
                 <div class="flex flex-col md:flex-row items-stretch gap-2">
                     <!-- What (Search Input) -->
                     <div class="flex-1 min-w-0 group">
-                        <div onclick="document.getElementById('heroSearch').focus()" 
-                             class="flex items-center gap-3 px-4 py-3 rounded-xl md:rounded-full
-                                    bg-white/60 hover:bg-white/90
-                                    focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md
-                                    transition-all duration-200 cursor-text h-full">
+                        <div onclick="document.getElementById('heroSearch').focus()"
+                             class="flex items-center gap-3 px-4 py-3 rounded-lg
+                                    hover:bg-stone-50
+                                    focus-within:bg-stone-50 focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2
+                                    transition-colors duration-150 cursor-text h-full">
                             <!-- Search Icon (left-positioned) -->
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0" aria-hidden="true">
-                                <i class="bi bi-search text-white text-sm"></i>
+                            <div class="w-9 h-9 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                                <i class="bi bi-search text-sm"></i>
                             </div>
                             <!-- Input Container with relative positioning for clear button -->
                             <div class="flex-1 min-w-0 relative">
-                                <input type="text" 
-                                       id="heroSearch" 
-                                       name="search" 
+                                <input type="text"
+                                       id="heroSearch"
+                                       name="search"
                                        value="@(ViewBag.CurrentSearch ?? "")"
-                                       placeholder="@Localizer["What are you looking for?"]" 
+                                       placeholder="@Localizer["What are you looking for?"]"
                                        aria-label="@Localizer["Search for items"]"
                                        autocomplete="off"
                                        oninput="toggleClearButton(this)"
-                                       class="w-full bg-transparent border-none text-slate-900 font-medium placeholder-slate-500 focus:outline-none text-sm pr-8">
+                                       class="w-full bg-transparent border-none text-stone-900 font-medium placeholder-stone-500 focus:outline-none text-sm pr-8">
                                 <!-- Clear Button (×) - Hidden by default, shown when input has value -->
-                                <button type="button" 
+                                <button type="button"
                                         id="heroSearchClear"
                                         onclick="clearSearchInput()"
                                         aria-label="@Localizer["Clear search"]"
-                                        class="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full 
-                                               bg-slate-200 hover:bg-slate-300 
-                                               flex items-center justify-center 
-                                               text-slate-500 hover:text-slate-700
-                                               transition-all duration-150 
+                                        class="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full
+                                               bg-stone-200 hover:bg-stone-300
+                                               flex items-center justify-center
+                                               text-stone-500 hover:text-stone-700
+                                               transition-colors duration-150
                                                opacity-0 invisible
-                                               focus:opacity-100 focus:visible focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                               focus:opacity-100 focus:visible focus:outline-none focus:ring-2 focus:ring-primary-500">
                                     <i class="bi bi-x text-sm" aria-hidden="true"></i>
                                 </button>
                             </div>
                             <!-- Loading Spinner - Hidden by default, shown on form submit -->
                             <div id="heroSearchSpinner" class="hidden flex-shrink-0" aria-hidden="true">
-                                <div class="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                <div class="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Divider -->
-                    <div class="hidden md:block w-px bg-slate-300/50 my-2"></div>
+                    <div class="hidden md:block w-px bg-stone-300/50 my-2"></div>
 
                     <!-- Date Range - SmartCalendar Component (CENTER position) -->
                     <div class="flex-1 min-w-0">
@@ -118,18 +106,18 @@
                             CssClass = "sc-open-up"
                         })
                     </div>
-                    
+
                     <!-- Divider -->
-                    <div class="hidden md:block w-px bg-slate-300/50 my-2"></div>
+                    <div class="hidden md:block w-px bg-stone-300/50 my-2"></div>
 
                     <!-- Location -->
                     <div class="flex-1 min-w-0 group">
-                        <div onclick="document.querySelector('[name=city]').focus()" class="flex items-center gap-3 px-4 py-3 rounded-xl md:rounded-full bg-white/60 hover:bg-white/90 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2 focus-within:shadow-md transition-all duration-200 cursor-pointer h-full">
-                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center flex-shrink-0">
-                                <i class="bi bi-geo-alt-fill text-white text-sm"></i>
+                        <div onclick="document.querySelector('[name=city]').focus()" class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-stone-50 focus-within:bg-stone-50 focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2 transition-colors duration-150 cursor-pointer h-full">
+                            <div class="w-9 h-9 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
+                                <i class="bi bi-geo-alt-fill text-sm"></i>
                             </div>
-                            <select name="city" class="flex-1 min-w-0 bg-transparent border-none text-slate-900 font-medium focus:outline-none text-sm cursor-pointer">
-                                <option value="" class="text-slate-400">@Localizer["Where? (All cities)"]</option>
+                            <select name="city" class="flex-1 min-w-0 bg-transparent border-none text-stone-900 font-medium focus:outline-none text-sm cursor-pointer">
+                                <option value="" class="text-stone-400">@Localizer["Where? (All cities)"]</option>
                                 @foreach (var city in cities)
                                 {
                                     <option value="@city">@city</option>
@@ -137,34 +125,29 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <!-- Search Button -->
-                    <button type="submit" 
-                            class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl md:rounded-full shadow-sm transition-all duration-300 flex items-center justify-center gap-2 group focus-ring flex-shrink-0"
+                    <button type="submit"
+                            class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-md shadow-sm transition-colors duration-150 flex items-center justify-center gap-2 group focus-ring flex-shrink-0"
                             aria-label="@Localizer["Search marketplace"]">
-                        <i class="bi bi-search text-lg group-hover:scale-110 transition-transform" aria-hidden="true"></i>
+                        <i class="bi bi-search text-lg" aria-hidden="true"></i>
                         <span class="md:hidden lg:inline">@Localizer["Search"]</span>
                     </button>
                 </div>
             </form>
         </div>
-        
-        <!-- Quick categories - clickable pills that populate search -->
+
+        <!-- Quick categories - clickable pills -->
         <div class="flex flex-wrap justify-center gap-3 mt-8">
             @foreach (var (cat, icon) in ViewConstants.MarketplaceCategories.Take(5))
             {
                 <a href="@Url.Action("Index", "Rentals", new { category = cat })"
-                   class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium border border-white/10 hover:border-white/30 transition-all duration-200 cursor-pointer focus-ring">
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-stone-100 hover:bg-primary-50 hover:text-primary-700 rounded-full text-stone-700 text-sm font-medium border border-stone-200 transition-colors duration-150 cursor-pointer focus-ring">
                     <i class="bi @icon" aria-hidden="true"></i>
                     @Localizer[cat]
                 </a>
             }
         </div>
-    </div>
-    
-    <!-- Scroll indicator -->
-    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/60 animate-bounce">
-        <i class="bi bi-chevron-double-down text-2xl"></i>
     </div>
 </section>
 
@@ -172,35 +155,35 @@
 <section class="py-20 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-            <h2 class="font-heading text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+            <h2 class="text-3xl sm:text-4xl font-bold text-stone-900 mb-4">
                 @Localizer["How does RentMate work?"]
             </h2>
-            <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+            <p class="text-lg text-stone-600 max-w-2xl mx-auto">
                 @Localizer["Simple steps to rent what you need"]
             </p>
         </div>
-        
+
         <div class="grid md:grid-cols-3 gap-8">
             @{
                 var steps = new[] {
-                    ("bi-search", "Find", "Browse thousands of items in your immediate vicinity.", "blue"),
-                    ("bi-calendar-check", "Book", "Select dates, contact the owner and confirm the rental.", "sky"),
-                    ("bi-emoji-smile", "Use & Save", "Pick up the item, use it and return it. Simple!", "green")
+                    ("bi-search", "Find", "Browse thousands of items in your immediate vicinity."),
+                    ("bi-calendar-check", "Book", "Select dates, contact the owner and confirm the rental."),
+                    ("bi-emoji-smile", "Use & Save", "Pick up the item, use it and return it. Simple!")
                 };
                 var stepNum = 1;
             }
-            @foreach (var (icon, title, desc, color) in steps)
+            @foreach (var (icon, title, desc) in steps)
             {
-                <div class="relative group">
-                    <div class="bg-slate-50 rounded-2xl p-8 hover-lift border border-slate-100 h-full">
-                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-@(color)-500 to-@(color)-600 flex items-center justify-center mb-6 shadow-lg shadow-@(color)-500/30 group-hover:scale-110 transition-transform duration-300">
-                            <i class="bi @icon text-white text-2xl"></i>
+                <div class="relative">
+                    <div class="bg-stone-50 rounded-lg p-8 border border-stone-200 h-full">
+                        <div class="w-16 h-16 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center mb-6">
+                            <i class="bi @icon text-2xl"></i>
                         </div>
-                        <div class="absolute top-6 right-6 w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-500">
+                        <div class="absolute top-6 right-6 w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center text-sm font-bold text-stone-500">
                             @stepNum
                         </div>
-                        <h3 class="font-heading text-xl font-bold text-slate-900 mb-3">@Localizer[title]</h3>
-                        <p class="text-slate-600">@Localizer[desc]</p>
+                        <h3 class="text-xl font-bold text-stone-900 mb-3">@Localizer[title]</h3>
+                        <p class="text-stone-600">@Localizer[desc]</p>
                     </div>
                 </div>
                 stepNum++;
@@ -212,36 +195,36 @@
 <!-- Popular Items Section -->
 @if (popularItems.Any())
 {
-<section class="py-20 bg-slate-50">
+<section class="py-20 bg-stone-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-10">
             <div>
-                <h2 class="font-heading text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+                <h2 class="text-3xl sm:text-4xl font-bold text-stone-900 mb-2">
                     @Localizer["Popular near you"]
                 </h2>
-                <p class="text-slate-600">@Localizer["Top rated items loved by renters"]</p>
+                <p class="text-stone-600">@Localizer["Top rated items loved by renters"]</p>
             </div>
-            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="rating" 
-               class="hidden sm:inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="rating"
+               class="hidden sm:inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold transition-colors">
                 @Localizer["View all"] <i class="bi bi-arrow-right"></i>
             </a>
         </div>
-        
+
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             @foreach (var item in popularItems.Take(4))
             {
                 <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="group">
-                    <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-100">
+                    <div class="bg-white rounded-lg overflow-hidden border border-stone-200 hover:shadow-md transition-shadow duration-150">
                         <!-- Image -->
                         <div class="aspect-[4/3] relative overflow-hidden">
                             @if (!string.IsNullOrEmpty(item.ImageUrl))
                             {
-                                <img src="@item.ImageUrl" alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                <img src="@item.ImageUrl" alt="@item.Title" class="w-full h-full object-cover">
                             }
                             else
                             {
-                                <div class="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                                    <i class="bi bi-image text-4xl text-slate-300" aria-hidden="true"></i>
+                                <div class="w-full h-full bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center">
+                                    <i class="bi bi-image text-4xl text-stone-300" aria-hidden="true"></i>
                                 </div>
                             }
                             <!-- Favorite button -->
@@ -251,7 +234,7 @@
                             <!-- Rating badge -->
                             @if (item.AverageRating.HasValue)
                             {
-                                <div class="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-white/90 rounded-lg text-sm font-semibold" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+                                <div class="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-white shadow-sm rounded-lg text-sm font-semibold">
                                     <i class="bi bi-star-fill text-amber-400" aria-hidden="true"></i>
                                     <span>@item.AverageRating.Value.ToString("0.0")</span>
                                 </div>
@@ -260,26 +243,26 @@
                         <!-- Content -->
                         <div class="p-4">
                             <div class="flex items-start justify-between gap-2 mb-2">
-                                <h3 class="font-heading font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                                <h3 class="font-semibold text-stone-900 group-hover:text-primary-600 transition-colors line-clamp-1">
                                     @item.Title
                                 </h3>
                             </div>
                             @if (!string.IsNullOrEmpty(item.Location))
                             {
-                                <p class="text-sm text-slate-500 flex items-center gap-1 mb-3">
+                                <p class="text-sm text-stone-500 flex items-center gap-1 mb-3">
                                     <i class="bi bi-geo-alt"></i> @item.Location
                                 </p>
                             }
                             <div class="flex items-center justify-between mt-1">
                                 <div class="flex items-baseline gap-1">
-                                    <span class="text-xl font-bold text-slate-900">@CurrencyService.Format(item.Price)</span>
-                                    <span class="text-xs text-slate-500 font-medium lowercase">/ @Localizer["day"]</span>
+                                    <span class="text-xl font-bold text-stone-900">@CurrencyService.Format(item.Price)</span>
+                                    <span class="text-xs text-stone-500 font-medium lowercase">/ @Localizer["day"]</span>
                                 </div>
                                 @if (item.DepositAmount > 0)
                                 {
-                                    <div class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 rounded-lg border border-slate-100" title="@Localizer["Security deposit (refundable)"]">
+                                    <div class="flex items-center gap-1.5 px-2 py-0.5 bg-stone-50 rounded-lg border border-stone-200" title="@Localizer["Security deposit (refundable)"]">
                                         <i class="bi bi-shield-check text-emerald-500 text-[10px]"></i>
-                                        <span class="text-[10px] font-bold text-slate-600 uppercase tracking-tight">@CurrencyService.Format(item.DepositAmount.Value)</span>
+                                        <span class="text-[10px] font-bold text-stone-600 uppercase tracking-tight">@CurrencyService.Format(item.DepositAmount.Value)</span>
                                     </div>
                                 }
                             </div>
@@ -288,10 +271,10 @@
                 </a>
             }
         </div>
-        
+
         <div class="mt-8 text-center sm:hidden">
-            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="rating" 
-               class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full transition-colors">
+            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="rating"
+               class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-md transition-colors">
                 @Localizer["View all"] <i class="bi bi-arrow-right"></i>
             </a>
         </div>
@@ -306,32 +289,32 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-end justify-between mb-10">
             <div>
-                <h2 class="font-heading text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+                <h2 class="text-3xl sm:text-4xl font-bold text-stone-900 mb-2">
                     @Localizer["New Additions"]
                 </h2>
-                <p class="text-slate-600">@Localizer["Fresh items just listed"]</p>
+                <p class="text-stone-600">@Localizer["Fresh items just listed"]</p>
             </div>
-            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="newest" 
-               class="hidden sm:inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+            <a asp-controller="Rentals" asp-action="Index" asp-route-sort="newest"
+               class="hidden sm:inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 font-semibold transition-colors">
                 @Localizer["View all"] <i class="bi bi-arrow-right"></i>
             </a>
         </div>
-        
+
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             @foreach (var item in newItems.Take(4))
             {
                 <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="group">
-                    <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-200">
+                    <div class="bg-white rounded-lg overflow-hidden border border-stone-200 hover:shadow-md transition-shadow duration-150">
                         <!-- Image -->
                         <div class="aspect-[4/3] relative overflow-hidden">
                             @if (!string.IsNullOrEmpty(item.ImageUrl))
                             {
-                                <img src="@item.ImageUrl" alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                <img src="@item.ImageUrl" alt="@item.Title" class="w-full h-full object-cover">
                             }
                             else
                             {
-                                <div class="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                                    <i class="bi bi-image text-4xl text-slate-300"></i>
+                                <div class="w-full h-full bg-gradient-to-br from-stone-100 to-stone-200 flex items-center justify-center">
+                                    <i class="bi bi-image text-4xl text-stone-300"></i>
                                 </div>
                             }
                             <!-- New badge -->
@@ -345,25 +328,25 @@
                         </div>
                         <!-- Content -->
                         <div class="p-4">
-                            <h3 class="font-heading font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-2">
+                            <h3 class="font-semibold text-stone-900 group-hover:text-primary-600 transition-colors line-clamp-1 mb-2">
                                 @item.Title
                             </h3>
                             @if (!string.IsNullOrEmpty(item.Location))
                             {
-                                <p class="text-sm text-slate-500 flex items-center gap-1 mb-3">
+                                <p class="text-sm text-stone-500 flex items-center gap-1 mb-3">
                                     <i class="bi bi-geo-alt"></i> @item.Location
                                 </p>
                             }
                             <div class="flex items-center justify-between mt-1">
                                 <div class="flex items-baseline gap-1">
-                                    <span class="text-xl font-bold text-slate-900">@CurrencyService.Format(item.Price)</span>
-                                    <span class="text-xs text-slate-500 font-medium lowercase">/ @Localizer["day"]</span>
+                                    <span class="text-xl font-bold text-stone-900">@CurrencyService.Format(item.Price)</span>
+                                    <span class="text-xs text-stone-500 font-medium lowercase">/ @Localizer["day"]</span>
                                 </div>
                                 @if (item.DepositAmount > 0)
                                 {
-                                    <div class="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50 rounded-lg border border-slate-100" title="@Localizer["Security deposit (refundable)"]">
+                                    <div class="flex items-center gap-1.5 px-2 py-0.5 bg-stone-50 rounded-lg border border-stone-200" title="@Localizer["Security deposit (refundable)"]">
                                         <i class="bi bi-shield-check text-emerald-500 text-[10px]"></i>
-                                        <span class="text-[10px] font-bold text-slate-600 uppercase tracking-tight">@CurrencyService.Format(item.DepositAmount.Value)</span>
+                                        <span class="text-[10px] font-bold text-stone-600 uppercase tracking-tight">@CurrencyService.Format(item.DepositAmount.Value)</span>
                                     </div>
                                 }
                             </div>
@@ -377,14 +360,14 @@
 }
 
 <!-- Testimonials Section -->
-<section class="py-20 bg-gradient-to-br from-blue-600 to-slate-900 text-white">
+<section class="py-20 bg-stone-900 text-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-            <h2 class="font-heading text-3xl sm:text-4xl font-bold mb-4">
+            <h2 class="text-3xl sm:text-4xl font-bold mb-4">
                 @Localizer["What our users say"]
             </h2>
         </div>
-        
+
         <div class="grid md:grid-cols-3 gap-8">
             @{
                 var testimonials = new[] {
@@ -395,7 +378,7 @@
             }
             @foreach (var (quote, name, loc) in testimonials)
             {
-                <div class="bg-white/10 rounded-2xl p-6 border border-white/10" style="-webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);">
+                <div class="bg-white/5 rounded-lg p-6 border border-white/10">
                     <div class="flex gap-1 mb-4" role="img" aria-label="5 out of 5 stars">
                         @for (int i = 0; i < 5; i++)
                         {
@@ -404,7 +387,7 @@
                     </div>
                     <p class="mb-6 leading-relaxed" style="color: var(--text-muted-on-dark, rgba(255,255,255,0.87));">"@Localizer[quote]"</p>
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 flex items-center justify-center font-bold text-white" aria-hidden="true">
+                        <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center font-bold text-white" aria-hidden="true">
                             @name[0]
                         </div>
                         <div>
@@ -419,30 +402,30 @@
 </section>
 
 <!-- CTA Section -->
-<section class="py-20 bg-slate-50">
+<section class="py-20 bg-stone-50">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 class="font-heading text-3xl sm:text-4xl font-bold text-slate-900 mb-4">
+        <h2 class="text-3xl sm:text-4xl font-bold text-stone-900 mb-4">
             @Localizer["Become part of the RentMate community"]
         </h2>
-        <p class="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
+        <p class="text-lg text-stone-600 mb-8 max-w-2xl mx-auto">
             @Localizer["Earn by renting out your equipment or save by renting."]
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <a asp-controller="Items" asp-action="Create" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-full shadow-sm  transition-all duration-300">
+                <a asp-controller="Items" asp-action="Create" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-md shadow-sm transition-colors duration-150">
                     <i class="bi bi-plus-circle"></i>
                     @Localizer["List your first item"]
                 </a>
             }
             else
             {
-                <a asp-area="Identity" asp-page="/Account/Register" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-full shadow-sm  transition-all duration-300">
+                <a asp-area="Identity" asp-page="/Account/Register" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-md shadow-sm transition-colors duration-150">
                     <i class="bi bi-person-plus"></i>
                     @Localizer["Register now"]
                 </a>
             }
-            <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-slate-50 text-slate-900 font-semibold rounded-full border-2 border-slate-200 hover:border-blue-300 transition-all duration-300">
+            <a asp-controller="Rentals" asp-action="Index" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white hover:bg-stone-50 text-stone-900 font-semibold rounded-md border-2 border-stone-200 hover:border-primary-300 transition-colors duration-150">
                 <i class="bi bi-search"></i>
                 @Localizer["Browse marketplace"]
             </a>
@@ -486,7 +469,7 @@
         function toggleClearButton(inputElement) {
             const clearBtn = document.getElementById('heroSearchClear');
             if (!clearBtn) return;
-            
+
             if (inputElement.value.length > 0) {
                 clearBtn.classList.remove('opacity-0', 'invisible');
                 clearBtn.classList.add('opacity-100', 'visible');
@@ -503,7 +486,7 @@
         function clearSearchInput() {
             const searchInput = document.getElementById('heroSearch');
             const clearBtn = document.getElementById('heroSearchClear');
-            
+
             if (searchInput) {
                 searchInput.value = '';
                 searchInput.focus();
@@ -521,7 +504,7 @@
         function showSearchLoading() {
             const spinner = document.getElementById('heroSearchSpinner');
             const searchIcon = document.querySelector('#heroSearchForm .bi-search');
-            
+
             if (spinner) {
                 spinner.classList.remove('hidden');
             }
@@ -542,4 +525,3 @@
         });
     </script>
 }
-
