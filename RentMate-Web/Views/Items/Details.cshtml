@@ -56,14 +56,6 @@
             <!-- Image Gallery -->
             @{
                 var allImages = Model.Images?.OrderBy(i => i.DisplayOrder).ToList() ?? new List<RentMate.Models.Domain.ItemImage>();
-                // Include legacy ImageUrl if no Images exist but ImageUrl does
-                if (!allImages.Any() && !string.IsNullOrEmpty(Model.ImageUrl))
-                {
-                    allImages = new List<RentMate.Models.Domain.ItemImage>
-                    {
-                        new RentMate.Models.Domain.ItemImage { ImageUrl = Model.ImageUrl, DisplayOrder = 0 }
-                    };
-                }
                 var hasMultipleImages = allImages.Count > 1;
             }
 
