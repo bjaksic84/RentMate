@@ -7,6 +7,8 @@
     ViewData["ActivePage"] = ManageNavPages.PaymentMethods;
 }
 
+@Html.AntiForgeryToken()
+
 <div class="space-y-6">
     <!-- Page Header -->
     <div class="border-b border-slate-200 pb-4">
@@ -146,7 +148,7 @@
                 const response = await fetch('?handler=CreateSetupIntent', {
                     method: 'POST',
                     headers: {
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        'X-CSRF-TOKEN': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
                     }
                 });
                 const data = await response.json();

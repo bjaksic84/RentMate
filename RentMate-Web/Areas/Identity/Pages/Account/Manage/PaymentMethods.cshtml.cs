@@ -62,7 +62,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             var customerId = await _paymentService.GetOrCreateCustomerAsync(
                 user!.Id, user.Email!, $"{user.FirstName} {user.LastName}".Trim());
 
-            var result = await _paymentService.CreateSetupIntentAsync(user.Id);
+            var result = await _paymentService.CreateSetupIntentAsync(user.Id, customerId);
             if (!result.Success)
             {
                 return new JsonResult(new { success = false, error = result.ErrorMessage });

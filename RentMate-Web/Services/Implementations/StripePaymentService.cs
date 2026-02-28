@@ -155,12 +155,13 @@ namespace RentMate.Services.Implementations
             return customer.Id;
         }
 
-        public async Task<PaymentResult> CreateSetupIntentAsync(string userId)
+        public async Task<PaymentResult> CreateSetupIntentAsync(string userId, string? stripeCustomerId = null)
         {
             try
             {
                 var options = new SetupIntentCreateOptions
                 {
+                    Customer = stripeCustomerId,
                     PaymentMethodTypes = new List<string> { "card" },
                     Metadata = new Dictionary<string, string> { { "UserId", userId } }
                 };

@@ -29,10 +29,11 @@ namespace RentMate.Services.Interfaces
         // ── Payment-method management (Stripe SetupIntent flow) ─────
 
         /// <summary>
-        /// Creates a Stripe SetupIntent so the user can save a payment method
+        /// Creates a Stripe SetupIntent so the user can save a payment method.
+        /// If stripeCustomerId is provided, the payment method will be attached to that customer.
         /// for future charges. Returns a ClientSecret for Stripe Elements.
         /// </summary>
-        Task<PaymentResult> CreateSetupIntentAsync(string userId);
+        Task<PaymentResult> CreateSetupIntentAsync(string userId, string? stripeCustomerId = null);
 
         /// <summary>
         /// Lists the saved payment methods (cards) for a Stripe customer.

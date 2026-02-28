@@ -72,7 +72,7 @@ public class ProfileCompletionService : IProfileCompletionService
             tips.Add(new ProfileTip("Verify your government ID to list items", "bi-shield-check", "/Identity/Account/Manage"));
 
         if (!hasPaymentMethod)
-            tips.Add(new ProfileTip("Add a payment method", "bi-credit-card", "/Payment/Settings"));
+            tips.Add(new ProfileTip("Add a payment method", "bi-credit-card", "/Identity/Account/Manage/PaymentMethods"));
 
         if (!hasBio)
             tips.Add(new ProfileTip("Write a short bio about yourself", "bi-chat-text", "/Identity/Account/Manage"));
