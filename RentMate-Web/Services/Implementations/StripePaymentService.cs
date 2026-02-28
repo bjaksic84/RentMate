@@ -127,5 +127,103 @@ namespace RentMate.Services.Implementations
                 return PaymentResult.Failed(ex.Message);
             }
         }
+
+        // ── Payment-method management ───────────────────────────────
+
+        public async Task<string> GetOrCreateCustomerAsync(string userId, string email, string? name = null)
+        {
+            // Search for existing customer by metadata
+            var listOptions = new CustomerListOptions
+            {
+                Email = email,
+                Limit = 1
+            };
+            var customerService = new CustomerService();
+            var existing = await customerService.ListAsync(listOptions);
+
+            if (existing.Data.Count > 0)
+                return existing.Data[0].Id;
+
+            // Create new customer
+            var createOptions = new CustomerCreateOptions
+            {
+                Email = email,
+                Name = name,
+                Metadata = new Dictionary<string, string> { { "UserId", userId } }
+            };
+            var customer = await customerService.CreateAsync(createOptions);
+            return customer.Id;
+        }
+
+        public async Task<PaymentResult> CreateSetupIntentAsync(string userId)
+        {
+            try
+            {
+                var options = new SetupIntentCreateOptions
+                {
+                    PaymentMethodTypes = new List<string> { "card" },
+                    Metadata = new Dictionary<string, string> { { "UserId", userId } }
+                };
+
+                var service = new SetupIntentService();
+                var intent = await service.CreateAsync(options);
+
+                return PaymentResult.Succeeded(intent.Id, intent.ClientSecret);
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, "Stripe SetupIntent creation failed: {Message}", ex.Message);
+                return PaymentResult.Failed(ex.Message);
+            }
+        }
+
+        public async Task<IReadOnlyList<SavedPaymentMethod>> ListPaymentMethodsAsync(string stripeCustomerId)
+        {
+            try
+            {
+                var options = new PaymentMethodListOptions
+                {
+                    Customer = stripeCustomerId,
+                    Type = "card"
+                };
+                var service = new PaymentMethodService();
+                var methods = await service.ListAsync(options);
+
+                // Determine default payment method
+                var customerService = new CustomerService();
+                var customer = await customerService.GetAsync(stripeCustomerId);
+                var defaultPmId = customer.InvoiceSettings?.DefaultPaymentMethodId;
+
+                return methods.Data.Select(pm => new SavedPaymentMethod
+                {
+                    Id = pm.Id,
+                    Brand = pm.Card?.Brand ?? "unknown",
+                    Last4 = pm.Card?.Last4 ?? "????",
+                    ExpMonth = pm.Card?.ExpMonth ?? 0,
+                    ExpYear = pm.Card?.ExpYear ?? 0,
+                    IsDefault = pm.Id == defaultPmId
+                }).ToList();
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, "Failed to list payment methods: {Message}", ex.Message);
+                return Array.Empty<SavedPaymentMethod>();
+            }
+        }
+
+        public async Task<PaymentResult> RemovePaymentMethodAsync(string paymentMethodId)
+        {
+            try
+            {
+                var service = new PaymentMethodService();
+                await service.DetachAsync(paymentMethodId);
+                return PaymentResult.Succeeded(paymentMethodId);
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, "Failed to remove payment method: {Message}", ex.Message);
+                return PaymentResult.Failed(ex.Message);
+            }
+        }
     }
 }

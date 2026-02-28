@@ -1,0 +1,221 @@
+@page
+@using Microsoft.AspNetCore.Mvc.Localization
+@model PaymentMethodsModel
+@inject IViewLocalizer Localizer
+@{
+    ViewData["Title"] = Localizer["Payment Methods"];
+    ViewData["ActivePage"] = ManageNavPages.PaymentMethods;
+}
+
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="border-b border-slate-200 pb-4">
+        <h2 class="font-heading text-xl font-bold text-slate-900">@Localizer["Payment Methods"]</h2>
+        <p class="text-sm text-slate-500 mt-1">@Localizer["Manage your saved cards for rentals and deposits"]</p>
+    </div>
+
+    <partial name="_StatusMessage" model="Model.StatusMessage" />
+
+    <!-- Saved Cards -->
+    @if (Model.SavedCards.Any())
+    {
+        <div class="space-y-3">
+            @foreach (var card in Model.SavedCards)
+            {
+                <div class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+                    <div class="flex items-center gap-4">
+                        <!-- Card brand icon -->
+                        <div class="w-12 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                            @{
+                                var brandIcon = card.Brand.ToLower() switch
+                                {
+                                    "visa" => "bi-credit-card-2-front",
+                                    "mastercard" => "bi-credit-card-2-back",
+                                    "amex" => "bi-credit-card",
+                                    _ => "bi-credit-card"
+                                };
+                                var brandLabel = card.Brand.ToLower() switch
+                                {
+                                    "visa" => "Visa",
+                                    "mastercard" => "Mastercard",
+                                    "amex" => "Amex",
+                                    _ => card.Brand
+                                };
+                            }
+                            <i class="bi @brandIcon text-slate-500 text-lg"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-900">
+                                @brandLabel &bull;&bull;&bull;&bull; @card.Last4
+                                @if (card.IsDefault)
+                                {
+                                    <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">@Localizer["Default"]</span>
+                                }
+                            </p>
+                            <p class="text-xs text-slate-400">@Localizer["Expires"] @card.ExpMonth.ToString("00")/@card.ExpYear</p>
+                        </div>
+                    </div>
+                    <form method="post" asp-page-handler="Remove" asp-route-paymentMethodId="@card.Id"
+                          onsubmit="return confirm('@Localizer["Remove this card?"]');">
+                        <button type="submit"
+                                class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="@Localizer["Remove"]">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+            <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                <i class="bi bi-credit-card text-slate-400 text-2xl"></i>
+            </div>
+            <p class="text-slate-500 font-medium">@Localizer["No payment methods yet"]</p>
+            <p class="text-sm text-slate-400 mt-1">@Localizer["Add a card to speed up your rental payments"]</p>
+        </div>
+    }
+
+    <!-- Add Card Section -->
+    <div class="border-t border-slate-200 pt-6">
+        <div id="addCardSection">
+            <button id="showCardFormBtn" type="button"
+                    class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
+                <i class="bi bi-plus-lg"></i>
+                @Localizer["Add a card"]
+            </button>
+        </div>
+
+        <!-- Card form (hidden until "Add a card" is clicked) -->
+        <div id="cardFormContainer" class="hidden mt-4">
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 space-y-5">
+                <h3 class="font-heading text-lg font-bold text-slate-900">@Localizer["Add new card"]</h3>
+
+                <!-- Stripe Elements mount point -->
+                <div id="card-element" class="p-4 border border-slate-200 rounded-xl bg-white min-h-[44px]"></div>
+                <div id="card-errors" class="text-sm text-red-600 hidden"></div>
+
+                <div class="flex items-center gap-3">
+                    <button id="submitCardBtn" type="button"
+                            class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="bi bi-shield-lock"></i>
+                        <span id="submitCardText">@Localizer["Save card"]</span>
+                    </button>
+                    <button id="cancelCardBtn" type="button"
+                            class="px-5 py-3 text-slate-600 hover:bg-slate-50 font-medium rounded-xl transition-colors">
+                        @Localizer["Cancel"]
+                    </button>
+                </div>
+
+                <p class="text-xs text-slate-400 flex items-center gap-1">
+                    <i class="bi bi-lock"></i>
+                    @Localizer["Secured by Stripe. Your card details never touch our servers."]
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        (function () {
+            const publishableKey = '@Model.PublishableKey';
+            if (!publishableKey) {
+                console.warn('Stripe publishable key not configured');
+                return;
+            }
+
+            const stripe = Stripe(publishableKey);
+            let elements, cardElement, setupClientSecret;
+
+            const showBtn = document.getElementById('showCardFormBtn');
+            const formContainer = document.getElementById('cardFormContainer');
+            const submitBtn = document.getElementById('submitCardBtn');
+            const submitText = document.getElementById('submitCardText');
+            const cancelBtn = document.getElementById('cancelCardBtn');
+            const errorsEl = document.getElementById('card-errors');
+
+            showBtn.addEventListener('click', async function () {
+                showBtn.disabled = true;
+                showBtn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i> Loading...';
+
+                // Create SetupIntent via server
+                const response = await fetch('?handler=CreateSetupIntent', {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    showError(data.error || 'Failed to initialize card form.');
+                    showBtn.disabled = false;
+                    showBtn.innerHTML = '<i class="bi bi-plus-lg"></i> Add a card';
+                    return;
+                }
+
+                setupClientSecret = data.clientSecret;
+
+                // Mount Stripe Elements
+                elements = stripe.elements({ clientSecret: setupClientSecret, appearance: { theme: 'stripe' } });
+                cardElement = elements.create('payment');
+                cardElement.mount('#card-element');
+
+                formContainer.classList.remove('hidden');
+                showBtn.classList.add('hidden');
+            });
+
+            cancelBtn.addEventListener('click', function () {
+                formContainer.classList.add('hidden');
+                showBtn.classList.remove('hidden');
+                showBtn.disabled = false;
+                showBtn.innerHTML = '<i class="bi bi-plus-lg"></i> Add a card';
+                errorsEl.classList.add('hidden');
+            });
+
+            submitBtn.addEventListener('click', async function () {
+                submitBtn.disabled = true;
+                submitText.textContent = 'Saving...';
+                errorsEl.classList.add('hidden');
+
+                const { error } = await stripe.confirmSetup({
+                    elements,
+                    confirmParams: {
+                        return_url: window.location.origin + '/Identity/Account/Manage/PaymentMethods?handler=ConfirmSetup'
+                    },
+                    redirect: 'if_required'
+                });
+
+                if (error) {
+                    showError(error.message);
+                    submitBtn.disabled = false;
+                    submitText.textContent = 'Save card';
+                    return;
+                }
+
+                // If no redirect needed, post to confirm handler
+                const confirmForm = document.createElement('form');
+                confirmForm.method = 'POST';
+                confirmForm.action = '?handler=ConfirmSetup';
+                const token = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (token) {
+                    const t = document.createElement('input');
+                    t.type = 'hidden';
+                    t.name = '__RequestVerificationToken';
+                    t.value = token.value;
+                    confirmForm.appendChild(t);
+                }
+                document.body.appendChild(confirmForm);
+                confirmForm.submit();
+            });
+
+            function showError(msg) {
+                errorsEl.textContent = msg;
+                errorsEl.classList.remove('hidden');
+            }
+        })();
+    </script>
+}
