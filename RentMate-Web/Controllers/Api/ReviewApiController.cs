@@ -30,17 +30,20 @@ namespace RentMate.Controllers.Api
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<ReviewApiController> _logger;
         private readonly IReviewAggregationService _reviewAggregation;
+        private readonly IScoringService _scoringService;
 
         public ReviewApiController(
             RentMateContext context, 
             UserManager<ApplicationUser> userManager, 
             ILogger<ReviewApiController> logger,
-            IReviewAggregationService reviewAggregation)
+            IReviewAggregationService reviewAggregation,
+            IScoringService scoringService)
         {
             _context = context;
             _userManager = userManager;
             _logger = logger;
             _reviewAggregation = reviewAggregation;
+            _scoringService = scoringService;
         }
 
         /// <summary>
@@ -100,6 +103,7 @@ namespace RentMate.Controllers.Api
                 await _context.SaveChangesAsync();
                 _logger.LogInformation("Updated existing review {ReviewId} by user {UserId}", existing.Id, userId);
                 await _reviewAggregation.UpdateItemAggregatesAsync(existing.ItemId);
+                _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(existing.ItemId));
                 return Ok(new { updated = true });
             }
 
@@ -120,6 +124,9 @@ namespace RentMate.Controllers.Api
             _logger.LogInformation("Created new review {ReviewId} for Item {ItemId} by user {UserId}", dbReview.Id, dbReview.ItemId, userId);
 
             await _reviewAggregation.UpdateItemAggregatesAsync(dbReview.ItemId);
+
+            // Event-driven: recompute item score after new review
+            _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(dbReview.ItemId));
 
             return Ok(new { created = true });
         }
@@ -176,6 +183,9 @@ namespace RentMate.Controllers.Api
             await _context.SaveChangesAsync();
             await _reviewAggregation.UpdateItemAggregatesAsync(review.ItemId);
 
+            // Event-driven: recompute item score after review update
+            _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(review.ItemId));
+
             return NoContent();
         }
 
@@ -201,6 +211,9 @@ namespace RentMate.Controllers.Api
 
             await _context.SaveChangesAsync();
             await _reviewAggregation.UpdateItemAggregatesAsync(review.ItemId);
+
+            // Event-driven: recompute item score after review deletion
+            _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(review.ItemId));
 
             return NoContent();
         }

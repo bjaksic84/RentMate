@@ -155,7 +155,9 @@ namespace RentMate.Areas.Identity.Pages.Account
             }
 
             await _signInManager.SignInAsync(user, isPersistent: false);
-            return LocalRedirect(returnUrl);
+
+            // Redirect new users to the onboarding wizard
+            return RedirectToAction("Step1", "Onboarding");
         }
 
         /// <summary>

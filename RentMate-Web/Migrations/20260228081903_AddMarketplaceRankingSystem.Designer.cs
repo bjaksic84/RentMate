@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RentMate.Infrastructure.Data;
@@ -11,9 +12,11 @@ using RentMate.Infrastructure.Data;
 namespace RentMate.Migrations
 {
     [DbContext(typeof(RentMateContext))]
-    partial class RentMateContextModelSnapshot : ModelSnapshot
+    [Migration("20260228081903_AddMarketplaceRankingSystem")]
+    partial class AddMarketplaceRankingSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -250,9 +253,6 @@ namespace RentMate.Migrations
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("OnboardingCompleted")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");

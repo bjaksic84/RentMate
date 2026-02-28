@@ -146,6 +146,13 @@ namespace RentMate.Controllers.Api
                 return Unauthorized(_localizer["Error: Server cannot find your ID in the token. Dashboard will show 0."].Value);
             }
 
+            // Government ID gate: must verify before listing items
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user != null && !user.IsGovernmentIdVerified)
+            {
+                return BadRequest("You must verify your government ID before listing items for rent.");
+            }
+
             var newItem = new Item
             {
                 Title = request.Title,
@@ -366,7 +373,8 @@ namespace RentMate.Controllers.Api
                 "price_desc" => query.OrderByDescending(i => i.Price),
                 "rating" => query.OrderByDescending(i => i.AverageRating),
                 "newest" => query.OrderByDescending(i => i.CreatedAt),
-                _ => query.OrderByDescending(i => i.CreatedAt)
+                "recommended" => query.OrderByDescending(i => i.ItemScore),
+                _ => query.OrderByDescending(i => i.ItemScore) // default sort is now by ranking score
             };
 
             // Get total count for pagination

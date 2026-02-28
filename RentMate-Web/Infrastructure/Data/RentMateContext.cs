@@ -302,6 +302,16 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Item>()
             .HasIndex(i => i.UserId);
 
+        // Items: Fast default sort by precomputed ItemScore
+        modelBuilder.Entity<Item>()
+            .HasIndex(i => new { i.IsListed, i.IsAdminHidden, i.ItemScore })
+            .HasDatabaseName("IX_Items_Scoring");
+
+        // Items: Sponsored items lookup
+        modelBuilder.Entity<Item>()
+            .HasIndex(i => new { i.IsSponsored, i.SponsoredUntil })
+            .HasDatabaseName("IX_Items_Sponsored");
+
         // Rentals: Fast lookup for status and date ranges
         modelBuilder.Entity<Rental>()
             .HasIndex(r => new { r.Status, r.StartDate, r.EndDate });
