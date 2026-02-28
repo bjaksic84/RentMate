@@ -59,7 +59,7 @@ namespace RentMate.Controllers.Api
                     i.Price ?? 0,
                     i.Images.OrderBy(img => img.DisplayOrder).FirstOrDefault() != null
                         ? i.Images.OrderBy(img => img.DisplayOrder).First().ImageUrl
-                        : i.ImageUrl,
+                        : null,
                     i.Location ?? i.User!.City,
                     i.Category,
                     i.IsListed,
@@ -304,7 +304,7 @@ namespace RentMate.Controllers.Api
                     i.Price ?? 0,
                     i.Images.OrderBy(img => img.DisplayOrder).FirstOrDefault() != null
                         ? i.Images.OrderBy(img => img.DisplayOrder).First().ImageUrl
-                        : i.ImageUrl,
+                        : null,
                     i.Location,
                     i.Category,
                     i.IsListed,
@@ -394,7 +394,7 @@ namespace RentMate.Controllers.Api
                     i.Price ?? 0,
                     i.Images.OrderBy(img => img.DisplayOrder).FirstOrDefault() != null
                         ? i.Images.OrderBy(img => img.DisplayOrder).First().ImageUrl
-                        : i.ImageUrl,
+                        : null,
                     i.Location ?? i.User!.City,
                     i.Category,
                     i.IsListed,

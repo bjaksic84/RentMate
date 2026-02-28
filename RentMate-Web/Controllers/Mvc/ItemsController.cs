@@ -18,6 +18,8 @@ namespace RentMate.Controllers.Mvc
 {
     public class ItemsController : Controller
     {
+        private const int MaxImagesPerItem = 10;
+
         private readonly RentMateContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<RentMateHub> _hubContext;
@@ -25,6 +27,7 @@ namespace RentMate.Controllers.Mvc
         private readonly IStringLocalizer<ItemsController> _localizer;
         private readonly IAccessoryService _accessoryService;
         private readonly IScoringService _scoringService;
+        private readonly ILogger<ItemsController> _logger;
 
         public ItemsController(
             RentMateContext context,
@@ -33,7 +36,8 @@ namespace RentMate.Controllers.Mvc
             IFileUploadService fileUploadService,
             IStringLocalizer<ItemsController> localizer,
             IAccessoryService accessoryService,
-            IScoringService scoringService)
+            IScoringService scoringService,
+            ILogger<ItemsController> logger)
         {
             _db = context;
             _userManager = userManager;
@@ -42,6 +46,7 @@ namespace RentMate.Controllers.Mvc
             _localizer = localizer;
             _accessoryService = accessoryService;
             _scoringService = scoringService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
@@ -61,7 +66,7 @@ namespace RentMate.Controllers.Mvc
             // TODO: Move this query to a repository later
             var item = await _db.Items
                 .Include(i => i.User)
-                .Include(i => i.Images.OrderBy(img => img.DisplayOrder))
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder).Take(MaxImagesPerItem))
                 .Include(i => i.Reviews.Where(r => !r.IsDeleted))
                     .ThenInclude(r => r.Reviewer)
                 .Include(i => i.FavoritedBy.Where(f => f.AccountId == currentUserId))
@@ -123,25 +128,40 @@ namespace RentMate.Controllers.Mvc
                 item.CreatedAt = DateTime.UtcNow;
                 item.UpdatedAt = DateTime.UtcNow;
 
+                // Validate image count before saving anything
+                if (images != null && images.Count > MaxImagesPerItem)
+                {
+                    TempData["ErrorMessage"] = string.Format(_localizer["Maximum {0} images allowed"], MaxImagesPerItem);
+                    ViewData["UserId"] = new SelectList(_db.Users, "Id", "Email");
+                    return View(item);
+                }
+
                 _db.Add(item);
                 await _db.SaveChangesAsync();
 
                 // Handle multiple image uploads
                 if (images != null && images.Count > 0)
                 {
-                    var uploadedUrls = await _fileUploadService.UploadFilesAsync(images, "items");
-                    for (int i = 0; i < uploadedUrls.Count; i++)
+                    var uploadResult = await _fileUploadService.UploadFilesAsync(images, "items");
+                    if (!uploadResult.AllSucceeded)
                     {
-                        var itemImage = new ItemImage
-                        {
-                            ItemId = item.Id,
-                            ImageUrl = uploadedUrls[i],
-                            DisplayOrder = i,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        _db.ItemImages.Add(itemImage);
+                        TempData["ErrorMessage"] = _localizer["Some images failed to upload. Please try again."].Value;
                     }
-                    await _db.SaveChangesAsync();
+                    else
+                    {
+                        for (int i = 0; i < uploadResult.SuccessfulUrls.Count; i++)
+                        {
+                            var itemImage = new ItemImage
+                            {
+                                ItemId = item.Id,
+                                ImageUrl = uploadResult.SuccessfulUrls[i],
+                                DisplayOrder = i,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            _db.ItemImages.Add(itemImage);
+                        }
+                        await _db.SaveChangesAsync();
+                    }
                 }
 
                 // Event-driven: compute initial ItemScore for the new listing
@@ -161,7 +181,7 @@ namespace RentMate.Controllers.Mvc
 
             var item = await _db.Items
                 .Include(i => i.Accessories)
-                .Include(i => i.Images.OrderBy(img => img.DisplayOrder))
+                .Include(i => i.Images.OrderBy(img => img.DisplayOrder).Take(MaxImagesPerItem))
                 .FirstOrDefaultAsync(i => i.Id == id);
 
             if (item == null) return NotFound();
@@ -176,7 +196,7 @@ namespace RentMate.Controllers.Mvc
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,ImageUrl,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item updatedItem, List<IFormFile>? images)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Price,Category,IsListed,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item updatedItem, List<IFormFile>? images)
         {
             if (id != updatedItem.Id) return NotFound();
 
@@ -205,19 +225,33 @@ namespace RentMate.Controllers.Mvc
                 // Handle new image uploads (append to existing)
                 if (images != null && images.Count > 0)
                 {
-                    var currentMaxOrder = item.Images.Any() ? item.Images.Max(i => i.DisplayOrder) : -1;
-                    var uploadedUrls = await _fileUploadService.UploadFilesAsync(images, "items");
-
-                    for (int i = 0; i < uploadedUrls.Count; i++)
+                    var existingCount = item.Images.Count;
+                    if (existingCount + images.Count > MaxImagesPerItem)
                     {
-                        var itemImage = new ItemImage
+                        TempData["ErrorMessage"] = string.Format(_localizer["Maximum {0} images allowed. You currently have {1}."], MaxImagesPerItem, existingCount);
+                        return RedirectToAction(nameof(Edit), new { id });
+                    }
+
+                    var currentMaxOrder = item.Images.Any() ? item.Images.Max(i => i.DisplayOrder) : -1;
+                    var uploadResult = await _fileUploadService.UploadFilesAsync(images, "items");
+
+                    if (!uploadResult.AllSucceeded)
+                    {
+                        TempData["ErrorMessage"] = _localizer["Some images failed to upload. Please try again."].Value;
+                    }
+                    else
+                    {
+                        for (int i = 0; i < uploadResult.SuccessfulUrls.Count; i++)
                         {
-                            ItemId = item.Id,
-                            ImageUrl = uploadedUrls[i],
-                            DisplayOrder = currentMaxOrder + 1 + i,
-                            CreatedAt = DateTime.UtcNow
-                        };
-                        _db.ItemImages.Add(itemImage);
+                            var itemImage = new ItemImage
+                            {
+                                ItemId = item.Id,
+                                ImageUrl = uploadResult.SuccessfulUrls[i],
+                                DisplayOrder = currentMaxOrder + 1 + i,
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            _db.ItemImages.Add(itemImage);
+                        }
                     }
                 }
 
@@ -277,11 +311,7 @@ namespace RentMate.Controllers.Mvc
 
                 // Delete all images from Cloudinary
                 var imageUrls = item.Images.Select(i => i.ImageUrl).ToList();
-                if (!string.IsNullOrEmpty(item.ImageUrl))
-                {
-                    imageUrls.Add(item.ImageUrl); // Include legacy ImageUrl if exists
-                }
-                _fileUploadService.DeleteFiles(imageUrls);
+                await _fileUploadService.DeleteFilesAsync(imageUrls);
 
                 _db.Items.Remove(item);
                 await _db.SaveChangesAsync();
@@ -474,8 +504,14 @@ namespace RentMate.Controllers.Mvc
             var userId = _userManager.GetUserId(User);
             if (image.Item?.UserId != userId) return Forbid();
 
-            // Delete from Cloudinary
-            _fileUploadService.DeleteFile(image.ImageUrl);
+            // Delete from Cloudinary first — proceed even if it fails (log warning)
+            var cloudDeleted = await _fileUploadService.DeleteFileAsync(image.ImageUrl);
+            if (!cloudDeleted)
+            {
+                _logger.LogWarning("Failed to delete image {ImageId} from Cloudinary (URL: {Url}). Proceeding with DB removal.", imageId, image.ImageUrl);
+            }
+
+            var itemId = image.ItemId;
 
             // Remove from database
             _db.ItemImages.Remove(image);
@@ -483,7 +519,7 @@ namespace RentMate.Controllers.Mvc
 
             // Reorder remaining images
             var remainingImages = await _db.ItemImages
-                .Where(i => i.ItemId == image.ItemId)
+                .Where(i => i.ItemId == itemId)
                 .OrderBy(i => i.DisplayOrder)
                 .ToListAsync();
 
@@ -510,25 +546,21 @@ namespace RentMate.Controllers.Mvc
             var userId = _userManager.GetUserId(User);
             if (image.Item?.UserId != userId) return Forbid();
 
-            // Get all images for this item and reorder
+            // Get all images for this item and re-normalize order
             var allImages = await _db.ItemImages
                 .Where(i => i.ItemId == image.ItemId)
                 .OrderBy(i => i.DisplayOrder)
                 .ToListAsync();
 
-            // Set the selected image to DisplayOrder 0, shift others
-            var currentOrder = image.DisplayOrder;
-            foreach (var img in allImages)
+            // Put the selected image first, keep relative order of the rest
+            var reordered = new List<ItemImage> { image };
+            reordered.AddRange(allImages.Where(i => i.Id != imageId));
+
+            for (int i = 0; i < reordered.Count; i++)
             {
-                if (img.Id == imageId)
-                {
-                    img.DisplayOrder = 0;
-                }
-                else if (img.DisplayOrder < currentOrder)
-                {
-                    img.DisplayOrder += 1;
-                }
+                reordered[i].DisplayOrder = i;
             }
+
             await _db.SaveChangesAsync();
 
             return Json(new { success = true });
@@ -549,13 +581,23 @@ namespace RentMate.Controllers.Mvc
                 .Where(i => i.ItemId == itemId)
                 .ToListAsync();
 
+            // Validate: all provided IDs must belong to this item
+            var imageIdSet = images.Select(i => i.Id).ToHashSet();
+            if (imageIds.Any(id => !imageIdSet.Contains(id)))
+            {
+                return BadRequest(new { success = false, message = "Invalid image IDs" });
+            }
+
+            // Validate: all item images must be in the provided list
+            if (imageIds.Count != images.Count)
+            {
+                return BadRequest(new { success = false, message = "Image count mismatch" });
+            }
+
             for (int i = 0; i < imageIds.Count; i++)
             {
-                var image = images.FirstOrDefault(img => img.Id == imageIds[i]);
-                if (image != null)
-                {
-                    image.DisplayOrder = i;
-                }
+                var image = images.First(img => img.Id == imageIds[i]);
+                image.DisplayOrder = i;
             }
 
             await _db.SaveChangesAsync();
@@ -581,26 +623,42 @@ namespace RentMate.Controllers.Mvc
                 return BadRequest(new { success = false, message = "No images provided" });
             }
 
-            var currentMaxOrder = item.Images.Any() ? item.Images.Max(i => i.DisplayOrder) : -1;
-            var uploadedUrls = await _fileUploadService.UploadFilesAsync(images, "items");
-            var newImages = new List<object>();
+            // Validate image count
+            var existingCount = item.Images.Count;
+            if (existingCount + images.Count > MaxImagesPerItem)
+            {
+                return BadRequest(new { success = false, message = string.Format(_localizer["Maximum {0} images allowed. You currently have {1}."].Value, MaxImagesPerItem, existingCount) });
+            }
 
-            for (int i = 0; i < uploadedUrls.Count; i++)
+            var currentMaxOrder = item.Images.Any() ? item.Images.Max(i => i.DisplayOrder) : -1;
+            var uploadResult = await _fileUploadService.UploadFilesAsync(images, "items");
+
+            if (!uploadResult.AllSucceeded)
+            {
+                return BadRequest(new { success = false, message = _localizer["Some images failed to upload. Please try again."].Value });
+            }
+
+            for (int i = 0; i < uploadResult.SuccessfulUrls.Count; i++)
             {
                 var itemImage = new ItemImage
                 {
                     ItemId = item.Id,
-                    ImageUrl = uploadedUrls[i],
+                    ImageUrl = uploadResult.SuccessfulUrls[i],
                     DisplayOrder = currentMaxOrder + 1 + i,
                     CreatedAt = DateTime.UtcNow
                 };
                 _db.ItemImages.Add(itemImage);
-                await _db.SaveChangesAsync(); // Save to get the ID
-
-                newImages.Add(new { itemImage.Id, itemImage.ImageUrl, itemImage.DisplayOrder });
             }
+            await _db.SaveChangesAsync(); // Single save for all images
 
-            return Json(new { success = true, images = newImages });
+            // Retrieve IDs after save
+            var savedImages = await _db.ItemImages
+                .Where(i => i.ItemId == item.Id && i.DisplayOrder > currentMaxOrder)
+                .OrderBy(i => i.DisplayOrder)
+                .Select(i => new { i.Id, i.ImageUrl, i.DisplayOrder })
+                .ToListAsync();
+
+            return Json(new { success = true, images = savedImages });
         }
     }
 }

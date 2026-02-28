@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
+using RentMate.Models.Dto;
 using RentMate.Services.Interfaces;
 
 namespace RentMate.Services.Implementations;
@@ -64,34 +65,53 @@ public class CloudinaryFileUploadService : IFileUploadService
         var uploadParams = CreateUploadParams(file.FileName, stream, folderName);
         var uploadResult = await _cloudinary.UploadAsync(uploadParams);
 
+        if (uploadResult.Error != null)
+            throw new InvalidOperationException($"Cloudinary upload failed: {uploadResult.Error.Message}");
+
         return uploadResult.SecureUrl.ToString();
     }
 
     /// <inheritdoc/>
-    public async Task<List<string>> UploadFilesAsync(IEnumerable<IFormFile> files, string folderName)
+    public async Task<FileUploadResult> UploadFilesAsync(IEnumerable<IFormFile> files, string folderName)
     {
-        var uploadedUrls = new List<string>();
+        var result = new FileUploadResult();
 
         foreach (var file in files)
         {
             if (file == null || file.Length == 0)
                 continue;
 
-            var url = await UploadFileAsync(file, folderName);
-            if (!string.IsNullOrEmpty(url))
+            try
             {
-                uploadedUrls.Add(url);
+                var url = await UploadFileAsync(file, folderName);
+                if (!string.IsNullOrEmpty(url))
+                    result.SuccessfulUrls.Add(url);
+                else
+                    result.FailedFileNames.Add(file.FileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to upload file: {FileName}", file.FileName);
+                result.FailedFileNames.Add(file.FileName);
             }
         }
 
-        return uploadedUrls;
+        // If any failed, clean up the ones that succeeded to avoid orphans
+        if (!result.AllSucceeded && result.SuccessfulUrls.Any())
+        {
+            _logger.LogWarning("Partial upload failure — cleaning up {Count} successfully uploaded files", result.SuccessfulUrls.Count);
+            await DeleteFilesAsync(result.SuccessfulUrls);
+            result.SuccessfulUrls.Clear();
+        }
+
+        return result;
     }
 
     /// <inheritdoc/>
-    public void DeleteFile(string fileUrl)
+    public async Task<bool> DeleteFileAsync(string fileUrl)
     {
         if (string.IsNullOrEmpty(fileUrl))
-            return;
+            return true;
 
         try
         {
@@ -99,21 +119,28 @@ public class CloudinaryFileUploadService : IFileUploadService
             if (!string.IsNullOrEmpty(publicId))
             {
                 var deletionParams = new DeletionParams(publicId);
-                _cloudinary.Destroy(deletionParams);
+                var result = await _cloudinary.DestroyAsync(deletionParams);
+                if (result.Result == "ok" || result.Result == "not found")
+                    return true;
+
+                _logger.LogWarning("Cloudinary delete returned: {Result} for {FileUrl}", result.Result, fileUrl);
+                return false;
             }
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error deleting image from Cloudinary: {FileUrl}", fileUrl);
+            return false;
         }
     }
 
     /// <inheritdoc/>
-    public void DeleteFiles(IEnumerable<string> fileUrls)
+    public async Task DeleteFilesAsync(IEnumerable<string> fileUrls)
     {
         foreach (var fileUrl in fileUrls)
         {
-            DeleteFile(fileUrl);
+            await DeleteFileAsync(fileUrl);
         }
     }
 

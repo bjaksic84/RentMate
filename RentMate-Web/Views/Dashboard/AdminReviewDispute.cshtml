@@ -110,7 +110,7 @@
                     <div class="flex items-start gap-4">
                         @if (!string.IsNullOrEmpty(Model.Item?.PrimaryImageUrl))
                         {
-                            <img src="@Model.Item.ImageUrl" class="w-20 h-20 rounded-xl object-cover shadow-sm" />
+                            <img src="@Model.Item.PrimaryImageUrl" class="w-20 h-20 rounded-xl object-cover shadow-sm" />
                         }
                         <div class="flex-1">
                             <h3 class="font-bold text-slate-900 dark:text-white text-lg">@Model.Item?.Title</h3>

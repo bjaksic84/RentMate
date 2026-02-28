@@ -341,11 +341,16 @@
         });
 
         function handleFileSelect(files) {
-            const validFiles = Array.from(files).filter(file => {
-                const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-                const maxSize = 10 * 1024 * 1024; // 10MB
-                return validTypes.includes(file.type) && file.size <= maxSize;
-            });
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            const maxSize = 20 * 1024 * 1024; // 20MB (matches server limit)
+
+            const allFiles = Array.from(files);
+            const validFiles = allFiles.filter(file => validTypes.includes(file.type) && file.size <= maxSize);
+            const rejectedCount = allFiles.length - validFiles.length;
+
+            if (rejectedCount > 0) {
+                alert('@Localizer["Some files were rejected (wrong type or too large)."]');
+            }
 
             if (selectedFiles.length + validFiles.length > maxImages) {
                 alert('@Localizer["Maximum 10 images allowed"]');

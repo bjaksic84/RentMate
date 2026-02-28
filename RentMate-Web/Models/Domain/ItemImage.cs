@@ -20,6 +20,7 @@ namespace RentMate.Models.Domain
         /// The Cloudinary URL for this image.
         /// </summary>
         [Required]
+        [Url]
         public string ImageUrl { get; set; } = string.Empty;
 
         /// <summary>

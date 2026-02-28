@@ -118,8 +118,7 @@ namespace RentMate.Models.Domain
 
         /// <summary>
         /// Gets the primary image URL (first image by DisplayOrder).
-        /// Falls back to legacy ImageUrl if no images exist.
         /// </summary>
-        public string? PrimaryImageUrl => Images?.OrderBy(i => i.DisplayOrder).FirstOrDefault()?.ImageUrl ?? ImageUrl;
+        public string? PrimaryImageUrl => Images?.OrderBy(i => i.DisplayOrder).FirstOrDefault()?.ImageUrl;
     }
 }

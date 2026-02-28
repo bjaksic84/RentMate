@@ -224,7 +224,7 @@
                                 <div class="relative h-40 overflow-hidden">
                                     @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
                                     {
-                                        var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
+                                        var thumbUrl = rental.Item.PrimaryImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
                                         <img src="@thumbUrl" alt="@rental.Item?.Title" class="h-full w-full object-cover transition-transform group-hover:scale-105" />
                                     }
                                     else
@@ -700,7 +700,7 @@
                                 <div class="relative h-40 overflow-hidden">
                                     @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
                                     {
-                                        var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
+                                        var thumbUrl = rental.Item.PrimaryImageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_200,q_auto/");
                                         <img src="@thumbUrl" alt="@rental.Item?.Title" class="h-full w-full object-cover transition-transform group-hover:scale-105" />
                                     }
                                     else
@@ -1088,7 +1088,7 @@
                                         <div class="w-10 h-10 rounded-lg overflow-hidden shrink-0">
                                             @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
                                             {
-                                                var thumbUrl = rental.Item.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
+                                                var thumbUrl = rental.Item.PrimaryImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
                                                 <img src="@thumbUrl" class="w-full h-full object-cover" />
                                             }
                                             else

@@ -234,9 +234,9 @@
                     <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-100">
                         <!-- Image -->
                         <div class="aspect-[4/3] relative overflow-hidden">
-                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            @if (!string.IsNullOrEmpty(item.PrimaryImageUrl))
                             {
-                                <img src="@item.ImageUrl" alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                <img src="@item.PrimaryImageUrl" alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             }
                             else
                             {
@@ -324,9 +324,9 @@
                     <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-200">
                         <!-- Image -->
                         <div class="aspect-[4/3] relative overflow-hidden">
-                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                            @if (!string.IsNullOrEmpty(item.PrimaryImageUrl))
                             {
-                                <img src="@item.ImageUrl" alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                                <img src="@item.PrimaryImageUrl" alt="@item.Title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             }
                             else
                             {
