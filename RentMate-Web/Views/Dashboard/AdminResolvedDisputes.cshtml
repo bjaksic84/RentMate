@@ -70,7 +70,7 @@
                                     <span>&bull;</span>
                                     <span>@Localizer["Resolution"]: 
                                         <strong class="@(deposit.Status == RentMate.Models.Domain.DepositStatus.Released ? "text-emerald-600" : "text-slate-700 dark:text-slate-300")">
-                                            @(deposit.Status == RentMate.Models.Domain.DepositStatus.Released ? "Released (No Charge)" : CurrencyService.Format(deposit.ChargedAmount ?? 0))
+                                            @(deposit.Status == RentMate.Models.Domain.DepositStatus.Released ? Localizer["Released (No Charge)"].Value : CurrencyService.Format(deposit.ChargedAmount ?? 0))
                                         </strong>
                                     </span>
                                 </div>
@@ -95,12 +95,12 @@
                                     // 1. Charge
                                     if (deposit.ChargedAt.HasValue)
                                     {
-                                        updates.Add(new TimelineItem { 
-                                            Date = deposit.ChargedAt.Value, 
-                                            Type = "Charge", 
-                                            Title = "Deposit Charged",
-                                            ActorName = deposit.Rental?.Owner?.FirstName ?? deposit.Rental?.Owner?.Email ?? "Owner",
-                                            ActorRole = "Owner",
+                                        updates.Add(new TimelineItem {
+                                            Date = deposit.ChargedAt.Value,
+                                            Type = "Charge",
+                                            Title = Localizer["Deposit Charged"].Value,
+                                            ActorName = deposit.Rental?.Owner?.FirstName ?? deposit.Rental?.Owner?.Email ?? Localizer["Owner"].Value,
+                                            ActorRole = Localizer["Owner"].Value,
                                             Description = deposit.ChargeReason,
                                             Amount = deposit.ChargedAmount,
                                             Icon = "bi-cash-coin",
@@ -111,12 +111,12 @@
                                     // 2. Dispute
                                     if (deposit.DisputedAt.HasValue)
                                     {
-                                        updates.Add(new TimelineItem { 
-                                            Date = deposit.DisputedAt.Value, 
-                                            Type = "Dispute", 
-                                            Title = "Charge Disputed",
-                                            ActorName = deposit.Rental?.Renter?.FirstName ?? deposit.Rental?.Renter?.Email ?? "Renter",
-                                            ActorRole = "Renter",
+                                        updates.Add(new TimelineItem {
+                                            Date = deposit.DisputedAt.Value,
+                                            Type = "Dispute",
+                                            Title = Localizer["Charge Disputed"].Value,
+                                            ActorName = deposit.Rental?.Renter?.FirstName ?? deposit.Rental?.Renter?.Email ?? Localizer["Renter"].Value,
+                                            ActorRole = Localizer["Renter"].Value,
                                             Description = deposit.DisputeReason,
                                             Icon = "bi-exclamation-triangle",
                                             Color = "amber"
@@ -126,12 +126,12 @@
                                     // 3. Counter-Offer
                                     if (deposit.CounterOfferAt.HasValue)
                                     {
-                                        updates.Add(new TimelineItem { 
-                                            Date = deposit.CounterOfferAt.Value, 
-                                            Type = "CounterOffer", 
-                                            Title = "Counter-Offer Sent",
-                                            ActorName = deposit.Rental?.Owner?.FirstName ?? deposit.Rental?.Owner?.Email ?? "Owner",
-                                            ActorRole = "Owner",
+                                        updates.Add(new TimelineItem {
+                                            Date = deposit.CounterOfferAt.Value,
+                                            Type = "CounterOffer",
+                                            Title = Localizer["Counter-Offer Sent"].Value,
+                                            ActorName = deposit.Rental?.Owner?.FirstName ?? deposit.Rental?.Owner?.Email ?? Localizer["Owner"].Value,
+                                            ActorRole = Localizer["Owner"].Value,
                                             Description = deposit.OwnerDisputeResponse,
                                             Amount = deposit.CounterOfferAmount,
                                             Icon = "bi-arrow-left-right",
@@ -142,13 +142,13 @@
                                     // 4. Escalation
                                     if (deposit.EscalatedAt.HasValue)
                                     {
-                                        updates.Add(new TimelineItem { 
-                                            Date = deposit.EscalatedAt.Value, 
-                                            Type = "Escalation", 
-                                            Title = "Dispute Escalated",
-                                            ActorName = "System",
-                                            ActorRole = "System",
-                                            Description = "Case escalated for admin review.",
+                                        updates.Add(new TimelineItem {
+                                            Date = deposit.EscalatedAt.Value,
+                                            Type = "Escalation",
+                                            Title = Localizer["Dispute Escalated"].Value,
+                                            ActorName = Localizer["System"].Value,
+                                            ActorRole = Localizer["System"].Value,
+                                            Description = Localizer["Case escalated for admin review."].Value,
                                             Icon = "bi-shield-exclamation",
                                             Color = "blue"
                                         });
@@ -157,12 +157,12 @@
                                     // 5. Resolution
                                     if (deposit.AdminResolvedAt.HasValue)
                                     {
-                                        updates.Add(new TimelineItem { 
-                                            Date = deposit.AdminResolvedAt.Value, 
-                                            Type = "Resolution", 
-                                            Title = "Case Resolved",
-                                            ActorName = "Admin",
-                                            ActorRole = "Admin",
+                                        updates.Add(new TimelineItem {
+                                            Date = deposit.AdminResolvedAt.Value,
+                                            Type = "Resolution",
+                                            Title = Localizer["Case Resolved"].Value,
+                                            ActorName = Localizer["Admin"].Value,
+                                            ActorRole = Localizer["Admin"].Value,
                                             Description = deposit.AdminNotes,
                                             Amount = deposit.ChargedAmount, // Final amount
                                             Icon = "bi-check-circle-fill",
@@ -178,12 +178,12 @@
                                             var isRenter = ev.SubmittedByUserId == deposit.Rental?.RenterId || (ev.SubmittedBy != null && ev.SubmittedBy.Id == deposit.Rental?.RenterId);
                                             if (deposit.Rental?.Renter != null && ev.SubmittedByUserId == deposit.Rental.Renter.Id) isRenter = true;
 
-                                            updates.Add(new TimelineItem { 
-                                                Date = ev.CreatedAt, 
-                                                Type = "Evidence", 
-                                                Title = "Evidence Uploaded",
-                                                ActorName = isRenter ? (deposit.Rental?.Renter?.FirstName ?? "Renter") : (deposit.Rental?.Owner?.FirstName ?? "Owner"),
-                                                ActorRole = isRenter ? "Renter" : "Owner",
+                                            updates.Add(new TimelineItem {
+                                                Date = ev.CreatedAt,
+                                                Type = "Evidence",
+                                                Title = Localizer["Evidence Uploaded"].Value,
+                                                ActorName = isRenter ? (deposit.Rental?.Renter?.FirstName ?? Localizer["Renter"].Value) : (deposit.Rental?.Owner?.FirstName ?? Localizer["Owner"].Value),
+                                                ActorRole = isRenter ? Localizer["Renter"].Value : Localizer["Owner"].Value,
                                                 Description = ev.Notes,
                                                 Url = ev.Url,
                                                 Icon = "bi-image",
@@ -199,7 +199,7 @@
                                 {
                                     <div class="relative group">
                                         <!-- Node -->
-                                        <div class="absolute -left-[45px] top-1 w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 bg-@(update.Color)-100 dark:bg-@(update.Color)-900/50 flex items-center justify-center text-@(update.Color)-600 dark:text-@(update.Color)-400 z-10">
+                                        <div class="absolute -left-[45px] top-1 w-8 h-8 rounded-full border-2 border-white dark:border-slate-800 bg-@(update.Color)-100 dark:bg-@(update.Color)-900/50 flex items-center justify-center text-@(update.Color)-600 dark:text-@(update.Color)-400" style="z-index: var(--z-base, 1);">
                                             <i class="bi @(update.Icon) text-sm"></i>
                                         </div>
 

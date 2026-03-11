@@ -229,10 +229,14 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         {
             if (Input!.NewProfilePicture != null)
             {
+                // Delete old profile picture from Cloudinary before uploading new one
+                if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+                    await _fileUploadService.DeleteFileAsync(user.ProfilePictureUrl);
+
                 var newUrl = await _fileUploadService.UploadFileAsync(
-                    Input.NewProfilePicture, 
+                    Input.NewProfilePicture,
                     ProfileImagesFolder);
-                
+
                 user.ProfilePictureUrl = newUrl;
             }
         }

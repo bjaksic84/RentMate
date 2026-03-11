@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
+using RentMate.Services.Interfaces;
 using RentMate.Shared.Contracts.Responses;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
@@ -32,6 +33,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
         private readonly ILogger<DeletePersonalDataModel> _logger;
         private readonly RentMateContext _context;
+        private readonly IFileUploadService _fileUploadService;
 
         #endregion
 
@@ -41,11 +43,13 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             ILogger<DeletePersonalDataModel> logger,
-            RentMateContext context)
+            RentMateContext context,
+            IFileUploadService fileUploadService)
             : base(userManager, signInManager)
         {
             _logger = logger;
             _context = context;
+            _fileUploadService = fileUploadService;
         }
 
         #endregion
@@ -155,6 +159,10 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         {
             var userId = user.Id;
 
+            // Delete profile picture from Cloudinary before clearing the URL
+            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+                await _fileUploadService.DeleteFileAsync(user.ProfilePictureUrl);
+
             // Clear personal information, set display name to "Deleted account"
             user.FirstName = "Deleted account";
             user.LastName = null;
@@ -227,6 +235,9 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         /// </summary>
         private async Task CleanupAllUserReferencesAsync(string userId)
         {
+            // 0. Clean up all Cloudinary images before EF cascade deletes the records
+            await CleanupCloudinaryImagesAsync(userId);
+
             // 1. Delete all reviews by this user (full data wipe)
             var reviews = await _context.Reviews
                 .Where(r => r.ReviewerId == userId)
@@ -259,6 +270,58 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             // Items (Cascade from User) and their sub-entities are handled automatically
             // by EF Core when UserManager.DeleteAsync is called.
             _logger.LogInformation("Cleaned up all data references for user {UserId} before full deletion.", userId);
+        }
+
+        /// <summary>
+        /// Deletes all Cloudinary images associated with the user before EF cascade
+        /// removes the database records (which would orphan the cloud files).
+        /// </summary>
+        private async Task CleanupCloudinaryImagesAsync(string userId)
+        {
+            var urlsToDelete = new List<string>();
+
+            // Profile picture
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null && !string.IsNullOrEmpty(user.ProfilePictureUrl))
+                urlsToDelete.Add(user.ProfilePictureUrl);
+
+            // Item images (multi-image system + legacy single-image field)
+            var userItems = await _context.Items
+                .Include(i => i.Images)
+                .Where(i => i.UserId == userId)
+                .ToListAsync();
+
+            foreach (var item in userItems)
+            {
+                urlsToDelete.AddRange(item.Images.Select(img => img.ImageUrl));
+                if (!string.IsNullOrEmpty(item.ImageUrl) && !urlsToDelete.Contains(item.ImageUrl))
+                    urlsToDelete.Add(item.ImageUrl);
+            }
+
+            // Dispute evidence on rentals where user was renter
+            var renterEvidenceUrls = await _context.DisputeEvidences
+                .Where(e => e.RentalDeposit.Rental.RenterId == userId)
+                .Select(e => e.Url)
+                .ToListAsync();
+            urlsToDelete.AddRange(renterEvidenceUrls);
+
+            // Dispute evidence on rentals for user's items (items cascade-delete from user)
+            var itemIds = userItems.Select(i => i.Id).ToList();
+            var ownerEvidenceUrls = await _context.DisputeEvidences
+                .Where(e => itemIds.Contains(e.RentalDeposit.Rental.ItemId))
+                .Select(e => e.Url)
+                .ToListAsync();
+            urlsToDelete.AddRange(ownerEvidenceUrls);
+
+            // Delete all collected URLs from Cloudinary
+            var distinctUrls = urlsToDelete.Where(u => !string.IsNullOrEmpty(u)).Distinct().ToList();
+            if (distinctUrls.Count > 0)
+            {
+                await _fileUploadService.DeleteFilesAsync(distinctUrls);
+                _logger.LogInformation(
+                    "Deleted {Count} Cloudinary images for user {UserId} during account deletion.",
+                    distinctUrls.Count, userId);
+            }
         }
 
         #endregion

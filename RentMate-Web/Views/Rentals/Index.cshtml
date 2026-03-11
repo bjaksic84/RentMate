@@ -46,7 +46,7 @@
 @Html.AntiForgeryToken()
 
 <!-- Mini Hero with Search -->
-<section class="relative bg-gradient-to-r from-blue-600 to-blue-700 py-12 overflow-visible" style="z-index: 10;">
+<section class="relative bg-gradient-to-r from-blue-600 to-blue-700 py-12 overflow-visible" style="z-index: var(--z-base, 1);">
     <!-- Decorative background elements -->
     <div class="absolute inset-0 opacity-20 pointer-events-none">
         <div class="absolute top-0 left-1/4 w-64 h-64 bg-sky-400 rounded-full mix-blend-multiply filter blur-3xl animate-pulse"></div>
@@ -91,7 +91,7 @@
                     <div class="hidden sm:block w-px bg-slate-300/50 my-2"></div>
                     
                     <!-- Date Range -->
-                    <div class="flex-1 min-w-0 relative overflow-visible" style="z-index: var(--z-popover, 700);">
+                    <div class="flex-1 min-w-0 relative overflow-visible" style="z-index: var(--z-popover, 1300);">
                         @{
                             DateOnly? marketStartDate = null;
                             DateOnly? marketEndDate = null;

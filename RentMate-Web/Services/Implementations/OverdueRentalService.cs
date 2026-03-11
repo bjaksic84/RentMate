@@ -143,7 +143,9 @@ namespace RentMate.Services.Implementations
                     case DepositStatus.CounterOffered:
                         // Renter didn't respond to counter-offer → accept counter amount
                         deposit.ChargedAmount = deposit.CounterOfferAmount;
-                        deposit.Status = DepositStatus.PartiallyCharged;
+                        deposit.Status = deposit.CounterOfferAmount < deposit.Amount
+                            ? DepositStatus.PartiallyCharged
+                            : DepositStatus.Charged;
                         deposit.DisputeDeadline = null;
                         deposit.UpdatedAt = now;
                         notifyUserId = rental?.OwnerId;

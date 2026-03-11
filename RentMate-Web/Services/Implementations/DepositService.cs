@@ -78,7 +78,7 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Deposit of {Amount:C} authorized for rental {RentalId}",
+                "Deposit of \u20ac{Amount:N2} authorized for rental {RentalId}",
                 amount, rentalId);
 
             return deposit;
@@ -127,7 +127,7 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Deposit of {Amount:C} released for rental {RentalId} by user {UserId}; rental marked completed.",
+                "Deposit of \u20ac{Amount:N2} released for rental {RentalId} by user {UserId}; rental marked completed.",
                 deposit.Amount, rentalId, releasedByUserId);
 
             return deposit;
@@ -148,7 +148,7 @@ namespace RentMate.Services.Implementations
 
             if (amount > deposit.Amount)
                 throw new InvalidOperationException(
-                    $"Charge amount ({amount:C}) exceeds deposit ({deposit.Amount:C}).");
+                    $"Charge amount (\u20ac{amount:N2}) exceeds deposit (\u20ac{deposit.Amount:N2}).");
 
             if (string.IsNullOrWhiteSpace(reason))
                 throw new ArgumentException("A reason must be provided for charging a deposit.");
@@ -201,7 +201,7 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Deposit charged {ChargedAmount:C} of {TotalAmount:C} for rental {RentalId}. Reason: {Reason}; rental marked completed.",
+                "Deposit charged \u20ac{ChargedAmount:N2} of \u20ac{TotalAmount:N2} for rental {RentalId}. Reason: {Reason}; rental marked completed.",
                 amount, deposit.Amount, rentalId, reason);
 
             return deposit;
@@ -219,6 +219,12 @@ namespace RentMate.Services.Implementations
                 throw new InvalidOperationException(
                     $"Cannot dispute deposit in status {deposit.Status}.");
 
+            if (!deposit.DisputeDeadline.HasValue)
+                throw new InvalidOperationException("No dispute window is open for this deposit.");
+
+            if (deposit.DisputeDeadline.Value < DateTime.UtcNow)
+                throw new InvalidOperationException("The dispute window has expired.");
+
             if (string.IsNullOrWhiteSpace(reason))
                 throw new ArgumentException("A reason must be provided for disputing a deposit.");
 
@@ -228,7 +234,6 @@ namespace RentMate.Services.Implementations
             deposit.Status = DepositStatus.Disputed;
             deposit.DisputeReason = reason;
             deposit.DisputedAt = DateTime.UtcNow;
-            deposit.DisputeDeadline = DateTime.UtcNow.AddDays(5);
             deposit.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -337,7 +342,7 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Owner counter-offered {Amount:C} for rental {RentalId} deposit",
+                "Owner counter-offered \u20ac{Amount:N2} for rental {RentalId} deposit",
                 amount, rentalId);
 
             return deposit;
@@ -374,7 +379,16 @@ namespace RentMate.Services.Implementations
 
             if (!string.IsNullOrEmpty(response))
             {
-                deposit.OwnerDisputeResponse = response;
+                if (isOwner)
+                {
+                    deposit.OwnerDisputeResponse = response;
+                }
+                else if (isRenter)
+                {
+                    deposit.DisputeReason = string.IsNullOrEmpty(deposit.DisputeReason)
+                        ? response
+                        : deposit.DisputeReason + " | Escalation: " + response;
+                }
             }
 
             await _context.SaveChangesAsync();
@@ -402,14 +416,16 @@ namespace RentMate.Services.Implementations
                 throw new UnauthorizedAccessException("Only the renter can accept a counter-offer.");
 
             deposit.ChargedAmount = deposit.CounterOfferAmount;
-            deposit.Status = DepositStatus.PartiallyCharged;
+            deposit.Status = deposit.CounterOfferAmount < deposit.Amount
+                ? DepositStatus.PartiallyCharged
+                : DepositStatus.Charged;
             deposit.DisputeDeadline = null;
             deposit.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Renter accepted counter-offer of {Amount:C} for rental {RentalId}",
+                "Renter accepted counter-offer of \u20ac{Amount:N2} for rental {RentalId}",
                 deposit.CounterOfferAmount, rentalId);
 
             return deposit;
@@ -430,14 +446,16 @@ namespace RentMate.Services.Implementations
             if (deposit.Rental?.RenterId != renterUserId)
                 throw new UnauthorizedAccessException("Only the renter can reject a counter-offer.");
 
-            deposit.Status = DepositStatus.Charged;
-            deposit.DisputeDeadline = null;
+            deposit.Status = (deposit.ChargedAmount ?? deposit.Amount) < deposit.Amount
+                ? DepositStatus.PartiallyCharged
+                : DepositStatus.Charged;
+            deposit.DisputeDeadline = DateTime.UtcNow.AddDays(5);
             deposit.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Renter rejected counter-offer for rental {RentalId}. Original charge stands.",
+                "Renter rejected counter-offer for rental {RentalId}. Original charge stands with new 5-day dispute window.",
                 rentalId);
 
             return deposit;
@@ -481,8 +499,11 @@ namespace RentMate.Services.Implementations
             else
             {
                 // Partial or Full Uphold
+                if (amount < 0)
+                    throw new InvalidOperationException("Resolved amount cannot be negative.");
+
                 if (amount > deposit.Amount)
-                    throw new InvalidOperationException($"Resolved amount ({amount:C}) cannot exceed original deposit ({deposit.Amount:C}).");
+                    throw new InvalidOperationException($"Resolved amount (\u20ac{amount:N2}) cannot exceed original deposit (\u20ac{deposit.Amount:N2}).");
 
                 deposit.Status = DepositStatus.ChargeUpheld;
                 deposit.ChargedAmount = amount;
@@ -508,7 +529,7 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Admin resolved deposit for rental {RentalId}: Amount {Amount:C}. Notes: {Notes}",
+                "Admin resolved deposit for rental {RentalId}: Amount \u20ac{Amount:N2}. Notes: {Notes}",
                 rentalId, amount, adminNotes);
 
             return deposit;
@@ -582,6 +603,16 @@ namespace RentMate.Services.Implementations
                 .Include(d => d.Rental)
                 .FirstOrDefaultAsync(d => d.RentalId == rentalId)
                 ?? throw new InvalidOperationException($"No deposit found for rental {rentalId}.");
+
+            // Status check — evidence only makes sense for active charge/dispute flows
+            var validStatuses = new[]
+            {
+                DepositStatus.Charged, DepositStatus.PartiallyCharged,
+                DepositStatus.Disputed, DepositStatus.CounterOffered, DepositStatus.Escalated
+            };
+            if (!validStatuses.Contains(deposit.Status))
+                throw new InvalidOperationException(
+                    $"Cannot upload evidence for deposit in status {deposit.Status}.");
 
             // Authorization check
             bool isOwner = deposit.Rental?.OwnerId == userId;

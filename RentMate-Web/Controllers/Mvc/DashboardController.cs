@@ -474,6 +474,38 @@ namespace RentMate.Controllers.Mvc
         }
 
         /// <summary>
+        /// Renter rejects a counter-offer from the owner.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectCounterOffer(int rentalId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            try
+            {
+                await _depositService.RejectCounterOfferAsync(rentalId, user.Id);
+
+                var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
+                if (rental != null)
+                {
+                    await _hubContext.Clients.User(rental.OwnerId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
+                    {
+                        rentalId, status = "CounterRejected", itemTitle = rental.Item?.Title
+                    });
+                }
+
+                return Json(new { success = true, message = "Counter-offer rejected. Original charge stands." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Reject counter-offer failed for rental {RentalId}", rentalId);
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
         /// Owner completes a rental and either releases or charges the deposit.
         /// </summary>
         [HttpPost]
@@ -665,7 +697,7 @@ namespace RentMate.Controllers.Mvc
                     });
                 }
 
-                return Json(new { success = true, message = amount == 0 ? "Deposit released to renter." : $"Charge finalized at {amount:C}." });
+                return Json(new { success = true, message = amount == 0 ? "Deposit released to renter." : $"Charge finalized at \u20ac{amount:N2}." });
             }
             catch (Exception ex)
             {
@@ -707,6 +739,7 @@ namespace RentMate.Controllers.Mvc
             }
         }
 
+        [Authorize(Roles = AdminRole)]
         public async Task<IActionResult> AdminReviewDispute(int id)
         {
             var rental = await _context.Rentals

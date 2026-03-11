@@ -18,14 +18,14 @@ namespace RentMate.Services.Interfaces
         Task<ItemAccessory> AddAccessoryAsync(int itemId, string name, decimal dailyPrice, string? description);
 
         /// <summary>
-        /// Updates an existing accessory.
+        /// Updates an existing accessory. Verifies the caller owns the item.
         /// </summary>
-        Task<ItemAccessory> UpdateAccessoryAsync(int accessoryId, string name, decimal dailyPrice, bool isAvailable, string? description);
+        Task<ItemAccessory> UpdateAccessoryAsync(int accessoryId, string ownerUserId, string name, decimal dailyPrice, bool isAvailable, string? description);
 
         /// <summary>
-        /// Deletes an accessory. Fails if the accessory is attached to an active rental.
+        /// Deletes an accessory. Verifies ownership and fails if attached to an active rental.
         /// </summary>
-        Task DeleteAccessoryAsync(int accessoryId);
+        Task DeleteAccessoryAsync(int accessoryId, string ownerUserId);
 
         /// <summary>
         /// Attaches selected accessories to a rental, snapshotting current names and prices.

@@ -45,7 +45,7 @@ namespace RentMate.Services.Implementations
     public sealed class CalendarService : ICalendarService
     {
         private readonly RentMateContext _context;
-        private static readonly RentalStatus[] ActiveStatuses = [RentalStatus.Active, RentalStatus.Pending];
+        private static readonly RentalStatus[] ActiveStatuses = [RentalStatus.Active, RentalStatus.Pending, RentalStatus.Accepted];
 
         public CalendarService(RentMateContext context)
         {

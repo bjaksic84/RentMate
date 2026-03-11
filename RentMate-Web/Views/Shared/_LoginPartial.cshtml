@@ -21,7 +21,7 @@
             <span class="font-medium text-slate-700">@displayName</span>
             <i class="bi bi-chevron-down text-slate-400 text-sm"></i>
         </button>
-        <div class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+        <div class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2" style="z-index: var(--z-dropdown, 100);">
             <a asp-controller="Dashboard" asp-action="UserDashboard" class="flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors">
                 <i class="bi bi-speedometer2 text-slate-400"></i>
                 <span>@Localizer["Dashboard"]</span>

@@ -157,7 +157,8 @@
 
         // Simple toast fallback
         const toast = document.createElement('div');
-        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white text-sm z-50 transition-all duration-300 transform translate-y-0 opacity-100`;
+        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white text-sm transition-all duration-300 transform translate-y-0 opacity-100`;
+        toast.style.zIndex = 'var(--z-toast, 1500)';
         
         const bgColors = {
             success: 'bg-green-500',

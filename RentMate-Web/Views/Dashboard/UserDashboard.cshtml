@@ -58,7 +58,7 @@
     @Html.AntiForgeryToken()
 
     <!-- Toast Container -->
-    <div id="toastContainer" class="fixed top-20 right-4 z-50 space-y-2"></div>
+    <div id="toastContainer" class="fixed top-20 right-4 space-y-2" style="z-index: var(--z-toast, 1500);"></div>
 
     <!-- Alerts -->
     @await Html.PartialAsync("_Alert")
@@ -441,10 +441,14 @@
                                                                     class="px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-lg hover:brightness-110 transition">
                                                                 @Localizer["Accept & Pay"] @CurrencyService.Format(dep.CounterOfferAmount ?? 0)
                                                             </button>
+                                                            <button onclick="rejectCounterOffer(@rental.Id)"
+                                                                    class="px-3 py-1.5 text-xs font-medium border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition">
+                                                                @Localizer["Reject"]
+                                                            </button>
                                                             <button onclick="escalateDispute(@rental.Id)"
                                                                     id="escalate-btn-co-@rental.Id"
                                                                     class="px-3 py-1.5 text-xs font-medium border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                                                                @Localizer["Reject & Escalate"]
+                                                                @Localizer["Escalate"]
                                                             </button>
                                                         </div>
 
@@ -1315,9 +1319,9 @@
 </div>
 
 <!-- Extension Modal -->
-<div id="extension-modal" class="fixed inset-0 z-50 hidden items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="extension-modal-title">
-    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" data-action="close-extension"></div>
-    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl">
+<div id="extension-modal" class="fixed inset-0 hidden items-center justify-center" style="z-index: var(--z-modal, 1200);" role="dialog" aria-modal="true" aria-labelledby="extension-modal-title">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" data-action="close-extension"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl" style="z-index: var(--z-modal, 1200);">
         <button type="button" data-action="close-extension" class="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-300 transition" aria-label="@Localizer["Close"]">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -1387,9 +1391,9 @@
 </div>
 
 <!-- Deposit Resolution Modal -->
-<div id="deposit-modal" class="fixed inset-0 z-50 hidden items-center justify-center" role="dialog" aria-modal="true">
-    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" data-action="close-deposit"></div>
-    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl">
+<div id="deposit-modal" class="fixed inset-0 hidden items-center justify-center" style="z-index: var(--z-modal, 1200);" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" data-action="close-deposit"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl" style="z-index: var(--z-modal, 1200);">
         <button type="button" data-action="close-deposit" class="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" aria-label="@Localizer["Close"]">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -1462,9 +1466,9 @@
 </div>
 
 <!-- Early Return + Deposit Resolution Modal -->
-<div id="early-return-modal" class="fixed inset-0 z-50 hidden items-center justify-center" role="dialog" aria-modal="true">
-    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" data-action="close-early-return"></div>
-    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl">
+<div id="early-return-modal" class="fixed inset-0 hidden items-center justify-center" style="z-index: var(--z-modal, 1200);" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" data-action="close-early-return"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl" style="z-index: var(--z-modal, 1200);">
         <button type="button" data-action="close-early-return" class="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" aria-label="@Localizer["Close"]">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -1539,7 +1543,7 @@
 </div>
 
     <!-- Dispute Modal (Renter) -->
-    <div id="dispute-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div id="dispute-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" style="z-index: var(--z-modal, 1200);">
         <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
@@ -1607,7 +1611,7 @@
     </div>
 
     <!-- Counter-Offer Modal (Owner) -->
-    <div id="counter-offer-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div id="counter-offer-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" style="z-index: var(--z-modal, 1200);">
         <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
@@ -1685,7 +1689,7 @@
     </div>
 
     <!-- Maintain Charge Modal (Owner) -->
-    <div id="maintain-charge-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div id="maintain-charge-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" style="z-index: var(--z-modal, 1200);">
         <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
@@ -1751,7 +1755,7 @@
     </div>
 
     <!-- Add Evidence Modal -->
-    <div id="add-evidence-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div id="add-evidence-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" style="z-index: var(--z-modal, 1200);">
         <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
@@ -1807,7 +1811,7 @@
 
 <!-- Review Modal -->
 <div id="reviewModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeReviewModal()"></div>
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" onclick="closeReviewModal()"></div>
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: var(--z-modal, 1200);">
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl m-4 overflow-hidden">
             <div class="bg-gradient-to-r from-amber-500 to-amber-400 px-6 py-4">
@@ -1861,12 +1865,12 @@
 
 
 <!-- Final Warning Modal for Escalation -->
-<div id="escalationWarningModal" class="hidden fixed inset-0 z-[1200] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+<div id="escalationWarningModal" class="hidden fixed inset-0 overflow-y-auto" style="z-index: var(--z-modal, 1200);" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <input type="hidden" id="escalateRentalId" />
     <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-slate-900/75 transition-opacity" aria-hidden="true" onclick="closeEscalationWarningModal()"></div>
+        <div class="fixed inset-0 bg-slate-900/75 transition-opacity" style="z-index: var(--z-modal-backdrop, 1100);" aria-hidden="true" onclick="closeEscalationWarningModal()"></div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        <div class="inline-block align-bottom bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+        <div class="relative inline-block align-bottom bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full" style="z-index: var(--z-modal, 1200);">
             <div class="bg-white dark:bg-slate-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="sm:flex sm:items-start">
                     <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 sm:mx-0 sm:h-10 sm:w-10">
@@ -1909,7 +1913,7 @@
         // === Utility Functions ===
         function formatCurrency(amount) {
             var lang = document.documentElement.lang || 'sl';
-            var currency = window.currentCurrency || 'EUR';
+            var currency = window.CurrentCurrency ? window.CurrentCurrency.Code : 'EUR';
             return new Intl.NumberFormat(lang, { style: 'currency', currency: currency }).format(amount);
         }
 
@@ -2541,7 +2545,7 @@
             var modal = document.getElementById('add-evidence-modal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
-            document.body.style.overflow = 'auto';
+            document.body.style.overflow = '';
         }
 
         function clearAeEvidence() {
@@ -2602,11 +2606,13 @@
             var modal = document.getElementById('maintain-charge-modal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
         }
 
         function closeMaintainChargeModal() {
             document.getElementById('maintain-charge-modal').classList.add('hidden');
             document.getElementById('maintain-charge-modal').classList.remove('flex');
+            document.body.style.overflow = '';
             clearMcEvidence();
         }
 
@@ -2625,16 +2631,17 @@
 
         async function submitMaintainCharge() {
             var rentalId = document.getElementById('mc-rental-id').value;
-            var reason = document.getElementById('mc-reason').value;
+            var reason = document.getElementById('mc-reason').value.trim();
+            if (!reason) { showToast('@Localizer["Please provide a reason"]', 'error'); return; }
             var btn = document.getElementById('mc-submit-btn');
             var fileInput = document.getElementById('mc-evidence-file');
             // Evidence is now optional for maintaining charges
             var hasFile = fileInput && fileInput.files.length > 0;
-            
+
             if (!confirm('@Localizer["Maintain current charge and send to admin review?"]')) return;
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> Processing...';
+            btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> @Localizer["Processing..."]';
 
             try {
                 var token = getToken();
@@ -2670,6 +2677,8 @@
         // === Accept Charge (Renter) ===
         async function acceptCharge(rentalId) {
             if (!confirm('@Localizer["Accept this charge and close the dispute?"]')) return;
+            var btn = event.target.closest('button');
+            btn.disabled = true;
             try {
                 var token = getToken();
                 var response = await fetch('/Dashboard/AcceptCharge', {
@@ -2680,12 +2689,15 @@
                 var data = await response.json();
                 showToast(data.message, data.success ? 'success' : 'error');
                 if (data.success) setTimeout(function () { location.reload(); }, 1000);
-            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+                else btn.disabled = false;
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
         }
 
         // === Accept Counter-Offer (Renter) ===
         async function acceptCounterOffer(rentalId) {
             if (!confirm('@Localizer["Accept counter-offer and pay the settled amount?"]')) return;
+            var btn = event.target.closest('button');
+            btn.disabled = true;
             try {
                 var token = getToken();
                 var response = await fetch('/Dashboard/AcceptCounterOffer', {
@@ -2696,13 +2708,35 @@
                 var data = await response.json();
                 showToast(data.message, data.success ? 'success' : 'error');
                 if (data.success) setTimeout(function () { location.reload(); }, 1000);
-            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+                else btn.disabled = false;
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
+        }
+
+        // === Reject Counter-Offer (Renter) ===
+        async function rejectCounterOffer(rentalId) {
+            if (!confirm('@Localizer["Reject counter-offer? The original charge will stand and you can dispute again."]')) return;
+            var btn = event.target.closest('button');
+            btn.disabled = true;
+            try {
+                var token = getToken();
+                var response = await fetch('/Dashboard/RejectCounterOffer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+                    body: 'rentalId=' + rentalId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+                });
+                var data = await response.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) setTimeout(function () { location.reload(); }, 1000);
+                else btn.disabled = false;
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); btn.disabled = false; }
         }
 
 
         // === Escalate Dispute (Renter) - Internal Process ===
         async function _processEscalation(rentalId) {
-            // Confirmation handled by Modal
+            // Confirmation handled by Modal — disable escalate buttons on main page
+            var escBtn = document.getElementById('escalate-btn-' + rentalId) || document.getElementById('escalate-btn-co-' + rentalId);
+            if (escBtn) escBtn.disabled = true;
             try {
                 var token = getToken();
                 var response = await fetch('/Dashboard/EscalateDispute', {
@@ -2713,7 +2747,8 @@
                 var data = await response.json();
                 showToast(data.message, data.success ? 'success' : 'error');
                 if (data.success) setTimeout(function () { location.reload(); }, 1000);
-            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); }
+                else if (escBtn) escBtn.disabled = false;
+            } catch (err) { showToast('@Localizer["Something went wrong"]', 'error'); if (escBtn) escBtn.disabled = false; }
         }
 
         // === Review Modal ===
@@ -2849,7 +2884,10 @@
             if (data.status === "ChargeAccepted" || data.status === "ChargeUpheld") msg = "@Localizer["Dispute resolved for"] " + data.itemTitle;
             if (data.status === "CounterAccepted") msg = "@Localizer["Settlement reached for"] " + data.itemTitle;
             if (data.status === "CounterOffered") msg = "@Localizer["New counter-offer for"] " + data.itemTitle;
-            
+            if (data.status === "CounterRejected") msg = "@Localizer["Counter-offer rejected for"] " + data.itemTitle;
+            if (data.status === "Disputed") msg = "@Localizer["Deposit disputed for"] " + data.itemTitle;
+            if (data.status === "Charged") msg = "@Localizer["Deposit charged for"] " + data.itemTitle;
+
             if (data.adminNotes) {
                 msg += " - " + data.adminNotes;
             }
@@ -2882,6 +2920,7 @@
                     headers: { 'X-CSRF-TOKEN': getToken() },
                     body: formData
                 });
+                if (!response.ok) throw new Error('Upload failed');
                 return await response.json();
             } catch (err) {
                 console.error('Evidence upload error:', err);

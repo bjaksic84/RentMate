@@ -281,8 +281,10 @@ namespace RentMate.Controllers.Mvc
                     return RedirectToAction(nameof(Delete), new { id });
                 }
 
-                // Delete all images from Cloudinary
+                // Delete all images from Cloudinary (including legacy single-image field)
                 var imageUrls = item.Images.Select(i => i.ImageUrl).ToList();
+                if (!string.IsNullOrEmpty(item.ImageUrl) && !imageUrls.Contains(item.ImageUrl))
+                    imageUrls.Add(item.ImageUrl);
                 await _fileUploadService.DeleteFilesAsync(imageUrls);
 
                 _db.Items.Remove(item);
@@ -394,10 +396,17 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateAccessory(int accessoryId, string name, decimal dailyPrice, bool isAvailable, string? description)
         {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
             try
             {
-                var accessory = await _accessoryService.UpdateAccessoryAsync(accessoryId, name, dailyPrice, isAvailable, description);
+                var accessory = await _accessoryService.UpdateAccessoryAsync(accessoryId, userId, name, dailyPrice, isAvailable, description);
                 return Json(new { success = true, accessory = new { accessory.Id, accessory.Name, accessory.DailyPrice, accessory.Description, accessory.IsAvailable } });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (Exception)
             {
@@ -410,10 +419,17 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteAccessory(int accessoryId)
         {
+            var userId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
             try
             {
-                await _accessoryService.DeleteAccessoryAsync(accessoryId);
+                await _accessoryService.DeleteAccessoryAsync(accessoryId, userId);
                 return Json(new { success = true });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (Exception ex)
             {

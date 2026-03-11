@@ -29,6 +29,7 @@ namespace RentMate.Controllers.Mvc
         private readonly ICurrencyService _currencyService;
         private readonly IAccessoryService _accessoryService;
         private readonly IDepositService _depositService;
+        private readonly ILogger<RentalsController> _logger;
 
         private const int DefaultPageSize = 12;
         private const string DashboardAction = "UserDashboard";
@@ -41,7 +42,8 @@ namespace RentMate.Controllers.Mvc
             IStringLocalizer<RentalsController> localizer,
             ICurrencyService currencyService,
             IAccessoryService accessoryService,
-            IDepositService depositService)
+            IDepositService depositService,
+            ILogger<RentalsController> logger)
         {
             _context = context;
             _userManager = userManager;
@@ -50,6 +52,7 @@ namespace RentMate.Controllers.Mvc
             _currencyService = currencyService;
             _accessoryService = accessoryService;
             _depositService = depositService;
+            _logger = logger;
         }
 
         #region Helper Methods
@@ -420,6 +423,11 @@ namespace RentMate.Controllers.Mvc
                 return HandleError(_localizer["You are not authorized to complete this rental."].Value);
             }
 
+            if (rental.Status != RentalStatus.Active && rental.Status != RentalStatus.Accepted)
+            {
+                return HandleError(_localizer["Only active rentals can be completed."].Value);
+            }
+
             rental.Status = RentalStatus.Completed;
             rental.Item!.IsRented = false;
             rental.UpdatedAt = DateTime.UtcNow;
@@ -462,6 +470,21 @@ namespace RentMate.Controllers.Mvc
             if (rental.Status == RentalStatus.Completed)
             {
                 return HandleError(_localizer["Completed rentals cannot be cancelled."].Value);
+            }
+
+            // Release any authorized deposit before cancellation
+            if (rental.Status == RentalStatus.Active || rental.Status == RentalStatus.Accepted)
+            {
+                var deposit = await _context.RentalDeposits
+                    .FirstOrDefaultAsync(d => d.RentalId == rentalId && d.Status == DepositStatus.Authorized);
+                if (deposit != null)
+                {
+                    deposit.Status = DepositStatus.Released;
+                    deposit.ReleasedAt = DateTime.UtcNow;
+                    deposit.UpdatedAt = DateTime.UtcNow;
+                    _logger.LogInformation(
+                        "Deposit for rental {RentalId} auto-released due to cancellation", rentalId);
+                }
             }
 
             rental.Status = RentalStatus.Cancelled;

@@ -53,7 +53,7 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Accessory '{Name}' added to item {ItemId} at {Price:C}/day",
+                "Accessory '{Name}' added to item {ItemId} at \u20ac{Price:N2}/day",
                 name, itemId, dailyPrice);
 
             return accessory;
@@ -61,11 +61,15 @@ namespace RentMate.Services.Implementations
 
         /// <inheritdoc/>
         public async Task<ItemAccessory> UpdateAccessoryAsync(
-            int accessoryId, string name, decimal dailyPrice, bool isAvailable, string? description)
+            int accessoryId, string ownerUserId, string name, decimal dailyPrice, bool isAvailable, string? description)
         {
             var accessory = await _context.ItemAccessories
                 .FirstOrDefaultAsync(a => a.Id == accessoryId)
                 ?? throw new InvalidOperationException($"Accessory {accessoryId} not found.");
+
+            var item = await _context.Items.FirstOrDefaultAsync(i => i.Id == accessory.ItemId);
+            if (item?.UserId != ownerUserId)
+                throw new UnauthorizedAccessException("Only the item owner can modify accessories.");
 
             accessory.Name = name;
             accessory.DailyPrice = dailyPrice;
@@ -76,18 +80,22 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Accessory {AccessoryId} updated: '{Name}', {Price:C}/day, Available={IsAvailable}",
+                "Accessory {AccessoryId} updated: '{Name}', \u20ac{Price:N2}/day, Available={IsAvailable}",
                 accessoryId, name, dailyPrice, isAvailable);
 
             return accessory;
         }
 
         /// <inheritdoc/>
-        public async Task DeleteAccessoryAsync(int accessoryId)
+        public async Task DeleteAccessoryAsync(int accessoryId, string ownerUserId)
         {
             var accessory = await _context.ItemAccessories
                 .FirstOrDefaultAsync(a => a.Id == accessoryId)
                 ?? throw new InvalidOperationException($"Accessory {accessoryId} not found.");
+
+            var item = await _context.Items.FirstOrDefaultAsync(i => i.Id == accessory.ItemId);
+            if (item?.UserId != ownerUserId)
+                throw new UnauthorizedAccessException("Only the item owner can delete accessories.");
 
             // Check if attached to any active rental
             var hasActiveRentals = await _context.RentalAccessories

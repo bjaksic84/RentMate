@@ -197,9 +197,9 @@
 </div>
 
 <!-- GDPR Consent Modal -->
-<div id="locationConsentModal" class="fixed inset-0 z-50 hidden">
-    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="closeConsentModal()"></div>
-    <div class="fixed inset-0 flex items-center justify-center p-4">
+<div id="locationConsentModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" onclick="closeConsentModal()"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4" style="z-index: var(--z-modal, 1200);">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
             <button onclick="closeConsentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
                 <i class="bi bi-x-lg"></i>

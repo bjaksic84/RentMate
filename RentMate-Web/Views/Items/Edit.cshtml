@@ -231,9 +231,9 @@
 </div>
 
 <!-- GDPR Location Consent Modal -->
-<div id="locationConsentModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeLocationModal()"></div>
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md">
+<div id="locationConsentModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" onclick="closeLocationModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: var(--z-modal, 1200);">
         <div class="bg-white rounded-2xl shadow-2xl p-6 m-4">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">

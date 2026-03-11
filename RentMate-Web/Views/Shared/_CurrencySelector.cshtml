@@ -13,7 +13,7 @@
         <span class="font-medium text-slate-700">@currentCurrency.Code</span>
         <i class="bi bi-chevron-down text-slate-400 text-xs"></i>
     </button>
-    <div id="currencyMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 max-h-64 overflow-y-auto">
+    <div id="currencyMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 max-h-64 overflow-y-auto" style="z-index: var(--z-dropdown, 100);">
         @foreach (var curr in CurrencyService.SupportedCurrencies)
         {
             var isActive = curr.Code == currentCurrency.Code;
