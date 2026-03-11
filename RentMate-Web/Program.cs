@@ -281,6 +281,13 @@ builder.Services.AddScoped<IRentalExtensionService, RentalExtensionService>();
 builder.Services.AddScoped<IAccessoryService, AccessoryService>();
 builder.Services.AddHostedService<OverdueRentalService>();
 
+// --- Marketplace Ranking System ---
+builder.Services.AddScoped<IScoringService, ScoringService>();
+builder.Services.AddHostedService<ScoringBackgroundService>();
+
+// --- Onboarding & Profile Completion ---
+builder.Services.AddScoped<IProfileCompletionService, ProfileCompletionService>();
+
 // ==========================================
 // 2. BUILD APP
 // ==========================================

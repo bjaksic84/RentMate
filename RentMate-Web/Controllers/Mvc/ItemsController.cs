@@ -26,6 +26,7 @@ namespace RentMate.Controllers.Mvc
         private readonly IFileUploadService _fileUploadService;
         private readonly IStringLocalizer<ItemsController> _localizer;
         private readonly IAccessoryService _accessoryService;
+        private readonly IScoringService _scoringService;
         private readonly ILogger<ItemsController> _logger;
 
         public ItemsController(
@@ -35,6 +36,7 @@ namespace RentMate.Controllers.Mvc
             IFileUploadService fileUploadService,
             IStringLocalizer<ItemsController> localizer,
             IAccessoryService accessoryService,
+            IScoringService scoringService,
             ILogger<ItemsController> logger)
         {
             _db = context;
@@ -43,6 +45,7 @@ namespace RentMate.Controllers.Mvc
             _fileUploadService = fileUploadService;
             _localizer = localizer;
             _accessoryService = accessoryService;
+            _scoringService = scoringService;
             _logger = logger;
         }
 
@@ -75,6 +78,16 @@ namespace RentMate.Controllers.Mvc
 
             if (item == null) return NotFound();
 
+            // Record page-view for ranking system
+            await _scoringService.RecordItemViewAsync(item.Id);
+
+            // Track category interaction for personalization
+            var currentUserId2 = _userManager.GetUserId(User);
+            if (currentUserId2 != null && !string.IsNullOrEmpty(item.Category))
+            {
+                _ = Task.Run(() => _scoringService.RecordCategoryInteractionAsync(currentUserId2, item.Category));
+            }
+
             // Map setup
             var cityCoordinates = CityData.GetCoordinates(item.User?.City);
             ViewBag.MapLat = cityCoordinates.Lat;
@@ -85,8 +98,16 @@ namespace RentMate.Controllers.Mvc
             return View(item);
         }
 
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
+            // Government ID gate: must verify ID before listing items
+            var user = await _userManager.GetUserAsync(User);
+            if (user != null && !user.IsGovernmentIdVerified)
+            {
+                TempData["ErrorMessage"] = "You must verify your government ID before listing items for rent. Please go to your profile settings to complete verification.";
+                return RedirectToAction("UserDashboard", "Dashboard");
+            }
+
             ViewData["UserId"] = new SelectList(_db.Users, "Id", "Email");
             return View();
         }
@@ -142,6 +163,9 @@ namespace RentMate.Controllers.Mvc
                         await _db.SaveChangesAsync();
                     }
                 }
+
+                // Event-driven: compute initial ItemScore for the new listing
+                _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(item.Id));
 
                 TempData["SuccessMessage"] = string.Format(_localizer["Item '{0}' created successfully!"], item.Title);
                 return RedirectToAction("UserDashboard", "Dashboard");
@@ -232,6 +256,10 @@ namespace RentMate.Controllers.Mvc
                 }
 
                 await _db.SaveChangesAsync();
+
+                // Event-driven: recompute ItemScore after edit (content/photos changed)
+                await _scoringService.ComputeAndSaveItemScoreAsync(item.Id);
+
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
             return View(updatedItem);
@@ -305,6 +333,13 @@ namespace RentMate.Controllers.Mvc
             if (item == null || user == null || item.UserId != user.Id)
             {
                 return Unauthorized();
+            }
+
+            // Government ID gate: prevent listing without verified ID
+            if (!item.IsListed && !user.IsGovernmentIdVerified)
+            {
+                TempData["ErrorMessage"] = "You must verify your government ID before listing items for rent.";
+                return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             item.IsListed = !item.IsListed;

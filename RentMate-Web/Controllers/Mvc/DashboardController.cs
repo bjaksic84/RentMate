@@ -40,6 +40,7 @@ namespace RentMate.Controllers.Mvc
         private readonly IRentalExtensionService _extensionService;
         private readonly IHubContext<RentMateHub> _hubContext;
         private readonly ILogger<DashboardController> _logger;
+        private readonly IScoringService _scoringService;
 
         #endregion
 
@@ -52,7 +53,8 @@ namespace RentMate.Controllers.Mvc
             IDepositService depositService,
             IRentalExtensionService extensionService,
             IHubContext<RentMateHub> hubContext,
-            ILogger<DashboardController> logger)
+            ILogger<DashboardController> logger,
+            IScoringService scoringService)
         {
             _userManager = userManager;
             _context = context;
@@ -61,6 +63,7 @@ namespace RentMate.Controllers.Mvc
             _extensionService = extensionService;
             _hubContext = hubContext;
             _logger = logger;
+            _scoringService = scoringService;
         }
 
         #endregion
@@ -123,6 +126,10 @@ namespace RentMate.Controllers.Mvc
                 
                 await PopulateUserDashboardEntitiesAsync(viewModel, user.Id);
                 SetUserDashboardDebugInfo(user.Id, viewModel.ListingsOwned?.Count ?? 0);
+
+                // Scoring dashboard data
+                ViewBag.ProfileTrustScore = user.ProfileTrustScore;
+                ViewBag.ProfileTrustBreakdown = await _scoringService.GetProfileTrustBreakdownAsync(user.Id);
 
                 return View(viewModel);
             }

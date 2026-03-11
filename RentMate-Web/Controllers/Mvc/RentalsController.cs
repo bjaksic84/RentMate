@@ -30,6 +30,7 @@ namespace RentMate.Controllers.Mvc
         private readonly IAccessoryService _accessoryService;
         private readonly IDepositService _depositService;
         private readonly ILogger<RentalsController> _logger;
+        private readonly IScoringService _scoringService;
 
         private const int DefaultPageSize = 12;
         private const string DashboardAction = "UserDashboard";
@@ -43,7 +44,8 @@ namespace RentMate.Controllers.Mvc
             ICurrencyService currencyService,
             IAccessoryService accessoryService,
             IDepositService depositService,
-            ILogger<RentalsController> logger)
+            ILogger<RentalsController> logger,
+            IScoringService scoringService)
         {
             _context = context;
             _userManager = userManager;
@@ -53,6 +55,7 @@ namespace RentMate.Controllers.Mvc
             _accessoryService = accessoryService;
             _depositService = depositService;
             _logger = logger;
+            _scoringService = scoringService;
         }
 
         #region Helper Methods
@@ -226,7 +229,8 @@ namespace RentMate.Controllers.Mvc
                 "priceDesc" => query.OrderByDescending(i => i.Price),
                 "titleAsc" => query.OrderBy(i => i.Title),
                 "ratingDesc" => query.OrderByDescending(i => i.AverageRating ?? 0).ThenByDescending(i => i.ReviewCount),
-                _ => query.OrderByDescending(i => i.UpdatedAt ?? i.CreatedAt)
+                "recommended" => query.OrderByDescending(i => i.ItemScore),
+                _ => query.OrderByDescending(i => i.ItemScore) // default sort is now by ranking score
             };
         }
 
@@ -433,7 +437,20 @@ namespace RentMate.Controllers.Mvc
             rental.UpdatedAt = DateTime.UtcNow;
             if (DateTime.UtcNow < rental.EndDate)
                 rental.EndDate = DateTime.UtcNow;
+
+            // Update LastActivityDate for freshness scoring
+            rental.Item.LastActivityDate = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
+
+            // Event-driven: recompute scores after rental completion
+            _ = Task.Run(async () =>
+            {
+                await _scoringService.ComputeAndSaveItemScoreAsync(rental.ItemId);
+                if (rental.OwnerId != null)
+                    await _scoringService.ComputeAndSaveProfileTrustScoreAsync(rental.OwnerId);
+                await _scoringService.ComputeAndSaveProfileTrustScoreAsync(rental.RenterId);
+            });
 
             var message = string.Format(_localizer["Rental for '{0}' was marked as completed."], rental.Item.Title);
             await NotifyRentalStatusChangeAsync(rental, message);

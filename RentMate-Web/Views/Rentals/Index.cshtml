@@ -6,6 +6,66 @@
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
+@functions {
+    /// <summary>
+    /// Builds a properly encoded filter URL with array parameters serialized as repeated query keys.
+    /// This avoids the System.String[] bug that asp-route-* tag helpers produce for string[] values.
+    /// </summary>
+    string BuildFilterUrl(
+        string[]? categories = null,
+        string? search = null,
+        string? city = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        int? minRating = null,
+        string? sort = null,
+        int? page = null,
+        string? startDate = null,
+        string? endDate = null)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrEmpty(search))
+            parts.Add($"search={Uri.EscapeDataString(search)}");
+
+        if (categories != null)
+        {
+            foreach (var cat in categories)
+            {
+                if (!string.IsNullOrEmpty(cat))
+                    parts.Add($"category={Uri.EscapeDataString(cat)}");
+            }
+        }
+
+        if (!string.IsNullOrEmpty(city))
+            parts.Add($"city={Uri.EscapeDataString(city)}");
+
+        if (minPrice.HasValue)
+            parts.Add($"minPrice={minPrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+
+        if (maxPrice.HasValue)
+            parts.Add($"maxPrice={maxPrice.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+
+        if (minRating.HasValue && minRating.Value > 0)
+            parts.Add($"minRating={minRating.Value}");
+
+        if (!string.IsNullOrEmpty(sort))
+            parts.Add($"sort={Uri.EscapeDataString(sort)}");
+
+        if (page.HasValue && page.Value > 1)
+            parts.Add($"page={page.Value}");
+
+        if (!string.IsNullOrEmpty(startDate))
+            parts.Add($"startDate={Uri.EscapeDataString(startDate)}");
+
+        if (!string.IsNullOrEmpty(endDate))
+            parts.Add($"endDate={Uri.EscapeDataString(endDate)}");
+
+        var basePath = Url.Action("Index", "Rentals");
+        return parts.Count > 0 ? $"{basePath}?{string.Join("&", parts)}" : basePath!;
+    }
+}
+
 @{
     ViewData["Title"] = Localizer["Marketplace"];
     
@@ -21,7 +81,7 @@
                            ViewBag.MinPrice != null || 
                            ViewBag.MaxPrice != null ||
                            !string.IsNullOrEmpty(ViewBag.StartDate as string) ||
-                           !string.IsNullOrEmpty(ViewBag.MinRating as string);
+                           ViewBag.MinRating != null;
     
     var categories = ViewConstants.FilterCategories;
     var cities = CityData.Cities.Select(c => c.Name).ToList();
@@ -282,7 +342,7 @@
                                     @for (int rating = 1; rating <= 5; rating++)
                                     {
                                         var isRatingSelected = ViewBag.MinRating?.ToString() == rating.ToString();
-                                        <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@ViewBag.Category" asp-route-city="@ViewBag.City" asp-route-minRating="@(isRatingSelected ? "" : rating.ToString())"
+                                        <a href="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: isRatingSelected ? (int?)null : rating, sort: ViewBag.Sort, startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                            class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl cursor-pointer transition-all duration-200 @(isRatingSelected ? "bg-amber-50 border-2 border-amber-400 shadow-sm" : "bg-slate-50 border-2 border-transparent hover:bg-amber-50/50 hover:border-amber-200")">
                                             <i class="bi bi-star-fill text-lg @(isRatingSelected ? "text-amber-500" : "text-amber-300")"></i>
                                             <span class="text-sm font-semibold @(isRatingSelected ? "text-amber-700" : "text-slate-500")">@rating+</span>
@@ -317,16 +377,7 @@
                             @{
                                 var remainingCategories = selectedCategories.Where(c => c != cat).ToArray();
                             }
-                            <a asp-action="Index" 
-                               asp-all-route-data='new Dictionary<string, string?> { 
-                                   {"search", ViewBag.Search}, 
-                                   {"city", ViewBag.City}, 
-                                   {"minPrice", ViewBag.MinPrice?.ToString()}, 
-                                   {"maxPrice", ViewBag.MaxPrice?.ToString()},
-                                   {"minRating", ViewBag.MinRating?.ToString()},
-                                   {"sort", ViewBag.Sort}
-                               }'
-                               asp-route-category="@remainingCategories"
+                            <a href="@BuildFilterUrl(categories: remainingCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: ViewBag.MinRating, sort: ViewBag.Sort, startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                class="w-5 h-5 rounded-full bg-blue-200 hover:bg-blue-300 flex items-center justify-center transition-colors">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
@@ -336,7 +387,7 @@
                     {
                         <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-slate-50 to-white border border-slate-200 text-slate-700 rounded-full text-sm font-medium">
                             <i class="bi bi-search"></i> "@ViewBag.Search"
-                            <a asp-action="Index" asp-all-route-data='new Dictionary<string, string?> { {"category", string.Join(",", selectedCategories)}, {"city", ViewBag.City}, {"minPrice", ViewBag.MinPrice?.ToString()}, {"maxPrice", ViewBag.MaxPrice?.ToString()}, {"minRating", ViewBag.MinRating?.ToString()}, {"sort", ViewBag.Sort} }'
+                            <a href="@BuildFilterUrl(categories: selectedCategories, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: ViewBag.MinRating, sort: ViewBag.Sort, startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                class="w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
@@ -346,7 +397,7 @@
                     {
                         <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-700 rounded-full text-sm font-medium">
                             <i class="bi bi-geo-alt-fill"></i> @ViewBag.City
-                            <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" 
+                            <a href="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: ViewBag.MinRating, sort: ViewBag.Sort, startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                class="w-5 h-5 rounded-full bg-green-200 hover:bg-green-300 flex items-center justify-center transition-colors">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
@@ -356,7 +407,7 @@
                     {
                         <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 text-purple-700 rounded-full text-sm font-medium">
                             <i class="bi bi-currency-euro"></i> @currency.Symbol@((int)CurrencyService.Convert(ViewBag.MinPrice ?? 0)) - @currency.Symbol@((int)CurrencyService.Convert(ViewBag.MaxPrice ?? ViewBag.AbsoluteMaxPrice))
-                            <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" asp-route-city="@ViewBag.City"
+                            <a href="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minRating: ViewBag.MinRating, sort: ViewBag.Sort, startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                class="w-5 h-5 rounded-full bg-purple-200 hover:bg-purple-300 flex items-center justify-center transition-colors">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
@@ -366,7 +417,7 @@
                     {
                         <span class="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 text-amber-700 rounded-full text-sm font-medium">
                             <i class="bi bi-star-fill"></i> @ViewBag.MinRating+ @Localizer["stars"]
-                            <a asp-action="Index" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" asp-route-city="@ViewBag.City"
+                            <a href="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, sort: ViewBag.Sort, startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                class="w-5 h-5 rounded-full bg-amber-200 hover:bg-amber-300 flex items-center justify-center transition-colors">
                                 <i class="bi bi-x text-xs"></i>
                             </a>
@@ -386,13 +437,13 @@
                                 var sortPriceDesc = ViewBag.Sort == "price_desc";
                                 var sortRating = ViewBag.Sort == "rating";
                             }
-                            <option value="@Url.Action("Index", new { search = ViewBag.Search, category = selectedCategories, city = ViewBag.City, sort = "newest" })"
+                            <option value="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: ViewBag.MinRating, sort: "newest", startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                     selected="@sortNewest">@Localizer["Newest first"]</option>
-                            <option value="@Url.Action("Index", new { search = ViewBag.Search, category = selectedCategories, city = ViewBag.City, sort = "price_asc" })"
+                            <option value="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: ViewBag.MinRating, sort: "price_asc", startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                     selected="@sortPriceAsc">@Localizer["Price: Low to High"]</option>
-                            <option value="@Url.Action("Index", new { search = ViewBag.Search, category = selectedCategories, city = ViewBag.City, sort = "price_desc" })"
+                            <option value="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: ViewBag.MinRating, sort: "price_desc", startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                     selected="@sortPriceDesc">@Localizer["Price: High to Low"]</option>
-                            <option value="@Url.Action("Index", new { search = ViewBag.Search, category = selectedCategories, city = ViewBag.City, sort = "rating" })"
+                            <option value="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: ViewBag.MinRating, sort: "rating", startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                     selected="@sortRating">@Localizer["Highest rated"]</option>
                         </select>
                         <i class="bi bi-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
@@ -670,7 +721,7 @@
                         @for (int i = 1; i <= ViewBag.TotalPages; i++)
                         {
                             var isActive = i == (ViewBag.CurrentPage ?? 1);
-                            <a asp-action="Index" asp-route-page="@i" asp-route-search="@ViewBag.Search" asp-route-category="@selectedCategories" asp-route-city="@ViewBag.City"
+                            <a href="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: ViewBag.MinRating, sort: ViewBag.Sort, page: i, startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
                                class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors @(isActive ? "bg-blue-600 text-white" : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50")">
                                 @i
                             </a>

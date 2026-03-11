@@ -72,14 +72,12 @@ namespace RentMate.Controllers.Mvc
         #region Private Helpers
 
         /// <summary>
-        /// Retrieves the most popular items based on rating and review count.
+        /// Retrieves the most popular items based on ranking score.
         /// </summary>
         private Task<List<Item>> GetPopularItemsAsync()
         {
             return BuildVisibleItemsQuery()
-                .Where(i => i.AverageRating.HasValue)
-                .OrderByDescending(i => i.AverageRating)
-                .ThenByDescending(i => i.ReviewCount)
+                .OrderByDescending(i => i.ItemScore)
                 .Take(FeaturedItemsCount)
                 .ToListAsync();
         }

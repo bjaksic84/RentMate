@@ -29,6 +29,10 @@
         <i class="bi bi-shield-lock text-lg"></i>
         @Localizer["Two-factor authentication"]
     </a>
+    <a asp-page="./PaymentMethods" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.PaymentMethodsNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
+        <i class="bi bi-credit-card text-lg"></i>
+        @Localizer["Payment Methods"]
+    </a>
     <a asp-page="./PersonalData" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.PersonalDataNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
         <i class="bi bi-database text-lg"></i>
         @Localizer["Personal data"]

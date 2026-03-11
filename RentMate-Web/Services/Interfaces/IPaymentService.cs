@@ -25,6 +25,44 @@ namespace RentMate.Services.Interfaces
         /// Refunds a previously captured payment.
         /// </summary>
         Task<PaymentResult> RefundAsync(string paymentReference, decimal amount);
+
+        // ── Payment-method management (Stripe SetupIntent flow) ─────
+
+        /// <summary>
+        /// Creates a Stripe SetupIntent so the user can save a payment method.
+        /// If stripeCustomerId is provided, the payment method will be attached to that customer.
+        /// for future charges. Returns a ClientSecret for Stripe Elements.
+        /// </summary>
+        Task<PaymentResult> CreateSetupIntentAsync(string userId, string? stripeCustomerId = null);
+
+        /// <summary>
+        /// Lists the saved payment methods (cards) for a Stripe customer.
+        /// Returns a list of <see cref="SavedPaymentMethod"/> DTOs.
+        /// </summary>
+        Task<IReadOnlyList<SavedPaymentMethod>> ListPaymentMethodsAsync(string stripeCustomerId);
+
+        /// <summary>
+        /// Detaches (removes) a payment method from the customer.
+        /// </summary>
+        Task<PaymentResult> RemovePaymentMethodAsync(string paymentMethodId);
+
+        /// <summary>
+        /// Gets or creates a Stripe Customer for the given user.
+        /// </summary>
+        Task<string> GetOrCreateCustomerAsync(string userId, string email, string? name = null);
+    }
+
+    /// <summary>
+    /// Lightweight view of a saved payment method (card).
+    /// </summary>
+    public class SavedPaymentMethod
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Brand { get; set; } = string.Empty;
+        public string Last4 { get; set; } = string.Empty;
+        public long ExpMonth { get; set; }
+        public long ExpYear { get; set; }
+        public bool IsDefault { get; set; }
     }
 
     /// <summary>

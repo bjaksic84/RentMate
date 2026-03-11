@@ -33,6 +33,7 @@ namespace RentMate.Controllers.Mvc
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IStringLocalizer<ReviewsController> _localizer;
         private readonly IReviewAggregationService _reviewAggregation;
+        private readonly IScoringService _scoringService;
 
         #endregion
 
@@ -42,12 +43,14 @@ namespace RentMate.Controllers.Mvc
             RentMateContext context, 
             UserManager<ApplicationUser> userManager,
             IStringLocalizer<ReviewsController> localizer,
-            IReviewAggregationService reviewAggregation)
+            IReviewAggregationService reviewAggregation,
+            IScoringService scoringService)
         {
             _context = context;
             _userManager = userManager;
             _localizer = localizer;
             _reviewAggregation = reviewAggregation;
+            _scoringService = scoringService;
         }
 
         #endregion
@@ -132,6 +135,9 @@ namespace RentMate.Controllers.Mvc
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
             await _reviewAggregation.UpdateItemAggregatesAsync(review.ItemId);
+
+            // Event-driven: recompute item score after new review
+            _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(review.ItemId));
 
             return CreatedAtAction(nameof(GetItemReviews), new { itemId = review.ItemId }, review);
         }

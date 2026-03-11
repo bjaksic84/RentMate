@@ -57,6 +57,47 @@ namespace RentMate.Models.Domain
         /// </summary>
         public int? MaxRentalDays { get; set; }
 
+        // ── Ranking-system fields ───────────────────────────────────
+        
+        /// <summary>Item condition (e.g. "New", "Like New", "Good", "Fair", "Poor").</summary>
+        [StringLength(50)]
+        public string? Condition { get; set; }
+
+        /// <summary>Whether the item has explicit calendar/availability set.</summary>
+        public bool HasAvailability { get; set; }
+
+        /// <summary>Page-view count in the last 30 days (batch-refreshed).</summary>
+        public int ViewsLast30Days { get; set; }
+
+        /// <summary>Total page-view count (incremented on each view).</summary>
+        public long TotalViews { get; set; }
+
+        /// <summary>Date of last meaningful activity (rental completed, listing edited, etc.).</summary>
+        public DateTime LastActivityDate { get; set; } = DateTime.UtcNow;
+
+        /// <summary>Precomputed Item Score (0.0–1.0) used for default marketplace sort.</summary>
+        public double ItemScore { get; set; }
+
+        /// <summary>When the item score was last recalculated.</summary>
+        public DateTime? ItemScoreUpdatedAt { get; set; }
+
+        // ── Sponsored / promoted listing ────────────────────────────
+
+        /// <summary>Whether this item is currently being promoted (sponsored).</summary>
+        public bool IsSponsored { get; set; }
+
+        /// <summary>Bid amount for sponsored placement (cost-per-rental model).</summary>
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? SponsoredBidAmount { get; set; }
+
+        /// <summary>When the sponsored promotion expires.</summary>
+        public DateTime? SponsoredUntil { get; set; }
+
+        /// <summary>Latitude for geo-ranking (copied from owner or overridden per-item).</summary>
+        public double? Latitude { get; set; }
+        /// <summary>Longitude for geo-ranking.</summary>
+        public double? Longitude { get; set; }
+
         // Navigation properties for Entity Framework
         public virtual ApplicationUser? User { get; set; }
         public virtual List<Rental> Rentals { get; set; } = new();
