@@ -24,6 +24,7 @@ namespace RentMate.Controllers.Mvc
         #region Constants
 
         private const int DefaultPageSize = 10;
+        private const string AdminRole = "Admin";
 
         #endregion
 
@@ -293,7 +294,7 @@ namespace RentMate.Controllers.Mvc
         /// </summary>
         private bool CanDeleteReview(Review review, string userId)
         {
-            return review.ReviewerId == userId || User.IsInRole("Admin");
+            return review.ReviewerId == userId || User.IsInRole(AdminRole);
         }
 
         #endregion

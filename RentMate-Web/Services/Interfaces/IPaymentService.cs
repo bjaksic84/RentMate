@@ -50,6 +50,12 @@ namespace RentMate.Services.Interfaces
         /// Gets or creates a Stripe Customer for the given user.
         /// </summary>
         Task<string> GetOrCreateCustomerAsync(string userId, string email, string? name = null);
+
+        /// <summary>
+        /// Deletes the Stripe Customer associated with the given email,
+        /// including all attached payment methods. No-op if no customer exists.
+        /// </summary>
+        Task DeleteCustomerAsync(string email);
     }
 
     /// <summary>

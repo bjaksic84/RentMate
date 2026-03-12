@@ -133,6 +133,10 @@ namespace RentMate.Controllers.Api
             return Ok(roles);
         }
 
+        // TODO: This endpoint lacks cleanup for Cloudinary images, Stripe customers,
+        // and Restrict FK references (Rentals, Reviews, Payments, Extensions, DisputeEvidence).
+        // Will fail with FK constraint violations for any user with activity.
+        // See DeletePersonalData.cshtml.cs for the full cleanup implementation.
         [HttpDelete("{userId}")]
         public async Task<IActionResult> DeleteUser(string userId)
         {

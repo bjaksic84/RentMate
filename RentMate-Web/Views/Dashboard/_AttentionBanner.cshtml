@@ -1,0 +1,127 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Shared.Contracts.Responses
+@using RentMate.Models.Domain
+@model RentMate.Models.ViewModels.DashboardViewModel
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@{
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var pendingOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Pending).ToList() ?? new();
+    var overdueRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < DateTime.UtcNow.Date).ToList() ?? new();
+    var hasAttentionItems = pendingOwnerRentals.Any() || overdueRentals.Any() || (Model.PendingExtensions?.Any() ?? false);
+
+    string FormatDateRange(DateTime a, DateTime b) {
+        var first = a <= b ? a : b;
+        var second = a <= b ? b : a;
+        return $"{first.ToString("dd MMM")} → {second.ToString("dd MMM yyyy")}";
+    }
+}
+
+    @if (hasAttentionItems)
+    {
+        <div class="mb-8 rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 overflow-hidden">
+            <div class="px-6 py-4 border-b border-amber-200 dark:border-amber-800">
+                <h2 class="text-lg font-semibold font-outfit text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    @Localizer["Attention Required"]
+                    <span class="ml-2 px-2 py-0.5 bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200 text-xs font-medium rounded-full">
+                        @(pendingOwnerRentals.Count + overdueRentals.Count + (Model.PendingExtensions?.Count ?? 0))
+                    </span>
+                </h2>
+            </div>
+            <div class="divide-y divide-amber-200 dark:divide-amber-800">
+                @* Overdue rentals *@
+                @foreach (var rental in overdueRentals)
+                {
+                    var overdueDays = (DateTime.UtcNow.Date - rental.EndDate.Date).Days;
+                    <div class="px-6 py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                                <i class="bi bi-exclamation-triangle text-rose-600 dark:text-rose-400 text-sm"></i>
+                            </span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-900 dark:text-white">
+                                    @Localizer["Overdue"]: <strong>@rental.Item?.Title</strong>
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @overdueDays @Localizer["days overdue"] &mdash; @Localizer["Return or extend to avoid deposit charge"]
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="openExtensionModal(@rental.Id, '@rental.StartDate.ToString("yyyy-MM-dd")', '@rental.EndDate.ToString("yyyy-MM-dd")', @(rental.Item?.Price ?? 0), @(rental.ItemId), @(rental.Item?.AutoApproveExtensions.ToString().ToLower()))"
+                                class="px-3 py-1.5 text-xs font-medium bg-trust-blue-600 text-white rounded-lg hover:brightness-110 transition">
+                            @Localizer["Extend"]
+                        </button>
+                    </div>
+                }
+                @* Pending rental requests *@
+                @foreach (var rental in pendingOwnerRentals)
+                {
+                    <div class="px-6 py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                <i class="bi bi-clock text-amber-600 dark:text-amber-400 text-sm"></i>
+                            </span>
+                            <div>
+                                <p class="text-sm font-medium text-slate-900 dark:text-white">
+                                    @Localizer["Rental request"]: <strong>@rental.Item?.Title</strong>
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.Email) &mdash; @FormatDateRange(rental.StartDate, rental.EndDate)
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="inline">
+                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
+                                    @Localizer["Approve"]
+                                </button>
+                            </form>
+                            <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
+                                <input type="hidden" name="rentalId" value="@rental.Id" />
+                                <button class="px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                    @Localizer["Reject"]
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+                @* Pending extension requests *@
+                @if (Model.PendingExtensions != null)
+                {
+                    foreach (var ext in Model.PendingExtensions)
+                    {
+                        <div class="px-6 py-3 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center">
+                                    <i class="bi bi-calendar-plus text-sky-600 dark:text-sky-400 text-sm"></i>
+                                </span>
+                                <div>
+                                    <p class="text-sm font-medium text-slate-900 dark:text-white">
+                                        @Localizer["Extension request"]: <strong>@ext.Rental?.Item?.Title</strong>
+                                    </p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        @Localizer["From"] @(ext.RequestedBy?.FirstName ?? ext.RequestedBy?.Email) &mdash;
+                                        @ext.OriginalEndDate.ToString("dd MMM") → @ext.NewEndDate.ToString("dd MMM yyyy")
+                                        (+@CurrencyService.Format(ext.AdditionalCost))
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="approveExtension(@ext.Id)"
+                                        class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
+                                    @Localizer["Approve"]
+                                </button>
+                                <button onclick="declineExtension(@ext.Id)"
+                                        class="px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                    @Localizer["Decline"]
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }

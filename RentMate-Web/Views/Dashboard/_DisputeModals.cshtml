@@ -1,0 +1,370 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Models.Domain
+@model RentMate.Models.ViewModels.DashboardViewModel
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+    <!-- Dispute Modal (Renter) -->
+    <div id="dispute-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" style="z-index: var(--z-modal, 1200);">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-exclamation-triangle text-rose-500"></i>
+                    @Localizer["Dispute Charge"]
+                </h3>
+                <button data-action="close-dispute" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <i class="bi bi-x-lg text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <!-- Expectation text -->
+                <div class="mb-5 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-2xl">
+                    <h4 class="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider mb-2">@Localizer["What to expect"]</h4>
+                    <p class="text-sm text-amber-800 dark:text-amber-300 leading-relaxed">
+                        @Localizer["Once submitted, the owner will have 48 hours to respond. They can accept your dispute, offer a settlement (Counter-offer), or maintain the charge for admin review."]
+                    </p>
+                </div>
+
+                <div id="dispute-existing-evidence" class="hidden mb-6">
+                    <h4 class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Evidence Provided by Owner"]</h4>
+                    <div class="evidence-container flex flex-wrap gap-2"></div>
+                </div>
+
+                <input type="hidden" id="dispute-rental-id" />
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Your Reason"]</label>
+                        <textarea id="dispute-reason" rows="4" required
+                                  class="w-full px-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-rose-500 focus:border-rose-500 dark:text-white"
+                                  placeholder="@Localizer["Explain why you are disputing this charge..."]"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Add Evidence (Photo/Document)"]</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <i class="bi bi-cloud-upload text-3xl text-slate-400 mb-2"></i>
+                                    <p class="text-xs text-slate-500 font-medium">@Localizer["Click to upload evidence"]</p>
+                                </div>
+                                <input type="file" id="dispute-evidence-file" class="hidden" accept="image/*" />
+                            </label>
+                        </div>
+                        <div id="dispute-evidence-preview" class="mt-3 hidden">
+                            <div class="flex items-center gap-2 p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl">
+                                <i class="bi bi-file-earmark-check text-emerald-600"></i>
+                                <span class="text-xs text-emerald-700 dark:text-emerald-400 font-medium truncate" id="dispute-filename"></span>
+                                <button onclick="clearDisputeEvidence()" class="ml-auto p-1 hover:bg-emerald-100 dark:hover:bg-emerald-800 rounded-lg">
+                                    <i class="bi bi-x text-emerald-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button data-action="close-dispute" class="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button id="dispute-submit-btn" onclick="submitDispute()" class="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-600/20 transition-all">
+                        @Localizer["Submit Dispute"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Counter-Offer Modal (Owner) -->
+    <div id="counter-offer-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" style="z-index: var(--z-modal, 1200);">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-pencil-square text-trust-blue-600"></i>
+                    @Localizer["Make Counter-Offer"]
+                </h3>
+                <button onclick="closeCounterOfferModal()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <i class="bi bi-x-lg text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-5 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl">
+                    <p class="text-sm text-blue-800 dark:text-blue-300">
+                        @Localizer["Instead of the full charge, offer a reduced settlement amount to the renter to resolve the dispute quickly."]
+                    </p>
+                </div>
+
+                <div id="co-existing-evidence" class="hidden mb-6">
+                    <h4 class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Evidence Provided by Renter"]</h4>
+                    <div class="evidence-container flex flex-wrap gap-2"></div>
+                </div>
+
+                <input type="hidden" id="co-rental-id" />
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">@Localizer["Settlement Amount"]</label>
+                            <span id="co-max-hint" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider"></span>
+                        </div>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">@CurrencyService.GetCurrentCurrency().Symbol</span>
+                            <input type="number" id="co-amount" step="0.01"
+                                   class="w-full pl-8 pr-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-trust-blue-500 focus:border-trust-blue-500 dark:text-white font-bold"
+                                   placeholder="0.00" />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Message to Renter"]</label>
+                        <textarea id="co-reason" rows="3" 
+                                  class="w-full px-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-trust-blue-500 focus:border-trust-blue-500 dark:text-white"
+                                  placeholder="@Localizer["Explain why you are offering this amount..."]"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Add Evidence"]</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="bi bi-camera text-2xl text-slate-400 mb-1"></i>
+                                    <p class="text-[10px] text-slate-500 font-medium">@Localizer["Upload proof for your response"]</p>
+                                </div>
+                                <input type="file" id="co-evidence-file" class="hidden" accept="image/*" />
+                            </label>
+                        </div>
+                        <div id="co-evidence-preview" class="mt-2 hidden">
+                            <div class="flex items-center gap-2 p-2 bg-trust-blue-50 dark:bg-trust-blue-900/20 border border-trust-blue-100 dark:border-trust-blue-800 rounded-xl">
+                                <i class="bi bi-file-earmark-check text-trust-blue-600"></i>
+                                <span class="text-xs text-trust-blue-700 dark:text-trust-blue-400 font-medium truncate" id="co-filename"></span>
+                                <button onclick="clearCoEvidence()" class="ml-auto p-1 hover:bg-trust-blue-100 dark:hover:bg-trust-blue-800 rounded-lg">
+                                    <i class="bi bi-x text-trust-blue-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button onclick="closeCounterOfferModal()" class="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button id="co-submit-btn" onclick="submitCounterOffer()" class="flex-1 px-6 py-3 bg-trust-blue-600 hover:bg-trust-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-trust-blue-600/20 transition-all">
+                        @Localizer["Send Counter-Offer"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maintain Charge Modal (Owner) -->
+    <div id="maintain-charge-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" style="z-index: var(--z-modal, 1200);">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-shield-lock text-rose-500"></i>
+                    @Localizer["Maintain Charge"]
+                </h3>
+                <button onclick="closeMaintainChargeModal()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <i class="bi bi-x-lg text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <div class="mb-5 p-4 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-2xl">
+                    <p class="text-sm text-rose-800 dark:text-rose-300">
+                        @Localizer["By maintaining this charge, you are sending the dispute to admin review. You should provide a final explanation and any additional evidence to support your claim."]
+                    </p>
+                </div>
+
+                <div id="mc-existing-evidence" class="hidden mb-6">
+                    <h4 class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Evidence Provided by Renter"]</h4>
+                    <div class="evidence-container flex flex-wrap gap-2"></div>
+                </div>
+
+                <input type="hidden" id="mc-rental-id" />
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Final Message to Renter & Admin"]</label>
+                        <textarea id="mc-reason" rows="4" 
+                                  class="w-full px-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-rose-500 focus:border-rose-500 dark:text-white"
+                                  placeholder="@Localizer["Explain why the full charge is justified..."]"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Add Supporting Evidence"]</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="bi bi-camera text-2xl text-slate-400 mb-1"></i>
+                                    <p class="text-[10px] text-slate-500 font-medium">@Localizer["Upload proof to justify the charge"]</p>
+                                </div>
+                                <input type="file" id="mc-evidence-file" class="hidden" accept="image/*" />
+                            </label>
+                        </div>
+                        <div id="mc-evidence-preview" class="mt-2 hidden">
+                            <div class="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-xl">
+                                <i class="bi bi-file-earmark-check text-rose-600"></i>
+                                <span class="text-xs text-rose-700 dark:text-rose-400 font-medium truncate" id="mc-filename"></span>
+                                <button onclick="clearMcEvidence()" class="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-800 rounded-lg">
+                                    <i class="bi bi-x text-rose-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button onclick="closeMaintainChargeModal()" class="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button id="mc-submit-btn" onclick="submitMaintainCharge()" class="flex-1 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-2xl shadow-lg shadow-rose-600/20 transition-all">
+                        @Localizer["Confirm & Send to Admin"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Evidence Modal -->
+    <div id="add-evidence-modal" class="fixed inset-0 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" style="z-index: var(--z-modal, 1200);">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <h3 class="text-xl font-bold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="bi bi-cloud-upload text-trust-blue-600"></i>
+                    @Localizer["Add More Evidence"]
+                </h3>
+                <button onclick="closeAddEvidenceModal()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
+                    <i class="bi bi-x-lg text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <input type="hidden" id="ae-rental-id" />
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["File"]</label>
+                        <div class="flex items-center justify-center w-full">
+                            <label class="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                <div class="flex flex-col items-center justify-center">
+                                    <i class="bi bi-camera text-2xl text-slate-400 mb-1"></i>
+                                    <p class="text-[10px] text-slate-500 font-medium">@Localizer["Click to upload photo"]</p>
+                                </div>
+                                <input type="file" id="ae-evidence-file" class="hidden" accept="image/*" />
+                            </label>
+                        </div>
+                        <div id="ae-evidence-preview" class="mt-2 hidden">
+                            <div class="flex items-center gap-2 p-2 bg-trust-blue-50 dark:bg-trust-blue-900/20 border border-trust-blue-100 dark:border-trust-blue-800 rounded-xl">
+                                <i class="bi bi-file-earmark-check text-trust-blue-600"></i>
+                                <span class="text-xs text-trust-blue-700 dark:text-trust-blue-400 font-medium truncate" id="ae-filename"></span>
+                                <button onclick="clearAeEvidence()" class="ml-auto p-1 hover:bg-trust-blue-100 dark:hover:bg-trust-blue-800 rounded-lg">
+                                    <i class="bi bi-x text-trust-blue-600"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["Notes (Optional)"]</label>
+                        <textarea id="ae-notes" rows="2" 
+                                  class="w-full px-4 py-3 rounded-2xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-trust-blue-500 focus:border-trust-blue-500 dark:text-white"
+                                  placeholder="@Localizer["Brief explanation of this evidence..."]"></textarea>
+                    </div>
+                </div>
+                <div class="mt-8 flex gap-3">
+                    <button onclick="closeAddEvidenceModal()" class="flex-1 px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">
+                        @Localizer["Cancel"]
+                    </button>
+                    <button id="ae-submit-btn" onclick="submitAddEvidence()" class="flex-1 px-6 py-3 bg-trust-blue-600 hover:bg-trust-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-trust-blue-600/20 transition-all">
+                        @Localizer["Upload"]
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Review Modal -->
+<div id="reviewModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" onclick="closeReviewModal()"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: var(--z-modal, 1200);">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl m-4 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-amber-400 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h3 id="reviewModalTitle" class="text-white font-outfit text-lg font-bold">@Localizer["Leave a Review"]</h3>
+                    <button type="button" onclick="closeReviewModal()" class="text-white/80 hover:text-white"><i class="bi bi-x-lg"></i></button>
+                </div>
+            </div>
+            <form id="reviewForm" class="p-6">
+                <input type="hidden" id="reviewRentalId" name="rentalId" />
+                <input type="hidden" id="reviewItemId" name="itemId" />
+                <input type="hidden" id="reviewId" name="reviewId" />
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">@Localizer["Rating"]</label>
+                    <div class="flex gap-2" id="starRating">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400 transition-colors" data-rating="@i"><i class="bi bi-star-fill"></i></button>
+                        }
+                    </div>
+                    <input type="hidden" id="ratingValue" name="rating" value="0" />
+                </div>
+                <div class="mb-5">
+                    <label for="reviewTitle" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
+                    <input type="text" id="reviewTitle" name="title" maxlength="100"
+                           class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                           placeholder="@Localizer["Summarize your experience"]">
+                </div>
+                <div class="mb-5">
+                    <label for="reviewBody" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">@Localizer["Your Review"]</label>
+                    <textarea id="reviewBody" name="body" rows="4" required
+                              class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors resize-none"
+                              placeholder="@Localizer["Share your experience with this item..."]"></textarea>
+                </div>
+                <div class="mb-5">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="isAnonymous" name="isAnonymous" class="w-4 h-4 text-amber-500 border-slate-300 rounded focus:ring-amber-500">
+                        <span class="text-sm text-slate-600 dark:text-slate-400">@Localizer["Post anonymously"]</span>
+                    </label>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeReviewModal()" class="flex-1 px-4 py-3 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">@Localizer["Cancel"]</button>
+                    <button type="submit" id="reviewSubmitBtn" class="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-400 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+                        <i class="bi bi-check-lg me-1"></i> <span id="reviewSubmitText">@Localizer["Submit Review"]</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Final Warning Modal for Escalation -->
+<div id="escalationWarningModal" class="hidden fixed inset-0 overflow-y-auto" style="z-index: var(--z-modal, 1200);" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <input type="hidden" id="escalateRentalId" />
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-slate-900/75 transition-opacity" style="z-index: var(--z-modal-backdrop, 1100);" aria-hidden="true" onclick="closeEscalationWarningModal()"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="relative inline-block align-bottom bg-white dark:bg-slate-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full" style="z-index: var(--z-modal, 1200);">
+            <div class="bg-white dark:bg-slate-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 sm:mx-0 sm:h-10 sm:w-10">
+                        <i class="bi bi-exclamation-triangle text-amber-600 dark:text-amber-400 text-lg"></i>
+                    </div>
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3 class="text-lg leading-6 font-medium text-slate-900 dark:text-white" id="modal-title">
+                            @Localizer["Are you sure you want to escalate?"]
+                        </h3>
+                        <div class="mt-2">
+                            <p class="text-sm text-slate-500 dark:text-slate-400">
+                                @Localizer["Admin intervention typically takes 3-7 days. We strongly encourage you to try resolving this directly with the other party first."]
+                            </p>
+                            <div class="mt-4 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-700">
+                                <ul class="text-sm text-slate-600 dark:text-slate-300 list-disc list-inside space-y-1">
+                                    <li>@Localizer["Check if you can agree on a partial amount."]</li>
+                                    <li>@Localizer["Ensure all your evidence is uploaded."]</li>
+                                    <li>@Localizer["False claims may result in account suspension."]</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-900/20 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="_processEscalation(document.getElementById('escalateRentalId').value); closeEscalationWarningModal();" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-amber-600 text-base font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    @Localizer["Yes, Escalate Dispute"]
+                </button>
+                <button type="button" class="mt-3 w-full inline-flex justify-center rounded-xl border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-800 text-base font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-trust-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm" onclick="closeEscalationWarningModal()">
+                    @Localizer["Cancel & Keep Negotiating"]
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

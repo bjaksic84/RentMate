@@ -19,6 +19,7 @@ namespace RentMate.Controllers.Mvc
     public class ItemsController : Controller
     {
         private const int MaxImagesPerItem = 10;
+        private const string AdminRole = "Admin";
 
         private readonly RentMateContext _db;
         private readonly UserManager<ApplicationUser> _userManager;
@@ -473,7 +474,8 @@ namespace RentMate.Controllers.Mvc
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = AdminRole)]
         public async Task<IActionResult> AdminToggleHide(int id)
         {
             var item = await _db.Items.FindAsync(id);

@@ -226,5 +226,23 @@ namespace RentMate.Services.Implementations
                 return PaymentResult.Failed(ex.Message);
             }
         }
+
+        public async Task DeleteCustomerAsync(string email)
+        {
+            var listOptions = new CustomerListOptions
+            {
+                Email = email,
+                Limit = 1
+            };
+            var customerService = new CustomerService();
+            var existing = await customerService.ListAsync(listOptions);
+
+            if (existing.Data.Count == 0)
+                return;
+
+            var customerId = existing.Data[0].Id;
+            await customerService.DeleteAsync(customerId);
+            _logger.LogInformation("Deleted Stripe customer {CustomerId} for email {Email}.", customerId, email);
+        }
     }
 }

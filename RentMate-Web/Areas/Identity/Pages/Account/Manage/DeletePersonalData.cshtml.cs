@@ -34,6 +34,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         private readonly ILogger<DeletePersonalDataModel> _logger;
         private readonly RentMateContext _context;
         private readonly IFileUploadService _fileUploadService;
+        private readonly IPaymentService _paymentService;
 
         #endregion
 
@@ -44,12 +45,14 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             SignInManager<ApplicationUser> signInManager,
             ILogger<DeletePersonalDataModel> logger,
             RentMateContext context,
-            IFileUploadService fileUploadService)
+            IFileUploadService fileUploadService,
+            IPaymentService paymentService)
             : base(userManager, signInManager)
         {
             _logger = logger;
             _context = context;
             _fileUploadService = fileUploadService;
+            _paymentService = paymentService;
         }
 
         #endregion
@@ -163,12 +166,25 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
                 await _fileUploadService.DeleteFileAsync(user.ProfilePictureUrl);
 
+            // Delete Stripe customer and payment methods
+            await CleanupStripeCustomerAsync(user.Email!);
+
             // Clear personal information, set display name to "Deleted account"
             user.FirstName = "Deleted account";
             user.LastName = null;
             user.City = null;
             user.ProfilePictureUrl = null;
             user.PhoneNumber = null;
+            user.Bio = null;
+            user.CategoryAffinityJson = null;
+            user.Latitude = null;
+            user.Longitude = null;
+
+            // Clear verification/payment flags (no longer meaningful)
+            user.HasPaymentMethodAdded = false;
+            user.IsPhoneVerified = false;
+            user.IsGovernmentIdVerified = false;
+            user.IsSocialMediaLinked = false;
 
             // Replace identifiable fields with anonymous placeholders
             var anonymousEmail = $"deleted_{userId[..8]}@deleted.rentmate.local";
@@ -205,12 +221,23 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         {
             var userId = user.Id;
 
-            await CleanupAllUserReferencesAsync(userId);
-
-            var result = await UserManager.DeleteAsync(user);
-            if (!result.Succeeded)
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                throw new InvalidOperationException(DeleteErrorMessage);
+                await CleanupAllUserReferencesAsync(userId, user.Email!);
+
+                var result = await UserManager.DeleteAsync(user);
+                if (!result.Succeeded)
+                {
+                    throw new InvalidOperationException(DeleteErrorMessage);
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
             }
 
             await SignInManager.SignOutAsync();
@@ -233,10 +260,13 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         /// that use Restrict delete behavior, so UserManager.DeleteAsync can succeed.
         /// Deletes reviews, items are cascade-deleted, rental history cleaned up.
         /// </summary>
-        private async Task CleanupAllUserReferencesAsync(string userId)
+        private async Task CleanupAllUserReferencesAsync(string userId, string userEmail)
         {
             // 0. Clean up all Cloudinary images before EF cascade deletes the records
             await CleanupCloudinaryImagesAsync(userId);
+
+            // 0b. Clean up Stripe customer and payment methods
+            await CleanupStripeCustomerAsync(userEmail);
 
             // 1. Delete all reviews by this user (full data wipe)
             var reviews = await _context.Reviews
@@ -249,6 +279,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             var renterRentals = await _context.Rentals
                 .Where(r => r.RenterId == userId)
                 .ToListAsync();
+            var renterRentalIds = renterRentals.Select(r => r.Id).ToList();
             _context.Rentals.RemoveRange(renterRentals);
 
             // 3. Nullify payments where user was the payer (nullable FK, Restrict).
@@ -264,6 +295,15 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
                 .Where(e => e.RequestedByUserId == userId)
                 .ToListAsync();
             _context.RentalExtensions.RemoveRange(extensions);
+
+            // 5. Delete dispute evidence submitted by this user on OTHER users' rentals.
+            //    Evidence on the user's own items cascades via Item → Rental → Deposit → Evidence,
+            //    but evidence they submitted on someone else's dispute has a Restrict FK.
+            var evidenceOnOtherRentals = await _context.DisputeEvidences
+                .Where(e => e.SubmittedByUserId == userId)
+                .Where(e => !renterRentalIds.Contains(e.RentalDeposit.RentalId))
+                .ToListAsync();
+            _context.DisputeEvidences.RemoveRange(evidenceOnOtherRentals);
 
             await _context.SaveChangesAsync();
 
@@ -321,6 +361,23 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
                 _logger.LogInformation(
                     "Deleted {Count} Cloudinary images for user {UserId} during account deletion.",
                     distinctUrls.Count, userId);
+            }
+        }
+
+        /// <summary>
+        /// Deletes the Stripe customer (and all attached payment methods) for the given email.
+        /// Fails silently if no customer exists or Stripe is unavailable.
+        /// </summary>
+        private async Task CleanupStripeCustomerAsync(string email)
+        {
+            try
+            {
+                await _paymentService.DeleteCustomerAsync(email);
+            }
+            catch (Exception ex)
+            {
+                // Stripe cleanup is best-effort — don't block account deletion
+                _logger.LogWarning(ex, "Failed to delete Stripe customer for email {Email} during account cleanup.", email);
             }
         }
 

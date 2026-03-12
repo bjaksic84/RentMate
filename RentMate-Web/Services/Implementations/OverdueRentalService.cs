@@ -121,9 +121,9 @@ namespace RentMate.Services.Implementations
                         deposit.UpdatedAt = now;
                         notifyUserId = rental?.OwnerId;
                         statusText = "ChargeAccepted";
-                        _logger.LogInformation(
-                            "Auto-accepted charge for rental {RentalId} (renter did not dispute in time).",
-                            deposit.RentalId);
+                        _logger.LogWarning(
+                            "Auto-accepted charge for rental {RentalId}: renter did not dispute within deadline. Amount: {Amount}",
+                            deposit.RentalId, deposit.ChargedAmount);
                         break;
 
                     case DepositStatus.Disputed:
@@ -135,9 +135,9 @@ namespace RentMate.Services.Implementations
                         deposit.UpdatedAt = now;
                         notifyUserId = rental?.RenterId;
                         statusText = "Released";
-                        _logger.LogInformation(
-                            "Auto-released deposit for rental {RentalId} (owner did not respond to dispute in time).",
-                            deposit.RentalId);
+                        _logger.LogWarning(
+                            "Auto-released deposit for rental {RentalId}: owner missed dispute response deadline. Original charge: {Amount}",
+                            deposit.RentalId, deposit.ChargedAmount);
                         break;
 
                     case DepositStatus.CounterOffered:
@@ -150,9 +150,9 @@ namespace RentMate.Services.Implementations
                         deposit.UpdatedAt = now;
                         notifyUserId = rental?.OwnerId;
                         statusText = "CounterAccepted";
-                        _logger.LogInformation(
-                            "Auto-accepted counter-offer of {Amount} for rental {RentalId} (renter did not respond in time).",
-                            deposit.CounterOfferAmount, deposit.RentalId);
+                        _logger.LogWarning(
+                            "Auto-accepted counter-offer for rental {RentalId}: renter missed response deadline. Counter amount: {Amount}",
+                            deposit.RentalId, deposit.CounterOfferAmount);
                         break;
 
                     default:

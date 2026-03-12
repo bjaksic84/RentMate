@@ -328,9 +328,9 @@ namespace RentMate.Services.Implementations
             if (deposit.Rental?.OwnerId != ownerUserId)
                 throw new UnauthorizedAccessException("Only the item owner can make a counter-offer.");
 
-            if (amount <= 0 || amount >= (deposit.ChargedAmount ?? deposit.Amount))
+            if (amount <= 0 || deposit.ChargedAmount == null || amount >= deposit.ChargedAmount.Value)
                 throw new InvalidOperationException(
-                    "Counter-offer amount must be between 0.01 and less than the original charge.");
+                    "Counter-offer amount must be between 0.01 and less than the charged amount.");
 
             deposit.Status = DepositStatus.CounterOffered;
             deposit.CounterOfferAmount = amount;
@@ -474,6 +474,12 @@ namespace RentMate.Services.Implementations
                 throw new InvalidOperationException(
                     $"Cannot admin-resolve deposit in status {deposit.Status}.");
 
+            // Validate amount before any state changes
+            if (amount < 0)
+                throw new InvalidOperationException("Resolved amount cannot be negative.");
+            if (amount > deposit.Amount)
+                throw new InvalidOperationException($"Resolved amount (\u20ac{amount:N2}) cannot exceed original deposit (\u20ac{deposit.Amount:N2}).");
+
             deposit.AdminNotes = adminNotes;
             deposit.AdminResolvedByUserId = adminUserId;
             deposit.AdminResolvedAt = DateTime.UtcNow;
@@ -499,12 +505,6 @@ namespace RentMate.Services.Implementations
             else
             {
                 // Partial or Full Uphold
-                if (amount < 0)
-                    throw new InvalidOperationException("Resolved amount cannot be negative.");
-
-                if (amount > deposit.Amount)
-                    throw new InvalidOperationException($"Resolved amount (\u20ac{amount:N2}) cannot exceed original deposit (\u20ac{deposit.Amount:N2}).");
-
                 deposit.Status = DepositStatus.ChargeUpheld;
                 deposit.ChargedAmount = amount;
                 deposit.ChargedAt = DateTime.UtcNow;

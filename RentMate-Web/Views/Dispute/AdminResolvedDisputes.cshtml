@@ -29,7 +29,7 @@
             <h1 class="font-heading text-3xl font-bold text-slate-900 dark:text-white">@Localizer["Dispute Archive"]</h1>
             <p class="text-slate-500 dark:text-slate-400 mt-1">@Localizer["History of all resolved deposit disputes"]</p>
         </div>
-        <a asp-action="AdminDashboard" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+        <a asp-controller="Dashboard" asp-action="AdminDashboard" class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
             <i class="bi bi-arrow-left"></i>
             @Localizer["Back to Dashboard"]
         </a>

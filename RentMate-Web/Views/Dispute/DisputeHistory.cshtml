@@ -27,7 +27,7 @@
     <!-- Breadcrumbs -->
     <nav class="flex mb-6 text-sm font-medium text-slate-500" aria-label="Breadcrumb">
         <ol class="inline-flex items-center space-x-1 md:space-x-3">
-            <li><a asp-action="UserDashboard" class="hover:text-blue-600 transition-colors">@Localizer["Dashboard"]</a></li>
+            <li><a asp-controller="Dashboard" asp-action="UserDashboard" class="hover:text-blue-600 transition-colors">@Localizer["Dashboard"]</a></li>
             <li><i class="bi bi-chevron-right mx-2 text-[10px]"></i></li>
             <li class="text-slate-900 dark:text-white">@Localizer["Dispute History"]</li>
         </ol>
@@ -237,7 +237,7 @@
 
     <!-- Back Button -->
     <div class="mt-12 pt-8 border-t border-slate-100 dark:border-slate-800 flex justify-center">
-        <a asp-action="UserDashboard" class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all shadow-lg hover:shadow-slate-400/20">
+        <a asp-controller="Dashboard" asp-action="UserDashboard" class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-700 transition-all shadow-lg hover:shadow-slate-400/20">
             <i class="bi bi-house-fill"></i>
             @Localizer["Return to Dashboard"]
         </a>

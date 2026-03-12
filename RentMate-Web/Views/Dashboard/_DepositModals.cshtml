@@ -1,0 +1,157 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Models.Domain
+@model RentMate.Models.ViewModels.DashboardViewModel
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+<!-- Deposit Resolution Modal -->
+<div id="deposit-modal" class="fixed inset-0 hidden items-center justify-center" style="z-index: var(--z-modal, 1200);" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" data-action="close-deposit"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl" style="z-index: var(--z-modal, 1200);">
+        <button type="button" data-action="close-deposit" class="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" aria-label="@Localizer["Close"]">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <h2 class="text-lg font-semibold font-outfit text-slate-900 dark:text-white mb-5">@Localizer["Resolve Deposit"]</h2>
+        <input type="hidden" id="dep-rental-id" />
+
+        <div class="mb-5 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500 dark:text-slate-400">@Localizer["Deposit amount"]</span>
+                <span id="dep-amount" class="font-semibold text-slate-900 dark:text-white"></span>
+            </div>
+        </div>
+
+        <!-- Release Full -->
+        <button onclick="releaseDeposit()" id="dep-release-btn"
+                class="w-full mb-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:brightness-110">
+            <i class="bi bi-shield-check mr-1"></i> @Localizer["Release Full Deposit"]
+        </button>
+
+        <!-- Or Charge -->
+        <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
+            <div class="relative flex justify-center"><span class="bg-white dark:bg-slate-800 px-3 text-xs text-slate-500 dark:text-slate-400">@Localizer["or charge from deposit"]</span></div>
+        </div>
+
+        <div class="space-y-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="dep-charge-full" class="w-4 h-4 text-rose-500 border-slate-300 rounded focus:ring-rose-500"
+                       onchange="toggleDepChargeFull(this.checked)">
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Charge full amount"]</span>
+            </label>
+            <div>
+                <label for="dep-charge-amount" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Amount to charge"]</label>
+                <input type="number" id="dep-charge-amount" step="0.01" min="0.01"
+                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm text-slate-900 dark:text-white dark:bg-slate-700 focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20" />
+            </div>
+            <div>
+                <label for="dep-charge-reason" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Reason (visible to renter)"]</label>
+                <textarea id="dep-charge-reason" rows="2" required
+                          class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-sm text-slate-900 dark:text-white dark:bg-slate-700 resize-none focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20"
+                          placeholder="@Localizer["e.g., Item returned with scratches on the surface"]"></textarea>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Picture Evidence (Required)"]</label>
+                <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <div class="flex flex-col items-center justify-center">
+                            <i class="bi bi-camera text-xl text-slate-400 mb-1"></i>
+                            <p class="text-[10px] text-slate-500 font-medium text-center px-2">@Localizer["Upload proof for this charge"]</p>
+                        </div>
+                        <input type="file" id="dep-charge-evidence" class="hidden" accept="image/*" onchange="updateDepChargeFilename(this)" />
+                    </label>
+                </div>
+                <div id="dep-charge-preview" class="mt-2 hidden">
+                    <div class="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-xl">
+                        <i class="bi bi-file-earmark-check text-rose-600"></i>
+                        <span class="text-xs text-rose-700 dark:text-rose-400 font-medium truncate" id="dep-charge-filename"></span>
+                        <button onclick="clearDepChargeEvidence()" class="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-800 rounded-lg">
+                            <i class="bi bi-x text-rose-600"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="chargeDeposit()" id="dep-charge-btn"
+                    class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                <i class="bi bi-shield-x mr-1"></i> @Localizer["Charge Deposit"]
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Early Return + Deposit Resolution Modal -->
+<div id="early-return-modal" class="fixed inset-0 hidden items-center justify-center" style="z-index: var(--z-modal, 1200);" role="dialog" aria-modal="true">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" data-action="close-early-return"></div>
+    <div class="relative mx-4 w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 shadow-xl" style="z-index: var(--z-modal, 1200);">
+        <button type="button" data-action="close-early-return" class="absolute top-4 right-4 rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition" aria-label="@Localizer["Close"]">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+        <h2 class="text-lg font-semibold font-outfit text-slate-900 dark:text-white mb-5">
+            <i class="bi bi-flag mr-2"></i>@Localizer["End Rental & Resolve Deposit"]
+        </h2>
+        <input type="hidden" id="er-rental-id" />
+
+        <div class="mb-5 rounded-xl bg-slate-50 dark:bg-slate-900/50 p-4">
+            <div class="flex justify-between text-sm">
+                <span class="text-slate-500 dark:text-slate-400">@Localizer["Deposit amount"]</span>
+                <span id="er-amount" class="font-semibold text-slate-900 dark:text-white"></span>
+            </div>
+        </div>
+
+        <!-- Release Full -->
+        <button onclick="completeWithDeposit('release')" id="er-release-btn"
+                class="w-full mb-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-700 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:brightness-110">
+            <i class="bi bi-shield-check mr-1"></i> @Localizer["Release Full Deposit"]
+        </button>
+
+        <!-- Or Charge -->
+        <div class="relative my-4">
+            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-200 dark:border-slate-700"></div></div>
+            <div class="relative flex justify-center"><span class="bg-white dark:bg-slate-800 px-3 text-xs text-slate-500 dark:text-slate-400">@Localizer["or charge from deposit"]</span></div>
+        </div>
+
+        <div class="space-y-3">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="er-charge-full" class="w-4 h-4 text-rose-500 border-slate-300 rounded focus:ring-rose-500"
+                       onchange="toggleErChargeFull(this.checked)">
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Charge full amount"]</span>
+            </label>
+            <div>
+                <label for="er-charge-amount" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Amount to charge"]</label>
+                <input type="number" id="er-charge-amount" step="0.01" min="0.01"
+                       class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2.5 text-sm text-slate-900 dark:text-white dark:bg-slate-700 focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20" />
+            </div>
+            <div>
+                <label for="er-charge-reason" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Reason (visible to renter)"]</label>
+                <textarea id="er-charge-reason" rows="2" required
+                          class="w-full rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-3 text-sm text-slate-900 dark:text-white dark:bg-slate-700 resize-none focus:border-trust-blue-500 focus:ring-2 focus:ring-trust-blue-500/20"
+                          placeholder="@Localizer["e.g., Item returned with scratches on the surface"]"></textarea>
+            </div>
+            <div>
+                <label class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Picture Evidence (Required)"]</label>
+                <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-20 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                        <div class="flex flex-col items-center justify-center">
+                            <i class="bi bi-camera text-xl text-slate-400 mb-1"></i>
+                            <p class="text-[10px] text-slate-500 font-medium text-center px-2">@Localizer["Upload proof for this charge"]</p>
+                        </div>
+                        <input type="file" id="er-charge-evidence" class="hidden" accept="image/*" onchange="updateErChargeFilename(this)" />
+                    </label>
+                </div>
+                <div id="er-charge-preview" class="mt-2 hidden">
+                    <div class="flex items-center gap-2 p-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-800 rounded-xl">
+                        <i class="bi bi-file-earmark-check text-rose-600"></i>
+                        <span class="text-xs text-rose-700 dark:text-rose-400 font-medium truncate" id="er-charge-filename"></span>
+                        <button onclick="clearErChargeEvidence()" class="ml-auto p-1 hover:bg-rose-100 dark:hover:bg-rose-800 rounded-lg">
+                            <i class="bi bi-x text-rose-600"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <button onclick="completeWithDeposit('charge')" id="er-charge-btn"
+                    class="w-full rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 px-4 py-2.5 text-sm font-medium transition hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                <i class="bi bi-shield-x mr-1"></i> @Localizer["Charge Deposit"]
+            </button>
+        </div>
+    </div>
+</div>
