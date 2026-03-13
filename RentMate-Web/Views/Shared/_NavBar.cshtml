@@ -1,0 +1,283 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Localization
+@using RentMate.Models
+@inject IViewLocalizer Localizer
+@inject UserManager<ApplicationUser> UserManager
+@inject RentMate.Services.Interfaces.ICurrencyService NavCurrencyService
+@{
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var userProfilePic = currentUser?.ProfilePictureUrl;
+    var userDisplayName = currentUser?.FirstName ?? currentUser?.UserName ?? "User";
+    var requestCulture = Context.Features.Get<IRequestCultureFeature>();
+    var currentCulture = requestCulture?.RequestCulture.Culture.TwoLetterISOLanguageName ?? "en";
+    var navCurrentCurrency = NavCurrencyService.GetCurrentCurrency();
+}
+
+<!-- Sticky Glassmorphic Navbar -->
+<header class="fixed top-0 left-0 right-0" style="z-index: var(--z-navbar);">
+    <nav class="glass border-b border-white/20 shadow-lg shadow-slate-900/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="relative flex items-center justify-between h-16 lg:h-20">
+                <!-- Logo -->
+                <a asp-controller="Home" asp-action="Index" class="flex items-center gap-2 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center shadow-sm group- transition-all duration-300">
+                        <i class="bi bi-house-heart text-white text-lg"></i>
+                    </div>
+                    <span class="font-heading font-bold text-xl text-slate-900">Rent<span class="gradient-text">Mate</span></span>
+                </a>
+
+                <!-- Desktop Navigation -->
+                <div class="hidden sm:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+                    <a asp-controller="Home" asp-action="Index" class="hidden lg:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                        @Localizer["Home"]
+                    </a>
+                    <a asp-controller="Rentals" asp-action="Index" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                        @Localizer["Marketplace"]
+                    </a>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-controller="Dashboard" asp-action="UserDashboard" class="hidden md:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                            @Localizer["Dashboard"]
+                        </a>
+                    }
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <a asp-controller="Dashboard" asp-action="AdminDashboard" class="hidden md:block px-4 py-2 text-sm font-bold text-blue-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                            @Localizer["Admin"]
+                        </a>
+                    }
+                </div>
+
+                <!-- Right side actions -->
+                <div class="flex items-center gap-2">
+                    <!-- Language Selector -->
+                    <div class="relative hidden xl:block" id="languageDropdown">
+                        @{
+                            var langFlag = currentCulture == "sl" ? "🇸🇮" : "🇺🇸";
+                            var langName = currentCulture == "sl" ? "SL" : "EN";
+                        }
+                        <button onclick="document.getElementById('languageMenu').classList.toggle('hidden')"
+                                class="flex items-center gap-1.5 px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring"
+                                aria-label="@Localizer["Language"]"
+                                aria-haspopup="true">
+                            <span>@langFlag</span>
+                            <span class="text-sm font-medium">@langName</span>
+                            <i class="bi bi-chevron-down text-xs" aria-hidden="true"></i>
+                        </button>
+                        <div id="languageMenu" class="hidden absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden" style="z-index: var(--z-dropdown);">
+                            <div class="p-2" id="languageButtons">
+                                <button type="button" onclick="setLanguage('en')" data-culture="en" class="language-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm @(currentCulture == "en" ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-600 hover:bg-slate-50") transition-colors">
+                                    <span>🇺🇸</span> English
+                                    <i class="bi bi-check ml-auto text-blue-600 @(currentCulture == "en" ? "" : "hidden")"></i>
+                                </button>
+                                <button type="button" onclick="setLanguage('sl')" data-culture="sl" class="language-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm @(currentCulture == "sl" ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-600 hover:bg-slate-50") transition-colors">
+                                    <span>🇸🇮</span> Slovenščina
+                                    <i class="bi bi-check ml-auto text-blue-600 @(currentCulture == "sl" ? "" : "hidden")"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Currency Selector -->
+                    <div class="relative hidden xl:block" id="currencyDropdown">
+                        <button onclick="document.getElementById('currencyMenu').classList.toggle('hidden')"
+                                class="flex items-center gap-1.5 px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring"
+                                aria-label="@Localizer["Currency"]"
+                                aria-haspopup="true">
+                            <span>@navCurrentCurrency.Flag</span>
+                            <span class="text-sm font-medium">@navCurrentCurrency.Code</span>
+                            <i class="bi bi-chevron-down text-xs" aria-hidden="true"></i>
+                        </button>
+                        <div id="currencyMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden" style="z-index: var(--z-dropdown);">
+                            <div class="p-2 max-h-64 overflow-y-auto" id="currencyButtons">
+                                @foreach (var curr in NavCurrencyService.SupportedCurrencies)
+                                {
+                                    var isActive = curr.Code == navCurrentCurrency.Code;
+                                    <button type="button" onclick="setCurrency('@curr.Code')" data-currency="@curr.Code"
+                                            class="currency-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm @(isActive ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-600 hover:bg-slate-50") transition-colors">
+                                        <span>@curr.Flag</span>
+                                        <span>@curr.Code</span>
+                                        <span class="text-slate-400 ml-auto">@curr.Symbol</span>
+                                        @if (isActive) { <i class="bi bi-check text-blue-600"></i> }
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <div class="relative hidden xl:block" id="themeDropdown">
+                        <button onclick="document.getElementById('themeMenu').classList.toggle('hidden')"
+                                class="flex items-center gap-1.5 px-3 py-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring"
+                                aria-label="@Localizer["Theme"]"
+                                aria-haspopup="true">
+                            <i class="bi bi-sun-fill theme-icon-light" aria-hidden="true"></i>
+                            <i class="bi bi-moon-fill theme-icon-dark hidden" aria-hidden="true"></i>
+                            <i class="bi bi-display theme-icon-system hidden" aria-hidden="true"></i>
+                            <i class="bi bi-chevron-down text-xs" aria-hidden="true"></i>
+                        </button>
+                        <div id="themeMenu" class="hidden absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden" style="z-index: var(--z-dropdown);">
+                            <div class="p-2">
+                                <button type="button" onclick="setThemePreference('system')" data-theme-option="system"
+                                        class="theme-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                                    <i class="bi bi-display"></i> @Localizer["System"]
+                                    <i class="bi bi-check ml-auto text-blue-600 theme-check hidden"></i>
+                                </button>
+                                <button type="button" onclick="setThemePreference('light')" data-theme-option="light"
+                                        class="theme-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                                    <i class="bi bi-sun-fill"></i> @Localizer["Light"]
+                                    <i class="bi bi-check ml-auto text-blue-600 theme-check hidden"></i>
+                                </button>
+                                <button type="button" onclick="setThemePreference('dark')" data-theme-option="dark"
+                                        class="theme-btn w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                                    <i class="bi bi-moon-fill"></i> @Localizer["Dark"]
+                                    <i class="bi bi-check ml-auto text-blue-600 theme-check hidden"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile menu button -->
+                    <div class="relative xl:hidden">
+                        <button onclick="document.getElementById('mobileMenu').classList.toggle('hidden')"
+                                class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring"
+                                aria-label="@Localizer["Open navigation menu"]"
+                                aria-expanded="false"
+                                aria-controls="mobileMenu">
+                            <i class="bi bi-list text-xl" aria-hidden="true"></i>
+                            <span class="sr-only">@Localizer["Menu"]</span>
+                        </button>
+                        <!-- Mobile Menu Dropdown -->
+                        <div id="mobileMenu" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden" style="z-index: var(--z-dropdown);">
+                            <div class="p-2 space-y-0.5">
+                                <a asp-controller="Home" asp-action="Index" class="lg:hidden block px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                                    @Localizer["Home"]
+                                </a>
+                                <a asp-controller="Rentals" asp-action="Index" class="sm:hidden block px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                                    @Localizer["Marketplace"]
+                                </a>
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    <a asp-controller="Dashboard" asp-action="UserDashboard" class="md:hidden block px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                                        <i class="bi bi-grid mr-2"></i>@Localizer["Dashboard"]
+                                    </a>
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <a asp-controller="Dashboard" asp-action="AdminDashboard" class="block px-3 py-2 text-sm font-medium text-blue-600 rounded-lg hover:bg-blue-50">
+                                            <i class="bi bi-shield-lock mr-2"></i>@Localizer["Admin Panel"]
+                                        </a>
+                                    }
+                                }
+                                <hr class="lg:hidden my-1.5 border-slate-100">
+                                <!-- Language + Theme row -->
+                                <div class="flex items-center justify-between px-1 py-1">
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" onclick="setLanguage('en')"
+                                                class="px-2.5 py-1 rounded-lg text-sm @(currentCulture == "en" ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-600 hover:bg-blue-50") transition-colors">
+                                            🇺🇸 EN
+                                        </button>
+                                        <button type="button" onclick="setLanguage('sl')"
+                                                class="px-2.5 py-1 rounded-lg text-sm @(currentCulture == "sl" ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-600 hover:bg-blue-50") transition-colors">
+                                            🇸🇮 SL
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center gap-0.5">
+                                        <button type="button" onclick="setThemePreference('system')" data-theme-mobile="system"
+                                                class="theme-mobile-btn p-1.5 rounded-lg text-sm text-slate-600 hover:bg-blue-50 transition-colors">
+                                            <i class="bi bi-display"></i>
+                                        </button>
+                                        <button type="button" onclick="setThemePreference('light')" data-theme-mobile="light"
+                                                class="theme-mobile-btn p-1.5 rounded-lg text-sm text-slate-600 hover:bg-blue-50 transition-colors">
+                                            <i class="bi bi-sun-fill"></i>
+                                        </button>
+                                        <button type="button" onclick="setThemePreference('dark')" data-theme-mobile="dark"
+                                                class="theme-mobile-btn p-1.5 rounded-lg text-sm text-slate-600 hover:bg-blue-50 transition-colors">
+                                            <i class="bi bi-moon-fill"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Currency row -->
+                                <div class="flex items-center gap-1 px-1 py-1">
+                                    @foreach (var curr in NavCurrencyService.SupportedCurrencies)
+                                    {
+                                        var isActive = curr.Code == navCurrentCurrency.Code;
+                                        <button type="button" onclick="setCurrency('@curr.Code')"
+                                                class="px-2.5 py-1 rounded-lg text-sm @(isActive ? "bg-blue-50 text-blue-700 font-medium" : "text-slate-600 hover:bg-blue-50") transition-colors">
+                                            @curr.Flag @curr.Code
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <!-- User Menu -->
+                        <div class="relative">
+                            <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 p-1.5 pr-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-all duration-200">
+                                @if (!string.IsNullOrEmpty(userProfilePic))
+                                {
+                                    <img src="@userProfilePic" alt="@userDisplayName" class="w-8 h-8 rounded-full object-cover ring-2 ring-white" />
+                                }
+                                else
+                                {
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center">
+                                        <i class="bi bi-person-fill text-white text-sm"></i>
+                                    </div>
+                                }
+                                <i class="bi bi-chevron-down text-xs text-slate-500"></i>
+                            </button>
+                            <div class="hidden absolute right-0 mt-2 w-48 py-2 bg-white rounded-xl shadow-md border border-slate-100">
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-controller="Dashboard" asp-action="AdminDashboard" class="flex items-center gap-3 px-4 py-2 text-sm text-blue-600 font-bold hover:bg-blue-50 transition-colors">
+                                        <i class="bi bi-shield-lock"></i> @Localizer["Admin Panel"]
+                                    </a>
+                                    <hr class="my-2 border-slate-100">
+                                }
+                                <a asp-controller="Profile" asp-action="Index" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                    <i class="bi bi-person"></i> @Localizer["Profile"]
+                                </a>
+                                <a asp-controller="Dashboard" asp-action="UserDashboard" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                    <i class="bi bi-grid"></i> @Localizer["Dashboard"]
+                                </a>
+                                <a asp-area="Identity" asp-page="/Account/Manage/Index" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                    <i class="bi bi-gear"></i> @Localizer["Settings"]
+                                </a>
+                                <hr class="my-2 border-slate-100">
+                                <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
+                                    <button type="submit" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                        <i class="bi bi-box-arrow-right"></i> @Localizer["Logout"]
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="relative" id="authDropdown">
+                            <button onclick="document.getElementById('authMenu').classList.toggle('hidden')"
+                                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white text-sm font-semibold rounded-full shadow-sm transition-all duration-300">
+                                <i class="bi bi-plus-lg"></i>
+                                <span class="hidden sm:inline">@Localizer["Become a Host"]</span>
+                            </button>
+                            <div id="authMenu" class="hidden absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden" style="z-index: var(--z-dropdown);">
+                                <div class="p-2">
+                                    <a asp-area="Identity" asp-page="/Account/Login" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                        <i class="bi bi-box-arrow-in-right"></i> @Localizer["Login"]
+                                    </a>
+                                    <a asp-area="Identity" asp-page="/Account/Register" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                                        <i class="bi bi-person-plus"></i> @Localizer["Register"]
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </nav>
+</header>

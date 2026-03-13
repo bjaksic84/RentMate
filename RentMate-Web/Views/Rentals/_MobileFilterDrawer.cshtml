@@ -1,0 +1,146 @@
+@model IEnumerable<RentMate.Models.Domain.Item>
+@using RentMate.Helpers
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@{
+    var selectedCategories = ViewBag.Category as string[] ?? Array.Empty<string>();
+    var hasActiveFilters = !string.IsNullOrEmpty(ViewBag.Search as string) ||
+                           selectedCategories.Any() ||
+                           !string.IsNullOrEmpty(ViewBag.City as string) ||
+                           ViewBag.MinPrice != null ||
+                           ViewBag.MaxPrice != null ||
+                           !string.IsNullOrEmpty(ViewBag.StartDate as string) ||
+                           ViewBag.MinRating != null;
+    var categories = ViewConstants.FilterCategories;
+    var cities = CityData.Cities.Select(c => c.Name).ToList();
+    var navCurrentCurrency = CurrencyService.GetCurrentCurrency();
+}
+
+<!-- Mobile Filter Button -->
+<button onclick="openMobileFilters()"
+        class="lg:hidden w-full mb-6 py-3.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-medium flex items-center justify-center gap-2 hover:bg-slate-50 hover:border-slate-300 transition-all focus-ring"
+        aria-label="@Localizer["Open filters"]">
+    <i class="bi bi-sliders" aria-hidden="true"></i> @Localizer["Filters"]
+    @if (hasActiveFilters)
+    {
+        <span class="w-6 h-6 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+            @{
+                var filterCount = 0;
+                if (selectedCategories.Any()) filterCount++;
+                if (!string.IsNullOrEmpty(ViewBag.City as string)) filterCount++;
+                if (ViewBag.MinPrice != null || ViewBag.MaxPrice != null) filterCount++;
+                if (!string.IsNullOrEmpty(ViewBag.MinRating?.ToString())) filterCount++;
+            }
+            @filterCount
+        </span>
+    }
+</button>
+
+<!-- Mobile Filters Drawer -->
+<div id="mobileFiltersOverlay" class="fixed inset-0 bg-black/50 hidden lg:hidden" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); z-index: var(--z-modal-backdrop, 1100);" onclick="closeMobileFilters()"></div>
+<div id="mobileFiltersDrawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 lg:hidden overflow-hidden flex flex-col" style="z-index: var(--z-modal, 1200);">
+    <!-- Drawer Header -->
+    <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                <i class="bi bi-sliders text-blue-600"></i>
+            </div>
+            <h3 class="font-heading font-bold text-lg text-slate-900">@Localizer["Filters"]</h3>
+        </div>
+        <button onclick="closeMobileFilters()"
+                class="w-10 h-10 rounded-xl hover:bg-slate-100 flex items-center justify-center transition-colors touch-target focus-ring"
+                aria-label="@Localizer["Close filters"]">
+            <i class="bi bi-x-lg text-slate-500" aria-hidden="true"></i>
+        </button>
+    </div>
+
+    <!-- Drawer Content -->
+    <div class="flex-1 overflow-y-auto">
+        <form asp-action="Index" method="get" id="mobileFilterForm" class="divide-y divide-slate-100">
+            <input type="hidden" name="search" value="@ViewBag.Search" />
+
+            <!-- Category -->
+            <div class="p-5">
+                <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <i class="bi bi-grid-3x3-gap text-slate-400"></i> @Localizer["Category"]
+                </h4>
+                <div class="grid grid-cols-2 gap-2">
+                    @foreach (var cat in categories)
+                    {
+                        var isCatSelected = selectedCategories.Contains(cat);
+                        <label class="flex items-center gap-2 p-3 rounded-xl cursor-pointer transition-all @(isCatSelected ? "bg-blue-50 border-2 border-blue-500" : "bg-slate-50 border-2 border-transparent hover:bg-slate-100")">
+                            <input type="checkbox" name="category" value="@cat" class="sr-only" @(isCatSelected ? "checked" : "")>
+                            <span class="text-sm font-medium @(isCatSelected ? "text-blue-700" : "text-slate-600")">@Localizer[cat ?? "Other"]</span>
+                        </label>
+                    }
+                </div>
+            </div>
+
+            <!-- Price Range -->
+            <div class="p-5">
+                <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <i class="bi bi-currency-euro text-slate-400"></i> @Localizer["Price range"]
+                </h4>
+                <div class="flex items-center gap-3">
+                    <div class="flex-1">
+                        <input type="number" name="minPrice" value="@(ViewBag.MinPrice)" placeholder="Min"
+                               class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <span class="text-slate-300">—</span>
+                    <div class="flex-1">
+                        <input type="number" name="maxPrice" value="@(ViewBag.MaxPrice)" placeholder="Max"
+                               class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rating -->
+            <div class="p-5">
+                <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <i class="bi bi-star text-slate-400"></i> @Localizer["Minimum rating"]
+                </h4>
+                <div class="flex gap-2">
+                    @for (int rating = 1; rating <= 5; rating++)
+                    {
+                        var isMobileRatingSelected = ViewBag.MinRating?.ToString() == rating.ToString();
+                        <label class="flex-1 flex flex-col items-center gap-1 p-3 rounded-xl cursor-pointer transition-all @(isMobileRatingSelected ? "bg-amber-50 border-2 border-amber-400" : "bg-slate-50 border-2 border-transparent hover:bg-slate-100")">
+                            <input type="radio" name="minRating" value="@rating" class="sr-only" @(isMobileRatingSelected ? "checked" : "")>
+                            <i class="bi bi-star-fill text-amber-400"></i>
+                            <span class="text-xs font-medium @(isMobileRatingSelected ? "text-amber-700" : "text-slate-500")">@rating+</span>
+                        </label>
+                    }
+                </div>
+            </div>
+
+            <!-- City -->
+            <div class="p-5">
+                <h4 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <i class="bi bi-geo-alt text-slate-400"></i> @Localizer["City"]
+                </h4>
+                <select name="city" class="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    <option value="">@Localizer["All cities"]</option>
+                    @foreach (var city in cities)
+                    {
+                        var isMobileCitySelected = ViewBag.City == city;
+                        <option value="@city" selected="@isMobileCitySelected">@city</option>
+                    }
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Drawer Footer -->
+    <div class="p-5 border-t border-slate-100 bg-white space-y-3">
+        <button type="submit" form="mobileFilterForm" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl shadow-sm transition-all">
+            @Localizer["Apply Filters"]
+        </button>
+        @if (hasActiveFilters)
+        {
+            <a asp-action="Index" class="block w-full py-3 text-center text-red-500 font-medium hover:bg-red-50 rounded-xl transition-colors">
+                @Localizer["Clear all filters"]
+            </a>
+        }
+    </div>
+</div>

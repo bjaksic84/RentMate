@@ -1,0 +1,115 @@
+@model RentMate.Models.Domain.Item
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+<a asp-controller="Items" asp-action="Details" asp-route-id="@Model.Id" class="group">
+    <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-200 h-full flex flex-col">
+        <!-- Image Container -->
+        <div class="aspect-[4/3] relative overflow-hidden">
+            @{
+                var primaryImgUrl = Model.PrimaryImageUrl;
+            }
+            @if (!string.IsNullOrEmpty(primaryImgUrl))
+            {
+                <img src="@primaryImgUrl" alt="@Model.Title"
+                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                @if (Model.Images?.Count > 1)
+                {
+                    <div class="absolute bottom-3 right-3 px-2 py-1 bg-black/60 text-white text-xs font-medium rounded-lg flex items-center gap-1">
+                        <i class="bi bi-images"></i>
+                        <span>@Model.Images.Count</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                    <i class="bi bi-image text-5xl text-slate-300"></i>
+                </div>
+            }
+
+            <!-- Favorite Button -->
+            <div class="absolute top-3 right-3">
+                @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel {
+                    ItemId = Model.Id,
+                    IsFavorited = Model.FavoritedBy?.Any(f => f.AccountId == ViewBag.CurrentUserId) ?? false
+                })
+            </div>
+
+            <!-- Category Badge -->
+            @if (!string.IsNullOrEmpty(Model.Category))
+            {
+                <div class="absolute top-3 left-3 px-3 py-1 bg-white/90 rounded-lg text-xs font-bold text-blue-600 shadow-sm" style="-webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+                    @Localizer[Model.Category ?? "Uncategorized"]
+                </div>
+            }
+
+            <!-- Rating Badge -->
+            @if (Model.AverageRating.HasValue)
+            {
+                <div class="absolute flex items-center gap-1.5 px-2.5 py-1 bg-white/90 rounded-lg text-sm font-semibold shadow-sm" style="bottom: clamp(8px, 2vw, 12px); left: clamp(8px, 2vw, 12px); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);">
+                    <i class="bi bi-star-fill text-amber-400" aria-hidden="true"></i>
+                    <span class="text-slate-800">@Model.AverageRating.Value.ToString("0.0")</span>
+                    <span class="text-slate-400">(@Model.ReviewCount)</span>
+                </div>
+            }
+        </div>
+
+        <!-- Content -->
+        <div class="p-5 flex flex-col flex-1">
+            <h3 class="font-heading font-semibold text-lg text-slate-900 group-hover:text-blue-600 transition-colors mb-2 line-clamp-1">
+                @Model.Title
+            </h3>
+
+            @if (!string.IsNullOrEmpty(Model.Location))
+            {
+                <p class="text-sm text-slate-500 flex items-center gap-1.5 mb-3">
+                    <i class="bi bi-geo-alt text-blue-500"></i>
+                    @Model.Location
+                </p>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Description))
+            {
+                <p class="text-sm text-slate-600 line-clamp-2 mb-4 flex-1">
+                    @Model.Description
+                </p>
+            }
+
+            <!-- Price & Owner -->
+            <div class="flex items-end justify-between mt-auto pt-4 border-t border-slate-100">
+                <div>
+                    <div class="flex items-baseline gap-1">
+                        <span class="text-2xl font-bold text-slate-900">@CurrencyService.Format(Model.Price)</span>
+                        <span class="text-slate-500 text-xs font-medium lowercase">/ @Localizer["day"]</span>
+                    </div>
+                    @if (Model.DepositAmount > 0)
+                    {
+                        <div class="flex items-center gap-1.5 mt-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md border border-emerald-100 w-fit" title="@Localizer["Security deposit (refundable)"]">
+                            <i class="bi bi-shield-check text-[10px]"></i>
+                            <span class="text-[9px] font-bold uppercase tracking-wider">@Localizer["Deposit"]: @CurrencyService.Format(Model.DepositAmount.Value)</span>
+                        </div>
+                    }
+                </div>
+                @if (Model.User != null)
+                {
+                    <div class="flex items-center gap-2">
+                        @if (!string.IsNullOrEmpty(Model.User.ProfilePictureUrl))
+                        {
+                            <img src="@Model.User.ProfilePictureUrl"
+                                 alt="@(Model.User.FirstName ?? Model.User.UserName)"
+                                 class="w-8 h-8 rounded-full object-cover ring-2 ring-white shadow-sm" />
+                        }
+                        else
+                        {
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold">
+                                @(Model.User.UserName?.Substring(0, 1).ToUpper() ?? "?")
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</a>

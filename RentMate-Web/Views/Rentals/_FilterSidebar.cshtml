@@ -1,0 +1,237 @@
+@model IEnumerable<RentMate.Models.Domain.Item>
+@using System.Globalization
+@using RentMate.Helpers
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@functions {
+    string BuildFilterUrl(
+        string[]? categories = null,
+        string? search = null,
+        string? city = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        int? minRating = null,
+        string? sort = null,
+        int? page = null,
+        string? startDate = null,
+        string? endDate = null)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrEmpty(search))
+            parts.Add($"search={Uri.EscapeDataString(search)}");
+
+        if (categories != null)
+        {
+            foreach (var cat in categories)
+            {
+                if (!string.IsNullOrEmpty(cat))
+                    parts.Add($"category={Uri.EscapeDataString(cat)}");
+            }
+        }
+
+        if (!string.IsNullOrEmpty(city))
+            parts.Add($"city={Uri.EscapeDataString(city)}");
+
+        if (minPrice.HasValue)
+            parts.Add($"minPrice={minPrice.Value.ToString(CultureInfo.InvariantCulture)}");
+
+        if (maxPrice.HasValue)
+            parts.Add($"maxPrice={maxPrice.Value.ToString(CultureInfo.InvariantCulture)}");
+
+        if (minRating.HasValue && minRating.Value > 0)
+            parts.Add($"minRating={minRating.Value}");
+
+        if (!string.IsNullOrEmpty(sort))
+            parts.Add($"sort={Uri.EscapeDataString(sort)}");
+
+        if (page.HasValue && page.Value > 1)
+            parts.Add($"page={page.Value}");
+
+        if (!string.IsNullOrEmpty(startDate))
+            parts.Add($"startDate={Uri.EscapeDataString(startDate)}");
+
+        if (!string.IsNullOrEmpty(endDate))
+            parts.Add($"endDate={Uri.EscapeDataString(endDate)}");
+
+        var basePath = Url.Action("Index", "Rentals");
+        return parts.Count > 0 ? $"{basePath}?{string.Join("&", parts)}" : basePath!;
+    }
+}
+
+@{
+    decimal currentMin = ViewBag.MinPrice ?? 0;
+    decimal currentMax = ViewBag.MaxPrice ?? (ViewBag.AbsoluteMaxPrice ?? 500);
+    var currency = CurrencyService.GetCurrentCurrency();
+    var selectedCategories = ViewBag.Category as string[] ?? Array.Empty<string>();
+    var hasActiveFilters = !string.IsNullOrEmpty(ViewBag.Search as string) ||
+                           selectedCategories.Any() ||
+                           !string.IsNullOrEmpty(ViewBag.City as string) ||
+                           ViewBag.MinPrice != null ||
+                           ViewBag.MaxPrice != null ||
+                           !string.IsNullOrEmpty(ViewBag.StartDate as string) ||
+                           ViewBag.MinRating != null;
+    var categories = ViewConstants.FilterCategories;
+}
+
+<!-- Sidebar Filters (Desktop) -->
+<aside class="hidden lg:block w-80 flex-shrink-0">
+    <div class="sticky top-24 space-y-4" style="z-index: var(--z-sticky, 200);">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <!-- Filter Header -->
+            <div class="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <i class="bi bi-sliders text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-bold text-slate-900">@Localizer["Filters"]</h3>
+                        @if (hasActiveFilters)
+                        {
+                            <p class="text-xs text-slate-500">@Localizer["Active filters applied"]</p>
+                        }
+                    </div>
+                </div>
+                @if (hasActiveFilters)
+                {
+                    <a asp-action="Index" class="text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1 transition-colors">
+                        <i class="bi bi-x-circle"></i>
+                        @Localizer["Reset"]
+                    </a>
+                }
+            </div>
+
+            <form asp-action="Index" method="get" id="filterForm" class="divide-y divide-slate-100">
+                <input type="hidden" name="search" value="@ViewBag.Search" />
+
+                <!-- Category Filter -->
+                <details class="group" open>
+                    <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors list-none">
+                        <div class="flex items-center gap-3">
+                            <i class="bi bi-grid-3x3-gap text-slate-400"></i>
+                            <span class="font-semibold text-slate-900">@Localizer["Category"]</span>
+                        </div>
+                        <i class="bi bi-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                    </summary>
+                    <div class="px-5 pb-5 space-y-1">
+                        @foreach (var cat in categories)
+                        {
+                            var isSelected = selectedCategories.Contains(cat);
+                            var iconMap = new Dictionary<string, string> {
+                                {"Tools", "bi-tools"},
+                                {"Electronics", "bi-laptop"},
+                                {"Sports", "bi-bicycle"},
+                                {"Home & Garden", "bi-house"},
+                                {"Fun", "bi-controller"},
+                                {"Other", "bi-three-dots"}
+                            };
+                            <label class="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 @(isSelected ? "bg-blue-50 border border-blue-200" : "hover:bg-slate-50 border border-transparent")">
+                                <input type="checkbox" name="category" value="@cat" class="hidden" @(isSelected ? "checked" : "") onchange="this.form.submit()">
+                                <i class="bi @iconMap.GetValueOrDefault(cat, "bi-tag") @(isSelected ? "text-blue-600" : "text-slate-400")"></i>
+                                <span class="flex-1 @(isSelected ? "text-blue-700 font-medium" : "text-slate-600")">@Localizer[cat ?? "Other"]</span>
+                                @if (isSelected)
+                                {
+                                    <i class="bi bi-check-lg text-blue-600"></i>
+                                }
+                            </label>
+                        }
+                    </div>
+                </details>
+
+                <!-- Price Range with Visual Slider -->
+                <details class="group" open>
+                    <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors list-none">
+                        <div class="flex items-center gap-3">
+                            <span class="text-slate-400 font-medium">@currency.Symbol</span>
+                            <span class="font-semibold text-slate-900">@Localizer["Price range"]</span>
+                        </div>
+                        <i class="bi bi-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                    </summary>
+                    <div class="px-5 pb-5">
+                        <!-- Price display -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="px-3 py-1.5 bg-slate-100 rounded-lg">
+                                <span id="minPriceDisplay" class="font-semibold text-slate-900">@currency.Symbol@((int)CurrencyService.Convert(currentMin))</span>
+                            </div>
+                            <div class="flex-1 mx-3 flex items-center">
+                                <div class="flex-1 border-t-2 border-dashed border-slate-200"></div>
+                                <i class="bi bi-arrow-left-right text-slate-300 mx-2"></i>
+                                <div class="flex-1 border-t-2 border-dashed border-slate-200"></div>
+                            </div>
+                            <div class="px-3 py-1.5 bg-slate-100 rounded-lg">
+                                <span id="maxPriceDisplay" class="font-semibold text-slate-900">@currency.Symbol@((int)CurrencyService.Convert(currentMax))</span>
+                            </div>
+                        </div>
+
+                        <!-- Range slider -->
+                        @{
+                            var absMax = (int)(ViewBag.AbsoluteMaxPrice ?? 500);
+                            var minPercent = absMax > 0 ? ((int)currentMin * 100 / absMax) : 0;
+                            var maxPercent = absMax > 0 ? (100 - (int)currentMax * 100 / absMax) : 0;
+                        }
+                        <div class="relative h-2 bg-slate-200 rounded-full mb-6">
+                            <div id="priceTrack" class="absolute h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full" style="left: @(minPercent)%; right: @(maxPercent)%;"></div>
+                            <input type="range" id="minPriceSlider" min="0" max="@absMax" value="@((int)currentMin)" step="5"
+                                   class="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-blue-500 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:cursor-pointer">
+                            <input type="range" id="maxPriceSlider" min="0" max="@absMax" value="@((int)currentMax)" step="5"
+                                   class="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-blue-500 [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-blue-500 [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:cursor-pointer">
+                        </div>
+
+                        <!-- Quick price buttons -->
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            @{
+                                var sym = currency.Symbol;
+                                var priceRanges = new[] { (0, 10, $"< {sym}10"), (10, 25, $"{sym}10-25"), (25, 50, $"{sym}25-50"), (50, 100, $"{sym}50+") };
+                            }
+                            @foreach (var (min, max, label) in priceRanges)
+                            {
+                                <button type="button" onclick="setPriceRange(@min, @max)"
+                                        class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all">
+                                    @label
+                                </button>
+                            }
+                        </div>
+
+                        <!-- Hidden inputs for form submission -->
+                        <input type="hidden" name="minPrice" id="minPriceInput" value="@(ViewBag.MinPrice)" />
+                        <input type="hidden" name="maxPrice" id="maxPriceInput" value="@(ViewBag.MaxPrice)" />
+                    </div>
+                </details>
+
+                <!-- Rating Filter with visual stars -->
+                <details class="group" open>
+                    <summary class="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-50 transition-colors list-none">
+                        <div class="flex items-center gap-3">
+                            <i class="bi bi-star text-slate-400"></i>
+                            <span class="font-semibold text-slate-900">@Localizer["Minimum rating"]</span>
+                        </div>
+                        <i class="bi bi-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                    </summary>
+                    <div class="px-5 pb-5">
+                        <div class="flex gap-2">
+                            @for (int rating = 1; rating <= 5; rating++)
+                            {
+                                var isRatingSelected = ViewBag.MinRating?.ToString() == rating.ToString();
+                                <a href="@BuildFilterUrl(categories: selectedCategories, search: ViewBag.Search, city: ViewBag.City, minPrice: ViewBag.MinPrice, maxPrice: ViewBag.MaxPrice, minRating: isRatingSelected ? (int?)null : rating, sort: ViewBag.Sort, startDate: ViewBag.StartDate, endDate: ViewBag.EndDate)"
+                                   class="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl cursor-pointer transition-all duration-200 @(isRatingSelected ? "bg-amber-50 border-2 border-amber-400 shadow-sm" : "bg-slate-50 border-2 border-transparent hover:bg-amber-50/50 hover:border-amber-200")">
+                                    <i class="bi bi-star-fill text-lg @(isRatingSelected ? "text-amber-500" : "text-amber-300")"></i>
+                                    <span class="text-sm font-semibold @(isRatingSelected ? "text-amber-700" : "text-slate-500")">@rating+</span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Apply Button -->
+                <div class="p-5">
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm  transition-all duration-300 flex items-center justify-center gap-2">
+                        <i class="bi bi-funnel-fill"></i>
+                        @Localizer["Apply Filters"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</aside>
