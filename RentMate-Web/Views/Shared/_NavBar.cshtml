@@ -8,7 +8,9 @@
 @{
     var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
     var userProfilePic = currentUser?.ProfilePictureUrl;
-    var userDisplayName = currentUser?.FirstName ?? currentUser?.UserName ?? "User";
+    var rawUserName = currentUser?.UserName;
+    var atIndex = rawUserName?.IndexOf('@') ?? -1;
+    var userDisplayName = atIndex > 0 ? rawUserName![..atIndex] : (rawUserName ?? "User");
     var requestCulture = Context.Features.Get<IRequestCultureFeature>();
     var currentCulture = requestCulture?.RequestCulture.Culture.TwoLetterISOLanguageName ?? "en";
     var navCurrentCurrency = NavCurrencyService.GetCurrentCurrency();

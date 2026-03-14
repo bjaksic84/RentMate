@@ -144,7 +144,7 @@
                     <div>
                         <p class="text-sm text-slate-500">@Localizer["Hosted by"]</p>
                         <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="font-semibold text-slate-900 hover:text-blue-600 transition-colors focus-ring">
-                            @(!string.IsNullOrEmpty(Model.User?.FirstName) ? $"{Model.User.FirstName} {Model.User.LastName}" : (Model.User?.Email ?? Localizer["Unknown"].Value))
+                            @(!string.IsNullOrEmpty(Model.User?.FirstName) ? $"{Model.User.FirstName} {Model.User.LastName}" : (Model.User?.UserName ?? Localizer["Unknown"].Value))
                         </a>
                     </div>
                 </div>
@@ -182,7 +182,7 @@
                                 ? Localizer["Anonymous"].Value 
                                 : (!string.IsNullOrEmpty(review.Reviewer?.FirstName) 
                                     ? $"{review.Reviewer.FirstName} {review.Reviewer.LastName}".Trim() 
-                                    : (review.Reviewer?.Email ?? Localizer["Unknown"].Value));
+                                    : (review.Reviewer?.UserName ?? Localizer["Unknown"].Value));
                             var hasReviewerPic = !review.IsAnonymous && !string.IsNullOrEmpty(review.Reviewer?.ProfilePictureUrl);
                             
                             <div class="p-4 bg-slate-50 rounded-xl relative">

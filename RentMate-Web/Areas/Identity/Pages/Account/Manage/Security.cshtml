@@ -1,0 +1,371 @@
+@page
+@using Microsoft.AspNetCore.Mvc.Localization
+@model SecurityModel
+@inject IViewLocalizer Localizer
+@{
+    ViewData["Title"] = Localizer["Security"];
+    ViewData["ActivePage"] = ManageNavPages.Security;
+}
+
+<div class="space-y-8">
+    <!-- Page Header -->
+    <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
+        <h2 class="font-heading text-xl font-bold text-slate-900 dark:text-slate-100">@Localizer["Security Settings"]</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">@Localizer["Manage your email, password, login methods and data privacy"]</p>
+    </div>
+
+    <partial name="_StatusMessage" model="Model.StatusMessage" />
+
+    <!-- ── 1. Email ────────────────────────────────────────────────── -->
+    <section class="space-y-4">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                <i class="bi bi-envelope text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200">@Localizer["Email Address"]</h3>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="text-sm text-slate-500 dark:text-slate-400">@Model.Email</span>
+                    @if (Model.IsEmailConfirmed)
+                    {
+                        <span class="inline-flex items-center gap-1 text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-full">
+                            <i class="bi bi-patch-check-fill"></i> @Localizer["Verified"]
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-2 py-0.5 rounded-full">
+                            <i class="bi bi-exclamation-circle-fill"></i> @Localizer["Unverified"]
+                        </span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-4">
+            <form method="post" asp-page-handler="ChangeEmail" class="flex flex-col sm:flex-row gap-3">
+                <input asp-for="EmailInput.NewEmail" type="email"
+                       class="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+                       placeholder="@Localizer["New email address"]" />
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors whitespace-nowrap">
+                    <i class="bi bi-envelope-arrow-up"></i>
+                    @Localizer["Change Email"]
+                </button>
+            </form>
+            <span asp-validation-for="EmailInput.NewEmail" class="text-red-500 dark:text-red-400 text-sm"></span>
+
+            @if (!Model.IsEmailConfirmed)
+            {
+                <form method="post" asp-page-handler="SendVerificationEmail">
+                    <button type="submit" class="text-sm text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1">
+                        <i class="bi bi-send"></i> @Localizer["Resend verification email"]
+                    </button>
+                </form>
+            }
+        </div>
+    </section>
+
+    <!-- ── 2. Password ────────────────────────────────────────────── -->
+    <section class="space-y-4">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center">
+                <i class="bi bi-key text-indigo-600 dark:text-indigo-400"></i>
+            </div>
+            <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200">
+                @(Model.HasPassword ? Localizer["Change Password"] : Localizer["Set Password"])
+            </h3>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+            <form method="post" asp-page-handler="ChangePassword" class="space-y-3">
+                @if (Model.HasPassword)
+                {
+                    <div class="relative">
+                        <label asp-for="PasswordInput.OldPassword" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Current Password"]</label>
+                        <input asp-for="PasswordInput.OldPassword" type="password" id="oldPassword"
+                               class="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all pr-12 text-sm" />
+                        <button type="button" onclick="togglePassword('oldPassword', this)"
+                                class="absolute right-3 top-9 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <span asp-validation-for="PasswordInput.OldPassword" class="text-red-500 dark:text-red-400 text-sm"></span>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["You don't have a password yet. Set one to enable password login alongside your external account."]</p>
+                }
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="relative">
+                        <label asp-for="PasswordInput.NewPassword" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["New Password"]</label>
+                        <input asp-for="PasswordInput.NewPassword" type="password" id="newPassword"
+                               class="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all pr-12 text-sm" />
+                        <button type="button" onclick="togglePassword('newPassword', this)"
+                                class="absolute right-3 top-9 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <span asp-validation-for="PasswordInput.NewPassword" class="text-red-500 dark:text-red-400 text-sm"></span>
+                    </div>
+                    <div class="relative">
+                        <label asp-for="PasswordInput.ConfirmPassword" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Confirm Password"]</label>
+                        <input asp-for="PasswordInput.ConfirmPassword" type="password" id="confirmPassword"
+                               class="w-full px-4 py-2.5 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all pr-12 text-sm" />
+                        <button type="button" onclick="togglePassword('confirmPassword', this)"
+                                class="absolute right-3 top-9 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <span asp-validation-for="PasswordInput.ConfirmPassword" class="text-red-500 dark:text-red-400 text-sm"></span>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-xl transition-colors">
+                        <i class="bi bi-key-fill"></i>
+                        @(Model.HasPassword ? Localizer["Update Password"] : Localizer["Set Password"])
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- ── 3. External Logins ─────────────────────────────────────── -->
+    <section class="space-y-4">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
+                <i class="bi bi-link-45deg text-purple-600 dark:text-purple-400"></i>
+            </div>
+            <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200">@Localizer["Linked Accounts"]</h3>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700">
+            @if (Model.CurrentLogins?.Count > 0)
+            {
+                foreach (var login in Model.CurrentLogins)
+                {
+                    <div class="flex items-center justify-between p-4">
+                        <div class="flex items-center gap-3">
+                            <i class="bi bi-person-check text-slate-500 dark:text-slate-400 text-lg"></i>
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">@login.LoginProvider</span>
+                        </div>
+                        @if (Model.ShowRemoveButton)
+                        {
+                            <form method="post" asp-page-handler="RemoveLogin">
+                                <input type="hidden" name="loginProvider" value="@login.LoginProvider" />
+                                <input type="hidden" name="providerKey" value="@login.ProviderKey" />
+                                <button type="submit"
+                                        class="text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 font-medium transition-colors">
+                                    @Localizer["Unlink"]
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="p-4 text-sm text-slate-500 dark:text-slate-400">
+                    @Localizer["No external accounts linked."]
+                </div>
+            }
+
+            @if (Model.OtherLogins?.Count > 0)
+            {
+                <div class="p-4 space-y-2">
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">@Localizer["Add another account"]</p>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach (var provider in Model.OtherLogins)
+                        {
+                            <form method="post" asp-page-handler="LinkLogin">
+                                <input type="hidden" name="provider" value="@provider.Name" />
+                                <button type="submit"
+                                        class="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600 text-sm font-medium rounded-xl transition-colors">
+                                    <i class="bi bi-@(provider.Name.ToLower())"></i>
+                                    @provider.DisplayName
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </section>
+
+    <!-- ── 4. Two-Factor Authentication (Stub) ───────────────────── -->
+    <section class="space-y-4">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-green-50 dark:bg-green-900/30 flex items-center justify-center">
+                <i class="bi bi-shield-lock text-green-600 dark:text-green-400"></i>
+            </div>
+            <div class="flex items-center gap-3">
+                <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200">@Localizer["Two-Factor Authentication"]</h3>
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-0.5 rounded-full">
+                    <i class="bi bi-clock-history"></i> @Localizer["Coming Soon"]
+                </span>
+            </div>
+        </div>
+
+        <div class="bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-700 p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                <i class="bi bi-shield-shaded text-green-600 dark:text-green-400 text-xl"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Protect your account with 2FA"]</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                    @Localizer["Two-factor authentication adds an extra layer of security using an authenticator app. This feature will be available soon."]
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── 5. Data & Privacy ──────────────────────────────────────── -->
+    <section class="space-y-4">
+        <button type="button" id="privacyToggle"
+                class="flex items-center justify-between w-full text-left group"
+                onclick="togglePrivacy()">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-900/30 flex items-center justify-center">
+                    <i class="bi bi-database text-red-600 dark:text-red-400"></i>
+                </div>
+                <h3 class="text-base font-semibold text-slate-800 dark:text-slate-200">@Localizer["Data & Privacy"]</h3>
+            </div>
+            <i id="privacyChevron" class="bi bi-chevron-down text-slate-400 dark:text-slate-500 transition-transform duration-200 @(Model.OpenPrivacySection ? "rotate-180" : "")"></i>
+        </button>
+
+        <div id="privacySection" class="@(Model.OpenPrivacySection ? string.Empty : "hidden") space-y-4">
+            <!-- Download Data -->
+            <div class="bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between gap-4">
+                <div>
+                    <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Download Your Data"]</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Get a JSON copy of all personal data associated with your account (GDPR)."]</p>
+                </div>
+                <form method="post" asp-page-handler="DownloadData">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-600 text-sm font-medium rounded-xl transition-colors whitespace-nowrap">
+                        <i class="bi bi-download"></i>
+                        @Localizer["Download"]
+                    </button>
+                </form>
+            </div>
+
+            <!-- Delete Account -->
+            @if (Model.HasActiveRentals)
+            {
+                <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-3">
+                    <i class="bi bi-exclamation-triangle-fill text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0"></i>
+                    <p class="text-sm text-amber-800 dark:text-amber-200">
+                        @Localizer["Account deletion is disabled while you have active rentals. Please complete or cancel all rentals first."]
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800 p-4 space-y-4">
+                    <div>
+                        <p class="text-sm font-semibold text-red-700 dark:text-red-300">@Localizer["Delete Account"]</p>
+                        <p class="text-xs text-red-600 dark:text-red-400 mt-0.5">@Localizer["This action is permanent and cannot be undone."]</p>
+                    </div>
+
+                    <!-- Delete Mode Toggle -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label class="relative flex items-start gap-3 p-3 bg-white dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600 rounded-xl cursor-pointer has-[:checked]:border-red-500 has-[:checked]:bg-red-50 dark:has-[:checked]:bg-red-900/20 transition-all">
+                            @if (!(Model.DeleteInput?.DeleteAllData ?? false))
+                            {
+                                <input type="radio" name="deleteMode" value="anonymize" class="mt-0.5 text-red-600" checked onchange="setDeleteMode(false)" />
+                            }
+                            else
+                            {
+                                <input type="radio" name="deleteMode" value="anonymize" class="mt-0.5 text-red-600" onchange="setDeleteMode(false)" />
+                            }
+                            <div>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Anonymize Account"]</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Clears your personal data, but preserves rental history and reviews for platform integrity."]</p>
+                            </div>
+                        </label>
+                        <label class="relative flex items-start gap-3 p-3 bg-white dark:bg-slate-700/50 border-2 border-slate-200 dark:border-slate-600 rounded-xl cursor-pointer has-[:checked]:border-red-500 has-[:checked]:bg-red-50 dark:has-[:checked]:bg-red-900/20 transition-all">
+                            @if (Model.DeleteInput?.DeleteAllData ?? false)
+                            {
+                                <input type="radio" name="deleteMode" value="full" class="mt-0.5 text-red-600" checked onchange="setDeleteMode(true)" />
+                            }
+                            else
+                            {
+                                <input type="radio" name="deleteMode" value="full" class="mt-0.5 text-red-600" onchange="setDeleteMode(true)" />
+                            }
+                            <div>
+                                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["Delete All Data"]</p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Permanently removes all your items, reviews, and rental records from the platform."]</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <form method="post" asp-page-handler="DeleteAccount" class="space-y-3">
+                        <input type="hidden" asp-for="DeleteInput.DeleteAllData" id="deleteAllDataInput" value="false" />
+
+                        @if (Model.RequirePassword)
+                        {
+                            <div>
+                                <label asp-for="DeleteInput.Password" class="block text-sm font-medium text-red-700 dark:text-red-300 mb-1">@Localizer["Confirm your password to continue"]</label>
+                                <input asp-for="DeleteInput.Password" type="password"
+                                       class="w-full px-4 py-2.5 border border-red-300 dark:border-red-700 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-sm"
+                                       placeholder="••••••••" />
+                                <span asp-validation-for="DeleteInput.Password" class="text-red-500 dark:text-red-400 text-sm mt-1 block"></span>
+                            </div>
+                        }
+
+                        <div asp-validation-summary="ModelOnly" class="text-red-700 dark:text-red-300 text-sm"></div>
+
+                        <div class="flex justify-end">
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                                <i class="bi bi-trash3-fill"></i>
+                                @Localizer["Delete Account"]
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // ── Password show/hide ────────────────────────────────────────────
+        function togglePassword(id, btn) {
+            const input = document.getElementById(id);
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            btn.querySelector('i').className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
+        }
+
+        // ── Data & Privacy expand/collapse ────────────────────────────────
+        function togglePrivacy() {
+            const section = document.getElementById('privacySection');
+            const chevron = document.getElementById('privacyChevron');
+            const isHidden = section.classList.contains('hidden');
+            section.classList.toggle('hidden', !isHidden);
+            chevron.classList.toggle('rotate-180', isHidden);
+        }
+
+        // ── Delete mode toggle ────────────────────────────────────────────
+        function setDeleteMode(deleteAll) {
+            document.getElementById('deleteAllDataInput').value = deleteAll ? 'true' : 'false';
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const keepOpen = @Model.OpenPrivacySection.ToString().ToLowerInvariant();
+            if (!keepOpen) return;
+
+            const section = document.getElementById('privacySection');
+            const toggle = document.getElementById('privacyToggle');
+            if (section && toggle) {
+                section.classList.remove('hidden');
+                toggle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    </script>
+}

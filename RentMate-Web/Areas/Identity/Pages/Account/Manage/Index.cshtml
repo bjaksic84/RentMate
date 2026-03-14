@@ -1,4 +1,4 @@
-﻿@page
+@page
 @using Microsoft.AspNetCore.Mvc.Localization
 @model IndexModel
 @inject IViewLocalizer Localizer
@@ -7,76 +7,205 @@
     ViewData["ActivePage"] = ManageNavPages.Index;
 }
 
-<div class="space-y-6">
+<div class="space-y-8">
     <!-- Page Header -->
-    <div class="border-b border-slate-200 pb-4">
-        <h2 class="font-heading text-xl font-bold text-slate-900">@Localizer["Profile Information"]</h2>
-        <p class="text-sm text-slate-500 mt-1">@Localizer["Update your personal information and profile picture"]</p>
+    <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
+        <h2 class="font-heading text-xl font-bold text-slate-900 dark:text-slate-100">@Localizer["Profile Information"]</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">@Localizer["Update your personal information and profile picture"]</p>
     </div>
 
     <partial name="_StatusMessage" model="Model.StatusMessage" />
 
-    <form id="profile-form" method="post" enctype="multipart/form-data" class="space-y-8">
-        <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"></div>
-        
-        <!-- Profile Picture Section -->
-        <div class="flex flex-col sm:flex-row items-start gap-6">
-            <div class="flex-shrink-0">
-                <div class="relative">
-                    <img id="profilePreview" 
-                         src="@(string.IsNullOrEmpty(Model.Input?.ProfilePictureUrl) ? "https://via.placeholder.com/150?text=No+Image" : Model.Input.ProfilePictureUrl)" 
-                         class="w-32 h-32 rounded-2xl object-cover border-2 border-slate-200 shadow-sm" 
-                         alt="Profile Picture" />
-                    <label for="fileUpload" class="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-lg transition-colors">
-                        <i class="bi bi-camera-fill"></i>
-                    </label>
-                    <input type="file" id="fileUpload" asp-for="Input.NewProfilePicture" class="hidden" accept="image/*" onchange="previewImage(this)" />
-                </div>
-                <p class="text-xs text-slate-500 mt-3 text-center">@Localizer["Click to change"]</p>
-            </div>
+    <form id="profile-form" method="post" enctype="multipart/form-data" class="space-y-10">
+        <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-300 text-sm"></div>
 
-            <div class="flex-1 space-y-4 w-full">
-                <!-- Username (readonly) -->
-                <div>
-                    <label asp-for="Username" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Username"]</label>
-                    <input asp-for="Username" class="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed" disabled />
-                    <p class="text-xs text-slate-400 mt-1">@Localizer["Username cannot be changed"]</p>
+        <!-- ── 1. Profile Picture ─────────────────────────────────────── -->
+        <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">@Localizer["Profile Picture"]</h3>
+            <div class="flex flex-col sm:flex-row items-start gap-6">
+                <div class="flex-shrink-0">
+                    <div class="relative group">
+                        <img id="profilePreview"
+                             src="@(string.IsNullOrEmpty(Model.Input?.ProfilePictureUrl) ? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString((Model.Input?.FirstName ?? "") + "+" + (Model.Input?.LastName ?? "")) + "&background=3b82f6&color=fff&size=128" : Model.Input.ProfilePictureUrl)"
+                             class="w-32 h-32 rounded-2xl object-cover border-2 border-slate-200 dark:border-slate-600 shadow-sm"
+                             alt="@Localizer["Profile Picture"]" />
+                        <label for="fileUpload"
+                               class="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                            <i class="bi bi-camera-fill text-white text-2xl"></i>
+                        </label>
+                        <label for="fileUpload"
+                               class="absolute -bottom-2 -right-2 w-9 h-9 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center cursor-pointer shadow-lg transition-colors">
+                            <i class="bi bi-camera-fill text-sm"></i>
+                        </label>
+                        <input type="file" id="fileUpload" asp-for="Input.NewProfilePicture" class="hidden" accept="image/*" onchange="previewImage(this)" />
+                    </div>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-4 text-center">@Localizer["Click to change"]</p>
                 </div>
-
-                <!-- Name Fields -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label asp-for="Input.FirstName" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["First Name"]</label>
-                        <input asp-for="Input.FirstName" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="@Localizer["Enter your first name"]" />
-                    </div>
-                    <div>
-                        <label asp-for="Input.LastName" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Last Name"]</label>
-                        <input asp-for="Input.LastName" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="@Localizer["Enter your last name"]" />
-                    </div>
+                <div class="flex-1 bg-slate-50 dark:bg-slate-700/30 rounded-xl p-4 text-sm text-slate-500 dark:text-slate-400 space-y-1">
+                    <p class="font-medium text-slate-700 dark:text-slate-300">@Localizer["Photo guidelines"]</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>@Localizer["Square images work best"]</li>
+                        <li>@Localizer["At least 128×128 pixels"]</li>
+                        <li>@Localizer["JPG, PNG or WebP format"]</li>
+                    </ul>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Location & Phone -->
-        <div class="space-y-4">
+        <!-- ── 2. Identity ────────────────────────────────────────────── -->
+        <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">@Localizer["Identity"]</h3>
+
+            <!-- Email -->
             <div>
-                <label asp-for="Input.City" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Location (City)"]</label>
-                <select asp-for="Input.City" asp-items="Model.CityOptions" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all">
+                <label asp-for="Input.Email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Email Address"]</label>
+                <input asp-for="Input.Email" readonly
+                       class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                       placeholder="name@example.com" />
+                <span asp-validation-for="Input.Email" class="text-red-500 dark:text-red-400 text-sm mt-1 block"></span>
+            </div>
+
+            <!-- Username -->
+            <div>
+                <label asp-for="Input.Username" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Username"]</label>
+                <input asp-for="Input.Username"
+                       class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                       placeholder="username" />
+                <span asp-validation-for="Input.Username" class="text-red-500 dark:text-red-400 text-sm mt-1 block"></span>
+                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">@Localizer["Username uses only the part before @ in your email."]</p>
+            </div>
+
+            <!-- Name -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label asp-for="Input.FirstName" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["First Name"]</label>
+                    <input asp-for="Input.FirstName"
+                           class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                           placeholder="@Localizer["Enter your first name"]" />
+                </div>
+                <div>
+                    <label asp-for="Input.LastName" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Last Name"]</label>
+                    <input asp-for="Input.LastName"
+                           class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                           placeholder="@Localizer["Enter your last name"]" />
+                </div>
+            </div>
+        </section>
+
+        <!-- ── 3. Bio / About Me ──────────────────────────────────────── -->
+        <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">@Localizer["About Me"]</h3>
+            <div>
+                <label asp-for="Input.Bio" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Bio"]</label>
+                <textarea asp-for="Input.Bio" id="bioTextarea" rows="4" maxlength="500"
+                          class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+                          placeholder="@Localizer["Tell renters a bit about yourself..."]"
+                          oninput="updateCharCount(this)"></textarea>
+                <div class="flex justify-between mt-1">
+                    <span asp-validation-for="Input.Bio" class="text-red-500 dark:text-red-400 text-sm"></span>
+                    <span id="bioCharCount" class="text-xs text-slate-400 dark:text-slate-500">
+                        <span id="bioCount">@(Model.Input?.Bio?.Length ?? 0)</span>/500
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── 4. Location ────────────────────────────────────────────── -->
+        <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">@Localizer["Location"]</h3>
+
+            <div>
+                <label asp-for="Input.City" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["City"]</label>
+                <select asp-for="Input.City" asp-items="Model.CityOptions" id="citySelect"
+                        class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
                     <option value="">@Localizer["-- Select a city --"]</option>
                 </select>
-                <span asp-validation-for="Input.City" class="text-red-500 text-sm"></span>
             </div>
 
             <div>
-                <label asp-for="Input.PhoneNumber" class="block text-sm font-medium text-slate-700 mb-1">@Localizer["Phone Number"]</label>
-                <input asp-for="Input.PhoneNumber" class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" placeholder="@Localizer["Enter your phone number"]" />
-                <span asp-validation-for="Input.PhoneNumber" class="text-red-500 text-sm"></span>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-2">@Localizer["Refine your location on the map (optional)"]</p>
+                <div id="locationMap" class="h-64 rounded-xl border border-slate-200 dark:border-slate-600 z-0"></div>
+                <input type="hidden" asp-for="Input.Latitude" id="latInput" />
+                <input type="hidden" asp-for="Input.Longitude" id="lngInput" />
+                <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">@Localizer["Click the map to pin your exact location"]</p>
             </div>
-        </div>
+        </section>
 
-        <!-- Submit Button -->
-        <div class="flex justify-end pt-4 border-t border-slate-200">
-            <button id="update-profile-button" type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
+        <!-- ── 5. Contact ─────────────────────────────────────────────── -->
+        <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">@Localizer["Contact"]</h3>
+            <div>
+                <label asp-for="Input.PhoneNumber" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Phone Number"]</label>
+                <input asp-for="Input.PhoneNumber"
+                       class="w-full px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                       placeholder="+386 40 123 456" />
+                <span asp-validation-for="Input.PhoneNumber" class="text-red-500 dark:text-red-400 text-sm mt-1 block"></span>
+            </div>
+        </section>
+
+        <!-- ── 6. Preferences ─────────────────────────────────────────── -->
+        <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">@Localizer["Preferences"]</h3>
+
+            <!-- Language -->
+            <div>
+                <label asp-for="Input.PreferredLanguage" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">@Localizer["Preferred Language"]</label>
+                <select asp-for="Input.PreferredLanguage"
+                        class="w-full sm:w-48 px-4 py-3 border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    <option value="sl">🇸🇮 Slovenščina</option>
+                    <option value="en">🇬🇧 English</option>
+                </select>
+            </div>
+
+            <!-- Return Policy -->
+            <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div class="space-y-0.5">
+                    <p class="text-sm font-medium text-slate-800 dark:text-slate-200">@Localizer["Accept Returns"]</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">@Localizer["Let renters know you accept returns on your items"]</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input asp-for="Input.HasReturnPolicy" type="checkbox" class="sr-only peer" />
+                    <div class="w-11 h-6 bg-slate-200 dark:bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+                </label>
+            </div>
+        </section>
+
+        <!-- ── 7. Notifications ───────────────────────────────────────── -->
+        <section class="space-y-4">
+            <h3 class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">@Localizer["Email Notifications"]</h3>
+            <div class="space-y-3">
+
+                @{
+                    var notifItems = new[]
+                    {
+                        ("Input.NotifyOnRentalRequest",  Model.Input?.NotifyOnRentalRequest ?? true,  Localizer["Rental Requests"].Value,    Localizer["Get notified when someone requests to rent your item"].Value),
+                        ("Input.NotifyOnMessage",        Model.Input?.NotifyOnMessage ?? true,        Localizer["Messages"].Value,           Localizer["Get notified when you receive a new message"].Value),
+                        ("Input.NotifyOnReview",         Model.Input?.NotifyOnReview ?? true,         Localizer["Reviews"].Value,            Localizer["Get notified when someone leaves you a review"].Value),
+                        ("Input.NotifyOnRentalStatusChange", Model.Input?.NotifyOnRentalStatusChange ?? true, Localizer["Status Changes"].Value, Localizer["Get notified when your rental status changes"].Value),
+                    };
+                }
+
+                @foreach (var (forAttr, isChecked, label, desc) in notifItems)
+                {
+                    <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div class="space-y-0.5">
+                            <p class="text-sm font-medium text-slate-800 dark:text-slate-200">@label</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">@desc</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input name="@forAttr" type="checkbox" value="true" @(isChecked ? "checked" : "") class="sr-only peer" />
+                            <input name="@forAttr" type="hidden" value="false" />
+                            <div class="w-11 h-6 bg-slate-200 dark:bg-slate-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-all after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+                        </label>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Submit -->
+        <div class="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
                 <i class="bi bi-check-lg"></i>
                 @Localizer["Save Changes"]
             </button>
@@ -85,17 +214,76 @@
 </div>
 
 @section Scripts {
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+
     <partial name="_ValidationScriptsPartial" />
-    
+
+    <!-- Leaflet JS -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
+        // ── City coordinates data from server ────────────────────────────
+        const cityCoords = @Html.Raw(Model.CityCoordinatesJson);
+
+        // ── Initial position ─────────────────────────────────────────────
+        const initLat = @(Model.Input?.Latitude?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "46.15");
+        const initLng = @(Model.Input?.Longitude?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "14.99");
+        const initZoom = (initLat !== 46.15 || initLng !== 14.99) ? 13 : 8;
+
+        // ── Map init ─────────────────────────────────────────────────────
+        const map = L.map('locationMap').setView([initLat, initLng], initZoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        let marker = null;
+        if (initLat !== 46.15 || initLng !== 14.99) {
+            marker = L.marker([initLat, initLng]).addTo(map);
+        }
+
+        // ── Map click handler ─────────────────────────────────────────────
+        map.on('click', function (e) {
+            const { lat, lng } = e.latlng;
+            document.getElementById('latInput').value = lat.toFixed(6);
+            document.getElementById('lngInput').value = lng.toFixed(6);
+            if (marker) {
+                marker.setLatLng([lat, lng]);
+            } else {
+                marker = L.marker([lat, lng]).addTo(map);
+            }
+        });
+
+        // ── City dropdown → map centering ────────────────────────────────
+        document.getElementById('citySelect').addEventListener('change', function () {
+            const name = this.value;
+            const city = cityCoords.find(c => c.name === name);
+            if (city) {
+                map.setView([city.lat, city.lng], 12);
+                document.getElementById('latInput').value = city.lat.toFixed(6);
+                document.getElementById('lngInput').value = city.lng.toFixed(6);
+                if (marker) {
+                    marker.setLatLng([city.lat, city.lng]);
+                } else {
+                    marker = L.marker([city.lat, city.lng]).addTo(map);
+                }
+            }
+        });
+
+        // ── Profile picture preview ───────────────────────────────────────
         function previewImage(input) {
             if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
+                const reader = new FileReader();
+                reader.onload = e => {
                     document.getElementById('profilePreview').src = e.target.result;
-                }
+                };
                 reader.readAsDataURL(input.files[0]);
             }
+        }
+
+        // ── Bio character count ───────────────────────────────────────────
+        function updateCharCount(textarea) {
+            document.getElementById('bioCount').textContent = textarea.value.length;
         }
     </script>
 }

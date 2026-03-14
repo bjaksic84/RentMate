@@ -1,40 +1,17 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
-@inject SignInManager<ApplicationUser> SignInManager
-@{
-    var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
-}
 
-<nav class="p-2">
-    <a asp-page="./Index" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.IndexNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
+<nav class="p-2 space-y-1">
+    <a asp-page="./Index" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.IndexNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-100")">
         <i class="bi bi-person text-lg"></i>
         @Localizer["Profile"]
     </a>
-    <a asp-page="./Email" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.EmailNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
-        <i class="bi bi-envelope text-lg"></i>
-        @Localizer["Email"]
-    </a>
-    <a asp-page="./ChangePassword" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.ChangePasswordNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
-        <i class="bi bi-key text-lg"></i>
-        @Localizer["Password"]
-    </a>
-    @if (hasExternalLogins)
-    {
-        <a asp-page="./ExternalLogins" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.ExternalLoginsNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
-            <i class="bi bi-link-45deg text-lg"></i>
-            @Localizer["External logins"]
-        </a>
-    }
-    <a asp-page="./TwoFactorAuthentication" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
+    <a asp-page="./Security" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.SecurityNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-100")">
         <i class="bi bi-shield-lock text-lg"></i>
-        @Localizer["Two-factor authentication"]
+        @Localizer["Security"]
     </a>
-    <a asp-page="./PaymentMethods" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.PaymentMethodsNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
+    <a asp-page="./PaymentMethods" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.PaymentMethodsNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-slate-100")">
         <i class="bi bi-credit-card text-lg"></i>
         @Localizer["Payment Methods"]
-    </a>
-    <a asp-page="./PersonalData" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all @(ManageNavPages.PersonalDataNavClass(ViewContext) == "active" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900")">
-        <i class="bi bi-database text-lg"></i>
-        @Localizer["Personal data"]
     </a>
 </nav>

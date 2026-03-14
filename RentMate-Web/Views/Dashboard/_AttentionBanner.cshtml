@@ -68,7 +68,7 @@
                                     @Localizer["Rental request"]: <strong>@rental.Item?.Title</strong>
                                 </p>
                                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.Email) &mdash; @FormatDateRange(rental.StartDate, rental.EndDate)
+                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.UserName) &mdash; @FormatDateRange(rental.StartDate, rental.EndDate)
                                 </p>
                             </div>
                         </div>
@@ -103,7 +103,7 @@
                                         @Localizer["Extension request"]: <strong>@ext.Rental?.Item?.Title</strong>
                                     </p>
                                     <p class="text-xs text-slate-500 dark:text-slate-400">
-                                        @Localizer["From"] @(ext.RequestedBy?.FirstName ?? ext.RequestedBy?.Email) &mdash;
+                                        @Localizer["From"] @(ext.RequestedBy?.FirstName ?? ext.RequestedBy?.UserName) &mdash;
                                         @ext.OriginalEndDate.ToString("dd MMM") → @ext.NewEndDate.ToString("dd MMM yyyy")
                                         (+@CurrencyService.Format(ext.AdditionalCost))
                                     </p>

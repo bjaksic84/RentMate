@@ -54,6 +54,20 @@ public class ApplicationUser : IdentityUser
     /// </summary>
     public bool OnboardingCompleted { get; set; }
 
+    // ── Preferences ───────────────────────────────────────────────────
+    /// <summary>Preferred UI language ("sl" or "en"). Defaults to Slovenian.</summary>
+    public string PreferredLanguage { get; set; } = "sl";
+
+    // ── Notification Preferences ──────────────────────────────────────
+    /// <summary>Receive email notifications when a new rental request is made.</summary>
+    public bool NotifyOnRentalRequest { get; set; } = true;
+    /// <summary>Receive email notifications for new messages.</summary>
+    public bool NotifyOnMessage { get; set; } = true;
+    /// <summary>Receive email notifications when a new review is posted.</summary>
+    public bool NotifyOnReview { get; set; } = true;
+    /// <summary>Receive email notifications for rental status changes.</summary>
+    public bool NotifyOnRentalStatusChange { get; set; } = true;
+
     // Navigation properties
     public ICollection<Item>? Items { get; set; }
     public ICollection<Rental>? RentalsAsRenter { get; set; }

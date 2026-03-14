@@ -27,6 +27,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         #region Dependencies
 
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginModel> _logger;
         private readonly IStringLocalizer<LoginModel> _localizer;
 
@@ -35,11 +36,13 @@ namespace RentMate.Areas.Identity.Pages.Account
         #region Constructor
 
         public LoginModel(
-            SignInManager<ApplicationUser> signInManager, 
+            SignInManager<ApplicationUser> signInManager,
+            UserManager<ApplicationUser> userManager,
             ILogger<LoginModel> logger,
             IStringLocalizer<LoginModel> localizer)
         {
             _signInManager = signInManager;
+            _userManager = userManager;
             _logger = logger;
             _localizer = localizer;
         }
@@ -121,8 +124,15 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task<IActionResult> AttemptSignInAsync()
         {
+            var user = await _userManager.FindByEmailAsync(Input.Email);
+            if (user == null)
+            {
+                ModelState.AddModelError(string.Empty, _localizer[InvalidLoginKey]);
+                return Page();
+            }
+
             var result = await _signInManager.PasswordSignInAsync(
-                Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
 
             if (result.Succeeded)
             {

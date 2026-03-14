@@ -11,9 +11,9 @@
 
 <div class="space-y-6">
     <!-- Page Header -->
-    <div class="border-b border-slate-200 pb-4">
-        <h2 class="font-heading text-xl font-bold text-slate-900">@Localizer["Payment Methods"]</h2>
-        <p class="text-sm text-slate-500 mt-1">@Localizer["Manage your saved cards for rentals and deposits"]</p>
+    <div class="border-b border-slate-200 dark:border-slate-700 pb-4">
+        <h2 class="font-heading text-xl font-bold text-slate-900 dark:text-slate-100">@Localizer["Payment Methods"]</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">@Localizer["Manage your saved cards for rentals and deposits"]</p>
     </div>
 
     <partial name="_StatusMessage" model="Model.StatusMessage" />
@@ -24,10 +24,10 @@
         <div class="space-y-3">
             @foreach (var card in Model.SavedCards)
             {
-                <div class="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-slate-300 transition-colors">
+                <div class="flex items-center justify-between p-4 bg-white dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
                     <div class="flex items-center gap-4">
                         <!-- Card brand icon -->
-                        <div class="w-12 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                        <div class="w-12 h-8 rounded-lg bg-slate-100 dark:bg-slate-600 flex items-center justify-center">
                             @{
                                 var brandIcon = card.Brand.ToLower() switch
                                 {
@@ -44,23 +44,23 @@
                                     _ => card.Brand
                                 };
                             }
-                            <i class="bi @brandIcon text-slate-500 text-lg"></i>
+                            <i class="bi @brandIcon text-slate-500 dark:text-slate-300 text-lg"></i>
                         </div>
                         <div>
-                            <p class="text-sm font-semibold text-slate-900">
+                            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">
                                 @brandLabel &bull;&bull;&bull;&bull; @card.Last4
                                 @if (card.IsDefault)
                                 {
                                     <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">@Localizer["Default"]</span>
                                 }
                             </p>
-                            <p class="text-xs text-slate-400">@Localizer["Expires"] @card.ExpMonth.ToString("00")/@card.ExpYear</p>
+                            <p class="text-xs text-slate-400 dark:text-slate-500">@Localizer["Expires"] @card.ExpMonth.ToString("00")/@card.ExpYear</p>
                         </div>
                     </div>
                     <form method="post" asp-page-handler="Remove" asp-route-paymentMethodId="@card.Id"
                           onsubmit="return confirm('@Localizer["Remove this card?"]');">
                         <button type="submit"
-                                class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                class="p-2 text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                 title="@Localizer["Remove"]">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -71,17 +71,17 @@
     }
     else
     {
-        <div class="text-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-            <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                <i class="bi bi-credit-card text-slate-400 text-2xl"></i>
+        <div class="text-center py-10 bg-slate-50 dark:bg-slate-700/20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+            <div class="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto mb-4">
+                <i class="bi bi-credit-card text-slate-400 dark:text-slate-500 text-2xl"></i>
             </div>
-            <p class="text-slate-500 font-medium">@Localizer["No payment methods yet"]</p>
-            <p class="text-sm text-slate-400 mt-1">@Localizer["Add a card to speed up your rental payments"]</p>
+            <p class="text-slate-500 dark:text-slate-400 font-medium">@Localizer["No payment methods yet"]</p>
+            <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">@Localizer["Add a card to speed up your rental payments"]</p>
         </div>
     }
 
     <!-- Add Card Section -->
-    <div class="border-t border-slate-200 pt-6">
+    <div class="border-t border-slate-200 dark:border-slate-700 pt-6">
         <div id="addCardSection">
             <button id="showCardFormBtn" type="button"
                     class="inline-flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
@@ -92,12 +92,12 @@
 
         <!-- Card form (hidden until "Add a card" is clicked) -->
         <div id="cardFormContainer" class="hidden mt-4">
-            <div class="bg-white border border-slate-200 rounded-2xl p-6 space-y-5">
-                <h3 class="font-heading text-lg font-bold text-slate-900">@Localizer["Add new card"]</h3>
+            <div class="bg-white dark:bg-slate-700/30 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 space-y-5">
+                <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-slate-100">@Localizer["Add new card"]</h3>
 
                 <!-- Stripe Elements mount point -->
-                <div id="card-element" class="p-4 border border-slate-200 rounded-xl bg-white min-h-[44px]"></div>
-                <div id="card-errors" class="text-sm text-red-600 hidden"></div>
+                <div id="card-element" class="p-4 border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 min-h-[44px]"></div>
+                <div id="card-errors" class="text-sm text-red-600 dark:text-red-400 hidden"></div>
 
                 <div class="flex items-center gap-3">
                     <button id="submitCardBtn" type="button"
@@ -111,7 +111,7 @@
                     </button>
                 </div>
 
-                <p class="text-xs text-slate-400 flex items-center gap-1">
+                <p class="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
                     <i class="bi bi-lock"></i>
                     @Localizer["Secured by Stripe. Your card details never touch our servers."]
                 </p>
@@ -161,8 +161,9 @@
 
                 setupClientSecret = data.clientSecret;
 
-                // Mount Stripe Elements
-                elements = stripe.elements({ clientSecret: setupClientSecret, appearance: { theme: 'stripe' } });
+                // Mount Stripe Elements — use 'night' theme when dark mode is active
+                const isDark = document.documentElement.classList.contains('dark');
+                elements = stripe.elements({ clientSecret: setupClientSecret, appearance: { theme: isDark ? 'night' : 'stripe' } });
                 cardElement = elements.create('payment');
                 cardElement.mount('#card-element');
 
@@ -183,10 +184,11 @@
                 submitText.textContent = 'Saving...';
                 errorsEl.classList.add('hidden');
 
+                const confirmSetupUrl = '@Url.Page("./PaymentMethods", "ConfirmSetup", null, Request.Scheme)';
                 const { error } = await stripe.confirmSetup({
                     elements,
                     confirmParams: {
-                        return_url: window.location.origin + '/Identity/Account/Manage/PaymentMethods?handler=ConfirmSetup'
+                        return_url: confirmSetupUrl
                     },
                     redirect: 'if_required'
                 });

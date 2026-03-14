@@ -1,14 +1,20 @@
 @using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.AspNetCore.Identity
 @using RentMate.Shared.Contracts.Responses
 @using RentMate.Models.Domain
 @model RentMate.Models.ViewModels.DashboardViewModel
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+@inject UserManager<ApplicationUser> UserManager
 
 @{
     ViewData["Title"] = Localizer["Dashboard"];
     var activeMyRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
     var activeOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
+    var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
+    var rawName = currentUser?.UserName ?? User.Identity?.Name;
+    var atIndex = rawName?.IndexOf('@') ?? -1;
+    var displayName = atIndex > 0 ? rawName![..atIndex] : (rawName ?? string.Empty);
 }
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -16,7 +22,7 @@
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
             <h1 class="font-outfit text-3xl font-bold text-slate-900 dark:text-white">
-                @Localizer["Hello, {0}", User.Identity?.Name ?? ""]
+                @Localizer["Hello, {0}", displayName]
             </h1>
             <p class="text-slate-500 dark:text-slate-400 mt-1">
                 @Localizer["Manage your items, rentals, and borrowings in one place."]

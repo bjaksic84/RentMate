@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 @{
     if (ViewData.TryGetValue("ParentLayout", out var parentLayout) && parentLayout != null)
@@ -14,21 +14,21 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="font-heading text-3xl font-bold text-slate-900">@Localizer["Account Settings"]</h1>
-        <p class="text-slate-500 mt-1">@Localizer["Manage your account settings and preferences"]</p>
+        <h1 class="font-heading text-3xl font-bold text-slate-900 dark:text-slate-100">@Localizer["Account Settings"]</h1>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">@Localizer["Manage your account settings and preferences"]</p>
     </div>
 
     <div class="flex flex-col lg:flex-row gap-8">
         <!-- Sidebar Navigation -->
         <aside class="lg:w-64 flex-shrink-0">
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden sticky top-24">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden sticky top-24">
                 <partial name="_ManageNav" />
             </div>
         </aside>
 
         <!-- Main Content -->
         <div class="flex-1">
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 lg:p-8">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 lg:p-8">
                 @RenderBody()
             </div>
         </div>

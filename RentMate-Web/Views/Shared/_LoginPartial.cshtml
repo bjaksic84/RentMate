@@ -13,7 +13,9 @@
     var profilePic = !string.IsNullOrEmpty(user?.ProfilePictureUrl) 
                     ? user.ProfilePictureUrl 
                     : "https://via.placeholder.com/40?text=U"; 
-    var displayName = user?.FirstName ?? User.Identity?.Name ?? Localizer["User"].Value;
+    var rawName = user?.UserName ?? User.Identity?.Name;
+    var atIndex = rawName?.IndexOf('@') ?? -1;
+    var displayName = atIndex > 0 ? rawName![..atIndex] : (rawName ?? Localizer["User"].Value);
 
     <div class="relative" x-data="{ open: false }">
         <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors">

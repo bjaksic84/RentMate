@@ -48,7 +48,7 @@
                                 <span class="font-semibold text-green-600">@CurrencyService.Format(item.Price)</span>
                             </td>
                             <td class="px-6 py-4 hidden md:table-cell">
-                                <span class="text-slate-500 text-sm">@(item.User?.Email ?? Localizer["No user"].Value)</span>
+                                <span class="text-slate-500 text-sm">@(item.User?.UserName ?? Localizer["No user"].Value)</span>
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-end gap-2">

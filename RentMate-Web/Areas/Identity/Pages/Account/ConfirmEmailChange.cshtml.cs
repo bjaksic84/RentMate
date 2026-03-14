@@ -21,7 +21,6 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         private const string UserNotFoundKey = "Unable to load user with ID '{0}'.";
         private const string EmailChangeErrorKey = "Error changing email.";
-        private const string UsernameChangeErrorKey = "Error changing user name.";
         private const string EmailChangeSuccessKey = "Thank you for confirming your email change.";
 
         #endregion
@@ -70,7 +69,7 @@ namespace RentMate.Areas.Identity.Pages.Account
                 return NotFound(string.Format(_localizer[UserNotFoundKey], userId));
             }
 
-            return await ChangeEmailAndUsernameAsync(user, email, code);
+            return await ConfirmEmailChangeAsync(user, email, code);
         }
 
         #endregion
@@ -78,24 +77,17 @@ namespace RentMate.Areas.Identity.Pages.Account
         #region Private Helpers
 
         /// <summary>
-        /// Changes the user's email and username.
+        /// Confirms the email change token and updates the user's email.
+        /// Username is intentionally NOT synced — it is independently managed by the user.
         /// </summary>
-        private async Task<IActionResult> ChangeEmailAndUsernameAsync(ApplicationUser user, string email, string code)
+        private async Task<IActionResult> ConfirmEmailChangeAsync(ApplicationUser user, string email, string code)
         {
             var decodedCode = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
             var result = await _userManager.ChangeEmailAsync(user, email, decodedCode);
-            
+
             if (!result.Succeeded)
             {
                 StatusMessage = _localizer[EmailChangeErrorKey];
-                return Page();
-            }
-
-            // Email and username are the same in this app
-            var setUserNameResult = await _userManager.SetUserNameAsync(user, email);
-            if (!setUserNameResult.Succeeded)
-            {
-                StatusMessage = _localizer[UsernameChangeErrorKey];
                 return Page();
             }
 
