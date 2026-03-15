@@ -138,7 +138,11 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
 
 // --- MVC, Controllers, and SignalR ---
-builder.Services.AddControllersWithViews()
+builder.Services.AddControllersWithViews(options =>
+    {
+        // Redirect deactivated users to /Account/Deactivated on every authenticated request
+        options.Filters.Add<RentMate.Infrastructure.Filters.DeactivatedAccountFilter>();
+    })
     .AddViewLocalization()
     .AddDataAnnotationsLocalization(options =>
     {
@@ -280,6 +284,7 @@ builder.Services.AddScoped<IDepositService, DepositService>();
 builder.Services.AddScoped<IRentalExtensionService, RentalExtensionService>();
 builder.Services.AddScoped<IAccessoryService, AccessoryService>();
 builder.Services.AddHostedService<OverdueRentalService>();
+builder.Services.AddHostedService<DataRetentionService>();
 
 // --- Marketplace Ranking System ---
 builder.Services.AddScoped<IScoringService, ScoringService>();
@@ -287,6 +292,9 @@ builder.Services.AddHostedService<ScoringBackgroundService>();
 
 // --- Onboarding & Profile Completion ---
 builder.Services.AddScoped<IProfileCompletionService, ProfileCompletionService>();
+
+// --- Account Lifecycle (deactivation, reactivation, GDPR deletion) ---
+builder.Services.AddScoped<IAccountLifecycleService, AccountLifecycleService>();
 
 // ==========================================
 // 2. BUILD APP

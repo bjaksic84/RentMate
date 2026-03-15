@@ -78,11 +78,11 @@ namespace RentMate.Areas.Identity.Pages.Account
             if (!await IsValidUserForPasswordResetAsync(user))
             {
                 // Don't reveal that the user does not exist or is not confirmed
-                return RedirectToPage("./ForgotPasswordConfirmation");
+                return RedirectToPage("./Confirmation", new { type = "password-reset-sent" });
             }
 
             await SendPasswordResetEmailAsync(user);
-            return RedirectToPage("./ForgotPasswordConfirmation");
+            return RedirectToPage("./Confirmation", new { type = "password-reset-sent" });
         }
 
         #endregion

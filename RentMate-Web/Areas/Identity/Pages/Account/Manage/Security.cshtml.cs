@@ -15,7 +15,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
-using RentMate.Shared.Contracts.Responses;
 using RentMate.Services.Interfaces;
 
 namespace RentMate.Areas.Identity.Pages.Account.Manage
@@ -43,8 +42,6 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         private const string LoadExternalLoginError = "Unexpected error occurred loading external login info.";
 
         private const string IncorrectPasswordError = "Incorrect password.";
-        private const string DeleteErrorMessage = "Unexpected error occurred deleting user.";
-
         private const string DownloadFileName = "PersonalData.json";
         private const string JsonContentType = "application/json";
 
@@ -58,9 +55,8 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         private readonly IEmailSender _emailSender;
         private readonly ILogger<SecurityModel> _logger;
         private readonly RentMateContext _context;
-        private readonly IFileUploadService _fileUploadService;
-        private readonly IPaymentService _paymentService;
         private readonly IUserStore<ApplicationUser> _userStore;
+        private readonly IAccountLifecycleService _accountLifecycle;
 
         #endregion
 
@@ -72,17 +68,15 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             IEmailSender emailSender,
             ILogger<SecurityModel> logger,
             RentMateContext context,
-            IFileUploadService fileUploadService,
-            IPaymentService paymentService,
-            IUserStore<ApplicationUser> userStore)
+            IUserStore<ApplicationUser> userStore,
+            IAccountLifecycleService accountLifecycle)
             : base(userManager, signInManager)
         {
             _emailSender = emailSender;
             _logger = logger;
             _context = context;
-            _fileUploadService = fileUploadService;
-            _paymentService = paymentService;
             _userStore = userStore;
+            _accountLifecycle = accountLifecycle;
         }
 
         #endregion
@@ -151,12 +145,6 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         {
             [DataType(DataType.Password)]
             public string Password { get; set; }
-
-            /// <summary>
-            /// When true, performs full data deletion (all records removed).
-            /// When false, only anonymizes the account (footprint preserved).
-            /// </summary>
-            public bool DeleteAllData { get; set; }
         }
 
         #endregion
@@ -325,10 +313,42 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             var personalData = await CollectPersonalDataAsync(user);
 
             Response.Headers.TryAdd("Content-Disposition", $"attachment; filename={DownloadFileName}");
-            var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(personalData);
+            var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+            var jsonBytes = JsonSerializer.SerializeToUtf8Bytes(personalData, personalData.GetType(), jsonOptions);
             return new FileContentResult(jsonBytes, JsonContentType);
         }
 
+        /// <summary>Deactivates the account (reversible). User is redirected to the deactivated page.</summary>
+        public async Task<IActionResult> OnPostDeactivateAccountAsync()
+        {
+            var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
+            if (errorResult != null) return errorResult;
+
+            OpenPrivacySection = true;
+            RequirePassword = await UserManager.HasPasswordAsync(user);
+
+            if (await _accountLifecycle.HasActiveRentalsAsync(user.Id))
+            {
+                HasActiveRentals = true;
+                ModelState.AddModelError(string.Empty,
+                    "Cannot deactivate account while you have active, pending, or accepted rentals. " +
+                    "Please complete or cancel all rentals first.");
+                await LoadAllSectionDataAsync(user);
+                return Page();
+            }
+
+            if (!await ValidatePasswordIfRequiredAsync(user))
+            {
+                await LoadAllSectionDataAsync(user);
+                return Page();
+            }
+
+            await _accountLifecycle.DeactivateAccountAsync(user.Id, DeactivationSource.User);
+            await SignInManager.SignOutAsync();
+            return Redirect("~/");
+        }
+
+        /// <summary>Permanently deletes (anonymises) the account. Irreversible.</summary>
         public async Task<IActionResult> OnPostDeleteAccountAsync()
         {
             var (user, errorResult) = await GetCurrentUserOrNotFoundAsync();
@@ -337,7 +357,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             OpenPrivacySection = true;
             RequirePassword = await UserManager.HasPasswordAsync(user);
 
-            if (await HasActiveRentalsAsync(user.Id))
+            if (await _accountLifecycle.HasActiveRentalsAsync(user.Id))
             {
                 HasActiveRentals = true;
                 ModelState.AddModelError(string.Empty,
@@ -353,12 +373,8 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
                 return Page();
             }
 
-            var deleteAllData = DeleteInput?.DeleteAllData ?? false;
-            if (deleteAllData)
-                await DeleteAllUserDataAsync(user);
-            else
-                await AnonymizeUserAccountAsync(user);
-
+            await _accountLifecycle.DeleteAccountAsync(user.Id);
+            await SignInManager.SignOutAsync();
             return Redirect("~/");
         }
 
@@ -387,7 +403,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
             // Delete section
             RequirePassword = HasPassword;
-            HasActiveRentals = await HasActiveRentalsAsync(user.Id);
+            HasActiveRentals = await _accountLifecycle.HasActiveRentalsAsync(user.Id);
             DeleteInput ??= new DeleteInputModel();
         }
 
@@ -412,7 +428,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
 
             var callbackUrl = Url.Page(
-                "/Account/ConfirmEmailChange",
+                "/Account/ConfirmEmail",
                 pageHandler: null,
                 values: new { area = "Identity", userId, email = newEmail, code },
                 protocol: Request.Scheme);
@@ -446,36 +462,143 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
         #region Private Helpers — Download Data
 
-        private async Task<Dictionary<string, string>> CollectPersonalDataAsync(ApplicationUser user)
+        private async Task<object> CollectPersonalDataAsync(ApplicationUser user)
         {
-            var data = new Dictionary<string, string>();
+            var userId = user.Id;
 
-            var personalDataProps = typeof(ApplicationUser).GetProperties()
-                .Where(prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute)));
-            foreach (var prop in personalDataProps)
-                data.Add(prop.Name, prop.GetValue(user)?.ToString() ?? "null");
+            // --- Profile: fields marked [PersonalData] on ApplicationUser ---
+            var profile = typeof(ApplicationUser).GetProperties()
+                .Where(prop => Attribute.IsDefined(prop, typeof(PersonalDataAttribute)))
+                .ToDictionary(prop => prop.Name, prop => prop.GetValue(user)?.ToString() ?? "null");
 
+            // Augment profile with non-attribute fields relevant for GDPR export
+            profile["FirstName"] = user.FirstName ?? "null";
+            profile["LastName"] = user.LastName ?? "null";
+            profile["City"] = user.City ?? "null";
+            profile["Bio"] = user.Bio ?? "null";
+            profile["PreferredLanguage"] = user.PreferredLanguage;
+            profile["CreatedAt"] = user.CreatedAt.ToString("O");
+            profile["IsDeactivated"] = user.IsDeactivated.ToString();
+            profile["PrivacyPolicyVersion"] = user.PrivacyPolicyVersion ?? "null";
+            profile["PrivacyPolicyAcceptedAt"] = user.PrivacyPolicyAcceptedAt?.ToString("O") ?? "null";
+
+            // --- External logins ---
             var logins = await UserManager.GetLoginsAsync(user);
-            foreach (var login in logins)
-                data.Add($"{login.LoginProvider} external login provider key", login.ProviderKey);
+            var externalLogins = logins
+                .Select(l => new { l.LoginProvider, l.ProviderKey })
+                .ToList();
 
-            var key = await UserManager.GetAuthenticatorKeyAsync(user);
-            data.Add("Authenticator Key", key);
+            // --- 2FA ---
+            var authenticatorKey = await UserManager.GetAuthenticatorKeyAsync(user);
+            profile["AuthenticatorKeySet"] = (authenticatorKey != null).ToString();
 
-            return data;
+            // --- Items listed by this user ---
+            var items = await _context.Items
+                .Where(i => i.UserId == userId)
+                .Select(i => new {
+                    i.Id, i.Title, i.Description, i.Price, i.Category,
+                    i.Location, i.IsListed, i.IsAdminHidden, i.CreatedAt
+                })
+                .ToListAsync();
+
+            // --- Rentals where user was the renter ---
+            var rentalsAsRenter = await _context.Rentals
+                .Where(r => r.RenterId == userId)
+                .Select(r => new {
+                    r.Id,
+                    ItemTitle = r.Item != null ? r.Item.Title : null,
+                    r.StartDate, r.EndDate, r.Status, r.TotalPrice, r.CreatedAt
+                })
+                .ToListAsync();
+
+            // --- Rentals where user was the owner ---
+            var rentalsAsOwner = await _context.Rentals
+                .Where(r => r.OwnerId == userId)
+                .Select(r => new {
+                    r.Id,
+                    ItemTitle = r.Item != null ? r.Item.Title : null,
+                    RenterUsername = r.Renter != null ? r.Renter.UserName : null,
+                    r.StartDate, r.EndDate, r.Status, r.TotalPrice, r.CreatedAt
+                })
+                .ToListAsync();
+
+            // --- Reviews written by this user ---
+            var reviews = await _context.Reviews
+                .Where(r => r.ReviewerId == userId && !r.IsDeleted)
+                .Select(r => new {
+                    r.Id,
+                    ItemTitle = r.Item != null ? r.Item.Title : null,
+                    r.Rating, r.Title, r.Body, r.IsAnonymous, r.CreatedAt
+                })
+                .ToListAsync();
+
+            // --- Payment records ---
+            var payments = await _context.Payments
+                .Where(p => p.UserId == userId)
+                .Select(p => new {
+                    p.Id, p.RentalId, p.Amount, p.Status, p.CreatedAt
+                })
+                .ToListAsync();
+
+            // --- Favorited items ---
+            var favorites = await _context.AccountItemFavorites
+                .Where(f => f.AccountId == userId)
+                .Select(f => new {
+                    f.ItemId,
+                    ItemTitle = f.Item != null ? f.Item.Title : null,
+                    f.CreatedAt
+                })
+                .ToListAsync();
+
+            // --- Deposit/dispute records (rentals where user was renter) ---
+            var deposits = await _context.RentalDeposits
+                .Where(d => d.Rental.RenterId == userId)
+                .Select(d => new {
+                    d.Id, d.RentalId, d.Amount, d.Status,
+                    d.ChargedAmount, d.ChargeReason,
+                    d.DisputeReason, d.AuthorizedAt,
+                    d.ReleasedAt, d.ChargedAt, d.DisputedAt, d.CreatedAt
+                })
+                .ToListAsync();
+
+            // --- Extension requests made by this user ---
+            var extensions = await _context.RentalExtensions
+                .Where(e => e.RequestedByUserId == userId)
+                .Select(e => new {
+                    e.Id, e.RentalId, e.OriginalEndDate, e.NewEndDate,
+                    e.AdditionalCost, e.Status, e.CreatedAt
+                })
+                .ToListAsync();
+
+            // --- Cookie consent records ---
+            var cookieConsents = await _context.CookieConsents
+                .Where(c => c.UserId == userId)
+                .OrderBy(c => c.ConsentedAt)
+                .Select(c => new {
+                    c.NecessaryCookies, c.AnalyticsCookies,
+                    c.MarketingCookies, c.ConsentedAt
+                })
+                .ToListAsync();
+
+            return new
+            {
+                Profile = profile,
+                ExternalLogins = externalLogins,
+                Items = items,
+                RentalsAsRenter = rentalsAsRenter,
+                RentalsAsOwner = rentalsAsOwner,
+                Reviews = reviews,
+                Payments = payments,
+                Favorites = favorites,
+                Deposits = deposits,
+                Extensions = extensions,
+                CookieConsent = cookieConsents
+            };
         }
 
         #endregion
 
         #region Private Helpers — Delete Account
-
-        private async Task<bool> HasActiveRentalsAsync(string userId)
-        {
-            return await _context.Rentals.AnyAsync(r =>
-                (r.RenterId == userId || r.OwnerId == userId) &&
-                r.Status != RentalStatus.Completed &&
-                r.Status != RentalStatus.Cancelled);
-        }
 
         private async Task<bool> ValidatePasswordIfRequiredAsync(ApplicationUser user)
         {
@@ -495,163 +618,6 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             }
 
             return valid;
-        }
-
-        /// <summary>
-        /// Anonymizes the account: clears personal info, locks the account,
-        /// but preserves items/reviews/rental history on the platform.
-        /// </summary>
-        private async Task AnonymizeUserAccountAsync(ApplicationUser user)
-        {
-            var userId = user.Id;
-
-            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
-                await _fileUploadService.DeleteFileAsync(user.ProfilePictureUrl);
-
-            await CleanupStripeCustomerAsync(user.Email);
-
-            user.FirstName = "Deleted account";
-            user.LastName = null;
-            user.City = null;
-            user.ProfilePictureUrl = null;
-            user.PhoneNumber = null;
-            user.Bio = null;
-            user.CategoryAffinityJson = null;
-            user.Latitude = null;
-            user.Longitude = null;
-            user.HasPaymentMethodAdded = false;
-            user.IsPhoneVerified = false;
-            user.IsGovernmentIdVerified = false;
-            user.IsSocialMediaLinked = false;
-
-            var anonymousEmail = $"deleted_{userId[..8]}@deleted.rentmate.local";
-            await UserManager.SetEmailAsync(user, anonymousEmail);
-            await UserManager.SetUserNameAsync(user, anonymousEmail);
-
-            await UserManager.SetLockoutEnabledAsync(user, true);
-            await UserManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
-
-            if (await UserManager.HasPasswordAsync(user))
-                await UserManager.RemovePasswordAsync(user);
-
-            await UserManager.UpdateSecurityStampAsync(user);
-
-            var favorites = await _context.AccountItemFavorites
-                .Where(f => f.AccountId == userId)
-                .ToListAsync();
-            _context.AccountItemFavorites.RemoveRange(favorites);
-            await _context.SaveChangesAsync();
-
-            await SignInManager.SignOutAsync();
-            _logger.LogInformation("User {UserId} anonymized their account.", userId);
-        }
-
-        /// <summary>
-        /// Full deletion: removes all traces from the platform, then deletes the account.
-        /// </summary>
-        private async Task DeleteAllUserDataAsync(ApplicationUser user)
-        {
-            var userId = user.Id;
-
-            await using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                await CleanupAllUserReferencesAsync(userId, user.Email);
-
-                var result = await UserManager.DeleteAsync(user);
-                if (!result.Succeeded)
-                    throw new InvalidOperationException(DeleteErrorMessage);
-
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-
-            await SignInManager.SignOutAsync();
-            _logger.LogInformation("User {UserId} deleted all personal data and account.", userId);
-        }
-
-        private async Task CleanupAllUserReferencesAsync(string userId, string userEmail)
-        {
-            await CleanupCloudinaryImagesAsync(userId);
-            await CleanupStripeCustomerAsync(userEmail);
-
-            var reviews = await _context.Reviews.Where(r => r.ReviewerId == userId).ToListAsync();
-            _context.Reviews.RemoveRange(reviews);
-
-            var renterRentals = await _context.Rentals.Where(r => r.RenterId == userId).ToListAsync();
-            var renterRentalIds = renterRentals.Select(r => r.Id).ToList();
-            _context.Rentals.RemoveRange(renterRentals);
-
-            var payments = await _context.Payments.Where(p => p.UserId == userId).ToListAsync();
-            foreach (var payment in payments)
-                payment.UserId = null;
-
-            var extensions = await _context.RentalExtensions
-                .Where(e => e.RequestedByUserId == userId)
-                .ToListAsync();
-            _context.RentalExtensions.RemoveRange(extensions);
-
-            var evidenceOnOtherRentals = await _context.DisputeEvidences
-                .Where(e => e.SubmittedByUserId == userId)
-                .Where(e => !renterRentalIds.Contains(e.RentalDeposit.RentalId))
-                .ToListAsync();
-            _context.DisputeEvidences.RemoveRange(evidenceOnOtherRentals);
-
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("Cleaned up all data references for user {UserId}.", userId);
-        }
-
-        private async Task CleanupCloudinaryImagesAsync(string userId)
-        {
-            var urls = new List<string>();
-
-            var user = await _context.Users.FindAsync(userId);
-            if (user != null && !string.IsNullOrEmpty(user.ProfilePictureUrl))
-                urls.Add(user.ProfilePictureUrl);
-
-            var items = await _context.Items.Include(i => i.Images)
-                .Where(i => i.UserId == userId).ToListAsync();
-
-            foreach (var item in items)
-            {
-                urls.AddRange(item.Images.Select(img => img.ImageUrl));
-                if (!string.IsNullOrEmpty(item.ImageUrl) && !urls.Contains(item.ImageUrl))
-                    urls.Add(item.ImageUrl);
-            }
-
-            var renterEvidence = await _context.DisputeEvidences
-                .Where(e => e.RentalDeposit.Rental.RenterId == userId)
-                .Select(e => e.Url).ToListAsync();
-            urls.AddRange(renterEvidence);
-
-            var itemIds = items.Select(i => i.Id).ToList();
-            var ownerEvidence = await _context.DisputeEvidences
-                .Where(e => itemIds.Contains(e.RentalDeposit.Rental.ItemId))
-                .Select(e => e.Url).ToListAsync();
-            urls.AddRange(ownerEvidence);
-
-            var distinct = urls.Where(u => !string.IsNullOrEmpty(u)).Distinct().ToList();
-            if (distinct.Count > 0)
-            {
-                await _fileUploadService.DeleteFilesAsync(distinct);
-                _logger.LogInformation("Deleted {Count} Cloudinary images for user {UserId}.", distinct.Count, userId);
-            }
-        }
-
-        private async Task CleanupStripeCustomerAsync(string email)
-        {
-            try
-            {
-                await _paymentService.DeleteCustomerAsync(email);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to delete Stripe customer for {Email}.", email);
-            }
         }
 
         #endregion

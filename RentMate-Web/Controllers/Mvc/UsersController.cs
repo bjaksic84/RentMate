@@ -31,6 +31,7 @@ namespace RentMate.Controllers.Mvc
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly RentMateContext _context;
         private readonly IStringLocalizer<UsersController> _localizer;
+        private readonly IAccountLifecycleService _accountLifecycle;
 
         #endregion
 
@@ -40,12 +41,14 @@ namespace RentMate.Controllers.Mvc
             RentMateContext context,
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
-            IStringLocalizer<UsersController> localizer)
+            IStringLocalizer<UsersController> localizer,
+            IAccountLifecycleService accountLifecycle)
         {
             _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
             _localizer = localizer;
+            _accountLifecycle = accountLifecycle;
         }
 
         #endregion
@@ -162,7 +165,8 @@ namespace RentMate.Controllers.Mvc
         }
 
         /// <summary>
-        /// Deletes a user. Cannot delete admin accounts.
+        /// Permanently deletes (anonymises) a user account. Cannot delete admin accounts.
+        /// Blocked when the user has active rentals.
         /// </summary>
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -170,18 +174,69 @@ namespace RentMate.Controllers.Mvc
         {
             var user = await FindUserWithManagerAsync(id);
             if (user == null)
-            {
                 return NotFound();
-            }
 
             if (await IsAdminUserAsync(user))
-            {
                 return RedirectWithError(_localizer["Cannot delete an administrative account."].Value);
+
+            if (await _accountLifecycle.HasActiveRentalsAsync(user.Id))
+                return RedirectWithError(_localizer["Cannot delete a user with active rentals. Ask them to complete or cancel all rentals first."].Value);
+
+            try
+            {
+                await _accountLifecycle.DeleteAccountAsync(user.Id);
+                TempData["SuccessMessage"] = string.Format(_localizer["User {0} has been permanently deleted."], user.Email);
+            }
+            catch (Exception ex)
+            {
+                return RedirectWithError(ex.Message);
             }
 
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Index));
+        }
 
+        #endregion
+
+        #region Deactivate/Reactivate
+
+        /// <summary>
+        /// Admin-initiated account deactivation. Hides the user's profile and delists their items.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeactivateUser(string id, string? reason)
+        {
+            var user = await FindUserWithManagerAsync(id);
+            if (user == null) return NotFound();
+
+            if (await IsAdminUserAsync(user))
+                return RedirectWithError(_localizer["Cannot deactivate an administrative account."].Value);
+
+            if (user.IsDeactivated)
+                return RedirectWithError(string.Format(_localizer["User {0} is already deactivated."].Value, user.Email));
+
+            await _accountLifecycle.DeactivateAccountAsync(user.Id, DeactivationSource.Admin, reason);
+
+            TempData["SuccessMessage"] = string.Format(_localizer["User {0} has been deactivated."], user.Email);
+            return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
+        /// Admin-initiated account reactivation.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ReactivateUser(string id)
+        {
+            var user = await FindUserWithManagerAsync(id);
+            if (user == null) return NotFound();
+
+            if (!user.IsDeactivated)
+                return RedirectWithError(string.Format(_localizer["User {0} is not deactivated."].Value, user.Email));
+
+            await _accountLifecycle.ReactivateAccountAsync(user.Id);
+
+            TempData["SuccessMessage"] = string.Format(_localizer["User {0} has been reactivated."], user.Email);
             return RedirectToAction(nameof(Index));
         }
 

@@ -1,9 +1,125 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = Localizer["Privacy Policy"];
+    ViewData["Title"] = Localizer["Privacy Policy"].Value;
 }
-<h1>@ViewData["Title"]</h1>
 
-<p>@Localizer["Use this page to detail your site's privacy policy."]</p>
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="mb-8">
+        <h1 class="font-heading text-3xl font-bold text-slate-900 dark:text-white">@Localizer["Privacy Policy"]</h1>
+        <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Localizer["PrivacyPolicy.LastUpdated"]</p>
+    </div>
 
+    <div class="space-y-8 text-slate-700 dark:text-slate-300">
+
+        @* Section 1: Data Controller *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section1.Title"]</h2>
+            <p>@Localizer["PrivacyPolicy.Section1.Body"]</p>
+        </section>
+
+        @* Section 2: Data Collected *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section2.Title"]</h2>
+            <p class="mb-3">@Localizer["PrivacyPolicy.Section2.Intro"]</p>
+            <ul class="list-disc pl-6 space-y-1">
+                <li>@Localizer["PrivacyPolicy.Section2.Item1"]</li>
+                <li>@Localizer["PrivacyPolicy.Section2.Item2"]</li>
+                <li>@Localizer["PrivacyPolicy.Section2.Item3"]</li>
+                <li>@Localizer["PrivacyPolicy.Section2.Item4"]</li>
+                <li>@Localizer["PrivacyPolicy.Section2.Item5"]</li>
+            </ul>
+        </section>
+
+        @* Section 3: Legal Basis *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section3.Title"]</h2>
+            <p class="mb-3">@Localizer["PrivacyPolicy.Section3.Intro"]</p>
+            <ul class="list-disc pl-6 space-y-1">
+                <li>@Localizer["PrivacyPolicy.Section3.Item1"]</li>
+                <li>@Localizer["PrivacyPolicy.Section3.Item2"]</li>
+                <li>@Localizer["PrivacyPolicy.Section3.Item3"]</li>
+                <li>@Localizer["PrivacyPolicy.Section3.Item4"]</li>
+            </ul>
+        </section>
+
+        @* Section 4: How Data Is Used *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section4.Title"]</h2>
+            <p class="mb-3">@Localizer["PrivacyPolicy.Section4.Intro"]</p>
+            <ul class="list-disc pl-6 space-y-1">
+                <li>@Localizer["PrivacyPolicy.Section4.Item1"]</li>
+                <li>@Localizer["PrivacyPolicy.Section4.Item2"]</li>
+                <li>@Localizer["PrivacyPolicy.Section4.Item3"]</li>
+                <li>@Localizer["PrivacyPolicy.Section4.Item4"]</li>
+            </ul>
+        </section>
+
+        @* Section 5: Data Sharing *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section5.Title"]</h2>
+            <p class="mb-3">@Localizer["PrivacyPolicy.Section5.Intro"]</p>
+            <ul class="list-disc pl-6 space-y-1">
+                <li>@Localizer["PrivacyPolicy.Section5.Item1"]</li>
+                <li>@Localizer["PrivacyPolicy.Section5.Item2"]</li>
+            </ul>
+            <p class="mt-3">@Localizer["PrivacyPolicy.Section5.Note"]</p>
+        </section>
+
+        @* Section 6: Data Retention *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section6.Title"]</h2>
+            <p class="mb-3">@Localizer["PrivacyPolicy.Section6.Intro"]</p>
+            <ul class="list-disc pl-6 space-y-1">
+                <li>@Localizer["PrivacyPolicy.Section6.Item1"]</li>
+                <li>@Localizer["PrivacyPolicy.Section6.Item2"]</li>
+                <li>@Localizer["PrivacyPolicy.Section6.Item3"]</li>
+            </ul>
+        </section>
+
+        @* Section 7: Your Rights *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section7.Title"]</h2>
+            <p class="mb-3">@Localizer["PrivacyPolicy.Section7.Intro"]</p>
+            <ul class="list-disc pl-6 space-y-1">
+                <li>@Localizer["PrivacyPolicy.Section7.Item1"]</li>
+                <li>@Localizer["PrivacyPolicy.Section7.Item2"]</li>
+                <li>@Localizer["PrivacyPolicy.Section7.Item3"]</li>
+                <li>@Localizer["PrivacyPolicy.Section7.Item4"]</li>
+                <li>@Localizer["PrivacyPolicy.Section7.Item5"]</li>
+                <li>@Localizer["PrivacyPolicy.Section7.Item6"]</li>
+            </ul>
+        </section>
+
+        @* Section 8: Exercising Your Rights *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section8.Title"]</h2>
+            <p>@Localizer["PrivacyPolicy.Section8.Body"]</p>
+        </section>
+
+        @* Section 9: Cookie Policy *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section9.Title"]</h2>
+            <p class="mb-3">@Localizer["PrivacyPolicy.Section9.Intro"]</p>
+            <ul class="list-disc pl-6 space-y-1">
+                <li>@Localizer["PrivacyPolicy.Section9.Item1"]</li>
+                <li>@Localizer["PrivacyPolicy.Section9.Item2"]</li>
+                <li>@Localizer["PrivacyPolicy.Section9.Item3"]</li>
+            </ul>
+            <p class="mt-3">@Localizer["PrivacyPolicy.Section9.Note"]</p>
+        </section>
+
+        @* Section 10: Policy Changes *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section10.Title"]</h2>
+            <p>@Localizer["PrivacyPolicy.Section10.Body"]</p>
+        </section>
+
+        @* Section 11: Contact *@
+        <section>
+            <h2 class="text-xl font-semibold text-slate-900 dark:text-white mb-2">@Localizer["PrivacyPolicy.Section11.Title"]</h2>
+            <p>@Localizer["PrivacyPolicy.Section11.Body"]</p>
+        </section>
+
+    </div>
+</div>

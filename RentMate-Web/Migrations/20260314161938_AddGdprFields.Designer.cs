@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RentMate.Infrastructure.Data;
@@ -11,9 +12,11 @@ using RentMate.Infrastructure.Data;
 namespace RentMate.Migrations
 {
     [DbContext(typeof(RentMateContext))]
-    partial class RentMateContextModelSnapshot : ModelSnapshot
+    [Migration("20260314161938_AddGdprFields")]
+    partial class AddGdprFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -210,8 +213,7 @@ namespace RentMate.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("DeactivationReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)

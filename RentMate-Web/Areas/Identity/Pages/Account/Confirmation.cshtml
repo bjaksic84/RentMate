@@ -1,0 +1,77 @@
+@page
+@model ConfirmationModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@{
+    ViewData["Title"] = Model.Type == "password-reset"
+        ? Localizer["Reset password confirmation"]
+        : Model.Type == "register"
+            ? Localizer["Check email"]
+            : Localizer["Forgot password confirmation"];
+}
+
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-8 text-center">
+
+            @if (Model.Type == "password-reset")
+            {
+                @* ── Password Reset Complete ──────────────────────────────── *@
+                <div class="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="bi bi-check-circle text-4xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <h1 class="font-heading text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">@ViewData["Title"]</h1>
+                <p class="text-slate-600 dark:text-slate-400 mb-6">@Localizer["Your password has been reset."]</p>
+                <a asp-page="./Login" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
+                    @Localizer["Log in now"]
+                </a>
+            }
+            else if (Model.Type == "register")
+            {
+                @* ── Registration Confirmation ────────────────────────────── *@
+                <div class="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="bi bi-envelope-check-fill text-4xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <h2 class="font-heading text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">@Localizer["Almost there!"]</h2>
+                <p class="text-slate-500 dark:text-slate-400 mb-4">@Localizer["We have sent an account confirmation link to your email address."]</p>
+
+                <div class="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl mb-4">
+                    <strong class="text-blue-700 dark:text-blue-300">@Model.Email</strong>
+                </div>
+
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                    @Localizer["Please click on the link in the message to activate your account. If you cannot find the email, check your"] <strong>@Localizer["Spam"]</strong> @Localizer["folder"].
+                </p>
+
+                @if (Model.DisplayConfirmAccountLink)
+                {
+                    <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl mb-6">
+                        <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-3">@Localizer["Development mode: Email was not actually sent."]</p>
+                        <a id="confirm-link" href="@Model.EmailConfirmationUrl" class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-xl transition-colors">
+                            @Localizer["Click here to confirm your account"]
+                        </a>
+                    </div>
+                }
+
+                <hr class="my-6 border-slate-200 dark:border-slate-700" />
+
+                <a href="/" class="block w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
+                    @Localizer["Back to home page"]
+                </a>
+            }
+            else
+            {
+                @* ── Password Reset Sent ──────────────────────────────────── *@
+                <div class="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="bi bi-envelope-check text-4xl text-blue-600 dark:text-blue-400"></i>
+                </div>
+                <h1 class="font-heading text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">@ViewData["Title"]</h1>
+                <p class="text-slate-600 dark:text-slate-400 mb-6">@Localizer["Please check your email to reset your password."]</p>
+                <a asp-page="./Login" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
+                    <i class="bi bi-arrow-left"></i> @Localizer["Back to login"]
+                </a>
+            }
+
+        </div>
+    </div>
+</div>

@@ -26,7 +26,7 @@
                 </div>
                 <div>
                     <p class="text-slate-500">Owner</p>
-                    <p class="font-medium text-slate-900">@Model.Item?.User?.UserName ?? "Unknown"</p>
+                    <p class="font-medium text-slate-900">@(Model.Item?.User?.UserName ?? Localizer["DeletedUser"].Value)</p>
                 </div>
             </div>
         </div>

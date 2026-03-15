@@ -64,6 +64,19 @@
                     <span asp-validation-for="Input.ConfirmPassword" class="text-sm text-red-600"></span>
                 </div>
 
+                <div class="flex items-start gap-3">
+                    <input asp-for="Input.ConsentToPrivacyPolicy"
+                           id="consentCheckbox"
+                           type="checkbox"
+                           class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                    <label for="consentCheckbox" class="text-sm text-slate-600 cursor-pointer">
+                        @Localizer["I agree to the"]
+                        <a href="/Home/Privacy" class="text-blue-600 hover:underline">@Localizer["Privacy Policy"]</a>
+                        @Localizer["and Terms of Service and consent to data processing."]
+                    </label>
+                </div>
+                <span asp-validation-for="Input.ConsentToPrivacyPolicy" class="text-sm text-red-600 -mt-3 block"></span>
+
                 <button id="registerSubmit" type="submit" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">
                     @Localizer["Register"]
                 </button>

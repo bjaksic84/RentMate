@@ -102,7 +102,7 @@ namespace RentMate.Areas.Identity.Pages.Account
             if (user == null)
             {
                 // Don't reveal that the user does not exist
-                return RedirectToPage("./ResetPasswordConfirmation");
+                return RedirectToPage("./Confirmation", new { type = "password-reset" });
             }
 
             return await ResetUserPasswordAsync(user);
@@ -129,7 +129,7 @@ namespace RentMate.Areas.Identity.Pages.Account
             
             if (result.Succeeded)
             {
-                return RedirectToPage("./ResetPasswordConfirmation");
+                return RedirectToPage("./Confirmation", new { type = "password-reset" });
             }
 
             AddIdentityErrors(result);

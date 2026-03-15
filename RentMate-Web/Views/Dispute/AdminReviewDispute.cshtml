@@ -222,14 +222,14 @@
                     <img src="@(Model.Renter?.ProfilePictureUrl ?? "https://ui-avatars.com/api/?name=" + (Model.Renter?.UserName ?? Localizer["Renter"].Value))" class="w-10 h-10 rounded-full" />
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">@Localizer["Renter"]</p>
-                        <p class="text-sm font-bold text-slate-900 dark:text-white">@Model.Renter?.UserName</p>
+                        <p class="text-sm font-bold text-slate-900 dark:text-white">@(Model.Renter?.UserName ?? Localizer["DeletedUser"].Value)</p>
                     </div>
                 </div>
                 <div class="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-center gap-3">
                     <img src="@(Model.Owner?.ProfilePictureUrl ?? "https://ui-avatars.com/api/?name=" + (Model.Owner?.UserName ?? Localizer["Owner"].Value))" class="w-10 h-10 rounded-full" />
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">@Localizer["Owner"]</p>
-                        <p class="text-sm font-bold text-slate-900 dark:text-white">@Model.Owner?.UserName</p>
+                        <p class="text-sm font-bold text-slate-900 dark:text-white">@(Model.Owner?.UserName ?? Localizer["DeletedUser"].Value)</p>
                     </div>
                 </div>
             </div>

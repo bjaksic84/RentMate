@@ -216,7 +216,7 @@ namespace RentMate.Areas.Identity.Pages.Account
 
             if (_userManager.Options.SignIn.RequireConfirmedAccount)
             {
-                return RedirectToPage("./RegisterConfirmation", new { Email = Input.Email });
+                return RedirectToPage("./Confirmation", new { type = "register", email = Input.Email });
             }
 
             await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);

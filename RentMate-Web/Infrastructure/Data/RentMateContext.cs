@@ -30,6 +30,7 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
     public DbSet<RentalExtension> RentalExtensions { get; set; }
     public DbSet<DisputeEvidence> DisputeEvidences { get; set; }
     public DbSet<ItemImage> ItemImages { get; set; }
+    public DbSet<CookieConsent> CookieConsents { get; set; }
 
     #endregion
 
@@ -50,6 +51,7 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         ConfigureExtensionEntity(modelBuilder);
         ConfigureDisputeEvidenceEntity(modelBuilder);
         ConfigureItemImageEntity(modelBuilder);
+        ConfigureCookieConsentEntity(modelBuilder);
         ConfigurePerformanceIndexes(modelBuilder);
     }
 
@@ -90,6 +92,11 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         // User location index
         modelBuilder.Entity<ApplicationUser>()
             .HasIndex(u => u.City);
+
+        // Store DeactivationSource as string for readability
+        modelBuilder.Entity<ApplicationUser>()
+            .Property(u => u.DeactivatedBy)
+            .HasConversion<string>();
     }
 
     private static void ConfigureItemRelationships(ModelBuilder modelBuilder)
@@ -290,6 +297,23 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
 
             // Index for efficient queries by ItemId and ordering
             entity.HasIndex(img => new { img.ItemId, img.DisplayOrder });
+        });
+    }
+
+    private static void ConfigureCookieConsentEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CookieConsent>(entity =>
+        {
+            // Optional FK to authenticated user — cascade so consent records are
+            // removed when a user account is hard-deleted by the retention service.
+            entity.HasOne(c => c.User)
+                  .WithMany()
+                  .HasForeignKey(c => c.UserId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .IsRequired(false);
+
+            entity.HasIndex(c => c.UserId);
+            entity.HasIndex(c => c.ConsentedAt);
         });
     }
 

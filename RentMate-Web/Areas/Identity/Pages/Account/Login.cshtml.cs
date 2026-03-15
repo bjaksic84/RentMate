@@ -142,7 +142,9 @@ namespace RentMate.Areas.Identity.Pages.Account
 
             if (result.RequiresTwoFactor)
             {
-                return RedirectToPage("./LoginWith2fa", new { ReturnUrl, RememberMe = Input.RememberMe });
+                // 2FA not yet implemented — show error instead of redirecting to removed page
+                ModelState.AddModelError(string.Empty, _localizer[InvalidLoginKey]);
+                return Page();
             }
 
             if (result.IsLockedOut)

@@ -1,0 +1,96 @@
+@model RentMate.Models.Domain.ApplicationUser
+@using RentMate.Models.Domain
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    ViewData["Title"] = Localizer["Account Deactivated"].Value;
+    var isAdminDeactivated = Model.DeactivatedBy == DeactivationSource.Admin;
+}
+
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-8 text-center space-y-6">
+
+            <!-- Icon -->
+            <div class="flex justify-center">
+                <div class="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                    <i class="bi bi-pause-circle text-3xl text-slate-500 dark:text-slate-400"></i>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div class="space-y-2">
+                <h1 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                    @Localizer["Account Deactivated"]
+                </h1>
+
+                @if (isAdminDeactivated)
+                {
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                        @Localizer["Your account has been deactivated by an administrator."]
+                    </p>
+
+                    @if (!string.IsNullOrEmpty(Model.DeactivationReason))
+                    {
+                        <div class="mt-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-700 text-left">
+                            <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">@Localizer["Reason"]</p>
+                            <p class="text-sm text-slate-700 dark:text-slate-300">@Model.DeactivationReason</p>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                        @Localizer["Your account is currently deactivated. Your listings are hidden and your profile is not visible to others."]
+                    </p>
+                }
+            </div>
+
+            <!-- Actions -->
+            @if (isAdminDeactivated)
+            {
+                <div class="space-y-3">
+                    <div class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-left">
+                        <p class="text-sm text-amber-800 dark:text-amber-200">
+                            @Localizer["To request reactivation, please contact the administration. A reactivation request ticket system is coming soon."]
+                        </p>
+                    </div>
+
+                    <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home")">
+                        @Html.AntiForgeryToken()
+                        <button type="submit"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl transition-colors">
+                            <i class="bi bi-box-arrow-right"></i>
+                            @Localizer["Sign Out"]
+                        </button>
+                    </form>
+                </div>
+            }
+            else
+            {
+                <div class="space-y-3">
+                    <form method="post" asp-controller="Account" asp-action="Reactivate">
+                        @Html.AntiForgeryToken()
+                        <button type="submit"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-trust-blue-600 hover:bg-trust-blue-700 text-white text-sm font-semibold rounded-xl transition-colors">
+                            <i class="bi bi-play-circle-fill"></i>
+                            @Localizer["Reactivate Account"]
+                        </button>
+                    </form>
+
+                    <form method="post" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home")">
+                        @Html.AntiForgeryToken()
+                        <button type="submit"
+                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 text-sm font-medium rounded-xl transition-colors">
+                            <i class="bi bi-box-arrow-right"></i>
+                            @Localizer["Sign Out"]
+                        </button>
+                    </form>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>

@@ -11,7 +11,8 @@ using RentMate.Models.Domain;
 namespace RentMate.Areas.Identity.Pages.Account
 {
     /// <summary>
-    /// Page model for email confirmation.
+    /// Handles both initial email confirmation and email change confirmation.
+    /// When <c>email</c> query parameter is present, this is an email change; otherwise initial confirmation.
     /// </summary>
     public class ConfirmEmailModel : PageModel
     {
@@ -20,12 +21,15 @@ namespace RentMate.Areas.Identity.Pages.Account
         private const string UserNotFoundKey = "Unable to load user with ID '{0}'.";
         private const string EmailConfirmedKey = "Thank you for confirming your email.";
         private const string EmailConfirmErrorKey = "Error confirming your email.";
+        private const string EmailChangeSuccessKey = "Thank you for confirming your email change.";
+        private const string EmailChangeErrorKey = "Error changing email.";
 
         #endregion
 
         #region Dependencies
 
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IStringLocalizer<ConfirmEmailModel> _localizer;
 
         #endregion
@@ -33,10 +37,12 @@ namespace RentMate.Areas.Identity.Pages.Account
         #region Constructor
 
         public ConfirmEmailModel(
-            UserManager<ApplicationUser> userManager, 
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             IStringLocalizer<ConfirmEmailModel> localizer)
         {
             _userManager = userManager;
+            _signInManager = signInManager;
             _localizer = localizer;
         }
 
@@ -47,24 +53,29 @@ namespace RentMate.Areas.Identity.Pages.Account
         [TempData]
         public string? StatusMessage { get; set; }
 
+        /// <summary>Whether this was an email change confirmation (vs initial email confirm).</summary>
+        public bool IsEmailChange { get; set; }
+
         #endregion
 
         #region Page Handlers
 
-        public async Task<IActionResult> OnGetAsync(string userId, string code)
+        public async Task<IActionResult> OnGetAsync(string userId, string code, string? email = null)
         {
             if (userId == null || code == null)
-            {
                 return RedirectToPage("/Index");
-            }
 
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
-            {
                 return NotFound(string.Format(_localizer[UserNotFoundKey], userId));
-            }
 
-            await ConfirmUserEmailAsync(user, code);
+            var decodedCode = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+
+            if (email != null)
+                await ConfirmEmailChangeAsync(user, email, decodedCode);
+            else
+                await ConfirmUserEmailAsync(user, decodedCode);
+
             return Page();
         }
 
@@ -75,14 +86,32 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// <summary>
         /// Confirms the user's email and sets the appropriate status message.
         /// </summary>
-        private async Task ConfirmUserEmailAsync(ApplicationUser user, string code)
+        private async Task ConfirmUserEmailAsync(ApplicationUser user, string decodedCode)
         {
-            var decodedCode = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
             var result = await _userManager.ConfirmEmailAsync(user, decodedCode);
-            
-            StatusMessage = result.Succeeded 
-                ? _localizer[EmailConfirmedKey] 
+
+            StatusMessage = result.Succeeded
+                ? _localizer[EmailConfirmedKey]
                 : _localizer[EmailConfirmErrorKey];
+        }
+
+        /// <summary>
+        /// Confirms the email change token and updates the user's email.
+        /// Username is intentionally NOT synced — it is independently managed by the user.
+        /// </summary>
+        private async Task ConfirmEmailChangeAsync(ApplicationUser user, string email, string decodedCode)
+        {
+            IsEmailChange = true;
+            var result = await _userManager.ChangeEmailAsync(user, email, decodedCode);
+
+            if (!result.Succeeded)
+            {
+                StatusMessage = _localizer[EmailChangeErrorKey];
+                return;
+            }
+
+            await _signInManager.RefreshSignInAsync(user);
+            StatusMessage = _localizer[EmailChangeSuccessKey];
         }
 
         #endregion

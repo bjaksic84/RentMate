@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Localization;
+using RentMate.Infrastructure.Validation;
 using RentMate.Models.Domain;
 
 namespace RentMate.Areas.Identity.Pages.Account
@@ -32,6 +33,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         private const string ClickingHereKey = "clicking here";
         private const string CreateUserErrorKey = "Can't create an instance of 'ApplicationUser'.";
         private const string EmailNotSupportedKey = "The default UI requires a user store with email support.";
+        private const string CurrentPrivacyPolicyVersion = "1.0";
 
         #endregion
 
@@ -101,6 +103,10 @@ namespace RentMate.Areas.Identity.Pages.Account
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+
+            [MustBeTrue(ErrorMessage = "You must agree to the Privacy Policy and Terms of Service to register.")]
+            [Display(Name = "Privacy Policy consent")]
+            public bool ConsentToPrivacyPolicy { get; set; }
         }
 
         #endregion
@@ -133,6 +139,8 @@ namespace RentMate.Areas.Identity.Pages.Account
         private async Task<IActionResult> CreateUserAndSignInAsync(string returnUrl)
         {
             var user = CreateUser();
+            user.PrivacyPolicyAcceptedAt = DateTime.UtcNow;
+            user.PrivacyPolicyVersion = CurrentPrivacyPolicyVersion;
 
             await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
             await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
@@ -151,7 +159,7 @@ namespace RentMate.Areas.Identity.Pages.Account
 
             if (_userManager.Options.SignIn.RequireConfirmedAccount)
             {
-                return RedirectToPage("RegisterConfirmation", new { email = Input.Email, returnUrl });
+                return RedirectToPage("Confirmation", new { type = "register", email = Input.Email, returnUrl });
             }
 
             await _signInManager.SignInAsync(user, isPersistent: false);
