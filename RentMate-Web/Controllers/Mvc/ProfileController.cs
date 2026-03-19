@@ -58,6 +58,16 @@ namespace RentMate.Controllers.Mvc
                 return NotFound();
             }
 
+            // Hide deactivated and anonymized (deleted) profiles from other users
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (user.Id != currentUserId)
+            {
+                if (user.IsDeactivated || user.Email!.EndsWith("@deleted.rentmate"))
+                {
+                    return NotFound();
+                }
+            }
+
             var (averageRating, reviewCount) = user.GetAllActiveReviews().CalculateRatingStats();
             
             ViewBag.ReviewCount = reviewCount;

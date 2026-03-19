@@ -1,11 +1,14 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using RentMate.Helpers;
 using RentMate.Models.Domain;
 using RentMate.Models.ViewModels;
+using RentMate.Shared.Contracts.Validation;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -75,10 +78,15 @@ public class AccountApiController : ControllerBase
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Unauthorized();
 
-        user.Email = model.Email;
-        user.UserName = model.Email; // UserName je običajno email
+        // Validate city against allowlist
+        if (!string.IsNullOrEmpty(model.City) &&
+            !CityData.Cities.Any(c => c.Name == model.City))
+        {
+            return BadRequest("Invalid city.");
+        }
+
         user.City = model.City;
-        user.ProfilePictureUrl = model.ProfilePictureUrl; // Predpostavljam, da si to dodal v ApplicationUser
+        user.ProfilePictureUrl = model.ProfilePictureUrl;
 
         var result = await _userManager.UpdateAsync(user);
         if (result.Succeeded)
@@ -105,9 +113,9 @@ public class AccountApiController : ControllerBase
 
 public class LoginModel { public string? Email { get; set; } public string? Password { get; set; } }
 // Modeli za prenos podatkov (DTO)
-public class UpdateProfileModel { 
-    public required string Email { get; set; } 
-    public required string City { get; set; } 
+public class UpdateProfileModel {
+    public required string City { get; set; }
+    [CloudinaryUrl]
     public string? ProfilePictureUrl { get; set; }
 }
 

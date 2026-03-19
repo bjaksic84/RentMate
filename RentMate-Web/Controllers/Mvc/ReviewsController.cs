@@ -19,6 +19,7 @@ namespace RentMate.Controllers.Mvc
     [Authorize]
     [Route("api/[controller]")]
     [ApiController]
+    [AutoValidateAntiforgeryToken]
     public class ReviewsController : ControllerBase
     {
         #region Constants
@@ -115,23 +116,34 @@ namespace RentMate.Controllers.Mvc
         /// POST: api/Reviews
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Review review)
+        public async Task<IActionResult> Create([FromBody] CreateReviewMvcRequest request)
         {
             var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
 
+            if (request.Rating < 1 || request.Rating > 5)
+                return BadRequest("Rating must be between 1 and 5.");
+
             // Validate item exists and user isn't the owner
-            var validationResult = await ValidateCreateReviewAsync(review.ItemId, userId);
+            var validationResult = await ValidateCreateReviewAsync(request.ItemId, userId);
             if (validationResult != null) return validationResult;
 
             // Check for duplicate review
-            if (await HasExistingReviewAsync(review.ItemId, userId))
+            if (await HasExistingReviewAsync(request.ItemId, userId))
             {
                 return BadRequest(_localizer["You have already reviewed this item."].Value);
             }
 
-            review.ReviewerId = userId;
-            review.CreatedAt = DateTime.UtcNow;
+            var review = new Review
+            {
+                ItemId = request.ItemId,
+                Rating = request.Rating,
+                Title = request.Title,
+                Body = request.Body,
+                IsAnonymous = request.IsAnonymous,
+                ReviewerId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
 
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
@@ -140,7 +152,7 @@ namespace RentMate.Controllers.Mvc
             // Event-driven: recompute item score after new review
             _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(review.ItemId));
 
-            return CreatedAtAction(nameof(GetItemReviews), new { itemId = review.ItemId }, review);
+            return CreatedAtAction(nameof(GetItemReviews), new { itemId = review.ItemId }, new { review.Id, review.Rating, review.Title, review.Body });
         }
 
         /// <summary>
@@ -148,17 +160,24 @@ namespace RentMate.Controllers.Mvc
         /// PUT: api/Reviews/5
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> Edit(int id, [FromBody] Review updated)
+        public async Task<IActionResult> Edit(int id, [FromBody] EditReviewMvcRequest updated)
         {
             var userId = GetCurrentUserId();
             if (userId == null) return Unauthorized();
+
+            if (updated.Rating < 1 || updated.Rating > 5)
+                return BadRequest("Rating must be between 1 and 5.");
 
             var review = await FindActiveReviewAsync(id);
             if (review == null) return NotFound(_localizer["Review not found."].Value);
             if (review.ReviewerId != userId) return Forbid();
 
-            UpdateReviewFields(review, updated);
-            
+            review.Title = updated.Title;
+            review.Body = updated.Body;
+            review.Rating = updated.Rating;
+            review.IsAnonymous = updated.IsAnonymous;
+            review.UpdatedAt = DateTime.UtcNow;
+
             await _context.SaveChangesAsync();
             await _reviewAggregation.UpdateItemAggregatesAsync(review.ItemId);
 
@@ -278,18 +297,6 @@ namespace RentMate.Controllers.Mvc
         }
 
         /// <summary>
-        /// Updates review fields from the updated model.
-        /// </summary>
-        private static void UpdateReviewFields(Review review, Review updated)
-        {
-            review.Title = updated.Title;
-            review.Body = updated.Body;
-            review.Rating = updated.Rating;
-            review.IsAnonymous = updated.IsAnonymous;
-            review.UpdatedAt = DateTime.UtcNow;
-        }
-
-        /// <summary>
         /// Checks if the current user can delete the review.
         /// </summary>
         private bool CanDeleteReview(Review review, string userId)
@@ -300,4 +307,10 @@ namespace RentMate.Controllers.Mvc
         #endregion
     }
 }
+
+/// <summary>DTO for creating a review via the MVC endpoint.</summary>
+public record CreateReviewMvcRequest(int ItemId, int Rating, string? Title, string? Body, bool IsAnonymous);
+
+/// <summary>DTO for editing a review via the MVC endpoint.</summary>
+public record EditReviewMvcRequest(int Rating, string? Title, string? Body, bool IsAnonymous);
 

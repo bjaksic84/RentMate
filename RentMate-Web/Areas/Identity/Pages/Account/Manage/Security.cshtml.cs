@@ -145,6 +145,12 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         {
             [DataType(DataType.Password)]
             public string Password { get; set; }
+
+            /// <summary>
+            /// Confirmation phrase required for external-login users who have no password.
+            /// Must type "DELETE" to confirm irreversible actions.
+            /// </summary>
+            public string ConfirmationPhrase { get; set; }
         }
 
         #endregion
@@ -600,9 +606,22 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
         #region Private Helpers — Delete Account
 
+        private const string RequiredConfirmationPhrase = "DELETE";
+
         private async Task<bool> ValidatePasswordIfRequiredAsync(ApplicationUser user)
         {
-            if (!RequirePassword) return true;
+            if (!RequirePassword)
+            {
+                // External-login users must type a confirmation phrase instead
+                if (DeleteInput == null ||
+                    !string.Equals(DeleteInput.ConfirmationPhrase?.Trim(), RequiredConfirmationPhrase, StringComparison.Ordinal))
+                {
+                    ModelState.AddModelError("DeleteInput.ConfirmationPhrase",
+                        $"Please type \"{RequiredConfirmationPhrase}\" to confirm.");
+                    return false;
+                }
+                return true;
+            }
 
             if (DeleteInput == null || string.IsNullOrWhiteSpace(DeleteInput.Password))
             {

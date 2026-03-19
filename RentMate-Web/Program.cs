@@ -170,10 +170,8 @@ builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 
 // Performance: Response Compression
-builder.Services.AddResponseCompression(options =>
-{
-    options.EnableForHttps = true;
-});
+// EnableForHttps = false (default) to prevent BREACH-style compression oracle attacks
+builder.Services.AddResponseCompression();
 
 // --- Anti-Forgery Configuration ---
 builder.Services.AddAntiforgery(options =>
@@ -194,7 +192,7 @@ builder.Services.AddRateLimiter(options =>
     // Global rate limit
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.User.Identity?.Name ?? context.Request.Headers.Host.ToString(),
+            partitionKey: context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: partition => new FixedWindowRateLimiterOptions
             {
                 AutoReplenishment = true,

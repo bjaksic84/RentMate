@@ -27,6 +27,7 @@
             <h4 class="font-heading text-lg font-semibold text-slate-900 mb-4">@Localizer["Write a Review"]</h4>
 
             <form id="reviewForm" method="post" class="space-y-4">
+                @Html.AntiForgeryToken()
                 <input type="hidden" name="ItemId" value="@Model.Id" />
 
                 <div>
@@ -111,6 +112,12 @@
             }
         }
 
+        function escapeHtml(str) {
+            const div = document.createElement("div");
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         function renderReview(r) {
             const div = document.createElement("div");
             div.className = "p-4 bg-white border border-slate-200 rounded-xl";
@@ -119,21 +126,26 @@
                 `<i class="bi bi-star${i < r.rating ? '-fill' : ''} text-amber-400"></i>`
             ).join("");
 
+            const safeUserName = escapeHtml(r.isAnonymous ? locAnonymous : r.reviewer?.userName ?? locUser);
+            const safeInitial = escapeHtml(r.isAnonymous ? 'A' : (r.reviewer?.userName ?? 'U')[0].toUpperCase());
+            const safeTitle = r.title ? escapeHtml(r.title) : "";
+            const safeBody = r.body ? escapeHtml(r.body) : "";
+
             div.innerHTML = `
                 <div class="flex flex-wrap justify-between items-start gap-2 mb-2">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold">
-                            ${(r.isAnonymous ? 'A' : (r.reviewer?.userName ?? 'U')[0].toUpperCase())}
+                            ${safeInitial}
                         </div>
                         <div>
-                            <div class="font-semibold text-slate-900">${r.isAnonymous ? locAnonymous : r.reviewer?.userName ?? locUser}</div>
+                            <div class="font-semibold text-slate-900">${safeUserName}</div>
                             <div class="text-sm text-slate-400">${new Date(r.createdAt).toLocaleDateString()}</div>
                         </div>
                     </div>
                     <div class="flex gap-0.5">${stars}</div>
                 </div>
-                ${r.title ? `<div class="font-medium text-slate-900 mt-2">${r.title}</div>` : ""}
-                ${r.body ? `<div class="text-slate-600 mt-1">${r.body}</div>` : ""}
+                ${safeTitle ? `<div class="font-medium text-slate-900 mt-2">${safeTitle}</div>` : ""}
+                ${safeBody ? `<div class="text-slate-600 mt-1">${safeBody}</div>` : ""}
             `;
             return div;
         }
@@ -174,9 +186,15 @@
                 const formData = Object.fromEntries(new FormData(form).entries());
                 formData.Rating = parseInt(formData.Rating);
 
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                // Convert checkbox "on"/undefined to boolean
+                formData.IsAnonymous = formData.IsAnonymous === "on";
                 const res = await fetch(`/api/Reviews`, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": token || ""
+                    },
                     body: JSON.stringify(formData)
                 });
 

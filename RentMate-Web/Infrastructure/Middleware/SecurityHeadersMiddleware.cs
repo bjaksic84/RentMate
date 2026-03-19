@@ -43,11 +43,13 @@ public class SecurityHeadersMiddleware
 
     private static string BuildContentSecurityPolicy() =>
         "default-src 'self'; " +
+        // unsafe-inline + unsafe-eval required by Tailwind CDN JIT compiler — tracked for removal
+        // when switching to build-time Tailwind (see CLAUDE.md Dev Bypasses Tracker)
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://js.stripe.com; " +
         "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
         "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; " +
-        "img-src 'self' data: https: blob:; " +
-        "connect-src 'self' https: wss:; " +
+        "img-src 'self' data: blob: https://res.cloudinary.com; " +
+        "connect-src 'self' https://js.stripe.com https://hooks.stripe.com wss://localhost:*; " +
         "frame-src 'self' https://js.stripe.com https://hooks.stripe.com; " +
         "frame-ancestors 'none';";
 

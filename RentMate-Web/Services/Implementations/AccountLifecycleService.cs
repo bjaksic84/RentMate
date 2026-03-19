@@ -155,6 +155,23 @@ public class AccountLifecycleService : IAccountLifecycleService
         var favorites = await _context.AccountItemFavorites.Where(f => f.AccountId == userId).ToListAsync();
         _context.AccountItemFavorites.RemoveRange(favorites);
 
+        // --- Soft-delete reviews (text may contain PII; enters retention pipeline for purge) ---
+        var reviews = await _context.Reviews.Where(r => r.ReviewerId == userId && !r.IsDeleted).ToListAsync();
+        foreach (var review in reviews)
+        {
+            review.IsDeleted = true;
+            review.Title = null;
+            review.Body = null;
+        }
+
+        // --- Anonymise cookie consent records (UserAgent is PII under GDPR recital 30) ---
+        var consents = await _context.CookieConsents.Where(c => c.UserId == userId).ToListAsync();
+        foreach (var consent in consents)
+        {
+            consent.UserId = null;
+            consent.UserAgent = null;
+        }
+
         await _context.SaveChangesAsync();
 
         // --- Anonymise the user record itself ---

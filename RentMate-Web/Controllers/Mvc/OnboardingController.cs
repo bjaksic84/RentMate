@@ -72,6 +72,16 @@ public class OnboardingController : Controller
 
         user.FirstName = model.FirstName?.Trim();
         user.LastName = model.LastName?.Trim();
+
+        // Validate city against allowlist
+        if (!string.IsNullOrEmpty(model.City) &&
+            !CityData.Cities.Any(c => c.Name == model.City))
+        {
+            ModelState.AddModelError(nameof(model.City), "Invalid city selection.");
+            ViewBag.CityOptions = BuildCityOptions(model.City);
+            return View(model);
+        }
+
         user.City = model.City;
 
         // Set lat/lng from city data

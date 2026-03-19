@@ -58,8 +58,8 @@ public record UpdateItemRequest
 public record CreateReviewRequest(
     int ItemId,
     int? RentalId,
-    int Rating,
-    string? Body
+    [property: Range(1, 5)] int Rating,
+    [property: StringLength(2000)] string? Body
 );
 
 /// <summary>

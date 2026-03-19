@@ -16,15 +16,22 @@ public class DeactivatedAccountMiddleware
     private readonly RequestDelegate _next;
 
     /// <summary>
-    /// Paths that deactivated users are always allowed to visit (login, logout, reactivation).
+    /// Exact paths that deactivated users are always allowed to visit.
     /// </summary>
-    private static readonly string[] AllowedPathPrefixes =
-    [
+    private static readonly HashSet<string> AllowedExactPaths = new(StringComparer.OrdinalIgnoreCase)
+    {
         "/Account/Deactivated",
         "/Account/Reactivate",
         "/Identity/Account/Logout",
         "/Identity/Account/Login",
-        "/api/cookie-consent",
+        "/api/cookie-consent"
+    };
+
+    /// <summary>
+    /// Path prefixes that deactivated users are allowed to visit (for multi-route areas).
+    /// </summary>
+    private static readonly string[] AllowedPathPrefixes =
+    [
         "/api/Auth/"
     ];
 
@@ -42,8 +49,14 @@ public class DeactivatedAccountMiddleware
             return;
         }
 
-        // Skip allowed paths
+        // Skip allowed paths (exact match first, then prefix match)
         var path = context.Request.Path.Value ?? string.Empty;
+        if (AllowedExactPaths.Contains(path))
+        {
+            await _next(context);
+            return;
+        }
+
         foreach (var allowed in AllowedPathPrefixes)
         {
             if (path.StartsWith(allowed, StringComparison.OrdinalIgnoreCase))

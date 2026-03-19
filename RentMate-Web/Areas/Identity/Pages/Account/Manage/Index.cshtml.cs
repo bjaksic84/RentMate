@@ -350,7 +350,14 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             user.FirstName = Input!.FirstName;
             user.LastName = Input.LastName;
             user.Bio = Input.Bio;
-            user.City = Input.City;
+
+            // Validate city against allowlist — silently ignore tampered values
+            // (UI provides a dropdown; invalid values mean request tampering)
+            if (string.IsNullOrEmpty(Input.City) ||
+                CityData.Cities.Any(c => c.Name == Input.City))
+            {
+                user.City = Input.City;
+            }
             user.Latitude = Input.Latitude;
             user.Longitude = Input.Longitude;
             user.HasReturnPolicy = Input.HasReturnPolicy;

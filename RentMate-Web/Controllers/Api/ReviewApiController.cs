@@ -73,19 +73,30 @@ namespace RentMate.Controllers.Api
                 }
             }
 
-            // Validate Item exists
+            // Validate Item exists and user is not the owner
             if (request.ItemId <= 0)
             {
                 _logger.LogWarning("Invalid ItemId in incoming review: {ItemId}", request.ItemId);
                 return BadRequest(new { error = "Invalid ItemId" });
             }
 
-            var itemExists = await _context.Items.AnyAsync(i => i.Id == request.ItemId);
-            if (!itemExists)
+            var item = await _context.Items.FindAsync(request.ItemId);
+            if (item == null)
             {
                 _logger.LogWarning("Attempt to create review for non-existent ItemId {ItemId}", request.ItemId);
                 return BadRequest(new { error = "Item not found" });
             }
+
+            if (item.UserId == userId)
+            {
+                return Forbid("Cannot review your own item.");
+            }
+
+            // Check for duplicate review on this item (regardless of RentalId)
+            var alreadyReviewed = await _context.Reviews
+                .AnyAsync(r => r.ItemId == request.ItemId && r.ReviewerId == userId && !r.IsDeleted);
+            if (alreadyReviewed && !request.RentalId.HasValue)
+                return BadRequest(new { error = "You have already reviewed this item." });
 
             // If an existing review by this user for this rental exists, update it
             Review? existing = null;

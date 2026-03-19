@@ -1,5 +1,8 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
+using RentMate.Models.Domain;
 
 namespace RentMate.Hubs;
 
@@ -8,7 +11,7 @@ namespace RentMate.Hubs;
 /// Requires authentication for all connections.
 /// </summary>
 [Authorize]
-public class RentMateHub : Hub
+public class RentMateHub(UserManager<ApplicationUser> userManager) : Hub
 {
     #region Constants
 
@@ -44,50 +47,28 @@ public class RentMateHub : Hub
 
     #endregion
 
-    #region Hub Methods
+    // No public hub methods — all notifications are dispatched server-side
+    // via IHubContext<RentMateHub>.Clients.User(id).SendAsync().
+    // Keeping the hub empty prevents authenticated clients from invoking
+    // notification methods with arbitrary target user IDs and payloads.
 
     /// <summary>
-    /// Sends a rental request notification to a specific owner.
+    /// Reject connections from deactivated accounts on connect and reconnect.
     /// </summary>
-    /// <param name="ownerId">The user ID of the item owner.</param>
-    /// <param name="rentalData">The rental information to send.</param>
-    public async Task NotifyRentalRequest(string ownerId, object rentalData)
+    public override async Task OnConnectedAsync()
     {
-        await Clients.User(ownerId).SendAsync(RentalRequestedEvent, rentalData);
-    }
+        var userId = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId != null)
+        {
+            var user = await userManager.FindByIdAsync(userId);
+            if (user is { IsDeactivated: true })
+            {
+                Context.Abort();
+                return;
+            }
+        }
 
-    /// <summary>
-    /// Sends an extension request notification to the item owner.
-    /// </summary>
-    public async Task NotifyExtensionRequest(string ownerId, object extensionData)
-    {
-        await Clients.User(ownerId).SendAsync(ExtensionRequestedEvent, extensionData);
+        await base.OnConnectedAsync();
     }
-
-    /// <summary>
-    /// Sends an extension status change notification to the renter.
-    /// </summary>
-    public async Task NotifyExtensionStatusChanged(string renterId, object extensionData)
-    {
-        await Clients.User(renterId).SendAsync(ExtensionStatusChangedEvent, extensionData);
-    }
-
-    /// <summary>
-    /// Sends a deposit status change notification to the renter.
-    /// </summary>
-    public async Task NotifyDepositStatusChanged(string renterId, object depositData)
-    {
-        await Clients.User(renterId).SendAsync(DepositStatusChangedEvent, depositData);
-    }
-
-    /// <summary>
-    /// Sends an overdue rental notification to a user.
-    /// </summary>
-    public async Task NotifyRentalOverdue(string userId, object overdueData)
-    {
-        await Clients.User(userId).SendAsync(RentalOverdueEvent, overdueData);
-    }
-
-    #endregion
 }
 
