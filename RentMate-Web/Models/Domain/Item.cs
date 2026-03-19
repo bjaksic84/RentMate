@@ -44,6 +44,7 @@ namespace RentMate.Models.Domain
         /// <summary>
         /// Fixed deposit amount required from the renter. Null means no deposit.
         /// </summary>
+        [Range(0, 100000, ErrorMessage = "Deposit must be between 0 and 100,000")]
         [Column(TypeName = "decimal(10,2)")]
         public decimal? DepositAmount { get; set; }
 

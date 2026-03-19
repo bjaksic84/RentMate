@@ -120,7 +120,7 @@ namespace RentMate.Controllers.Mvc
         [HttpGet]
         public async Task<IActionResult> Success(int rentalId, string payment_intent, string payment_intent_client_secret, string redirect_status)
         {
-             var userId = _userManager.GetUserId(User);
+            var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -130,17 +130,30 @@ namespace RentMate.Controllers.Mvc
 
             if (rental == null)
                 return NotFound();
-            
+
+            // Authorization: only the renter can confirm payment
+            if (rental.RenterId != userId)
+                return Forbid();
+
             if (redirect_status == "succeeded")
             {
-                 // Verify if we already recorded this payment
-                 var existingPayment = await _context.Payments
+                // Verify if we already recorded this payment
+                var existingPayment = await _context.Payments
                     .AnyAsync(p => p.RentalId == rentalId && p.Status == PaymentStatus.Success);
 
-                 if (!existingPayment)
-                 {
-                     // Record successful payment
-                     var payment = new Payment
+                if (!existingPayment)
+                {
+                    // Server-side verification: confirm PaymentIntent status + amount with Stripe
+                    var verification = await _paymentService.VerifyPaymentIntentAsync(payment_intent, rental.TotalPrice);
+                    if (!verification.Success)
+                    {
+                        _logger.LogWarning("Payment verification failed for rental {RentalId}: {Error}", rentalId, verification.ErrorMessage);
+                        TempData["Error"] = _localizer["Payment verification failed. Please try again or contact support."].Value;
+                        return RedirectToAction("Checkout", new { rentalId });
+                    }
+
+                    // Record successful payment
+                    var payment = new Payment
                     {
                         RentalId = rentalId,
                         UserId = userId,
@@ -166,8 +179,8 @@ namespace RentMate.Controllers.Mvc
                             _logger.LogWarning(ex, "Deposit authorization failed for rental {RentalId}. Deposit will need manual resolution.", rentalId);
                         }
                     }
-                 }
-                
+                }
+
                 return View(rental);
             }
             else
@@ -249,10 +262,23 @@ namespace RentMate.Controllers.Mvc
             if (extension == null)
                 return NotFound();
 
+            // Authorization: only the renter can confirm extension payment
+            if (extension.Rental?.RenterId != userId)
+                return Forbid();
+
             if (redirect_status == "succeeded")
             {
                 if (extension.Status == Models.Domain.ExtensionStatus.Accepted || extension.Status == Models.Domain.ExtensionStatus.AutoApproved)
                 {
+                    // Server-side verification: confirm PaymentIntent status + amount with Stripe
+                    var verification = await _paymentService.VerifyPaymentIntentAsync(payment_intent, extension.AdditionalCost);
+                    if (!verification.Success)
+                    {
+                        _logger.LogWarning("Extension payment verification failed for extension {ExtensionId}: {Error}", extensionId, verification.ErrorMessage);
+                        TempData["Error"] = _localizer["Payment verification failed. Please try again or contact support."].Value;
+                        return RedirectToAction("ExtensionCheckout", new { extensionId });
+                    }
+
                     // Record payment
                     var payment = new Payment
                     {

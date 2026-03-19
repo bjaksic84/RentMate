@@ -294,6 +294,16 @@ namespace RentMate.Controllers.Mvc
                 return Unauthorized();
             }
 
+            // Validate dates
+            if (startDate.Date < DateTime.Today)
+            {
+                return HandleError(_localizer["Start date cannot be in the past."].Value);
+            }
+            if (endDate.Date < startDate.Date)
+            {
+                return HandleError(_localizer["End date must be on or after start date."].Value);
+            }
+
             var item = await _context.Items
                 .Include(i => i.Rentals)
                 .FirstOrDefaultAsync(i => i.Id == itemId);

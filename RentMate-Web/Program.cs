@@ -48,23 +48,41 @@ builder.Services.AddDbContext<RentMateContext>(options =>
     }));
 
 // --- Identity (Users and Roles) ---
-builder.Services.AddDefaultIdentity<ApplicationUser>(options => 
+builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount = false;
-        
-        // Strong password policy
-        options.Password.RequireDigit = true;
-        options.Password.RequiredLength = 8;
-        options.Password.RequireNonAlphanumeric = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireLowercase = true;
-        options.Password.RequiredUniqueChars = 4;
-        
-        // Lockout settings (protection against brute force)
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-        options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.AllowedForNewUsers = true;
-        
+
+        if (builder.Environment.IsDevelopment())
+        {
+            // Relaxed password policy for easier testing
+            options.Password.RequireDigit = false;
+            options.Password.RequiredLength = 4;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequiredUniqueChars = 1;
+
+            // Relaxed lockout — more attempts, shorter lockout
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromSeconds(30);
+            options.Lockout.MaxFailedAccessAttempts = 50;
+            options.Lockout.AllowedForNewUsers = true;
+        }
+        else
+        {
+            // Strong password policy
+            options.Password.RequireDigit = true;
+            options.Password.RequiredLength = 8;
+            options.Password.RequireNonAlphanumeric = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequiredUniqueChars = 4;
+
+            // Lockout settings (protection against brute force)
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.AllowedForNewUsers = true;
+        }
+
         // User settings
         options.User.RequireUniqueEmail = true;
     })
@@ -138,11 +156,7 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
 
 // --- MVC, Controllers, and SignalR ---
-builder.Services.AddControllersWithViews(options =>
-    {
-        // Redirect deactivated users to /Account/Deactivated on every authenticated request
-        options.Filters.Add<RentMate.Infrastructure.Filters.DeactivatedAccountFilter>();
-    })
+builder.Services.AddControllersWithViews()
     .AddViewLocalization()
     .AddDataAnnotationsLocalization(options =>
     {
@@ -192,8 +206,8 @@ builder.Services.AddRateLimiter(options =>
     // Strict policy for authentication endpoints
     options.AddFixedWindowLimiter("AuthPolicy", opt =>
     {
-        opt.PermitLimit = 5;
-        opt.Window = TimeSpan.FromMinutes(5);
+        opt.PermitLimit = builder.Environment.IsDevelopment() ? 100 : 5;
+        opt.Window = builder.Environment.IsDevelopment() ? TimeSpan.FromMinutes(1) : TimeSpan.FromMinutes(5);
         opt.QueueLimit = 0;
     });
     
@@ -370,6 +384,9 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Block deactivated users from all routes (MVC, Razor Pages, API)
+app.UseDeactivatedAccountCheck();
 
 // Route mapping
 app.MapControllerRoute(

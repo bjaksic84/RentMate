@@ -24,6 +24,18 @@ public class CloudinaryFileUploadService : IFileUploadService
     private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
     private static readonly string[] AllowedContentTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
+    /// <summary>
+    /// Known image file signatures (magic bytes) for server-side content validation.
+    /// Prevents Content-Type spoofing attacks where non-image files are disguised as images.
+    /// </summary>
+    private static readonly byte[][] ImageSignatures =
+    [
+        [0xFF, 0xD8, 0xFF],                   // JPEG
+        [0x89, 0x50, 0x4E, 0x47],             // PNG
+        [0x47, 0x49, 0x46, 0x38],             // GIF (GIF87a / GIF89a)
+        [0x52, 0x49, 0x46, 0x46],             // WebP (RIFF container)
+    ];
+
     #endregion
 
     #region Fields
@@ -149,7 +161,9 @@ public class CloudinaryFileUploadService : IFileUploadService
     #region Private Helpers
 
     /// <summary>
-    /// Validates file size, extension, and content type.
+    /// Validates file size, extension, content type, and magic bytes.
+    /// Magic byte validation prevents Content-Type spoofing where non-image files
+    /// are disguised as images (e.g., HTML with JS renamed to .jpg).
     /// </summary>
     private static void ValidateFile(IFormFile file)
     {
@@ -162,6 +176,18 @@ public class CloudinaryFileUploadService : IFileUploadService
 
         if (!AllowedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
             throw new InvalidOperationException("Invalid file content type.");
+
+        // Verify actual file content via magic bytes (server-side, not spoofable)
+        using var stream = file.OpenReadStream();
+        var header = new byte[4];
+        var bytesRead = stream.Read(header, 0, header.Length);
+
+        if (bytesRead < 3 || !ImageSignatures.Any(sig =>
+                header.Length >= sig.Length &&
+                header.Take(sig.Length).SequenceEqual(sig)))
+        {
+            throw new InvalidOperationException("File content does not match a valid image format.");
+        }
     }
 
     /// <summary>

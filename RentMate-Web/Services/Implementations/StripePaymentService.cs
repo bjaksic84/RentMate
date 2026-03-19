@@ -227,6 +227,37 @@ namespace RentMate.Services.Implementations
             }
         }
 
+        public async Task<PaymentResult> VerifyPaymentIntentAsync(string paymentIntentId, decimal expectedAmount)
+        {
+            try
+            {
+                var service = new PaymentIntentService();
+                var intent = await service.GetAsync(paymentIntentId);
+
+                // Accept both "succeeded" (auto-capture) and "requires_capture" (manual capture)
+                if (intent.Status != "succeeded" && intent.Status != "requires_capture")
+                {
+                    _logger.LogWarning("PaymentIntent {Id} has unexpected status: {Status}", paymentIntentId, intent.Status);
+                    return PaymentResult.Failed($"Payment status is '{intent.Status}', not succeeded.");
+                }
+
+                var expectedCents = (long)(expectedAmount * 100);
+                if (intent.Amount != expectedCents)
+                {
+                    _logger.LogWarning("PaymentIntent {Id} amount mismatch: expected {Expected}, got {Actual}",
+                        paymentIntentId, expectedCents, intent.Amount);
+                    return PaymentResult.Failed("Payment amount does not match the expected amount.");
+                }
+
+                return PaymentResult.Succeeded(intent.Id);
+            }
+            catch (StripeException ex)
+            {
+                _logger.LogError(ex, "Stripe PaymentIntent verification failed for {Id}: {Message}", paymentIntentId, ex.Message);
+                return PaymentResult.Failed(ex.Message);
+            }
+        }
+
         public async Task DeleteCustomerAsync(string email)
         {
             var listOptions = new CustomerListOptions

@@ -132,7 +132,7 @@ namespace RentMate.Areas.Identity.Pages.Account
             }
 
             var result = await _signInManager.PasswordSignInAsync(
-                user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                user, Input.Password, Input.RememberMe, lockoutOnFailure: true);
 
             if (result.Succeeded)
             {

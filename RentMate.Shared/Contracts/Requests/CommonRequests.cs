@@ -1,3 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using RentMate.Shared.Contracts.Validation;
+
 namespace RentMate.Shared.Contracts.Requests;
 
 /// <summary>
@@ -24,7 +27,9 @@ public record CreateItemRequest
 {
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
+    [Range(0.01, 1000000, ErrorMessage = "Price must be between 0.01 and 1,000,000")]
     public decimal PricePerDay { get; init; }
+    [CloudinaryUrl]
     public string? ImageUrl { get; init; }
     public string? City { get; init; }
     public bool IsListed { get; init; } = true;
@@ -38,7 +43,9 @@ public record UpdateItemRequest
 {
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
+    [Range(0.01, 1000000, ErrorMessage = "Price must be between 0.01 and 1,000,000")]
     public decimal PricePerDay { get; init; }
+    [CloudinaryUrl]
     public string? ImageUrl { get; init; }
     public string? City { get; init; }
     public bool IsListed { get; init; }
@@ -72,5 +79,6 @@ public record UpdateProfileRequest
     public string? LastName { get; init; }
     public string? City { get; init; }
     public string? PhoneNumber { get; init; }
+    [CloudinaryUrl]
     public string? ProfilePictureUrl { get; init; }
 }

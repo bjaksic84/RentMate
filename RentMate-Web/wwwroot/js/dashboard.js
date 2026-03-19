@@ -1,10 +1,183 @@
 // =============================================
-// Dashboard JS — Utilities, Extensions, Reviews, SignalR
+// Dashboard JS — Tabs, Utilities, Extensions, Reviews, SignalR
 // =============================================
 
 // --- Shorthand for config ---
 var DC = window.DashboardConfig || {};
 var S = DC.strings || {};
+
+// === Tab Navigation ===
+(function initTabs() {
+    var tabButtons = document.querySelectorAll('.tab-btn[data-tab]');
+    var tabPanels = document.querySelectorAll('[data-tab-panel]');
+    if (!tabButtons.length || !tabPanels.length) return;
+
+    var activeClass = 'bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 text-white shadow-sm';
+    var inactiveClass = 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50';
+
+    function activateTab(tabName) {
+        tabPanels.forEach(function (panel) {
+            if (panel.dataset.tabPanel === tabName) {
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+        });
+
+        tabButtons.forEach(function (btn) {
+            var isActive = btn.dataset.tab === tabName;
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+
+            // Remove all styling classes first
+            activeClass.split(' ').forEach(function (c) { btn.classList.remove(c); });
+            inactiveClass.split(' ').forEach(function (c) { btn.classList.remove(c); });
+
+            // Apply appropriate classes
+            var classes = isActive ? activeClass : inactiveClass;
+            classes.split(' ').forEach(function (c) { btn.classList.add(c); });
+        });
+    }
+
+    // Determine initial tab from URL hash
+    var hash = window.location.hash.replace('#', '');
+    var validTabs = Array.from(tabButtons).map(function (btn) { return btn.dataset.tab; });
+    var initialTab = validTabs.indexOf(hash) !== -1 ? hash : 'home';
+    activateTab(initialTab);
+
+    // Click handlers
+    tabButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var tabName = this.dataset.tab;
+            window.location.hash = tabName;
+            activateTab(tabName);
+        });
+    });
+
+    // Back/forward navigation
+    window.addEventListener('hashchange', function () {
+        var hash = window.location.hash.replace('#', '');
+        if (validTabs.indexOf(hash) !== -1) {
+            activateTab(hash);
+        }
+    });
+})();
+
+// === Expandable Rows ===
+(function initExpandableRows() {
+    document.addEventListener('click', function (e) {
+        var row = e.target.closest('.expandable-row');
+        if (!row) return;
+        // Don't toggle if clicking a link, button, or form element
+        if (e.target.closest('a, button, form, input, select, textarea')) return;
+
+        var panel = row.querySelector('.expand-panel');
+        var chevron = row.querySelector('.expand-chevron');
+        if (!panel) return;
+
+        var isHidden = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden');
+        if (chevron) {
+            chevron.classList.toggle('rotate-180', isHidden);
+        }
+    });
+})();
+
+// === Evidence Modal Buttons (XSS-safe: reads from data-* attributes instead of inline onclick) ===
+(function initEvidenceButtons() {
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        var action = btn.dataset.action;
+        var rentalId = parseInt(btn.dataset.rentalId, 10);
+        var evidence = btn.dataset.evidence ? JSON.parse(btn.dataset.evidence) : [];
+
+        if (action === 'openDisputeModal' && typeof openDisputeModal === 'function') {
+            openDisputeModal(rentalId, evidence);
+        } else if (action === 'openCounterOfferModal' && typeof openCounterOfferModal === 'function') {
+            var chargedAmount = parseFloat(btn.dataset.chargedAmount) || 0;
+            openCounterOfferModal(rentalId, chargedAmount, evidence);
+        } else if (action === 'openMaintainChargeModal' && typeof openMaintainChargeModal === 'function') {
+            openMaintainChargeModal(rentalId, evidence);
+        }
+    });
+})();
+
+// === History Filters & Load More ===
+(function initHistoryFilters() {
+    var chips = document.querySelectorAll('.history-chip[data-filter]');
+    if (!chips.length) return;
+
+    var activeChipClass = 'bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 text-white shadow-sm';
+    var inactiveChipClass = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600';
+    var currentFilter = 'all';
+
+    function applyFilter(filter) {
+        currentFilter = filter;
+        var rows = document.querySelectorAll('.history-row');
+        var visibleCount = 0;
+        var totalMatch = 0;
+        var limit = window._historyShowAll ? Infinity : 12;
+
+        rows.forEach(function (row) {
+            var role = row.dataset.role;
+            var status = row.dataset.status;
+            var matches = filter === 'all'
+                || (filter === 'renter' && role === 'renter')
+                || (filter === 'owner' && role === 'owner')
+                || (filter === 'completed' && status === 'completed')
+                || (filter === 'cancelled' && status === 'cancelled');
+
+            if (matches) {
+                totalMatch++;
+                if (totalMatch <= limit) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            } else {
+                row.classList.add('hidden');
+            }
+        });
+
+        // Update count text
+        var countEl = document.getElementById('historyCount');
+        if (countEl) {
+            countEl.textContent = visibleCount + ' / ' + totalMatch;
+        }
+
+        // Show/hide load more
+        var loadMoreContainer = document.getElementById('loadMoreContainer');
+        if (loadMoreContainer) {
+            loadMoreContainer.style.display = visibleCount < totalMatch ? '' : 'none';
+        }
+
+        // Update chip styling
+        chips.forEach(function (chip) {
+            var isActive = chip.dataset.filter === filter;
+            activeChipClass.split(' ').forEach(function (c) { chip.classList.remove(c); });
+            inactiveChipClass.split(' ').forEach(function (c) { chip.classList.remove(c); });
+            var classes = isActive ? activeChipClass : inactiveChipClass;
+            classes.split(' ').forEach(function (c) { chip.classList.add(c); });
+        });
+    }
+
+    chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            window._historyShowAll = false;
+            applyFilter(this.dataset.filter);
+        });
+    });
+
+    // Expose for load more
+    window._historyApplyFilter = function () { applyFilter(currentFilter); };
+})();
+
+function loadMoreHistory() {
+    window._historyShowAll = true;
+    if (window._historyApplyFilter) window._historyApplyFilter();
+}
 
 // === Utility Functions ===
 function formatCurrency(amount) {

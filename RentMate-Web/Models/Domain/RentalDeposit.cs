@@ -67,6 +67,17 @@ namespace RentMate.Models.Domain
         public DateTime? DisputeDeadline { get; set; }
         public DateTime? EscalatedAt { get; set; }
 
+        /// <summary>
+        /// Timestamp when the renter explicitly accepted the charge (terminal state).
+        /// </summary>
+        public DateTime? ChargeAcceptedAt { get; set; }
+
+        /// <summary>
+        /// Tracks how many dispute→counter-offer→reject cycles have occurred.
+        /// Auto-escalates to admin after reaching the maximum (3).
+        /// </summary>
+        public int DisputeRoundCount { get; set; }
+
         [StringLength(500)]
         public string? AdminNotes { get; set; }
         public string? AdminResolvedByUserId { get; set; }

@@ -86,15 +86,27 @@ namespace RentMate.Controllers.Mvc
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,UserName,Email,FirstName,LastName,City")] ApplicationUser user)
+        public async Task<IActionResult> Create([Bind("UserName,Email,FirstName,LastName,City")] ApplicationUser user, string password)
         {
             if (!ModelState.IsValid)
             {
                 return View(user);
             }
 
-            _context.Add(user);
-            await _context.SaveChangesAsync();
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                ModelState.AddModelError("password", _localizer["Password is required."].Value);
+                return View(user);
+            }
+
+            var result = await _userManager.CreateAsync(user, password);
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                    ModelState.AddModelError(string.Empty, error.Description);
+                return View(user);
+            }
+
             return RedirectToAction(nameof(Index));
         }
 
@@ -312,12 +324,36 @@ namespace RentMate.Controllers.Mvc
         /// Updates the roles assigned to a user.
         /// </summary>
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ManageRoles(ManageRolesViewModel model)
         {
             var user = await FindUserWithManagerAsync(model.UserId);
             if (user == null)
             {
                 return NotFound();
+            }
+
+            var selectedRoles = model.Roles
+                .Where(r => r.IsSelected && r.RoleName != null)
+                .Select(r => r.RoleName!)
+                .ToList();
+
+            var removingAdmin = await IsAdminUserAsync(user) && !selectedRoles.Contains(AdminRole);
+
+            // Prevent self-demotion
+            if (removingAdmin && user.Id == _userManager.GetUserId(User))
+            {
+                return RedirectWithError(_localizer["You cannot remove the Admin role from your own account."].Value);
+            }
+
+            // Prevent removing the last admin
+            if (removingAdmin)
+            {
+                var admins = await _userManager.GetUsersInRoleAsync(AdminRole);
+                if (admins.Count <= 1)
+                {
+                    return RedirectWithError(_localizer["Cannot remove the Admin role from the last administrator."].Value);
+                }
             }
 
             await UpdateUserRolesAsync(user, model.Roles);
@@ -333,7 +369,7 @@ namespace RentMate.Controllers.Mvc
         /// <summary>
         /// Returns a partial view with owner information for modals.
         /// </summary>
-        [AllowAnonymous]
+        [Authorize]
         public async Task<IActionResult> GetOwnerInfoPartial(string userId)
         {
             var owner = await _userManager.Users

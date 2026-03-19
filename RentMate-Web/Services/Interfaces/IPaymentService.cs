@@ -56,6 +56,13 @@ namespace RentMate.Services.Interfaces
         /// including all attached payment methods. No-op if no customer exists.
         /// </summary>
         Task DeleteCustomerAsync(string email);
+
+        /// <summary>
+        /// Retrieves a PaymentIntent from Stripe and verifies its status and amount.
+        /// Returns success only if the intent status is "succeeded" or "requires_capture"
+        /// and the amount matches the expected value.
+        /// </summary>
+        Task<PaymentResult> VerifyPaymentIntentAsync(string paymentIntentId, decimal expectedAmount);
     }
 
     /// <summary>

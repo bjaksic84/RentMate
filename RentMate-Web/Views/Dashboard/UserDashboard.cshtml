@@ -9,12 +9,19 @@
 
 @{
     ViewData["Title"] = Localizer["Dashboard"];
-    var activeMyRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
-    var activeOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
     var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
     var rawName = currentUser?.UserName ?? User.Identity?.Name;
     var atIndex = rawName?.IndexOf('@') ?? -1;
     var displayName = atIndex > 0 ? rawName![..atIndex] : (rawName ?? string.Empty);
+
+    // Badge counts for tabs
+    var overdueRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < DateTime.UtcNow.Date).ToList() ?? new();
+    var pendingRequests = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Pending).ToList() ?? new();
+    var rentingAttentionCount = overdueRentals.Count;
+    var lendingAttentionCount = pendingRequests.Count + (Model.PendingExtensionCount);
+    var completedRentals = (Model.MyRentals?.Where(r => r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled).ToList() ?? new())
+        .Concat(Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled).ToList() ?? new())
+        .ToList();
 }
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -56,32 +63,60 @@
     <!-- Alerts -->
     @await Html.PartialAsync("_Alert")
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-bag", IconColor = "purple", Value = activeMyRentals.Count, Label = "Active Rentals", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-graph-up-arrow", IconColor = "green", Value = activeOwnerRentals.Count, Label = "Renting Out", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-calendar-plus", IconColor = "blue", Value = Model.PendingExtensionCount, Label = "Pending Extensions", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-shield-check", IconColor = "amber", Value = CurrencyService.Format(Model.DepositSummary?.TotalHeld ?? 0), Label = "Deposits Held", Link = (string?)null, LinkText = (string?)null })
+    <!-- Tab Navigation -->
+    <nav class="flex gap-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-1 mb-8" role="tablist">
+        <button data-tab="home" role="tab" aria-selected="true"
+                class="tab-btn flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
+            <i class="bi bi-house-heart"></i>
+            <span class="hidden sm:inline">@Localizer["DashboardTabHome"]</span>
+        </button>
+        <button data-tab="renting" role="tab" aria-selected="false"
+                class="tab-btn flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all relative">
+            <i class="bi bi-bag"></i>
+            <span class="hidden sm:inline">@Localizer["DashboardTabRenting"]</span>
+            @if (rentingAttentionCount > 0)
+            {
+                <span class="tab-badge absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center">@rentingAttentionCount</span>
+            }
+        </button>
+        <button data-tab="lending" role="tab" aria-selected="false"
+                class="tab-btn flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all relative">
+            <i class="bi bi-box-seam"></i>
+            <span class="hidden sm:inline">@Localizer["DashboardTabLending"]</span>
+            @if (lendingAttentionCount > 0)
+            {
+                <span class="tab-badge absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white text-xs font-bold rounded-full flex items-center justify-center">@lendingAttentionCount</span>
+            }
+        </button>
+        <button data-tab="history" role="tab" aria-selected="false"
+                class="tab-btn flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
+            <i class="bi bi-clock-history"></i>
+            <span class="hidden sm:inline">@Localizer["DashboardTabHistory"]</span>
+        </button>
+    </nav>
+
+    <!-- Tab: Home -->
+    <div data-tab-panel="home" class="tab-panel">
+        @await Html.PartialAsync("_DashboardHome", Model)
     </div>
 
-    <!-- Attention Required Banner -->
-    @await Html.PartialAsync("_AttentionBanner", Model)
+    <!-- Tab: Renting -->
+    <div data-tab-panel="renting" class="tab-panel hidden">
+        @await Html.PartialAsync("_DashboardRenting", Model)
+    </div>
 
-    <!-- Two-Column Layout -->
-    <div class="flex flex-col lg:flex-row gap-8">
-        <!-- Left Column (Main Content) -->
-        <div class="flex-1 lg:w-2/3 space-y-8">
-            @await Html.PartialAsync("_MyRentals", Model)
-            @await Html.PartialAsync("_RentingOut", Model)
-            @await Html.PartialAsync("_RentalHistory", Model)
-        </div>
+    <!-- Tab: Lending -->
+    <div data-tab-panel="lending" class="tab-panel hidden">
+        @await Html.PartialAsync("_DashboardLending", Model)
+    </div>
 
-        <!-- Right Column (Sidebar) -->
-        @await Html.PartialAsync("_DashboardSidebar", Model)
+    <!-- Tab: History -->
+    <div data-tab-panel="history" class="tab-panel hidden">
+        @await Html.PartialAsync("_DashboardHistory", Model)
     </div>
 </div>
 
-<!-- Modals -->
+<!-- Modals (outside tabs, always available) -->
 @await Html.PartialAsync("_RentalModals", Model)
 @await Html.PartialAsync("_DepositModals", Model)
 @await Html.PartialAsync("_DisputeModals", Model)

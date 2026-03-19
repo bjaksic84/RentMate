@@ -231,6 +231,7 @@ namespace RentMate.Services.Implementations
             if (deposit.Rental?.RenterId != disputedByUserId)
                 throw new UnauthorizedAccessException("Only the renter can dispute a deposit charge.");
 
+            deposit.DisputeRoundCount++;
             deposit.Status = DepositStatus.Disputed;
             deposit.DisputeReason = reason;
             deposit.DisputedAt = DateTime.UtcNow;
@@ -239,8 +240,8 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Deposit for rental {RentalId} disputed by user {UserId}. Reason: {Reason}",
-                rentalId, disputedByUserId, reason);
+                "Deposit for rental {RentalId} disputed by user {UserId} (round {Round}). Reason: {Reason}",
+                rentalId, disputedByUserId, deposit.DisputeRoundCount, reason);
 
             return deposit;
         }
@@ -301,6 +302,7 @@ namespace RentMate.Services.Implementations
                 throw new UnauthorizedAccessException("Only the renter can accept a deposit charge.");
 
             deposit.DisputeDeadline = null;
+            deposit.ChargeAcceptedAt = DateTime.UtcNow;
             deposit.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -446,6 +448,25 @@ namespace RentMate.Services.Implementations
             if (deposit.Rental?.RenterId != renterUserId)
                 throw new UnauthorizedAccessException("Only the renter can reject a counter-offer.");
 
+            const int maxDisputeRounds = 3;
+
+            if (deposit.DisputeRoundCount >= maxDisputeRounds)
+            {
+                // Auto-escalate to admin after max rounds
+                deposit.Status = DepositStatus.Escalated;
+                deposit.EscalatedAt = DateTime.UtcNow;
+                deposit.DisputeDeadline = null;
+                deposit.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Counter-offer rejected for rental {RentalId}. Max dispute rounds ({MaxRounds}) reached — auto-escalated to admin.",
+                    rentalId, maxDisputeRounds);
+
+                return deposit;
+            }
+
             deposit.Status = (deposit.ChargedAmount ?? deposit.Amount) < deposit.Amount
                 ? DepositStatus.PartiallyCharged
                 : DepositStatus.Charged;
@@ -455,8 +476,8 @@ namespace RentMate.Services.Implementations
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Renter rejected counter-offer for rental {RentalId}. Original charge stands with new 5-day dispute window.",
-                rentalId);
+                "Renter rejected counter-offer for rental {RentalId}. Original charge stands with new 5-day dispute window (round {Round}/{MaxRounds}).",
+                rentalId, deposit.DisputeRoundCount, maxDisputeRounds);
 
             return deposit;
         }

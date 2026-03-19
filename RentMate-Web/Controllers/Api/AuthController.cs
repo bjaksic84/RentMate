@@ -24,19 +24,22 @@ namespace RentMate.Controllers.Api
         private readonly IConfiguration _configuration;
         private readonly IStringLocalizer<AuthController> _localizer;
         private readonly ILogger<AuthController> _logger;
+        private readonly IWebHostEnvironment _environment;
 
         public AuthController(
             UserManager<ApplicationUser> userManager,
             RoleManager<IdentityRole> roleManager,
             IConfiguration configuration,
             IStringLocalizer<AuthController> localizer,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            IWebHostEnvironment environment)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _configuration = configuration;
             _localizer = localizer;
             _logger = logger;
+            _environment = environment;
         }
 
         [HttpPost("register")]
@@ -51,13 +54,19 @@ namespace RentMate.Controllers.Api
                 Email = model.Email,
                 FirstName = model.FirstName,
                 LastName = model.LastName,
-                City = model.City,
-                EmailConfirmed = true
+                City = model.City
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
+
+            // In development, auto-confirm email since there's no mail server
+            if (_environment.IsDevelopment())
+            {
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                await _userManager.ConfirmEmailAsync(user, token);
+            }
 
             // Optionally add default role
             if (!await _roleManager.RoleExistsAsync("User"))
@@ -84,6 +93,12 @@ namespace RentMate.Controllers.Api
             
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
+                // Block deactivated users from obtaining new tokens
+                if (user.IsDeactivated)
+                {
+                    return Unauthorized(new { message = _localizer["Account is deactivated."].Value });
+                }
+
                 // Reset failed access count on successful login
                 await _userManager.ResetAccessFailedCountAsync(user);
                 

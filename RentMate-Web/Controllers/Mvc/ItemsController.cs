@@ -50,6 +50,7 @@ namespace RentMate.Controllers.Mvc
             _logger = logger;
         }
 
+        [Authorize(Roles = AdminRole)]
         public async Task<IActionResult> Index()
         {
             var items = _db.Items.Include(i => i.User);
@@ -99,6 +100,7 @@ namespace RentMate.Controllers.Mvc
             return View(item);
         }
 
+        [Authorize]
         public async Task<IActionResult> Create()
         {
             // Government ID gate: must verify ID before listing items
@@ -109,8 +111,7 @@ namespace RentMate.Controllers.Mvc
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
-            ViewData["UserId"] = new SelectList(_db.Users, "Id", "Email");
-            return View();
+                        return View();
         }
 
         [HttpPost]
@@ -133,8 +134,7 @@ namespace RentMate.Controllers.Mvc
                 if (images != null && images.Count > MaxImagesPerItem)
                 {
                     TempData["ErrorMessage"] = string.Format(_localizer["Maximum {0} images allowed"], MaxImagesPerItem);
-                    ViewData["UserId"] = new SelectList(_db.Users, "Id", "Email");
-                    return View(item);
+                                        return View(item);
                 }
 
                 _db.Add(item);
@@ -172,10 +172,10 @@ namespace RentMate.Controllers.Mvc
                 return RedirectToAction("UserDashboard", "Dashboard");
             }
 
-            ViewData["UserId"] = new SelectList(_db.Users, "Id", "Email");
-            return View(item);
+                        return View(item);
         }
 
+        [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -191,8 +191,7 @@ namespace RentMate.Controllers.Mvc
             var userId = _userManager.GetUserId(User);
             if(item.UserId != userId) return Forbid();
 
-            ViewData["UserId"] = new SelectList(_db.Users, "Id", "Email", item.UserId);
-            return View(item);
+                        return View(item);
         }
 
         [HttpPost]
@@ -266,6 +265,7 @@ namespace RentMate.Controllers.Mvc
             return View(updatedItem);
         }
 
+        [Authorize]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();

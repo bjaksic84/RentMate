@@ -191,7 +191,13 @@
                                     {
                                         <button type="button"
                                                 class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                onclick="openEditReviewModal(@review.Id, @review.ItemId, @review.Rating, '@Html.Raw(review.Title?.Replace("'", "\\'") ?? "")', '@Html.Raw(review.Body?.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", "") ?? "")', @(review.IsAnonymous ? "true" : "false"))"
+                                                data-action="openEditReviewModal"
+                                                data-review-id="@review.Id"
+                                                data-item-id="@review.ItemId"
+                                                data-rating="@review.Rating"
+                                                data-title="@(review.Title ?? "")"
+                                                data-body="@(review.Body ?? "")"
+                                                data-anonymous="@(review.IsAnonymous ? "true" : "false")"
                                                 title="@Localizer["Edit Review"]">
                                             <i class="bi bi-pencil"></i>
                                         </button>
@@ -503,7 +509,21 @@
         function closeEditReviewModal() {
             document.getElementById('editReviewModal').classList.add('hidden');
         }
-        
+
+        // Delegated handler for edit review buttons (XSS-safe: reads from data-* attributes)
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('[data-action="openEditReviewModal"]');
+            if (!btn) return;
+            openEditReviewModal(
+                parseInt(btn.dataset.reviewId, 10),
+                parseInt(btn.dataset.itemId, 10),
+                parseInt(btn.dataset.rating, 10),
+                btn.dataset.title || '',
+                btn.dataset.body || '',
+                btn.dataset.anonymous === 'true'
+            );
+        });
+
         // Star rating functionality for edit modal
         document.querySelectorAll('#editStarRating .star-btn').forEach(btn => {
             btn.addEventListener('click', function() {

@@ -28,29 +28,29 @@
     // Icon background and text color
     var (bgColor, textColor) = iconColor.ToLower() switch
     {
-        "blue" => ("bg-blue-100", "text-blue-600"),
-        "green" => ("bg-green-100", "text-green-600"),
-        "purple" => ("bg-purple-100", "text-purple-600"),
-        "amber" => ("bg-amber-100", "text-amber-600"),
-        "red" => ("bg-red-100", "text-red-500"),
-        "slate" => ("bg-slate-100", "text-slate-600"),
-        _ => ("bg-blue-100", "text-blue-600")
+        "blue" => ("bg-blue-100 dark:bg-blue-900/30", "text-blue-600 dark:text-blue-400"),
+        "green" => ("bg-green-100 dark:bg-green-900/30", "text-green-600 dark:text-green-400"),
+        "purple" => ("bg-purple-100 dark:bg-purple-900/30", "text-purple-600 dark:text-purple-400"),
+        "amber" => ("bg-amber-100 dark:bg-amber-900/30", "text-amber-600 dark:text-amber-400"),
+        "red" => ("bg-red-100 dark:bg-red-900/30", "text-red-500 dark:text-red-400"),
+        "slate" => ("bg-slate-100 dark:bg-slate-700", "text-slate-600 dark:text-slate-400"),
+        _ => ("bg-blue-100 dark:bg-blue-900/30", "text-blue-600 dark:text-blue-400")
     };
 }
 
-<div class="bg-white rounded-2xl border border-slate-200 p-5">
+<div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
     <div class="flex items-center gap-3">
         <div class="w-12 h-12 @bgColor rounded-xl flex items-center justify-center">
             <i class="bi @icon @textColor text-xl"></i>
         </div>
         <div>
-            <p class="text-2xl font-bold text-slate-900">@value</p>
-            <p class="text-sm text-slate-500">@Localizer[label]</p>
+            <p class="text-2xl font-bold text-slate-900 dark:text-white">@value</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer[label]</p>
         </div>
     </div>
     @if (!string.IsNullOrEmpty(link) && !string.IsNullOrEmpty(linkText))
     {
-        <a href="@link" class="inline-block mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium">
+        <a href="@link" class="inline-block mt-3 text-sm text-trust-blue-600 hover:text-trust-blue-700 font-medium">
             @Localizer[linkText] <i class="bi bi-arrow-right"></i>
         </a>
     }

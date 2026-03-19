@@ -51,6 +51,22 @@ namespace RentMate.Controllers.Mvc
 
         #endregion
 
+        #region Helpers
+
+        /// <summary>
+        /// Returns a safe error message for the client. Only forwards messages from expected
+        /// exception types; unexpected exceptions get a generic message to prevent information leakage.
+        /// </summary>
+        private static string SafeErrorMessage(Exception ex) => ex switch
+        {
+            InvalidOperationException => ex.Message,
+            UnauthorizedAccessException => ex.Message,
+            ArgumentException => ex.Message,
+            _ => "An unexpected error occurred. Please try again."
+        };
+
+        #endregion
+
         #region Deposit Actions
 
         /// <summary>
@@ -81,7 +97,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Deposit release failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -121,7 +137,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Deposit charge failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -153,7 +169,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Disputed deposit release failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -167,7 +183,7 @@ namespace RentMate.Controllers.Mvc
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Unauthorized();
 
-            if (action == "charge" && (evidence == null || evidence.Length == 0))
+            if ((action == "charge" || action == "charge-full") && (evidence == null || evidence.Length == 0))
             {
                 return Json(new { success = false, message = "Picture evidence is required for all deposit charges." });
             }
@@ -219,7 +235,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Complete with deposit failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -255,7 +271,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Deposit dispute failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -287,7 +303,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Accept charge failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -319,7 +335,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Accept counter-offer failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -351,7 +367,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Reject counter-offer failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -389,7 +405,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Counter-offer failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -434,7 +450,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Escalate dispute failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -480,7 +496,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Evidence upload failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 
@@ -529,7 +545,7 @@ namespace RentMate.Controllers.Mvc
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Admin resolve dispute failed for rental {RentalId}", rentalId);
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, message = SafeErrorMessage(ex) });
             }
         }
 

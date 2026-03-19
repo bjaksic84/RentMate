@@ -1,0 +1,249 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Shared.Contracts.Responses
+@using RentMate.Models.Domain
+@model RentMate.Models.ViewModels.DashboardViewModel
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@{
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+    var activeOwnerRentals = Model.OwnerRentals?.Where(r =>
+        r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted
+        || (r.Status == RentalStatus.Completed && r.Deposit != null
+            && (r.Deposit.Status == DepositStatus.Disputed || r.Deposit.Status == DepositStatus.CounterOffered
+                || r.Deposit.Status == DepositStatus.Escalated
+                || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged)
+                    && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+    ).ToList() ?? new();
+
+    var pendingRequests = activeOwnerRentals.Where(r => r.Status == RentalStatus.Pending).ToList();
+    var activeRentals = activeOwnerRentals.Where(r => r.Status == RentalStatus.Active).ToList();
+    var acceptedRentals = activeOwnerRentals.Where(r => r.Status == RentalStatus.Accepted).ToList();
+    var depositIssueRentals = activeOwnerRentals.Where(r => r.Status == RentalStatus.Completed).ToList();
+
+    var dailyIncome = activeRentals.Sum(r => r.Item?.Price ?? 0);
+    var totalEarned = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed).Sum(r => r.TotalPrice) ?? 0;
+    var monthlyEarned = Model.OwnerRentals?
+        .Where(r => r.Status == RentalStatus.Completed && r.EndDate.Month == DateTime.UtcNow.Month && r.EndDate.Year == DateTime.UtcNow.Year)
+        .Sum(r => r.TotalPrice) ?? 0;
+
+    string FormatDateRange(DateTime a, DateTime b) {
+        var first = a <= b ? a : b;
+        var second = a <= b ? b : a;
+        return $"{first.ToString("dd MMM")} → {second.ToString("dd MMM yyyy")}";
+    }
+}
+
+<!-- Summary Strip -->
+<div class="flex flex-wrap items-center gap-4 mb-6 px-1">
+    <div class="flex items-center gap-2 text-sm">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span class="text-slate-500 dark:text-slate-400">@Localizer["RentedOut"]</span>
+        <span class="font-semibold text-slate-900 dark:text-white">@activeRentals.Count</span>
+    </div>
+    <div class="flex items-center gap-2 text-sm">
+        <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+        <span class="text-slate-500 dark:text-slate-400">@Localizer["PendingRequests"]</span>
+        <span class="font-semibold text-slate-900 dark:text-white">@pendingRequests.Count</span>
+    </div>
+    <div class="flex items-center gap-2 text-sm">
+        <i class="bi bi-cash-stack text-emerald-600"></i>
+        <span class="text-slate-500 dark:text-slate-400">@Localizer["DailyIncome"]</span>
+        <span class="font-semibold text-emerald-600">@CurrencyService.Format(dailyIncome)/@Localizer["day"]</span>
+    </div>
+</div>
+
+@* === Attention: Pending Rental Requests === *@
+@if (pendingRequests.Any())
+{
+    <div class="mb-6 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 overflow-hidden">
+        <div class="px-5 py-3 border-b border-amber-200 dark:border-amber-800 flex items-center gap-2">
+            <i class="bi bi-clock text-amber-500"></i>
+            <h3 class="text-sm font-semibold text-amber-700 dark:text-amber-300">@Localizer["PendingRequests"] (@pendingRequests.Count)</h3>
+        </div>
+        <div class="divide-y divide-amber-200 dark:divide-amber-800">
+            @foreach (var rental in pendingRequests)
+            {
+                <div class="px-5 py-3 flex items-center gap-3">
+                    <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden">
+                        @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
+                        {
+                            var thumbUrl = rental.Item.PrimaryImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
+                            <img src="@thumbUrl" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <div class="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center"><i class="bi bi-image text-slate-300"></i></div>
+                        }
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-900 dark:text-white truncate">@rental.Item?.Title</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.UserName ?? Localizer["DeletedUser"].Value) &mdash;
+                            @FormatDateRange(rental.StartDate, rental.EndDate)
+                        </p>
+                    </div>
+                    <div class="flex gap-1.5 shrink-0">
+                        <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="inline">
+                            <input type="hidden" name="rentalId" value="@rental.Id" />
+                            <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
+                                @Localizer["Approve"]
+                            </button>
+                        </form>
+                        <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
+                            <input type="hidden" name="rentalId" value="@rental.Id" />
+                            <button class="px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                                @Localizer["Reject"]
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* === Attention: Pending Extension Requests === *@
+@if (Model.PendingExtensions?.Any() ?? false)
+{
+    <div class="mb-6 rounded-2xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 overflow-hidden">
+        <div class="px-5 py-3 border-b border-sky-200 dark:border-sky-800 flex items-center gap-2">
+            <i class="bi bi-calendar-plus text-sky-500"></i>
+            <h3 class="text-sm font-semibold text-sky-700 dark:text-sky-300">@Localizer["Pending Extensions"] (@(Model.PendingExtensions?.Count ?? 0))</h3>
+        </div>
+        <div class="divide-y divide-sky-200 dark:divide-sky-800">
+            @foreach (var ext in Model.PendingExtensions!)
+            {
+                <div class="px-5 py-3 flex items-center gap-3">
+                    <span class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
+                        <i class="bi bi-calendar-plus text-sky-600 dark:text-sky-400 text-sm"></i>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-900 dark:text-white truncate">@ext.Rental?.Item?.Title</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            @Localizer["From"] @(ext.RequestedBy?.FirstName ?? ext.RequestedBy?.UserName ?? Localizer["DeletedUser"].Value) &mdash;
+                            @ext.OriginalEndDate.ToString("dd MMM") &rarr; @ext.NewEndDate.ToString("dd MMM yyyy")
+                            (+@CurrencyService.Format(ext.AdditionalCost))
+                        </p>
+                    </div>
+                    <div class="flex gap-1.5 shrink-0">
+                        <button onclick="approveExtension(@ext.Id)"
+                                class="px-2.5 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
+                            @Localizer["Approve"]
+                        </button>
+                        <button onclick="declineExtension(@ext.Id)"
+                                class="px-2.5 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
+                            @Localizer["Decline"]
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@* === Active Owner Rentals (expandable rows) === *@
+@{
+    var nonPendingRentals = activeRentals.Concat(acceptedRentals).Concat(depositIssueRentals).ToList();
+}
+@if (nonPendingRentals.Any())
+{
+    <div class="mb-6">
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+            <i class="bi bi-graph-up-arrow text-emerald-500"></i>
+            @Localizer["RentedOut"] (@nonPendingRentals.Count)
+        </h3>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
+            @foreach (var rental in nonPendingRentals)
+            {
+                @await Html.PartialAsync("_OwnerRentalRow", new { Rental = rental, CurrentUserId = currentUserId, CurrencyService = CurrencyService })
+            }
+        </div>
+    </div>
+}
+
+@* === Earnings Bar === *@
+<div class="mb-6 grid grid-cols-3 gap-4">
+    @await Html.PartialAsync("_StatCard", new { Icon = "bi-currency-euro", IconColor = "green", Value = CurrencyService.Format(totalEarned), Label = "Total Earned", Link = (string?)null, LinkText = (string?)null })
+    @await Html.PartialAsync("_StatCard", new { Icon = "bi-calendar-check", IconColor = "blue", Value = CurrencyService.Format(monthlyEarned), Label = "MonthlyEarnings", Link = (string?)null, LinkText = (string?)null })
+    @await Html.PartialAsync("_StatCard", new { Icon = "bi-shield-check", IconColor = "amber", Value = CurrencyService.Format(Model.DepositSummary?.TotalHeld ?? 0), Label = "DepositsHeld", Link = (string?)null, LinkText = (string?)null })
+</div>
+
+@* === My Items Mini-Grid === *@
+<div>
+    <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="bi bi-box-seam text-trust-blue-600"></i>
+            @Localizer["MyItems"] (@(Model.ListingsOwned?.Count ?? 0))
+        </h3>
+        <a asp-controller="Items" asp-action="Create" class="text-xs text-trust-blue-600 hover:text-trust-blue-700 font-medium">
+            <i class="bi bi-plus-lg"></i> @Localizer["Add"]
+        </a>
+    </div>
+
+    @if (Model.ListingsOwned?.Any() ?? false)
+    {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @foreach (var item in Model.ListingsOwned)
+            {
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-sm transition-shadow">
+                    <div class="h-28 overflow-hidden relative">
+                        @if (!string.IsNullOrEmpty(item.PrimaryImageUrl))
+                        {
+                            var thumbUrl = item.PrimaryImageUrl.Replace("/upload/", "/upload/c_fill,w_300,h_150,q_auto/");
+                            <img src="@thumbUrl" class="w-full h-full object-cover" />
+                        }
+                        else
+                        {
+                            <div class="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center"><i class="bi bi-image text-2xl text-slate-300"></i></div>
+                        }
+                        <div class="absolute top-2 right-2">
+                            @if (item.IsListed)
+                            {
+                                <span class="px-1.5 py-0.5 bg-emerald-500/90 text-white text-[10px] font-bold rounded-full">@Localizer["Listed"]</span>
+                            }
+                            else
+                            {
+                                <span class="px-1.5 py-0.5 bg-slate-500/90 text-white text-[10px] font-bold rounded-full">@Localizer["Hidden"]</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <h4 class="text-sm font-medium text-slate-900 dark:text-white truncate">@item.Title</h4>
+                        <p class="text-xs font-semibold text-trust-blue-600 mt-0.5">@CurrencyService.Format(item.Price)/@Localizer["day"]</p>
+                        <div class="flex items-center gap-1 mt-2">
+                            <button onclick="toggleListing(@item.Id, this)"
+                                    class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                                    title="@(item.IsListed ? Localizer["Hide"] : Localizer["List"])">
+                                <i class="bi @(item.IsListed ? "bi-eye-slash" : "bi-eye") text-sm"></i>
+                            </button>
+                            <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.Id"
+                               class="p-1.5 text-slate-400 hover:text-trust-blue-600 hover:bg-trust-blue-50 dark:hover:bg-trust-blue-900/20 rounded-lg transition-colors"
+                               title="@Localizer["Edit"]">
+                                <i class="bi bi-pencil text-sm"></i>
+                            </a>
+                            <a asp-controller="Items" asp-action="Delete" asp-route-id="@item.Id"
+                               class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                               title="@Localizer["Delete"]">
+                                <i class="bi bi-trash text-sm"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+            <!-- Add Item Card -->
+            <a asp-controller="Items" asp-action="Create"
+               class="bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center min-h-[180px] hover:border-trust-blue-400 dark:hover:border-trust-blue-600 hover:bg-trust-blue-50/50 dark:hover:bg-trust-blue-900/10 transition-all group">
+                <div class="w-10 h-10 bg-trust-blue-100 dark:bg-trust-blue-900/30 rounded-xl flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                    <i class="bi bi-plus-lg text-trust-blue-600 dark:text-trust-blue-400"></i>
+                </div>
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400 group-hover:text-trust-blue-600 dark:group-hover:text-trust-blue-400 transition-colors">@Localizer["Add Item"]</p>
+            </a>
+        </div>
+    }
+    else
+    {
+        @await Html.PartialAsync("_EmptyState", new { Icon = "bi-box-seam", Message = "You have no listed items yet.", ActionLink = Url.Action("Create", "Items"), ActionText = "Add First Item" })
+    }
+</div>
