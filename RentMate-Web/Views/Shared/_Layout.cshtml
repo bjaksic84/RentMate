@@ -61,7 +61,7 @@
         window.CurrentCurrency = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(CurrencyService.GetCurrentCurrency()));
     </script>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 font-body antialiased dark:text-slate-100 transition-colors duration-200">
+<body class="bg-slate-50 dark:bg-slate-900 font-body antialiased dark:text-slate-100 transition-colors duration-200" data-authenticated="@(User.Identity?.IsAuthenticated == true ? "true" : "false")" data-signalr-hub="/rentmateHub">
     <partial name="_NavBar" />
 
     <!-- Main Content with top padding for fixed navbar -->

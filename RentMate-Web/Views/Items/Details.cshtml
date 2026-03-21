@@ -160,6 +160,34 @@
                 <p class="text-slate-600 leading-relaxed whitespace-pre-line">@Model.Description</p>
             </div>
 
+            <!-- Available Accessories -->
+            @if (Model.Accessories?.Any(a => a.IsAvailable) == true)
+            {
+                <div class="bg-white rounded-2xl border border-slate-200 p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <i class="bi bi-puzzle text-blue-500 text-lg"></i>
+                        <h2 class="font-heading text-xl font-bold text-slate-900">@Localizer["Available Accessories"]</h2>
+                    </div>
+                    <div class="space-y-3">
+                        @foreach (var acc in Model.Accessories.Where(a => a.IsAvailable))
+                        {
+                            <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-slate-900">@acc.Name</p>
+                                    @if (!string.IsNullOrEmpty(acc.Description))
+                                    {
+                                        <p class="text-xs text-slate-400 mt-0.5">@acc.Description</p>
+                                    }
+                                </div>
+                                <span class="text-sm font-semibold text-slate-900 whitespace-nowrap">
+                                    +@CurrencyService.Format(acc.DailyPrice)<span class="text-xs font-normal text-slate-400">/@Localizer["day"]</span>
+                                </span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
             <!-- Reviews Section -->
             <div class="bg-white rounded-2xl border border-slate-200 p-6">
                 <div class="flex items-center gap-3 mb-6">

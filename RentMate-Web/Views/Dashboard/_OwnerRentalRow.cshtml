@@ -126,6 +126,18 @@
                     </div>
                 }
 
+                @if (rental.Accessories?.Any() ?? false)
+                {
+                    <div class="flex flex-wrap gap-1.5">
+                        @foreach (var acc in rental.Accessories)
+                        {
+                            <span class="inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-700 px-2 py-0.5 text-xs text-slate-600 dark:text-slate-300">
+                                @acc.Name &middot; @cs.Format(acc.DailyPrice)/@Localizer["day"]
+                            </span>
+                        }
+                    </div>
+                }
+
                 <div class="flex items-center justify-between border-t border-slate-200 dark:border-slate-700 pt-2">
                     <span class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Total"]</span>
                     <span class="text-base font-semibold text-emerald-600 dark:text-emerald-400">@cs.Format(rental.TotalPrice)</span>

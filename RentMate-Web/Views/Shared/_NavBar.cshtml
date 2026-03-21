@@ -71,6 +71,14 @@
         dashboardAttentionCount = overdueCount + acceptedCount + pendingRequestCount + pendingExtensionCount
             + renterDepositCount + ownerDisputedCount + extensionPaymentCount + completedReadyCount;
     }
+
+    // Admin attention: escalated disputes awaiting resolution
+    var adminAttentionCount = 0;
+    if (User.IsInRole("Admin"))
+    {
+        adminAttentionCount = await NavDbContext.RentalDeposits.AsNoTracking()
+            .CountAsync(d => d.Status == DepositStatus.Escalated);
+    }
 }
 
 <!-- Sticky Glassmorphic Navbar -->
@@ -98,16 +106,14 @@
                     {
                         <a asp-controller="Dashboard" asp-action="UserDashboard" class="hidden md:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 relative">
                             @Localizer["Dashboard"]
-                            @if (dashboardAttentionCount > 0)
-                            {
-                                <span class="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center">@dashboardAttentionCount</span>
-                            }
+                            <span id="navBadgeDesktop" class="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center @(dashboardAttentionCount > 0 ? "" : "hidden")">@dashboardAttentionCount</span>
                         </a>
                     }
                     @if (User.IsInRole("Admin"))
                     {
-                        <a asp-controller="Dashboard" asp-action="AdminDashboard" class="hidden md:block px-4 py-2 text-sm font-bold text-blue-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                        <a asp-controller="Dashboard" asp-action="AdminDashboard" class="hidden md:block px-4 py-2 text-sm font-bold text-blue-600 hover:text-blue-700 rounded-lg hover:bg-blue-50 transition-all duration-200 relative">
                             @Localizer["Admin"]
+                            <span id="navBadgeAdmin" class="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center @(adminAttentionCount > 0 ? "" : "hidden")">@adminAttentionCount</span>
                         </a>
                     }
                 </div>
@@ -210,10 +216,7 @@
                                 aria-controls="mobileMenu">
                             <i class="bi bi-list text-xl" aria-hidden="true"></i>
                             <span class="sr-only">@Localizer["Menu"]</span>
-                            @if (dashboardAttentionCount > 0)
-                            {
-                                <span id="burgerBadge" class="md:hidden absolute -top-1 -right-1 min-w-4 h-4 px-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">@dashboardAttentionCount</span>
-                            }
+                            <span id="navBadgeBurger" class="md:hidden absolute -top-1 -right-1 min-w-4 h-4 px-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white @(dashboardAttentionCount > 0 ? "" : "hidden")">@dashboardAttentionCount</span>
                         </button>
                         <!-- Mobile Menu Dropdown -->
                         <div id="mobileMenu" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden" style="z-index: var(--z-dropdown);">
@@ -228,15 +231,13 @@
                                 {
                                     <a asp-controller="Dashboard" asp-action="UserDashboard" class="md:hidden flex items-center px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
                                         <i class="bi bi-grid mr-2"></i>@Localizer["Dashboard"]
-                                        @if (dashboardAttentionCount > 0)
-                                        {
-                                            <span class="ml-auto min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center">@dashboardAttentionCount</span>
-                                        }
+                                        <span id="navBadgeMobile" class="ml-auto min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center @(dashboardAttentionCount > 0 ? "" : "hidden")">@dashboardAttentionCount</span>
                                     </a>
                                     @if (User.IsInRole("Admin"))
                                     {
-                                        <a asp-controller="Dashboard" asp-action="AdminDashboard" class="block px-3 py-2 text-sm font-medium text-blue-600 rounded-lg hover:bg-blue-50">
+                                        <a asp-controller="Dashboard" asp-action="AdminDashboard" class="flex items-center px-3 py-2 text-sm font-medium text-blue-600 rounded-lg hover:bg-blue-50">
                                             <i class="bi bi-shield-lock mr-2"></i>@Localizer["Admin Panel"]
+                                            <span id="navBadgeAdminMobile" class="ml-auto min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center @(adminAttentionCount > 0 ? "" : "hidden")">@adminAttentionCount</span>
                                         </a>
                                     }
                                 }
@@ -305,6 +306,7 @@
                                 {
                                     <a asp-controller="Dashboard" asp-action="AdminDashboard" class="flex items-center gap-3 px-4 py-2 text-sm text-blue-600 font-bold hover:bg-blue-50 transition-colors">
                                         <i class="bi bi-shield-lock"></i> @Localizer["Admin Panel"]
+                                        <span id="navBadgeAdminDropdown" class="ml-auto min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center @(adminAttentionCount > 0 ? "" : "hidden")">@adminAttentionCount</span>
                                     </a>
                                     <hr class="my-2 border-slate-100">
                                 }

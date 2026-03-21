@@ -37,6 +37,10 @@
     var archivedRentals = (Model.MyRentals?.Where(r => (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled) && r.ArchivedAt != null).ToList() ?? new())
         .Concat(Model.OwnerRentals?.Where(r => (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled) && r.ArchivedAt != null).ToList() ?? new())
         .ToList();
+    var currentUserId = currentUser?.Id;
+    var unreviewedCount = archivedRentals.Count(r => r.OwnerId != currentUserId
+        && r.Status == RentalStatus.Completed
+        && !(r.Item?.Reviews?.Any(rev => rev.ReviewerId == currentUserId && !rev.IsDeleted) ?? false));
 }
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -104,9 +108,13 @@
             }
         </button>
         <button data-tab="history" role="tab" aria-selected="false"
-                class="tab-btn flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all">
+                class="tab-btn flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all relative">
             <i class="bi bi-clock-history"></i>
             <span class="hidden sm:inline">@Localizer["DashboardTabHistory"]</span>
+            @if (unreviewedCount > 0)
+            {
+                <span class="tab-badge absolute -top-1 -right-1 w-5 h-5 bg-sky-500 text-white text-xs font-bold rounded-full flex items-center justify-center">@unreviewedCount</span>
+            }
         </button>
     </nav>
 

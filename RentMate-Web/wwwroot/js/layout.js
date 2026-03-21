@@ -206,3 +206,59 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
         initThemeUI();
     }
 })();
+
+// ==========================================
+// Global SignalR Notification Badge
+// ==========================================
+// Connects to SignalR on all pages (for authenticated users) and
+// bumps the navbar badge when a notification event fires.
+// On the dashboard page, dashboard.js handles its own connection
+// and reloads the page, so this just updates the badge count.
+(function() {
+    var body = document.body;
+    if (body.getAttribute('data-authenticated') !== 'true') return;
+    var hubUrl = body.getAttribute('data-signalr-hub');
+    if (!hubUrl || typeof signalR === 'undefined') return;
+
+    function bumpBadge() {
+        ['navBadgeDesktop', 'navBadgeMobile', 'navBadgeBurger'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            var count = parseInt(el.textContent, 10) || 0;
+            el.textContent = ++count;
+            el.classList.remove('hidden');
+        });
+    }
+
+    function bumpAdminBadge() {
+        ['navBadgeAdmin', 'navBadgeAdminMobile', 'navBadgeAdminDropdown'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            var count = parseInt(el.textContent, 10) || 0;
+            el.textContent = ++count;
+            el.classList.remove('hidden');
+        });
+    }
+
+    var conn = new signalR.HubConnectionBuilder()
+        .withUrl(hubUrl)
+        .withAutomaticReconnect()
+        .build();
+
+    // User-facing events bump the dashboard badge
+    ['RentalRequested', 'RentalStatusChanged',
+     'ExtensionRequested', 'ExtensionStatusChanged',
+     'RentalOverdue'].forEach(function(evt) {
+        conn.on(evt, function() { bumpBadge(); });
+    });
+
+    // Deposit events bump both user badge and admin badge (on escalation)
+    conn.on('DepositStatusChanged', function(data) {
+        bumpBadge();
+        if (data && data.status === 'Escalated') bumpAdminBadge();
+    });
+
+    conn.start().catch(function(err) {
+        console.error('Global SignalR error:', err);
+    });
+})();
