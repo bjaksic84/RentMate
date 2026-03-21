@@ -30,6 +30,7 @@
     var (bgColor, textColor, icon) = badgeType.ToLower() switch
     {
         "active" => ("bg-emerald-500/10", "text-emerald-700 dark:text-emerald-400", "bi-play-circle"),
+        "accepted" => ("bg-amber-500/10", "text-amber-700 dark:text-amber-400", "bi-credit-card"),
         "pending" => ("bg-amber-500/10", "text-amber-700 dark:text-amber-400", "bi-clock"),
         "completed" or "success" or "listed" => ("bg-green-100", "text-green-700 dark:text-green-400", "bi-check-circle"),
         "cancelled" or "hidden" or "error" or "banned" => ("bg-red-100", "text-red-700 dark:text-red-400", "bi-x-circle"),
@@ -38,6 +39,9 @@
         "extension-pending" => ("bg-sky-500/10", "text-sky-700 dark:text-sky-400", "bi-calendar-plus"),
         "deposit-held" or "deposit-authorized" => ("bg-sky-500/10", "text-sky-700 dark:text-sky-400", "bi-shield-check"),
         "deposit-released" => ("bg-emerald-500/10", "text-emerald-700 dark:text-emerald-400", "bi-shield-check"),
+        "disputed" => ("bg-rose-500/10", "text-rose-700 dark:text-rose-400", "bi-exclamation-triangle"),
+        "counter-offered" => ("bg-amber-500/10", "text-amber-700 dark:text-amber-400", "bi-arrow-left-right"),
+        "escalated" => ("bg-blue-500/10", "text-blue-700 dark:text-blue-400", "bi-shield-exclamation"),
         "deposit-charged" => ("bg-rose-500/10", "text-rose-700 dark:text-rose-400", "bi-shield-x"),
         "normal" or "default" => ("bg-slate-100", "text-slate-600 dark:text-slate-400", ""),
         "warning" => ("bg-yellow-100", "text-yellow-700 dark:text-yellow-400", "bi-exclamation-triangle"),

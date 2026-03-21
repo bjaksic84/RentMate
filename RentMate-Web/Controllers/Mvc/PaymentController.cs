@@ -126,6 +126,7 @@ namespace RentMate.Controllers.Mvc
 
             var rental = await _context.Rentals
                 .Include(r => r.Item)
+                    .ThenInclude(i => i!.User)
                 .FirstOrDefaultAsync(r => r.Id == rentalId);
 
             if (rental == null)
@@ -257,6 +258,7 @@ namespace RentMate.Controllers.Mvc
             var extension = await _context.RentalExtensions
                 .Include(e => e.Rental)
                     .ThenInclude(r => r!.Item)
+                        .ThenInclude(i => i!.User)
                 .FirstOrDefaultAsync(e => e.Id == extensionId);
 
             if (extension == null)

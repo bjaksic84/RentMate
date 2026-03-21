@@ -12,6 +12,10 @@
     var daysRemaining = (rental.EndDate.Date - DateTime.UtcNow.Date).Days;
     var isOverdue = rental.Status == RentalStatus.Active && daysRemaining < 0;
     var urgency = daysRemaining < 0 ? "overdue" : daysRemaining <= 1 ? "urgent" : daysRemaining <= 3 ? "warning" : "normal";
+    var hasActiveDispute = rental.Deposit != null && (rental.Deposit.Status == DepositStatus.Disputed
+        || rental.Deposit.Status == DepositStatus.CounterOffered || rental.Deposit.Status == DepositStatus.Escalated);
+    var isCompletedReady = rental.Status == RentalStatus.Completed && rental.ArchivedAt == null && !hasActiveDispute;
+    var needsAttention = hasActiveDispute || isCompletedReady;
     var ownerAcceptedExt = rental.Extensions?.FirstOrDefault(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved);
 
     string FormatDateRange(DateTime a, DateTime b) {
@@ -56,7 +60,23 @@
 
         <!-- Status Badge -->
         <div class="hidden sm:block">
-            @await Html.PartialAsync("_StatusBadge", new { Type = isOverdue ? "overdue" : rental.Status.ToString().ToLower(), Text = isOverdue ? "Overdue" : rental.Status.ToString(), ShowIcon = true, SmallPadding = true })
+            @{
+                var badgeType = isOverdue ? "overdue"
+                    : (rental.Status == RentalStatus.Completed && rental.Deposit != null
+                        && (rental.Deposit.Status == DepositStatus.Disputed || rental.Deposit.Status == DepositStatus.CounterOffered || rental.Deposit.Status == DepositStatus.Escalated))
+                        ? rental.Deposit.Status == DepositStatus.Disputed ? "disputed"
+                        : rental.Deposit.Status == DepositStatus.CounterOffered ? "counter-offered"
+                        : "escalated"
+                    : rental.Status.ToString().ToLower();
+                var badgeText = isOverdue ? "Overdue"
+                    : (rental.Status == RentalStatus.Completed && rental.Deposit != null
+                        && (rental.Deposit.Status == DepositStatus.Disputed || rental.Deposit.Status == DepositStatus.CounterOffered || rental.Deposit.Status == DepositStatus.Escalated))
+                        ? rental.Deposit.Status == DepositStatus.Disputed ? "Disputed"
+                        : rental.Deposit.Status == DepositStatus.CounterOffered ? "Counter-Offered"
+                        : "Escalated"
+                    : rental.Status.ToString();
+            }
+            @await Html.PartialAsync("_StatusBadge", new { Type = badgeType, Text = badgeText, ShowIcon = true, SmallPadding = true })
         </div>
 
         <!-- Deposit indicator -->
@@ -66,7 +86,13 @@
         }
 
         <!-- Expand Chevron -->
-        <i class="bi bi-chevron-down text-slate-400 transition-transform expand-chevron shrink-0"></i>
+        <div class="relative shrink-0">
+            <i class="bi bi-chevron-down text-slate-400 transition-transform expand-chevron"></i>
+            @if (needsAttention)
+            {
+                <span class="absolute -top-1.5 -right-1.5 w-3 h-3 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-800"></span>
+            }
+        </div>
     </div>
 
     <!-- Expand Panel -->
@@ -337,6 +363,17 @@
                                 <i class="bi bi-x-lg"></i>
                             </button>
                         </form>
+                    }
+                    else if (isCompletedReady)
+                    {
+                        <button type="button"
+                                onclick="event.stopPropagation(); archiveRental(@rental.Id)"
+                                class="flex-1 rounded-xl border border-emerald-300 dark:border-emerald-700 px-3 py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition">
+                            <i class="bi bi-archive mr-1"></i> @Localizer["MoveToHistory"]
+                        </button>
+                        <p class="w-full text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                            <i class="bi bi-info-circle mr-0.5"></i> @Localizer["AutoArchiveAfterWeek"]
+                        </p>
                     }
                 </div>
             </div>

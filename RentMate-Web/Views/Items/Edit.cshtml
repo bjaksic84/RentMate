@@ -354,12 +354,14 @@
         function deleteExistingImage(imageId) {
             if (!confirm('@Localizer["Delete this image?"]')) return;
 
+            showUploadOverlay();
             fetch('/Items/DeleteImage?imageId=' + imageId, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {
+                hideUploadOverlay();
                 if (data.success) {
                     var el = document.querySelector('.existing-image[data-id="' + imageId + '"]');
                     if (el) el.remove();
@@ -367,22 +369,26 @@
                 } else {
                     alert(data.message || '@Localizer["Failed to delete image"]');
                 }
-            });
+            })
+            .catch(function() { hideUploadOverlay(); });
         }
 
         function setAsPrimary(imageId) {
+            showUploadOverlay();
             fetch('/Items/SetPrimaryImage?imageId=' + imageId, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': token, 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(function(r) { return r.json(); })
             .then(function(data) {
+                hideUploadOverlay();
                 if (data.success) {
                     refreshExistingImages();
                 } else {
                     alert(data.message || '@Localizer["Failed to set primary image"]');
                 }
-            });
+            })
+            .catch(function() { hideUploadOverlay(); });
         }
 
         function refreshExistingImages() {

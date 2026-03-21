@@ -280,6 +280,50 @@ namespace RentMate.Controllers.Mvc
             }
         }
 
+        /// <summary>
+        /// Archives a completed/cancelled rental, moving it to the history tab.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ArchiveRental(int rentalId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            try
+            {
+                var rental = await _context.Rentals
+                    .Include(r => r.Deposit)
+                    .FirstOrDefaultAsync(r => r.Id == rentalId);
+
+                if (rental == null)
+                    return Json(new { success = false, message = "Rental not found." });
+
+                if (rental.RenterId != user.Id && rental.OwnerId != user.Id)
+                    return Json(new { success = false, message = "Not authorized." });
+
+                if (rental.Status != RentMate.Shared.Contracts.Responses.RentalStatus.Completed
+                    && rental.Status != RentMate.Shared.Contracts.Responses.RentalStatus.Cancelled)
+                    return Json(new { success = false, message = "Only completed or cancelled rentals can be archived." });
+
+                // Don't allow archiving if there's an active deposit dispute
+                if (rental.Deposit != null && (rental.Deposit.Status == DepositStatus.Disputed
+                    || rental.Deposit.Status == DepositStatus.CounterOffered
+                    || rental.Deposit.Status == DepositStatus.Escalated))
+                    return Json(new { success = false, message = "Cannot archive while deposit dispute is active." });
+
+                rental.ArchivedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Rental moved to history." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Archive rental failed for {RentalId}", rentalId);
+                return Json(new { success = false, message = "Something went wrong." });
+            }
+        }
+
         #endregion
 
         #region Private Helpers
@@ -372,6 +416,8 @@ namespace RentMate.Controllers.Mvc
             IQueryable<Rental> query = _context.Rentals
                 .AsNoTracking()
                 .Include(r => r.Item)
+                    .ThenInclude(i => i!.Images)
+                .Include(r => r.Item)
                     .ThenInclude(i => i!.Reviews.Where(rev => !rev.IsDeleted))
                 .Include(r => r.Deposit).ThenInclude(d => d!.Evidence).ThenInclude(e => e.SubmittedBy)
                 .Include(r => r.Accessories)
@@ -402,6 +448,8 @@ namespace RentMate.Controllers.Mvc
             return _context.AccountItemFavorites
                 .AsNoTracking()
                 .Where(f => f.AccountId == userId)
+                .Include(f => f.Item)
+                    .ThenInclude(i => i.Images)
                 .Include(f => f.Item)
                     .ThenInclude(i => i.User)
                 .OrderByDescending(f => f.CreatedAt)

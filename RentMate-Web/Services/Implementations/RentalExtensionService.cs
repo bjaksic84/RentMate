@@ -103,6 +103,9 @@ namespace RentMate.Services.Implementations
             if (extension.Rental?.OwnerId != approvedByUserId)
                 throw new UnauthorizedAccessException("Only the item owner can approve extensions.");
 
+            if (extension.Rental?.Status != RentalStatus.Active)
+                throw new InvalidOperationException("Cannot approve extension — rental is no longer active.");
+
             // Re-check for conflicts (may have changed since request)
             if (!await CanExtendAsync(extension.RentalId, extension.NewEndDate))
                 throw new InvalidOperationException(

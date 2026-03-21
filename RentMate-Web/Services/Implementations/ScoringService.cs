@@ -719,10 +719,13 @@ public class ScoringService : IScoringService
     {
         if (string.IsNullOrEmpty(category)) return;
 
-        var user = await _context.Users.FindAsync(userId);
-        if (user == null) return;
+        var currentJson = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.CategoryAffinityJson)
+            .FirstOrDefaultAsync();
 
-        var affinities = DeserializeCategoryAffinity(user.CategoryAffinityJson);
+        var affinities = DeserializeCategoryAffinity(currentJson);
         affinities.TryGetValue(category, out int current);
         affinities[category] = current + 1;
 

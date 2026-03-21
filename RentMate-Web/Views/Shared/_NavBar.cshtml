@@ -1,10 +1,14 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Localization
+@using Microsoft.EntityFrameworkCore
 @using RentMate.Models
+@using RentMate.Models.Domain
+@using RentMate.Shared.Contracts.Responses
 @inject IViewLocalizer Localizer
 @inject UserManager<ApplicationUser> UserManager
 @inject RentMate.Services.Interfaces.ICurrencyService NavCurrencyService
+@inject RentMate.Infrastructure.Data.RentMateContext NavDbContext
 @{
     var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
     var userProfilePic = currentUser?.ProfilePictureUrl;
@@ -14,6 +18,59 @@
     var requestCulture = Context.Features.Get<IRequestCultureFeature>();
     var currentCulture = requestCulture?.RequestCulture.Culture.TwoLetterISOLanguageName ?? "en";
     var navCurrentCurrency = NavCurrencyService.GetCurrentCurrency();
+
+    // Compute dashboard attention count for authenticated users
+    var dashboardAttentionCount = 0;
+    if (currentUser != null)
+    {
+        var userId = currentUser.Id;
+        var today = DateTime.UtcNow.Date;
+
+        // Overdue rentals (as renter): active rentals past end date
+        var overdueCount = await NavDbContext.Rentals.AsNoTracking()
+            .CountAsync(r => r.RenterId == userId && r.Status == RentalStatus.Active && r.EndDate.Date < today);
+
+        // Accepted rentals awaiting payment (as renter)
+        var acceptedCount = await NavDbContext.Rentals.AsNoTracking()
+            .CountAsync(r => r.RenterId == userId && r.Status == RentalStatus.Accepted);
+
+        // Pending requests (as owner): rentals awaiting approval
+        var pendingRequestCount = await NavDbContext.Rentals.AsNoTracking()
+            .CountAsync(r => r.OwnerId == userId && r.Status == RentalStatus.Pending);
+
+        // Pending extension requests (as owner)
+        var pendingExtensionCount = await NavDbContext.RentalExtensions.AsNoTracking()
+            .CountAsync(e => e.Status == ExtensionStatus.Pending && e.Rental!.OwnerId == userId);
+
+        // Deposits needing renter action: Charged, PartiallyCharged, or CounterOffered
+        var renterDepositCount = await NavDbContext.Rentals.AsNoTracking()
+            .CountAsync(r => r.RenterId == userId && r.Deposit != null
+                && (r.Deposit.Status == DepositStatus.Charged
+                    || r.Deposit.Status == DepositStatus.PartiallyCharged
+                    || r.Deposit.Status == DepositStatus.CounterOffered));
+
+        // Deposits needing owner response: Disputed
+        var ownerDisputedCount = await NavDbContext.Rentals.AsNoTracking()
+            .CountAsync(r => r.OwnerId == userId && r.Deposit != null
+                && r.Deposit.Status == DepositStatus.Disputed);
+
+        // Extensions awaiting renter payment: Accepted or AutoApproved
+        var extensionPaymentCount = await NavDbContext.RentalExtensions.AsNoTracking()
+            .CountAsync(e => (e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved)
+                && e.Rental!.RenterId == userId);
+
+        // Completed rentals ready to archive (not yet archived, no active disputes)
+        var completedReadyCount = await NavDbContext.Rentals.AsNoTracking()
+            .Include(r => r.Deposit)
+            .CountAsync(r => (r.RenterId == userId || r.OwnerId == userId)
+                && r.Status == RentalStatus.Completed && r.ArchivedAt == null
+                && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed
+                    && r.Deposit.Status != DepositStatus.CounterOffered
+                    && r.Deposit.Status != DepositStatus.Escalated)));
+
+        dashboardAttentionCount = overdueCount + acceptedCount + pendingRequestCount + pendingExtensionCount
+            + renterDepositCount + ownerDisputedCount + extensionPaymentCount + completedReadyCount;
+    }
 }
 
 <!-- Sticky Glassmorphic Navbar -->
@@ -39,8 +96,12 @@
                     </a>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <a asp-controller="Dashboard" asp-action="UserDashboard" class="hidden md:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                        <a asp-controller="Dashboard" asp-action="UserDashboard" class="hidden md:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 relative">
                             @Localizer["Dashboard"]
+                            @if (dashboardAttentionCount > 0)
+                            {
+                                <span class="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center">@dashboardAttentionCount</span>
+                            }
                         </a>
                     }
                     @if (User.IsInRole("Admin"))
@@ -142,13 +203,17 @@
 
                     <!-- Mobile menu button -->
                     <div class="relative xl:hidden">
-                        <button onclick="document.getElementById('mobileMenu').classList.toggle('hidden')"
-                                class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring"
+                        <button id="mobileMenuBtn" onclick="toggleMobileMenu()"
+                                class="p-2 text-slate-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200 touch-target focus-ring relative"
                                 aria-label="@Localizer["Open navigation menu"]"
                                 aria-expanded="false"
                                 aria-controls="mobileMenu">
                             <i class="bi bi-list text-xl" aria-hidden="true"></i>
                             <span class="sr-only">@Localizer["Menu"]</span>
+                            @if (dashboardAttentionCount > 0)
+                            {
+                                <span id="burgerBadge" class="md:hidden absolute -top-1 -right-1 min-w-4 h-4 px-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">@dashboardAttentionCount</span>
+                            }
                         </button>
                         <!-- Mobile Menu Dropdown -->
                         <div id="mobileMenu" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden" style="z-index: var(--z-dropdown);">
@@ -161,8 +226,12 @@
                                 </a>
                                 @if (User.Identity?.IsAuthenticated == true)
                                 {
-                                    <a asp-controller="Dashboard" asp-action="UserDashboard" class="md:hidden block px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
+                                    <a asp-controller="Dashboard" asp-action="UserDashboard" class="md:hidden flex items-center px-3 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50">
                                         <i class="bi bi-grid mr-2"></i>@Localizer["Dashboard"]
+                                        @if (dashboardAttentionCount > 0)
+                                        {
+                                            <span class="ml-auto min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center">@dashboardAttentionCount</span>
+                                        }
                                     </a>
                                     @if (User.IsInRole("Admin"))
                                     {
@@ -242,9 +311,6 @@
                                 <a asp-controller="Profile" asp-action="Index" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                                     <i class="bi bi-person"></i> @Localizer["Profile"]
                                 </a>
-                                <a asp-controller="Dashboard" asp-action="UserDashboard" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
-                                    <i class="bi bi-grid"></i> @Localizer["Dashboard"]
-                                </a>
                                 <a asp-area="Identity" asp-page="/Account/Manage/Index" class="flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-colors">
                                     <i class="bi bi-gear"></i> @Localizer["Settings"]
                                 </a>
@@ -283,3 +349,15 @@
 
     </nav>
 </header>
+
+<script>
+    function toggleMobileMenu() {
+        var menu = document.getElementById('mobileMenu');
+        var badge = document.getElementById('burgerBadge');
+        menu.classList.toggle('hidden');
+        if (badge) {
+            var menuOpen = !menu.classList.contains('hidden');
+            badge.classList.toggle('!hidden', menuOpen);
+        }
+    }
+</script>

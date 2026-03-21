@@ -92,29 +92,23 @@ namespace RentMate.Controllers.Api
                 return Forbid("Cannot review your own item.");
             }
 
-            // Check for duplicate review on this item (regardless of RentalId)
-            var alreadyReviewed = await _context.Reviews
-                .AnyAsync(r => r.ItemId == request.ItemId && r.ReviewerId == userId && !r.IsDeleted);
-            if (alreadyReviewed && !request.RentalId.HasValue)
-                return BadRequest(new { error = "You have already reviewed this item." });
+            // Check for existing review on this item by this user
+            var existingReview = await _context.Reviews
+                .FirstOrDefaultAsync(r => r.ItemId == request.ItemId && r.ReviewerId == userId && !r.IsDeleted);
 
-            // If an existing review by this user for this rental exists, update it
-            Review? existing = null;
-            if (request.RentalId.HasValue)
+            if (existingReview != null)
             {
-                existing = await _context.Reviews.FirstOrDefaultAsync(x => x.RentalId == request.RentalId.Value && x.ReviewerId == userId && !x.IsDeleted);
-            }
-
-            if (existing != null)
-            {
-                existing.Rating = request.Rating;
-                existing.Body = request.Body;
-                existing.UpdatedAt = DateTime.UtcNow;
-                _context.Reviews.Update(existing);
+                // Update the existing review (one review per item per user)
+                existingReview.Rating = request.Rating;
+                existingReview.Body = request.Body;
+                if (request.RentalId.HasValue)
+                    existingReview.RentalId = request.RentalId;
+                existingReview.UpdatedAt = DateTime.UtcNow;
+                _context.Reviews.Update(existingReview);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("Updated existing review {ReviewId} by user {UserId}", existing.Id, userId);
-                await _reviewAggregation.UpdateItemAggregatesAsync(existing.ItemId);
-                _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(existing.ItemId));
+                _logger.LogInformation("Updated existing review {ReviewId} by user {UserId}", existingReview.Id, userId);
+                await _reviewAggregation.UpdateItemAggregatesAsync(existingReview.ItemId);
+                _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(existingReview.ItemId));
                 return Ok(new { updated = true });
             }
 

@@ -9,13 +9,30 @@
     var activeMyRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
     var activeOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
     var overdueRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < DateTime.UtcNow.Date).ToList() ?? new();
+    var acceptedRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Accepted).ToList() ?? new();
     var pendingOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Pending).ToList() ?? new();
+    var renterDepositAttention = Model.MyRentals?.Where(r => r.Deposit != null
+        && (r.Deposit.Status == DepositStatus.Charged
+            || r.Deposit.Status == DepositStatus.PartiallyCharged
+            || r.Deposit.Status == DepositStatus.CounterOffered)).ToList() ?? new();
+    var rentalsWithExtPayment = Model.MyRentals?.Where(r =>
+        r.Extensions != null && r.Extensions.Any(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved)).ToList() ?? new();
+    var ownerDisputedDeposits = Model.OwnerRentals?.Where(r => r.Deposit != null
+        && r.Deposit.Status == DepositStatus.Disputed).ToList() ?? new();
     var monthlyEarnings = Model.OwnerRentals?
         .Where(r => r.Status == RentalStatus.Completed && r.EndDate.Month == DateTime.UtcNow.Month && r.EndDate.Year == DateTime.UtcNow.Year)
         .Sum(r => r.TotalPrice) ?? 0;
     var trustScore = (int?)ViewBag.ProfileTrustScore ?? 0;
 
-    var hasAttentionItems = overdueRentals.Any() || pendingOwnerRentals.Any() || (Model.PendingExtensions?.Any() ?? false);
+    var completedReadyToArchive = (Model.MyRentals?.Where(r => r.Status == RentalStatus.Completed && r.ArchivedAt == null
+        && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed && r.Deposit.Status != DepositStatus.CounterOffered && r.Deposit.Status != DepositStatus.Escalated))).ToList() ?? new())
+        .Concat(Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed && r.ArchivedAt == null
+            && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed && r.Deposit.Status != DepositStatus.CounterOffered && r.Deposit.Status != DepositStatus.Escalated))).ToList() ?? new())
+        .ToList();
+    var hasAttentionItems = overdueRentals.Any() || acceptedRentals.Any() || pendingOwnerRentals.Any()
+        || (Model.PendingExtensions?.Any() ?? false)
+        || renterDepositAttention.Any() || rentalsWithExtPayment.Any() || ownerDisputedDeposits.Any()
+        || completedReadyToArchive.Any();
 
     string FormatDateRange(DateTime a, DateTime b) {
         var first = a <= b ? a : b;
@@ -44,7 +61,7 @@
                         <i class="bi bi-exclamation-triangle text-amber-500"></i>
                         @Localizer["NeedsAttention"]
                         <span class="ml-auto px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded-full">
-                            @(overdueRentals.Count + pendingOwnerRentals.Count + (Model.PendingExtensions?.Count ?? 0))
+                            @(overdueRentals.Count + acceptedRentals.Count + pendingOwnerRentals.Count + (Model.PendingExtensions?.Count ?? 0) + renterDepositAttention.Count + rentalsWithExtPayment.Count + ownerDisputedDeposits.Count + completedReadyToArchive.Count)
                         </span>
                     </h2>
                 </div>
@@ -69,6 +86,27 @@
                                     class="px-3 py-1.5 text-xs font-medium bg-trust-blue-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
                                 @Localizer["Extend"]
                             </button>
+                        </div>
+                    }
+                    @* Accepted rentals awaiting payment *@
+                    @foreach (var rental in acceptedRentals)
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-emerald-500">
+                            <span class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-credit-card text-emerald-600 dark:text-emerald-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["Approved — pay to confirm"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @FormatDateRange(rental.StartDate, rental.EndDate) &mdash; @CurrencyService.Format(rental.TotalPrice)
+                                </p>
+                            </div>
+                            <a asp-controller="Payment" asp-action="Checkout" asp-route-rentalId="@rental.Id"
+                               class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Pay Now"]
+                            </a>
                         </div>
                     }
                     @* Pending rental requests *@
@@ -134,8 +172,127 @@
                             </div>
                         }
                     }
+                    @* Deposit charged — renter action required *@
+                    @foreach (var rental in renterDepositAttention.Where(r => r.Deposit!.Status == DepositStatus.Charged || r.Deposit!.Status == DepositStatus.PartiallyCharged))
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-rose-500">
+                            <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-shield-x text-rose-600 dark:text-rose-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["DepositChargedAlert"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @CurrencyService.Format(rental.Deposit!.ChargedAmount ?? 0) @Localizer["charged from your deposit"]
+                                </p>
+                            </div>
+                            <a href="#renting" class="px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Review"]
+                            </a>
+                        </div>
+                    }
+                    @* Counter-offer received — renter action required *@
+                    @foreach (var rental in renterDepositAttention.Where(r => r.Deposit!.Status == DepositStatus.CounterOffered))
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-amber-500">
+                            <span class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-arrow-left-right text-amber-600 dark:text-amber-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["DepositCounterOfferAlert"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["Owner offered to settle for"] @CurrencyService.Format(rental.Deposit!.CounterOfferAmount ?? 0)
+                                </p>
+                            </div>
+                            <a href="#renting" class="px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Review"]
+                            </a>
+                        </div>
+                    }
+                    @* Disputed deposit — owner action required *@
+                    @foreach (var rental in ownerDisputedDeposits)
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-rose-500">
+                            <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-exclamation-triangle text-rose-600 dark:text-rose-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["DepositDisputedOwnerAlert"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.UserName ?? Localizer["DeletedUser"].Value)
+                                    @if (rental.Deposit?.DisputeDeadline.HasValue == true)
+                                    {
+                                        <span>&mdash; @Localizer["Your response deadline"]: @rental.Deposit.DisputeDeadline.Value.ToString("dd MMM HH:mm")</span>
+                                    }
+                                </p>
+                            </div>
+                            <a href="#lending" class="px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Respond"]
+                            </a>
+                        </div>
+                    }
+                    @* Extension approved — awaiting renter payment *@
+                    @foreach (var rental in rentalsWithExtPayment)
+                    {
+                        var ext = rental.Extensions!.First(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved);
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-sky-500">
+                            <span class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-credit-card text-sky-600 dark:text-sky-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["ExtensionAwaitingPaymentAlert"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @ext.OriginalEndDate.ToString("dd MMM") &rarr; @ext.NewEndDate.ToString("dd MMM yyyy")
+                                    (+@CurrencyService.Format(ext.AdditionalCost))
+                                </p>
+                            </div>
+                            <a asp-controller="Payment" asp-action="ExtensionCheckout" asp-route-extensionId="@ext.Id"
+                               class="px-3 py-1.5 text-xs font-medium bg-sky-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Pay Now"]
+                            </a>
+                        </div>
+                    }
                 </div>
             </div>
+        @* === Completed Rentals Ready to Archive === *@
+        @if (completedReadyToArchive.Any())
+        {
+            <div class="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 overflow-hidden">
+                <div class="px-5 py-3 border-b border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
+                    <i class="bi bi-archive text-emerald-500"></i>
+                    <h3 class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">@Localizer["ReadyToArchive"] (@completedReadyToArchive.Count)</h3>
+                </div>
+                <div class="divide-y divide-emerald-200 dark:divide-emerald-800">
+                    @foreach (var rental in completedReadyToArchive)
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-emerald-500">
+                            <span class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-check-circle text-emerald-600 dark:text-emerald-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["CompletedReadyToArchive"]
+                                </p>
+                            </div>
+                            <button onclick="archiveRental(@rental.Id)"
+                                    class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                <i class="bi bi-archive mr-1"></i> @Localizer["MoveToHistory"]
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
         }
         else
         {

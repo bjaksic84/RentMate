@@ -41,6 +41,12 @@ namespace RentMate.Models.Domain
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
+        /// <summary>
+        /// When set, the rental has been moved to the history tab.
+        /// Null means the rental is still in the active tab (for completed rentals within 7-day grace period).
+        /// </summary>
+        public DateTime? ArchivedAt { get; set; }
+
         // Navigation properties for Entity Framework
         public virtual ApplicationUser? Owner { get; set; }
         public virtual ApplicationUser? Renter { get; set; }

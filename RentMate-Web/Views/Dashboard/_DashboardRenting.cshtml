@@ -8,14 +8,10 @@
 @{
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-    // Active rentals: includes active, pending, accepted, and completed-with-active-deposit-issues
+    // Active rentals: includes active, pending, accepted, completed-not-archived, and completed-with-active-deposit-issues
     var activeMyRentals = Model.MyRentals?.Where(r =>
         r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted
-        || (r.Status == RentalStatus.Completed && r.Deposit != null
-            && (r.Deposit.Status == DepositStatus.Disputed || r.Deposit.Status == DepositStatus.CounterOffered
-                || r.Deposit.Status == DepositStatus.Escalated
-                || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged)
-                    && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+        || (r.Status == RentalStatus.Completed && r.ArchivedAt == null)
     ).ToList() ?? new();
 
     var overdueRentals = activeMyRentals.Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < DateTime.UtcNow.Date).ToList();

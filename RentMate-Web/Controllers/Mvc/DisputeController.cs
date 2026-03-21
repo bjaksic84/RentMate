@@ -422,27 +422,27 @@ namespace RentMate.Controllers.Mvc
             try
             {
                 var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
-                if (rental != null)
+                if (rental == null)
+                    return Json(new { success = false, message = "Rental not found." });
+
+                await _depositService.EscalateDisputeAsync(rentalId, user.Id, response);
+
+                if (evidence != null && evidence.Length > 0)
                 {
-                    await _depositService.EscalateDisputeAsync(rentalId, user.Id, response);
+                    await _depositService.UploadEvidenceAsync(rentalId, user.Id, evidence, response ?? "Escalation Evidence");
+                }
 
-                    if (evidence != null && evidence.Length > 0)
+                // Notify the party that did NOT escalate
+                string? recipientId = (user.Id == rental.OwnerId) ? rental.RenterId : rental.OwnerId;
+
+                if (!string.IsNullOrEmpty(recipientId))
+                {
+                    await _hubContext.Clients.User(recipientId).SendAsync(RentMateHub.DepositStatusChangedEvent, new
                     {
-                        await _depositService.UploadEvidenceAsync(rentalId, user.Id, evidence, response ?? "Escalation Evidence");
-                    }
-
-                    // Notify the party that did NOT escalate
-                    string? recipientId = (user.Id == rental.OwnerId) ? rental.RenterId : rental.OwnerId;
-
-                    if (!string.IsNullOrEmpty(recipientId))
-                    {
-                        await _hubContext.Clients.User(recipientId).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                        {
-                            rentalId,
-                            status = "Escalated",
-                            itemTitle = rental.Item?.Title
-                        });
-                    }
+                        rentalId,
+                        status = "Escalated",
+                        itemTitle = rental.Item?.Title
+                    });
                 }
 
                 return Json(new { success = true, message = "Dispute escalated to administration." });

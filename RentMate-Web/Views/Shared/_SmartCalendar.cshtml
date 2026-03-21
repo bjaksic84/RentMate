@@ -164,18 +164,28 @@
     .sc-day.sc-booked { color: #e11d48; text-decoration: none; opacity: 1; background: repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(225, 29, 72, 0.08) 3px, rgba(225, 29, 72, 0.08) 5px); border-radius: 8px; }
     .sc-day::before { content: ''; position: absolute; inset: 2px; border-radius: 50%; background-color: transparent; transition: all 0.2s ease; z-index: -1; }
     .sc-day.sc-booked::before { background-color: rgba(225, 29, 72, 0.1); border-radius: 8px; inset: 1px; }
-    /* Highlight: user's own booking (yellow) */
+    /* Highlight: user's own booking (yellow pill) */
     .sc-day.sc-highlight { color: #92400e; font-weight: 600; background-color: #fef3c7; cursor: default; opacity: 1; text-decoration: none; }
     .sc-day.sc-highlight::before { background-color: transparent; }
     .sc-day.sc-highlight.sc-disabled { color: #92400e; opacity: 1; text-decoration: none; }
     .sc-day.sc-highlight-start { border-radius: 50% 0 0 50%; }
     .sc-day.sc-highlight-end { border-radius: 0 50% 50% 0; }
     .sc-day.sc-highlight-start.sc-highlight-end { border-radius: 50%; }
-    /* Extension preview (green trail from highlight end to hovered date) */
+    /* Extension preview (green trail from highlight end to hovered/selected date) */
     .sc-day.sc-ext-preview { color: #065f46; background-color: #d1fae5; opacity: 1; text-decoration: none; cursor: pointer; }
     .sc-day.sc-ext-preview::before { background-color: transparent; }
-    .sc-day.sc-ext-preview-end::before { background: linear-gradient(135deg, #059669 0%, #10b981 100%); box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35); inset: 0; border-radius: 50%; }
-    .sc-day.sc-ext-preview-end { color: white; font-weight: 600; z-index: 2; border-radius: 0 50% 50% 0; }
+    /* Last green cell (hover, not yet selected) — right half-pill with green circle */
+    .sc-day.sc-ext-preview-end:not(.sc-selected-start) { color: white; font-weight: 600; z-index: 2; background-color: transparent; }
+    .sc-day.sc-ext-preview-end:not(.sc-selected-start)::before { background: linear-gradient(135deg, #059669 0%, #10b981 100%); box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35); inset: 0; border-radius: 50%; }
+    .sc-day.sc-ext-preview-end:not(.sc-selected-start)::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 50%; background-color: #d1fae5; z-index: -2; }
+    /* Single-cell extension preview (immediately after highlight) — full circle, no strip */
+    .sc-day.sc-ext-preview-start.sc-ext-preview-end:not(.sc-selected-start)::after { display: none; }
+    /* Selected end — blue circle with green connector strip behind */
+    .sc-day.sc-ext-preview.sc-selected-start { background-color: #d1fae5; }
+    .sc-day.sc-ext-preview-end.sc-selected-start { background-color: transparent; }
+    .sc-day.sc-ext-preview-end.sc-selected-start::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 50%; background-color: #d1fae5; z-index: -2; }
+    /* Single-cell selected extension (immediately after highlight) — blue circle, no strip */
+    .sc-day.sc-ext-preview-start.sc-ext-preview-end.sc-selected-start::after { display: none; }
     @@media (min-width: 640px) { .sc-day::before { inset: 4px; } }
     .sc-day:hover:not(.sc-disabled):not(.sc-selected-start):not(.sc-selected-end):not(.sc-in-range)::before, .sc-day.sc-hover-end:not(.sc-selected-start):not(.sc-selected-end)::before { background-color: #f1f5f9; box-shadow: 0 0 0 1px #e2e8f0; z-index: -1; }
     .sc-day.sc-selected-start, .sc-day.sc-selected-end { color: white; font-weight: 600; z-index: 2; }
@@ -202,7 +212,11 @@
     .dark .sc-day.sc-highlight { color: #fcd34d; background-color: rgba(252, 211, 77, 0.15); }
     .dark .sc-day.sc-highlight.sc-disabled { color: #fcd34d; opacity: 1; }
     .dark .sc-day.sc-ext-preview { color: #6ee7b7; background-color: rgba(16, 185, 129, 0.15); }
-    .dark .sc-day.sc-ext-preview-end { color: white; }
+    .dark .sc-day.sc-ext-preview-end:not(.sc-selected-start) { color: white; background-color: transparent; }
+    .dark .sc-day.sc-ext-preview-end:not(.sc-selected-start)::after { background-color: rgba(16, 185, 129, 0.15); }
+    .dark .sc-day.sc-ext-preview.sc-selected-start { background-color: rgba(16, 185, 129, 0.15); }
+    .dark .sc-day.sc-ext-preview-end.sc-selected-start { background-color: transparent; }
+    .dark .sc-day.sc-ext-preview-end.sc-selected-start::after { background-color: rgba(16, 185, 129, 0.15); }
     .dark .sc-day:hover:not(.sc-disabled):not(.sc-selected-start):not(.sc-selected-end):not(.sc-in-range)::before,
     .dark .sc-day.sc-hover-end:not(.sc-selected-start):not(.sc-selected-end)::before { background-color: #334155; box-shadow: 0 0 0 1px #475569; }
     .dark .sc-day.sc-in-range { color: #93c5fd; background-color: rgba(59, 130, 246, 0.15); }

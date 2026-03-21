@@ -8,22 +8,14 @@
 @{
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-    // Completed/cancelled rentals excluding those with active deposit disputes (those show in Renting/Lending tabs)
+    // Archived rentals: only those explicitly moved to history (manually or auto after 7 days)
     var completedRentals = (Model.MyRentals?.Where(r =>
             (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled)
-            && !(r.Deposit != null && (r.Deposit.Status == DepositStatus.Disputed
-                || r.Deposit.Status == DepositStatus.Escalated
-                || r.Deposit.Status == DepositStatus.CounterOffered
-                || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged)
-                    && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+            && r.ArchivedAt != null
         ).ToList() ?? new())
         .Concat(Model.OwnerRentals?.Where(r =>
             (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled)
-            && !(r.Deposit != null && (r.Deposit.Status == DepositStatus.Disputed
-                || r.Deposit.Status == DepositStatus.Escalated
-                || r.Deposit.Status == DepositStatus.CounterOffered
-                || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged)
-                    && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+            && r.ArchivedAt != null
         ) ?? Enumerable.Empty<Rental>())
         .OrderByDescending(r => r.EndDate)
         .ToList();
@@ -62,6 +54,14 @@
         <span class="ml-auto text-xs text-slate-500 dark:text-slate-400" id="historyCount">
             @Localizer["ShowingXofY", Math.Min(initialLimit, completedRentals.Count), completedRentals.Count]
         </span>
+    </div>
+
+    <!-- Auto-archive info tip -->
+    <div class="mb-4 px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center gap-2">
+        <i class="bi bi-info-circle text-slate-400"></i>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+            @Localizer["CompletedRentalsAutoArchive"]
+        </p>
     </div>
 
     @if (unreviewedCount > 0)

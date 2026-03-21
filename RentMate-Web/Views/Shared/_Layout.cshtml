@@ -51,7 +51,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" crossorigin="anonymous">
 
     <!-- Theme CSS (includes dark mode support) -->
     <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
@@ -75,6 +75,42 @@
     <partial name="_Footer" />
 
     <partial name="_CookieConsent" />
+
+    <!-- Global Upload Overlay -->
+    <div id="uploadOverlay" class="fixed inset-0 hidden items-center justify-center bg-black/60 backdrop-blur-sm" style="z-index: var(--z-toast, 1500);">
+        <div class="flex flex-col items-center gap-4">
+            <div class="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <p id="uploadOverlayText" class="text-white text-lg font-semibold font-heading">@Localizer["Uploading..."]</p>
+        </div>
+    </div>
+    <script>
+        function showUploadOverlay(text) {
+            var el = document.getElementById('uploadOverlay');
+            if (text) document.getElementById('uploadOverlayText').textContent = text;
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+        }
+        function hideUploadOverlay() {
+            var el = document.getElementById('uploadOverlay');
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+        }
+        // Auto-intercept all multipart form submissions that contain files
+        document.addEventListener('submit', function(e) {
+            var form = e.target;
+            if (form.enctype === 'multipart/form-data') {
+                var fileInputs = form.querySelectorAll('input[type="file"]');
+                var hasFiles = false;
+                for (var i = 0; i < fileInputs.length; i++) {
+                    if (fileInputs[i].files && fileInputs[i].files.length > 0) {
+                        hasFiles = true;
+                        break;
+                    }
+                }
+                if (hasFiles) showUploadOverlay();
+            }
+        });
+    </script>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

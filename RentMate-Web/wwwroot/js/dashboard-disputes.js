@@ -54,6 +54,8 @@ document.querySelectorAll('[data-action="close-deposit"]').forEach(function (el)
 async function releaseDeposit() {
     var btn = document.getElementById('dep-release-btn');
     btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
     try {
         var token = getToken();
         var response = await fetch(DC.urls.releaseDeposit, {
@@ -64,14 +66,16 @@ async function releaseDeposit() {
         var data = await response.json();
         showToast(data.message, data.success ? 'success' : 'error');
         if (data.success) { closeDepositModal(); setTimeout(function () { location.reload(); }, 1000); }
-        else { btn.disabled = false; }
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; }
+        else { btn.disabled = false; btn.innerHTML = originalHtml; }
+    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; btn.innerHTML = originalHtml; }
 }
 
 async function releaseDisputedDeposit(rentalId) {
     if (!confirm(S.releaseDisputedConfirm)) return;
     var btn = event.target.closest('button');
     btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
     try {
         var token = getToken();
         var response = await fetch(DC.urls.releaseDisputedDeposit, {
@@ -82,8 +86,8 @@ async function releaseDisputedDeposit(rentalId) {
         var data = await response.json();
         showToast(data.message, data.success ? 'success' : 'error');
         if (data.success) setTimeout(function () { location.reload(); }, 1000);
-        else btn.disabled = false;
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; }
+        else { btn.disabled = false; btn.innerHTML = originalHtml; }
+    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; btn.innerHTML = originalHtml; }
 }
 
 async function chargeDeposit() {
@@ -98,6 +102,9 @@ async function chargeDeposit() {
 
     var btn = document.getElementById('dep-charge-btn');
     btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
+    showUploadOverlay();
     try {
         var token = getToken();
         var formData = new FormData();
@@ -113,6 +120,7 @@ async function chargeDeposit() {
             body: formData
         });
         var data = await response.json();
+        hideUploadOverlay();
         if (data.success) {
             showToast(data.message, 'success');
             closeDepositModal();
@@ -120,8 +128,9 @@ async function chargeDeposit() {
         } else {
             showToast(data.message, 'error');
             btn.disabled = false;
+            btn.innerHTML = originalHtml;
         }
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; }
+    } catch (err) { hideUploadOverlay(); showToast(S.somethingWentWrong, 'error'); btn.disabled = false; btn.innerHTML = originalHtml; }
 }
 
 // === Charge Full Checkbox (Deposit Modal) ===
@@ -202,7 +211,13 @@ async function completeWithDeposit(action) {
         var btn = document.getElementById(id);
         if (btn) btn.disabled = true;
     });
+    var activeBtnId = action === 'charge' ? 'er-charge-btn' : 'er-release-btn';
+    var activeBtn = document.getElementById(activeBtnId);
+    var originalHtml = activeBtn ? activeBtn.innerHTML : '';
+    if (activeBtn) activeBtn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
 
+    var hasFile = action === 'charge' && fileInput && fileInput.files.length > 0;
+    if (hasFile) showUploadOverlay();
     try {
         var token = getToken();
         var formData = new FormData();
@@ -210,7 +225,7 @@ async function completeWithDeposit(action) {
         formData.append('action', action);
         if (amount) formData.append('amount', amount);
         if (reason) formData.append('reason', reason);
-        if (action === 'charge' && fileInput && fileInput.files.length > 0) {
+        if (hasFile) {
             formData.append('evidence', fileInput.files[0]);
         }
         if (token) formData.append('__RequestVerificationToken', token);
@@ -221,6 +236,7 @@ async function completeWithDeposit(action) {
             body: formData
         });
         var data = await response.json();
+        hideUploadOverlay();
         if (data.success) {
             showToast(data.message, 'success');
             closeEarlyReturnModal();
@@ -231,13 +247,16 @@ async function completeWithDeposit(action) {
                 var btn = document.getElementById(id);
                 if (btn) btn.disabled = false;
             });
+            if (activeBtn) activeBtn.innerHTML = originalHtml;
         }
     } catch (err) {
+        hideUploadOverlay();
         showToast(S.somethingWentWrong, 'error');
         ['er-release-btn', 'er-charge-btn', 'er-charge-full-btn'].forEach(function(id) {
             var btn = document.getElementById(id);
             if (btn) btn.disabled = false;
         });
+        if (activeBtn) activeBtn.innerHTML = originalHtml;
     }
 }
 
@@ -303,6 +322,11 @@ async function submitDispute() {
 
     var btn = document.getElementById('dispute-submit-btn');
     btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
+    var fileInput = document.getElementById('dispute-evidence-file');
+    var hasEvidence = fileInput && fileInput.files.length > 0;
+    if (hasEvidence) showUploadOverlay();
     try {
         var token = getToken();
         var response = await fetch(DC.urls.disputeDeposit, {
@@ -312,21 +336,23 @@ async function submitDispute() {
         });
         var data = await response.json();
         if (data.success) {
-            var fileInput = document.getElementById('dispute-evidence-file');
-            if (fileInput.files.length > 0) {
+            if (hasEvidence) {
                 var uploadResult = await uploadEvidence(disputeState.rentalId, fileInput.files[0], reason);
                 if (!uploadResult.success) {
                     showToast(S.disputeSubmittedEvidenceFailed, 'warning');
                 }
             }
+            hideUploadOverlay();
             showToast(data.message, 'success');
             closeDisputeModal();
             setTimeout(function () { location.reload(); }, 1000);
         } else {
+            hideUploadOverlay();
             showToast(data.message, 'error');
             btn.disabled = false;
+            btn.innerHTML = originalHtml;
         }
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; }
+    } catch (err) { hideUploadOverlay(); showToast(S.somethingWentWrong, 'error'); btn.disabled = false; btn.innerHTML = originalHtml; }
 }
 
 // === Counter-Offer Modal (Owner) ===
@@ -384,6 +410,9 @@ async function submitCounterOffer() {
 
     var btn = document.getElementById('co-submit-btn');
     btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
+    if (hasFile) showUploadOverlay();
     try {
         var token = getToken();
         var formData = new FormData();
@@ -399,6 +428,7 @@ async function submitCounterOffer() {
             body: formData
         });
         var data = await response.json();
+        hideUploadOverlay();
         if (data.success) {
             showToast(data.message, 'success');
             closeCounterOfferModal();
@@ -406,8 +436,9 @@ async function submitCounterOffer() {
         } else {
             showToast(data.message, 'error');
             btn.disabled = false;
+            btn.innerHTML = originalHtml;
         }
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; }
+    } catch (err) { hideUploadOverlay(); showToast(S.somethingWentWrong, 'error'); btn.disabled = false; btn.innerHTML = originalHtml; }
 }
 
 // === Add Evidence (Global) ===
@@ -454,9 +485,11 @@ async function submitAddEvidence() {
     var btn = document.getElementById('ae-submit-btn');
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-hourglass-split animate-spin mr-2"></i>' + S.uploading;
+    showUploadOverlay();
 
     try {
         var result = await uploadEvidence(rentalId, fileInput.files[0], notes);
+        hideUploadOverlay();
         if (result.success) {
             showToast(S.evidenceAddedSuccess, 'success');
             closeAddEvidenceModal();
@@ -465,6 +498,7 @@ async function submitAddEvidence() {
             showToast(result.message || S.uploadFailed, 'error');
         }
     } catch (err) {
+        hideUploadOverlay();
         showToast(S.unexpectedError, 'error');
     } finally {
         btn.disabled = false;
@@ -518,6 +552,7 @@ async function submitMaintainCharge() {
 
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
+    if (hasFile) showUploadOverlay();
 
     try {
         var token = getToken();
@@ -533,6 +568,7 @@ async function submitMaintainCharge() {
             body: formData
         });
         var data = await response.json();
+        hideUploadOverlay();
 
         if (data.success) {
             showToast(data.message, 'success');
@@ -544,6 +580,7 @@ async function submitMaintainCharge() {
             btn.innerHTML = S.confirmSendAdmin;
         }
     } catch (err) {
+        hideUploadOverlay();
         showToast(S.somethingWentWrong, 'error');
         btn.disabled = false;
         btn.innerHTML = S.confirmSendAdmin;
@@ -555,6 +592,8 @@ async function acceptCharge(rentalId) {
     if (!confirm(S.acceptChargeConfirm)) return;
     var btn = event.target.closest('button');
     btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
     try {
         var token = getToken();
         var response = await fetch(DC.urls.acceptCharge, {
@@ -565,8 +604,8 @@ async function acceptCharge(rentalId) {
         var data = await response.json();
         showToast(data.message, data.success ? 'success' : 'error');
         if (data.success) setTimeout(function () { location.reload(); }, 1000);
-        else btn.disabled = false;
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; }
+        else { btn.disabled = false; btn.innerHTML = originalHtml; }
+    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; btn.innerHTML = originalHtml; }
 }
 
 // === Accept Counter-Offer (Renter) ===
@@ -574,6 +613,8 @@ async function acceptCounterOffer(rentalId) {
     if (!confirm(S.acceptCounterOfferConfirm)) return;
     var btn = event.target.closest('button');
     btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
     try {
         var token = getToken();
         var response = await fetch(DC.urls.acceptCounterOffer, {
@@ -584,8 +625,8 @@ async function acceptCounterOffer(rentalId) {
         var data = await response.json();
         showToast(data.message, data.success ? 'success' : 'error');
         if (data.success) setTimeout(function () { location.reload(); }, 1000);
-        else btn.disabled = false;
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; }
+        else { btn.disabled = false; btn.innerHTML = originalHtml; }
+    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; btn.innerHTML = originalHtml; }
 }
 
 // === Reject Counter-Offer (Renter) ===
@@ -593,6 +634,8 @@ async function rejectCounterOffer(rentalId) {
     if (!confirm(S.rejectCounterOfferConfirm)) return;
     var btn = event.target.closest('button');
     btn.disabled = true;
+    var originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
     try {
         var token = getToken();
         var response = await fetch(DC.urls.rejectCounterOffer, {
@@ -603,14 +646,16 @@ async function rejectCounterOffer(rentalId) {
         var data = await response.json();
         showToast(data.message, data.success ? 'success' : 'error');
         if (data.success) setTimeout(function () { location.reload(); }, 1000);
-        else btn.disabled = false;
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; }
+        else { btn.disabled = false; btn.innerHTML = originalHtml; }
+    } catch (err) { showToast(S.somethingWentWrong, 'error'); btn.disabled = false; btn.innerHTML = originalHtml; }
 }
 
 // === Escalate Dispute - Internal Process ===
 async function _processEscalation(rentalId) {
     var escBtn = document.getElementById('escalate-btn-' + rentalId) || document.getElementById('escalate-btn-co-' + rentalId);
     if (escBtn) escBtn.disabled = true;
+    var originalHtml = escBtn ? escBtn.innerHTML : '';
+    if (escBtn) escBtn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-1"></i> ' + S.processing;
     try {
         var token = getToken();
         var response = await fetch(DC.urls.escalateDispute, {
@@ -621,8 +666,8 @@ async function _processEscalation(rentalId) {
         var data = await response.json();
         showToast(data.message, data.success ? 'success' : 'error');
         if (data.success) setTimeout(function () { location.reload(); }, 1000);
-        else if (escBtn) escBtn.disabled = false;
-    } catch (err) { showToast(S.somethingWentWrong, 'error'); if (escBtn) escBtn.disabled = false; }
+        else if (escBtn) { escBtn.disabled = false; escBtn.innerHTML = originalHtml; }
+    } catch (err) { showToast(S.somethingWentWrong, 'error'); if (escBtn) { escBtn.disabled = false; escBtn.innerHTML = originalHtml; } }
 }
 
 // === Evidence Upload Helper ===

@@ -38,17 +38,21 @@ var S = DC.strings || {};
         });
     }
 
-    // Determine initial tab from URL hash
+    // Determine initial tab from URL hash or saved session
     var hash = window.location.hash.replace('#', '');
     var validTabs = Array.from(tabButtons).map(function (btn) { return btn.dataset.tab; });
-    var initialTab = validTabs.indexOf(hash) !== -1 ? hash : 'home';
+    var savedTab = sessionStorage.getItem('dashboardTab');
+    var initialTab = validTabs.indexOf(hash) !== -1 ? hash
+        : (savedTab && validTabs.indexOf(savedTab) !== -1 ? savedTab : 'home');
     activateTab(initialTab);
+    if (initialTab !== 'home') window.location.hash = initialTab;
 
     // Click handlers
     tabButtons.forEach(function (btn) {
         btn.addEventListener('click', function () {
             var tabName = this.dataset.tab;
             window.location.hash = tabName;
+            sessionStorage.setItem('dashboardTab', tabName);
             activateTab(tabName);
         });
     });
@@ -247,7 +251,10 @@ function openExtensionModal(rentalId, startDate, currentEndDate, dailyRate, item
     var calendarMinStr = startDate;
 
     fetch(DC.urls.getBookedDates + '?itemId=' + itemId)
-        .then(function(r) { return r.json(); })
+        .then(function(r) {
+            if (!r.ok) throw new Error('Server error');
+            return r.json();
+        })
         .then(function(bookings) {
             var blocked = { dates: [], ranges: [] };
             var nextBookingStart = null;
@@ -400,6 +407,21 @@ async function cancelExtension(extensionId) {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
             body: 'extensionId=' + extensionId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
+        });
+        var data = await response.json();
+        showToast(data.message, data.success ? 'success' : 'error');
+        if (data.success) setTimeout(function () { location.reload(); }, 1000);
+    } catch (err) { showToast(S.somethingWentWrong, 'error'); }
+}
+
+// === Archive Rental ===
+async function archiveRental(rentalId) {
+    try {
+        var token = getToken();
+        var response = await fetch(DC.urls.archiveRental, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-TOKEN': token },
+            body: 'rentalId=' + rentalId + (token ? '&__RequestVerificationToken=' + encodeURIComponent(token) : '')
         });
         var data = await response.json();
         showToast(data.message, data.success ? 'success' : 'error');

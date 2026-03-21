@@ -70,6 +70,25 @@ public class AccountLifecycleService : IAccountLifecycleService
         foreach (var item in items)
             item.IsListed = false;
 
+        // Cancel active rentals where this user is the owner and release authorized deposits
+        var activeRentals = await _context.Rentals
+            .Include(r => r.Deposit)
+            .Where(r => r.OwnerId == userId
+                && r.Status != RentalStatus.Completed
+                && r.Status != RentalStatus.Cancelled)
+            .ToListAsync();
+
+        foreach (var rental in activeRentals)
+        {
+            rental.Status = RentalStatus.Cancelled;
+            rental.UpdatedAt = DateTime.UtcNow;
+            if (rental.Deposit != null && rental.Deposit.Status == DepositStatus.Authorized)
+            {
+                rental.Deposit.Status = DepositStatus.Released;
+                rental.Deposit.ReleasedAt = DateTime.UtcNow;
+            }
+        }
+
         // Invalidate all existing sessions
         await _userManager.UpdateSecurityStampAsync(user);
         await _context.SaveChangesAsync();

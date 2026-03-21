@@ -116,8 +116,8 @@
                         result.dates.push(item);
                     } else if (item?.from && item?.to) {
                         result.ranges.push({
-                            from: new Date(item.from),
-                            to: new Date(item.to)
+                            from: new Date(item.from + 'T00:00:00'),
+                            to: new Date(item.to + 'T00:00:00')
                         });
                     }
                 });
@@ -190,14 +190,15 @@
                 isToday: dateStr === this.todayStr,
                 isStart,
                 isEnd,
-                isInRange: isInRange && !isStart && !isEnd,
+                isInRange: isInRange && !isStart && !isEnd && !extPreview.inRange,
                 isRangeStart,
                 isRangeEnd,
-                isHoverEnd: hoverDate && DateUtils.toISODate(hoverDate) === dateStr,
+                isHoverEnd: hoverDate && DateUtils.toISODate(hoverDate) === dateStr && !extPreview.isEnd,
                 isHighlight: highlight.inRange,
                 isHighlightStart: highlight.isStart,
                 isHighlightEnd: highlight.isEnd,
                 isExtPreview: extPreview.inRange,
+                isExtPreviewStart: extPreview.isStart,
                 isExtPreviewEnd: extPreview.isEnd,
             };
         }
@@ -280,14 +281,20 @@
             const previewStart = new Date(highlightEnd);
             previewStart.setDate(previewStart.getDate() + 1);
 
-            // Show green range for: hover preview OR confirmed selection
-            const targetDate = selectedStart ? DateUtils.normalizeDate(selectedStart) : (hoverDate ? DateUtils.normalizeDate(hoverDate) : null);
+            // Hover takes priority for green trail; fall back to selection
+            const hoverTarget = hoverDate ? DateUtils.normalizeDate(hoverDate) : null;
+            const selectTarget = selectedStart ? DateUtils.normalizeDate(selectedStart) : null;
+            const targetDate = (hoverTarget && hoverTarget > highlightEnd) ? hoverTarget : selectTarget;
             if (!targetDate || targetDate <= highlightEnd) return { inRange: false, isEnd: false };
 
             if (d >= previewStart && d <= targetDate) {
-                return { inRange: true, isEnd: d.getTime() === targetDate.getTime() };
+                return {
+                    inRange: true,
+                    isStart: d.getTime() === previewStart.getTime(),
+                    isEnd: d.getTime() === targetDate.getTime()
+                };
             }
-            return { inRange: false, isEnd: false };
+            return { inRange: false, isStart: false, isEnd: false };
         }
 
         /**
@@ -571,7 +578,7 @@
             }
 
             // Hover for extension preview (single mode with highlights)
-            if (instance.config.mode === 'single' && hasHighlights && !instance.selectedStart) {
+            if (instance.config.mode === 'single' && hasHighlights) {
                 cell.onmouseenter = () => {
                     if (instance.hoverDate && instance.hoverDate.getTime() === date.getTime()) return;
                     instance.hoverDate = date;
@@ -605,6 +612,7 @@
         if (state.isHighlightStart) classes.push('sc-highlight-start');
         if (state.isHighlightEnd) classes.push('sc-highlight-end');
         if (state.isExtPreview) classes.push('sc-ext-preview');
+        if (state.isExtPreviewStart) classes.push('sc-ext-preview-start');
         if (state.isExtPreviewEnd) classes.push('sc-ext-preview-end');
         if (state.isStart) classes.push('sc-selected-start');
         if (state.isEnd) classes.push('sc-selected-end');

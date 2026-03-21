@@ -87,7 +87,7 @@ namespace RentMate.Controllers.Mvc
             var currentUserId2 = _userManager.GetUserId(User);
             if (currentUserId2 != null && !string.IsNullOrEmpty(item.Category))
             {
-                _ = Task.Run(() => _scoringService.RecordCategoryInteractionAsync(currentUserId2, item.Category));
+                await _scoringService.RecordCategoryInteractionAsync(currentUserId2, item.Category);
             }
 
             // Map setup
@@ -341,6 +341,17 @@ namespace RentMate.Controllers.Mvc
             {
                 TempData["ErrorMessage"] = "You must verify your government ID before listing items for rent.";
                 return RedirectToAction("UserDashboard", "Dashboard");
+            }
+
+            // Prevent unlisting items with active rentals
+            if (item.IsListed)
+            {
+                var hasActiveRentals = await _db.Rentals.AnyAsync(r =>
+                    r.ItemId == id
+                    && r.Status != Shared.Contracts.Responses.RentalStatus.Completed
+                    && r.Status != Shared.Contracts.Responses.RentalStatus.Cancelled);
+                if (hasActiveRentals)
+                    return Json(new { success = false, message = "Cannot unlist item with active rentals." });
             }
 
             item.IsListed = !item.IsListed;

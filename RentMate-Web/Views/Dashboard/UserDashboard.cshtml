@@ -16,11 +16,26 @@
 
     // Badge counts for tabs
     var overdueRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < DateTime.UtcNow.Date).ToList() ?? new();
+    var acceptedRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Accepted).ToList() ?? new();
     var pendingRequests = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Pending).ToList() ?? new();
-    var rentingAttentionCount = overdueRentals.Count;
-    var lendingAttentionCount = pendingRequests.Count + (Model.PendingExtensionCount);
-    var completedRentals = (Model.MyRentals?.Where(r => r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled).ToList() ?? new())
-        .Concat(Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled).ToList() ?? new())
+    var renterDepositAttention = Model.MyRentals?.Where(r => r.Deposit != null
+        && (r.Deposit.Status == DepositStatus.Charged
+            || r.Deposit.Status == DepositStatus.PartiallyCharged
+            || r.Deposit.Status == DepositStatus.CounterOffered)).ToList() ?? new();
+    var rentalsWithExtPayment = Model.MyRentals?.Where(r =>
+        r.Extensions != null && r.Extensions.Any(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved)).ToList() ?? new();
+    var ownerDisputedDeposits = Model.OwnerRentals?.Where(r => r.Deposit != null
+        && r.Deposit.Status == DepositStatus.Disputed).ToList() ?? new();
+    var renterCompletedReady = Model.MyRentals?.Where(r => r.Status == RentalStatus.Completed && r.ArchivedAt == null
+        && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed && r.Deposit.Status != DepositStatus.CounterOffered && r.Deposit.Status != DepositStatus.Escalated))).ToList() ?? new();
+    var ownerCompletedReady = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed && r.ArchivedAt == null
+        && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed && r.Deposit.Status != DepositStatus.CounterOffered && r.Deposit.Status != DepositStatus.Escalated))).ToList() ?? new();
+    var rentingAttentionCount = overdueRentals.Count + acceptedRentals.Count
+        + renterDepositAttention.Count + rentalsWithExtPayment.Count + renterCompletedReady.Count;
+    var lendingAttentionCount = pendingRequests.Count + (Model.PendingExtensionCount)
+        + ownerDisputedDeposits.Count + ownerCompletedReady.Count;
+    var archivedRentals = (Model.MyRentals?.Where(r => (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled) && r.ArchivedAt != null).ToList() ?? new())
+        .Concat(Model.OwnerRentals?.Where(r => (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled) && r.ArchivedAt != null).ToList() ?? new())
         .ToList();
 }
 
@@ -131,6 +146,7 @@
                 approveExtension: '/Dashboard/ApproveExtension',
                 declineExtension: '/Dashboard/DeclineExtension',
                 cancelExtension: '/Dashboard/CancelExtension',
+                archiveRental: '/Dashboard/ArchiveRental',
                 releaseDeposit: '/Dispute/ReleaseDeposit',
                 chargeDeposit: '/Dispute/ChargeDeposit',
                 completeWithDeposit: '/Dispute/CompleteWithDeposit',

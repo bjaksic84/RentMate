@@ -10,11 +10,7 @@
 
     var activeOwnerRentals = Model.OwnerRentals?.Where(r =>
         r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted
-        || (r.Status == RentalStatus.Completed && r.Deposit != null
-            && (r.Deposit.Status == DepositStatus.Disputed || r.Deposit.Status == DepositStatus.CounterOffered
-                || r.Deposit.Status == DepositStatus.Escalated
-                || ((r.Deposit.Status == DepositStatus.Charged || r.Deposit.Status == DepositStatus.PartiallyCharged)
-                    && r.Deposit.DisputeDeadline.HasValue && r.Deposit.DisputeDeadline > DateTime.UtcNow)))
+        || (r.Status == RentalStatus.Completed && r.ArchivedAt == null)
     ).ToList() ?? new();
 
     var pendingRequests = activeOwnerRentals.Where(r => r.Status == RentalStatus.Pending).ToList();

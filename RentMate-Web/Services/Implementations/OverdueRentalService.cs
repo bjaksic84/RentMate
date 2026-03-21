@@ -35,6 +35,7 @@ namespace RentMate.Services.Implementations
                 {
                     await CheckOverdueRentalsAsync(stoppingToken);
                     await CheckDisputeDeadlinesAsync(stoppingToken);
+                    await AutoArchiveCompletedRentalsAsync(stoppingToken);
                 }
                 catch (Exception ex)
                 {
@@ -177,6 +178,37 @@ namespace RentMate.Services.Implementations
             }
 
             await context.SaveChangesAsync(ct);
+        }
+
+        private async Task AutoArchiveCompletedRentalsAsync(CancellationToken ct)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<RentMateContext>();
+
+            var cutoff = DateTime.UtcNow.AddDays(-7);
+
+            // Auto-archive completed/cancelled rentals older than 7 days that aren't already archived
+            // and don't have active deposit disputes
+            var rentalsToArchive = await context.Rentals
+                .Include(r => r.Deposit)
+                .Where(r => r.ArchivedAt == null
+                    && (r.Status == RentalStatus.Completed || r.Status == RentalStatus.Cancelled)
+                    && r.UpdatedAt != null && r.UpdatedAt < cutoff
+                    && (r.Deposit == null
+                        || (r.Deposit.Status != DepositStatus.Disputed
+                            && r.Deposit.Status != DepositStatus.CounterOffered
+                            && r.Deposit.Status != DepositStatus.Escalated)))
+                .ToListAsync(ct);
+
+            if (rentalsToArchive.Count == 0) return;
+
+            foreach (var rental in rentalsToArchive)
+            {
+                rental.ArchivedAt = DateTime.UtcNow;
+            }
+
+            await context.SaveChangesAsync(ct);
+            _logger.LogInformation("Auto-archived {Count} completed rentals older than 7 days.", rentalsToArchive.Count);
         }
     }
 }
