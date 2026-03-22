@@ -62,6 +62,7 @@
             @foreach (var rental in pendingRequests)
             {
                 <div class="px-5 py-3 flex items-center gap-3">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
                     <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden">
                         @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
                         {
@@ -112,6 +113,7 @@
             @foreach (var ext in Model.PendingExtensions!)
             {
                 <div class="px-5 py-3 flex items-center gap-3">
+                    <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse shrink-0"></span>
                     <span class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
                         <i class="bi bi-calendar-plus text-sky-600 dark:text-sky-400 text-sm"></i>
                     </span>
@@ -204,6 +206,11 @@
                                 <span class="px-1.5 py-0.5 bg-slate-500/90 text-white text-[10px] font-bold rounded-full">@Localizer["Hidden"]</span>
                             }
                         </div>
+                        @if (pendingRequests.Any(r => r.ItemId == item.Id))
+                        {
+                            <span class="absolute top-2 left-2 w-3 h-3 bg-amber-500 rounded-full animate-pulse ring-2 ring-white dark:ring-slate-800"
+                                  title="@Localizer["PendingRequests"]"></span>
+                        }
                     </div>
                     <div class="p-3">
                         <h4 class="text-sm font-medium text-slate-900 dark:text-white truncate">@item.Title</h4>

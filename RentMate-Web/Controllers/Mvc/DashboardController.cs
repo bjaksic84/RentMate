@@ -9,7 +9,9 @@ using RentMate.Services.Interfaces;
 using RentMate.Services.Extensions;
 using RentMate.Services.Implementations;
 using RentMate.Shared.Contracts.Responses;
+using NotificationType = RentMate.Models.Domain.NotificationType;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Localization;
 using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
 
@@ -40,6 +42,8 @@ namespace RentMate.Controllers.Mvc
         private readonly IRentalExtensionService _extensionService;
         private readonly IHubContext<RentMateHub> _hubContext;
         private readonly ILogger<DashboardController> _logger;
+        private readonly INotificationService _notificationService;
+        private readonly IStringLocalizer<DashboardController> _localizer;
         private readonly IScoringService _scoringService;
 
         #endregion
@@ -54,6 +58,8 @@ namespace RentMate.Controllers.Mvc
             IRentalExtensionService extensionService,
             IHubContext<RentMateHub> hubContext,
             ILogger<DashboardController> logger,
+            INotificationService notificationService,
+            IStringLocalizer<DashboardController> localizer,
             IScoringService scoringService)
         {
             _userManager = userManager;
@@ -63,6 +69,8 @@ namespace RentMate.Controllers.Mvc
             _extensionService = extensionService;
             _hubContext = hubContext;
             _logger = logger;
+            _notificationService = notificationService;
+            _localizer = localizer;
             _scoringService = scoringService;
         }
 
@@ -167,6 +175,13 @@ namespace RentMate.Controllers.Mvc
                         newEndDate = extension.NewEndDate.ToString("yyyy-MM-dd"),
                         autoApproved = isAutoApproved
                     });
+
+                    await _notificationService.CreateAsync(
+                        rental.OwnerId!, NotificationType.ExtensionRequested,
+                        _localizer["Notification.ExtensionRequested"].Value,
+                        string.Format(_localizer["NotificationMsg.ExtensionRequested"].Value,
+                            rental.Item?.Title ?? "", extension.NewEndDate.ToString("dd MMM")),
+                        extension.Id, "Extension", "/Dashboard?tab=lending");
                 }
 
                 return Json(new
@@ -205,6 +220,13 @@ namespace RentMate.Controllers.Mvc
                         extensionId, status = "Accepted", itemTitle = ext.Rental.Item?.Title, newEndDate = ext.NewEndDate.ToString("yyyy-MM-dd"),
                         additionalCost = ext.AdditionalCost
                     });
+
+                    await _notificationService.CreateAsync(
+                        ext.RequestedByUserId!, NotificationType.ExtensionApproved,
+                        _localizer["Notification.ExtensionApproved"].Value,
+                        string.Format(_localizer["NotificationMsg.ExtensionApproved"].Value, ext.Rental.Item?.Title ?? ""),
+                        ext.Id, "Extension", "/Dashboard?tab=renting");
+                    await _notificationService.AutoDismissAsync(ext.Id, "Extension", NotificationType.ExtensionRequested);
                 }
 
                 return Json(new { success = true, message = "Extension accepted — awaiting renter payment." });
@@ -237,6 +259,13 @@ namespace RentMate.Controllers.Mvc
                     {
                         extensionId, status = "Declined", itemTitle = decExt.Rental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        decExt.RequestedByUserId!, NotificationType.ExtensionDeclined,
+                        _localizer["Notification.ExtensionDeclined"].Value,
+                        string.Format(_localizer["NotificationMsg.ExtensionDeclined"].Value, decExt.Rental.Item?.Title ?? ""),
+                        decExt.Id, "Extension", "/Dashboard?tab=renting");
+                    await _notificationService.AutoDismissAsync(decExt.Id, "Extension", NotificationType.ExtensionRequested);
                 }
 
                 return Json(new { success = true, message = "Extension declined." });
@@ -269,6 +298,13 @@ namespace RentMate.Controllers.Mvc
                     {
                         extensionId, status = "CancelledByRenter", itemTitle = cancelExt.Rental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        cancelExt.Rental.OwnerId!, NotificationType.ExtensionCancelled,
+                        _localizer["Notification.ExtensionCancelled"].Value,
+                        string.Format(_localizer["NotificationMsg.ExtensionCancelled"].Value, cancelExt.Rental.Item?.Title ?? ""),
+                        cancelExt.Id, "Extension", "/Dashboard?tab=lending");
+                    await _notificationService.AutoDismissAsync(cancelExt.Id, "Extension", NotificationType.ExtensionRequested);
                 }
 
                 return Json(new { success = true, message = "Extension cancelled." });

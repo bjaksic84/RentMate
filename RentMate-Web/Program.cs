@@ -308,6 +308,9 @@ builder.Services.AddScoped<IProfileCompletionService, ProfileCompletionService>(
 // --- Account Lifecycle (deactivation, reactivation, GDPR deletion) ---
 builder.Services.AddScoped<IAccountLifecycleService, AccountLifecycleService>();
 
+// --- Notifications ---
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
 // ==========================================
 // 2. BUILD APP
 // ==========================================

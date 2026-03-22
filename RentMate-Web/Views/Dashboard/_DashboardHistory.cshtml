@@ -126,6 +126,7 @@
                         var existingReview = rental.Item?.Reviews?.FirstOrDefault(r => r.ReviewerId == currentUserId && !r.IsDeleted);
                         @if (existingReview == null)
                         {
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" title="@Localizer["Review pending"]"></span>
                             <button type="button" onclick="openReviewModal(@rental.Id, @rental.ItemId, null)"
                                     class="px-2.5 py-1 text-xs font-medium text-amber-600 hover:text-amber-700 border border-amber-200 dark:border-amber-700 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition">
                                 <i class="bi bi-star mr-1"></i>@Localizer["Leave Review"]

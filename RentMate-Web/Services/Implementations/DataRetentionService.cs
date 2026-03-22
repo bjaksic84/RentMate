@@ -70,6 +70,7 @@ public class DataRetentionService : BackgroundService
         await PurgeExpiredRentalsAsync(context, fileUpload, ct);
         await PurgeAnonymisedUsersAsync(context, userManager, ct);
         await PurgeDeletedReviewsAsync(context, ct);
+        await PurgeOldNotificationsAsync(context, ct);
 
         _logger.LogInformation("Data retention pass completed at {Now:O}.", DateTime.UtcNow);
     }
@@ -190,6 +191,28 @@ public class DataRetentionService : BackgroundService
         _logger.LogInformation(
             "Data retention: purged {Count} soft-deleted reviews older than {Cutoff:yyyy-MM-dd}.",
             reviews.Count, cutoff);
+    }
+
+    /// <summary>
+    /// Deletes dismissed notifications older than 30 days and all notifications older than 90 days.
+    /// </summary>
+    private async Task PurgeOldNotificationsAsync(RentMateContext context, CancellationToken ct)
+    {
+        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+        var ninetyDaysAgo = DateTime.UtcNow.AddDays(-90);
+
+        var deletedDismissed = await context.Notifications
+            .Where(n => n.IsDismissed && n.CreatedAt < thirtyDaysAgo)
+            .ExecuteDeleteAsync(ct);
+
+        var deletedOld = await context.Notifications
+            .Where(n => n.CreatedAt < ninetyDaysAgo)
+            .ExecuteDeleteAsync(ct);
+
+        if (deletedDismissed + deletedOld > 0)
+            _logger.LogInformation(
+                "Data retention: purged {Dismissed} dismissed + {Old} old notifications.",
+                deletedDismissed, deletedOld);
     }
 
     /// <summary>Returns the time to wait until the next 03:00 UTC run.</summary>

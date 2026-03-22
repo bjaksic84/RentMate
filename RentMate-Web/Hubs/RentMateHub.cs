@@ -45,6 +45,16 @@ public class RentMateHub(UserManager<ApplicationUser> userManager) : Hub
     /// </summary>
     public const string RentalOverdueEvent = "RentalOverdue";
 
+    /// <summary>
+    /// Client method name for new persistent notification events.
+    /// </summary>
+    public const string NewNotificationEvent = "NewNotification";
+
+    /// <summary>
+    /// Client method name for auto-dismissed notification events.
+    /// </summary>
+    public const string NotificationDismissedEvent = "NotificationDismissed";
+
     #endregion
 
     // No public hub methods — all notifications are dispatched server-side

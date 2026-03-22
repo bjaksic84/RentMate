@@ -8,6 +8,7 @@ using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
 using RentMate.Models.ViewModels;
 using RentMate.Shared.Contracts.Responses;
+using NotificationType = RentMate.Models.Domain.NotificationType;
 using RentMate.Services.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using RentMate.Hubs;
@@ -26,6 +27,7 @@ namespace RentMate.Controllers.Mvc
         private readonly IRentalExtensionService _extensionService;
         private readonly IDepositService _depositService;
         private readonly IHubContext<RentMateHub> _hubContext;
+        private readonly INotificationService _notificationService;
 
         public PaymentController(
             RentMateContext context,
@@ -36,7 +38,8 @@ namespace RentMate.Controllers.Mvc
             IConfiguration configuration,
             IRentalExtensionService extensionService,
             IDepositService depositService,
-            IHubContext<RentMateHub> hubContext)
+            IHubContext<RentMateHub> hubContext,
+            INotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
@@ -47,6 +50,7 @@ namespace RentMate.Controllers.Mvc
             _extensionService = extensionService;
             _depositService = depositService;
             _hubContext = hubContext;
+            _notificationService = notificationService;
         }
 
         [HttpGet]
@@ -308,6 +312,13 @@ namespace RentMate.Controllers.Mvc
                                 itemTitle = extension.Rental.Item?.Title,
                                 newEndDate = extension.NewEndDate.ToString("yyyy-MM-dd")
                             });
+
+                        await _notificationService.CreateAsync(
+                            extension.Rental.OwnerId, NotificationType.ExtensionPaid,
+                            _localizer["Notification.ExtensionPaid"].Value,
+                            string.Format(_localizer["NotificationMsg.ExtensionPaid"].Value, extension.Rental.Item?.Title ?? ""),
+                            extension.Id, "Extension", "/Dashboard?tab=lending");
+                        await _notificationService.AutoDismissAsync(extension.Id, "Extension", NotificationType.ExtensionApproved);
                     }
                 }
 

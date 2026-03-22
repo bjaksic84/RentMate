@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using RentMate.Hubs;
 using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
+using RentMate.Services.Interfaces;
 using RentalStatus = RentMate.Shared.Contracts.Responses.RentalStatus;
 
 namespace RentMate.Services.Implementations
@@ -51,6 +53,9 @@ namespace RentMate.Services.Implementations
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<RentMateContext>();
             var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<RentMateHub>>();
+            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var localizerFactory = scope.ServiceProvider.GetRequiredService<IStringLocalizerFactory>();
+            var localizer = localizerFactory.Create("SharedResource", "RentMate");
 
             var now = DateTime.UtcNow.Date;
 
@@ -87,6 +92,35 @@ namespace RentMate.Services.Implementations
                     await hubContext.Clients.User(rental.OwnerId).SendAsync(
                         RentMateHub.RentalOverdueEvent, data, ct);
                 }
+
+                // Persistent notification with 24-hour deduplication
+                var recentExists = await context.Notifications.AnyAsync(n =>
+                    n.UserId == rental.RenterId && n.ReferenceId == rental.Id
+                    && n.ReferenceType == "Rental" && n.Type == NotificationType.RentalOverdue
+                    && !n.IsDismissed && n.CreatedAt > DateTime.UtcNow.AddHours(-24), ct);
+
+                if (!recentExists)
+                {
+                    if (!string.IsNullOrEmpty(rental.RenterId))
+                    {
+                        await notificationService.CreateAsync(
+                            rental.RenterId, NotificationType.RentalOverdue,
+                            localizer["Notification.RentalOverdue"].Value,
+                            string.Format(localizer["NotificationMsg.RentalOverdue"].Value,
+                                rental.Item?.Title ?? "", daysOverdue),
+                            rental.Id, "Rental", "/Dashboard?tab=renting");
+                    }
+
+                    if (!string.IsNullOrEmpty(rental.OwnerId))
+                    {
+                        await notificationService.CreateAsync(
+                            rental.OwnerId, NotificationType.RentalOverdue,
+                            localizer["Notification.RentalOverdue"].Value,
+                            string.Format(localizer["NotificationMsg.RentalOverdue"].Value,
+                                rental.Item?.Title ?? "", daysOverdue),
+                            rental.Id, "Rental", "/Dashboard?tab=lending");
+                    }
+                }
             }
         }
 
@@ -95,6 +129,9 @@ namespace RentMate.Services.Implementations
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<RentMateContext>();
             var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<RentMateHub>>();
+            var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+            var localizerFactory = scope.ServiceProvider.GetRequiredService<IStringLocalizerFactory>();
+            var localizer = localizerFactory.Create("SharedResource", "RentMate");
 
             var now = DateTime.UtcNow;
 
@@ -174,6 +211,14 @@ namespace RentMate.Services.Implementations
                             status = statusText,
                             itemTitle = rental?.Item?.Title
                         }, ct);
+
+                    // Persistent notification for deadline auto-resolution
+                    await notificationService.CreateAsync(
+                        notifyUserId, NotificationType.DeadlineAutoResolved,
+                        localizer["Notification.DepositResolved"].Value,
+                        string.Format(localizer["NotificationMsg.DeadlineAutoResolved"].Value,
+                            rental?.Item?.Title ?? ""),
+                        deposit.RentalId, "Deposit", "/Dashboard");
                 }
             }
 

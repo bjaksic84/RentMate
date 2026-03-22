@@ -31,6 +31,7 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
     public DbSet<DisputeEvidence> DisputeEvidences { get; set; }
     public DbSet<ItemImage> ItemImages { get; set; }
     public DbSet<CookieConsent> CookieConsents { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     #endregion
 
@@ -52,6 +53,7 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         ConfigureDisputeEvidenceEntity(modelBuilder);
         ConfigureItemImageEntity(modelBuilder);
         ConfigureCookieConsentEntity(modelBuilder);
+        ConfigureNotificationEntity(modelBuilder);
         ConfigurePerformanceIndexes(modelBuilder);
     }
 
@@ -314,6 +316,31 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
 
             entity.HasIndex(c => c.UserId);
             entity.HasIndex(c => c.ConsentedAt);
+        });
+    }
+
+    private static void ConfigureNotificationEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.Property(n => n.Type)
+                .HasConversion<string>()
+                .HasMaxLength(50);
+
+            entity.Property(n => n.Title).HasMaxLength(200);
+            entity.Property(n => n.Message).HasMaxLength(500);
+            entity.Property(n => n.ReferenceType).HasMaxLength(50);
+            entity.Property(n => n.ActionUrl).HasMaxLength(500);
+
+            entity.HasOne(n => n.User)
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(n => new { n.UserId, n.IsRead, n.IsDismissed });
+            entity.HasIndex(n => new { n.ReferenceId, n.ReferenceType });
+            entity.HasIndex(n => new { n.UserId, n.CreatedAt })
+                .IsDescending(false, true);
         });
     }
 

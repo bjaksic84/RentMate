@@ -13,6 +13,7 @@ using RentMate.Services.Extensions;
 using RentMate.Services.Implementations;
 using RentMate.Helpers;
 using RentMate.Shared.Contracts.Responses;
+using NotificationType = RentMate.Models.Domain.NotificationType;
 
 namespace RentMate.Controllers.Mvc
 {
@@ -31,6 +32,7 @@ namespace RentMate.Controllers.Mvc
         private readonly IDepositService _depositService;
         private readonly ILogger<RentalsController> _logger;
         private readonly IScoringService _scoringService;
+        private readonly INotificationService _notificationService;
 
         private const int DefaultPageSize = 12;
         private const string DashboardAction = "UserDashboard";
@@ -45,7 +47,8 @@ namespace RentMate.Controllers.Mvc
             IAccessoryService accessoryService,
             IDepositService depositService,
             ILogger<RentalsController> logger,
-            IScoringService scoringService)
+            IScoringService scoringService,
+            INotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
@@ -56,6 +59,7 @@ namespace RentMate.Controllers.Mvc
             _depositService = depositService;
             _logger = logger;
             _scoringService = scoringService;
+            _notificationService = notificationService;
         }
 
         #region Helper Methods
@@ -110,6 +114,25 @@ namespace RentMate.Controllers.Mvc
                 itemTitle = rental.Item?.Title,
                 message
             });
+
+            var notifType = rental.Status switch
+            {
+                RentalStatus.Accepted => NotificationType.RentalAccepted,
+                RentalStatus.Completed => NotificationType.RentalCompleted,
+                RentalStatus.Cancelled => NotificationType.RentalCancelled,
+                _ => NotificationType.RentalApproved
+            };
+            var titleKey = "Notification." + notifType.ToString();
+            var msgKey = "NotificationMsg." + notifType.ToString();
+            await _notificationService.CreateAsync(
+                rental.RenterId!, notifType,
+                _localizer[titleKey].Value,
+                string.Format(_localizer[msgKey].Value, rental.Item?.Title ?? ""),
+                rental.Id, "Rental", "/Dashboard?tab=renting");
+
+            // Auto-dismiss the original request notification for the owner
+            if (rental.Status != RentalStatus.Pending)
+                await _notificationService.AutoDismissAsync(rental.Id, "Rental", NotificationType.RentalRequested);
         }
 
         #endregion
@@ -371,6 +394,14 @@ namespace RentMate.Controllers.Mvc
                 endDate = rental.EndDate.ToShortDateString(),
                 status = rental.Status.ToString()
             });
+
+            await _notificationService.CreateAsync(
+                item.UserId!,
+                NotificationType.RentalRequested,
+                _localizer["Notification.RentalRequested"].Value,
+                string.Format(_localizer["NotificationMsg.RentalRequested"].Value,
+                    renter.FirstName ?? renter.UserName, item.Title),
+                rental.Id, "Rental", "/Dashboard?tab=lending");
         }
 
         /// <summary>

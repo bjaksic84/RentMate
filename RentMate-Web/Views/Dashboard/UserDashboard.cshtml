@@ -55,9 +55,7 @@
             </p>
         </div>
         <div class="flex items-center gap-3">
-            <span id="connectionIndicator" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-full">
-                @Localizer["Offline"]
-            </span>
+            <span id="connectionIndicator" class="hidden px-3 py-1.5 text-sm font-medium rounded-full"></span>
             @if (User.IsInRole("Admin"))
             {
                 <a asp-action="AdminDashboard"
@@ -184,7 +182,9 @@
                 pleaseSelectRating: '@Localizer["Please select a rating"]',
                 failedToSubmitReview: '@Localizer["Failed to submit review"]',
                 anErrorOccurred: '@Localizer["An error occurred. Please try again."]',
-                live: '@Localizer["Live"]',
+                reconnecting: '@Localizer["Reconnecting..."]',
+                reconnected: '@Localizer["Reconnected"]',
+                offline: '@Localizer["Offline"]',
                 newRentalRequest: '@Localizer["New rental request for"]',
                 rentalStatusUpdated: '@Localizer["Rental status updated for"]',
                 newExtensionRequest: '@Localizer["New extension request for"]',

@@ -523,60 +523,95 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
-// === SignalR ===
-var connection = new signalR.HubConnectionBuilder()
-    .withUrl(DC.urls.signalRHub)
-    .withAutomaticReconnect()
-    .build();
+// === SignalR (uses shared connection from layout.js) ===
+function attachDashboardSignalR(connection) {
+    connection.on("RentalRequested", function (data) {
+        showToast(S.newRentalRequest + " " + data.itemTitle, "info");
+        setTimeout(function() { location.reload(); }, 2000);
+    });
 
-connection.on("RentalRequested", function (data) {
-    showToast(S.newRentalRequest + " " + data.itemTitle, "info");
-    setTimeout(function() { location.reload(); }, 2000);
-});
+    connection.on("RentalStatusChanged", function (data) {
+        showToast(data.message || S.rentalStatusUpdated + " " + data.itemTitle, "info");
+        setTimeout(function() { location.reload(); }, 2000);
+    });
 
-connection.on("RentalStatusChanged", function (data) {
-    showToast(data.message || S.rentalStatusUpdated + " " + data.itemTitle, "info");
-    setTimeout(function() { location.reload(); }, 2000);
-});
+    connection.on("ExtensionRequested", function (data) {
+        showToast(S.newExtensionRequest + " " + data.itemTitle, "info");
+        setTimeout(function() { location.reload(); }, 2000);
+    });
 
-connection.on("ExtensionRequested", function (data) {
-    showToast(S.newExtensionRequest + " " + data.itemTitle, "info");
-    setTimeout(function() { location.reload(); }, 2000);
-});
+    connection.on("ExtensionStatusChanged", function (data) {
+        showToast(data.message || S.extensionStatusUpdated + " " + data.itemTitle, "info");
+        setTimeout(function() { location.reload(); }, 2000);
+    });
 
-connection.on("ExtensionStatusChanged", function (data) {
-    showToast(data.message || S.extensionStatusUpdated + " " + data.itemTitle, "info");
-    setTimeout(function() { location.reload(); }, 2000);
-});
+    connection.on("RentalOverdue", function (data) {
+        showToast(S.rentalFor + " " + data.itemTitle + " " + S.isOverdueBy + " " + data.daysOverdue + " " + S.days, "warning");
+        setTimeout(function() { location.reload(); }, 3000);
+    });
 
-connection.on("RentalOverdue", function (data) {
-    showToast(S.rentalFor + " " + data.itemTitle + " " + S.isOverdueBy + " " + data.daysOverdue + " " + S.days, "warning");
-    setTimeout(function() { location.reload(); }, 3000);
-});
+    connection.on("DepositStatusChanged", function (data) {
+        var msg = S.depositStatusUpdated + " " + data.itemTitle;
+        if (data.status === "Escalated") msg = S.disputeEscalated + " " + data.itemTitle;
+        if (data.status === "Released") msg = S.depositReleased + " " + data.itemTitle;
+        if (data.status === "ChargeAccepted" || data.status === "ChargeUpheld") msg = S.disputeResolved + " " + data.itemTitle;
+        if (data.status === "CounterAccepted") msg = S.settlementReached + " " + data.itemTitle;
+        if (data.status === "CounterOffered") msg = S.newCounterOffer + " " + data.itemTitle;
+        if (data.status === "CounterRejected") msg = S.counterOfferRejected + " " + data.itemTitle;
+        if (data.status === "Disputed") msg = S.depositDisputed + " " + data.itemTitle;
+        if (data.status === "Charged") msg = S.depositCharged + " " + data.itemTitle;
 
-connection.on("DepositStatusChanged", function (data) {
-    var msg = S.depositStatusUpdated + " " + data.itemTitle;
-    if (data.status === "Escalated") msg = S.disputeEscalated + " " + data.itemTitle;
-    if (data.status === "Released") msg = S.depositReleased + " " + data.itemTitle;
-    if (data.status === "ChargeAccepted" || data.status === "ChargeUpheld") msg = S.disputeResolved + " " + data.itemTitle;
-    if (data.status === "CounterAccepted") msg = S.settlementReached + " " + data.itemTitle;
-    if (data.status === "CounterOffered") msg = S.newCounterOffer + " " + data.itemTitle;
-    if (data.status === "CounterRejected") msg = S.counterOfferRejected + " " + data.itemTitle;
-    if (data.status === "Disputed") msg = S.depositDisputed + " " + data.itemTitle;
-    if (data.status === "Charged") msg = S.depositCharged + " " + data.itemTitle;
+        if (data.adminNotes) {
+            msg += " - " + data.adminNotes;
+        }
 
-    if (data.adminNotes) {
-        msg += " - " + data.adminNotes;
+        showToast(msg, "info");
+        setTimeout(function() { location.reload(); }, 2500);
+    });
+
+    // Connection indicator — hidden by default, shown only on failure
+    var _hideTimer = null;
+
+    function showIndicator(text, classes) {
+        var indicator = document.getElementById('connectionIndicator');
+        if (!indicator) return;
+        if (_hideTimer) { clearTimeout(_hideTimer); _hideTimer = null; }
+        indicator.className = classes;
+        indicator.textContent = text;
     }
 
-    showToast(msg, "info");
-    setTimeout(function() { location.reload(); }, 2500);
-});
-
-connection.start()
-    .then(function () {
+    function hideIndicator() {
         var indicator = document.getElementById('connectionIndicator');
-        indicator.className = 'px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm font-medium rounded-full';
-        indicator.textContent = S.live;
-    })
-    .catch(function (err) { console.error('SignalR Error:', err); });
+        if (indicator) indicator.className = 'hidden';
+        _hideTimer = null;
+    }
+
+    connection.onreconnecting(function() {
+        showIndicator(S.reconnecting, 'px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-medium rounded-full');
+    });
+
+    connection.onreconnected(function() {
+        showIndicator(S.reconnected, 'px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm font-medium rounded-full');
+        _hideTimer = setTimeout(hideIndicator, 3000);
+    });
+
+    connection.onclose(function() {
+        showIndicator(S.offline, 'px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-full');
+    });
+}
+
+// Attach to shared connection from layout.js
+function initDashboardSignalR() {
+    attachDashboardSignalR(window._rentmateSignalR);
+}
+
+if (window._rentmateSignalR) {
+    initDashboardSignalR();
+} else {
+    var waitInterval = setInterval(function() {
+        if (window._rentmateSignalR) {
+            clearInterval(waitInterval);
+            initDashboardSignalR();
+        }
+    }, 50);
+}

@@ -258,7 +258,40 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
         if (data && data.status === 'Escalated') bumpAdminBadge();
     });
 
-    conn.start().catch(function(err) {
+    // Notification bell events
+    conn.on('NewNotification', function(data) {
+        // Bump notification bell badge
+        var badge = document.getElementById('notificationBadge');
+        if (badge) {
+            var count = parseInt(badge.textContent, 10) || 0;
+            badge.textContent = ++count;
+            badge.classList.remove('hidden');
+        }
+
+        // Play sound if dropdown not open
+        var dropdown = document.getElementById('notificationDropdown');
+        if (!dropdown || dropdown.classList.contains('hidden')) {
+            if (typeof playNotifSound === 'function') playNotifSound();
+        }
+    });
+
+    conn.on('NotificationDismissed', function(data) {
+        // Decrement notification bell badge by the number of dismissed notifications
+        var badge = document.getElementById('notificationBadge');
+        if (badge) {
+            var dismissCount = data && data.ids ? data.ids.length : 1;
+            var count = parseInt(badge.textContent, 10) || 0;
+            count = Math.max(0, count - dismissCount);
+            badge.textContent = count;
+            if (count === 0) badge.classList.add('hidden');
+        }
+    });
+
+    // Expose connection globally so dashboard.js can attach handlers
+    window._rentmateSignalR = conn;
+    window._rentmateSignalRReady = conn.start().then(function() {
+        window._rentmateSignalRConnected = true;
+    }).catch(function(err) {
         console.error('Global SignalR error:', err);
     });
 })();

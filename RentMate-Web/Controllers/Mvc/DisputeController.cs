@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using RentMate.Hubs;
 using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
@@ -30,6 +31,8 @@ namespace RentMate.Controllers.Mvc
         private readonly IDepositService _depositService;
         private readonly IHubContext<RentMateHub> _hubContext;
         private readonly ILogger<DisputeController> _logger;
+        private readonly INotificationService _notificationService;
+        private readonly IStringLocalizer<DisputeController> _localizer;
 
         #endregion
 
@@ -40,13 +43,17 @@ namespace RentMate.Controllers.Mvc
             RentMateContext context,
             IDepositService depositService,
             IHubContext<RentMateHub> hubContext,
-            ILogger<DisputeController> logger)
+            ILogger<DisputeController> logger,
+            INotificationService notificationService,
+            IStringLocalizer<DisputeController> localizer)
         {
             _userManager = userManager;
             _context = context;
             _depositService = depositService;
             _hubContext = hubContext;
             _logger = logger;
+            _notificationService = notificationService;
+            _localizer = localizer;
         }
 
         #endregion
@@ -90,6 +97,13 @@ namespace RentMate.Controllers.Mvc
                     {
                         rentalId, status = "Released", itemTitle = relRental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        relRental.RenterId!, NotificationType.DepositReleased,
+                        _localizer["Notification.DepositReleased"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositReleased"].Value, relRental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
+                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
                 }
 
                 return Json(new { success = true, message = "Deposit released." });
@@ -130,6 +144,12 @@ namespace RentMate.Controllers.Mvc
                     {
                         rentalId, status = "Charged", amount, reason, itemTitle = chgRental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        chgRental.RenterId!, NotificationType.DepositCharged,
+                        _localizer["Notification.DepositCharged"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositCharged"].Value, chgRental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
                 }
 
                 return Json(new { success = true, message = "Deposit charged with evidence." });
@@ -162,6 +182,13 @@ namespace RentMate.Controllers.Mvc
                     {
                         rentalId, status = "Released", itemTitle = rental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        rental.RenterId!, NotificationType.DepositReleased,
+                        _localizer["Notification.DepositReleased"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositReleased"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
+                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
                 }
 
                 return Json(new { success = true, message = "Disputed deposit released." });
@@ -228,6 +255,24 @@ namespace RentMate.Controllers.Mvc
                     {
                         rentalId, status = action == "release" ? "Released" : "Charged", amount, reason, itemTitle = rental.Item?.Title
                     });
+
+                    if (action == "release")
+                    {
+                        await _notificationService.CreateAsync(
+                            rental.RenterId!, NotificationType.DepositReleased,
+                            _localizer["Notification.DepositReleased"].Value,
+                            string.Format(_localizer["NotificationMsg.DepositReleased"].Value, rental.Item?.Title),
+                            rentalId, "Deposit", "/Dashboard");
+                        await _notificationService.AutoDismissAsync(rentalId, "Deposit");
+                    }
+                    else
+                    {
+                        await _notificationService.CreateAsync(
+                            rental.RenterId!, NotificationType.DepositCharged,
+                            _localizer["Notification.DepositCharged"].Value,
+                            string.Format(_localizer["NotificationMsg.DepositCharged"].Value, rental.Item?.Title),
+                            rentalId, "Deposit", "/Dashboard");
+                    }
                 }
 
                 return Json(new { success = true, message = $"Rental completed and deposit {action}d." });
@@ -264,6 +309,13 @@ namespace RentMate.Controllers.Mvc
                     {
                         rentalId, status = "Disputed", reason, itemTitle = rental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        rental.OwnerId!, NotificationType.DepositDisputed,
+                        _localizer["Notification.DepositDisputed"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositDisputed"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
+                    await _notificationService.AutoDismissAsync(rentalId, "Deposit", NotificationType.DepositCharged);
                 }
 
                 return Json(new { success = true, message = "Deposit disputed." });
@@ -296,6 +348,13 @@ namespace RentMate.Controllers.Mvc
                     {
                         rentalId, status = "ChargeAccepted", itemTitle = rental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        rental.OwnerId!, NotificationType.DepositResolved,
+                        _localizer["Notification.DepositResolved"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositResolved"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
+                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
                 }
 
                 return Json(new { success = true, message = "Charge accepted." });
@@ -328,6 +387,13 @@ namespace RentMate.Controllers.Mvc
                     {
                         rentalId, status = "CounterAccepted", itemTitle = rental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        rental.OwnerId!, NotificationType.DepositResolved,
+                        _localizer["Notification.DepositResolved"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositResolved"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
+                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
                 }
 
                 return Json(new { success = true, message = "Counter-offer accepted." });
@@ -353,13 +419,22 @@ namespace RentMate.Controllers.Mvc
             {
                 await _depositService.RejectCounterOfferAsync(rentalId, user.Id);
 
-                var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
+                var rental = await _context.Rentals.Include(r => r.Item).Include(r => r.Deposit).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental != null)
                 {
                     await _hubContext.Clients.User(rental.OwnerId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
                     {
                         rentalId, status = "CounterRejected", itemTitle = rental.Item?.Title
                     });
+
+                    var rejectType = rental.Deposit?.Status == DepositStatus.Escalated
+                        ? NotificationType.DepositEscalated
+                        : NotificationType.DepositDisputed;
+                    await _notificationService.CreateAsync(
+                        rental.OwnerId!, rejectType,
+                        _localizer["Notification.DepositCounterRejected"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositCounterRejected"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
                 }
 
                 return Json(new { success = true, message = "Counter-offer rejected. Original charge stands." });
@@ -398,6 +473,13 @@ namespace RentMate.Controllers.Mvc
                     {
                         rentalId, status = "CounterOffered", amount, response, itemTitle = rental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        rental.RenterId!, NotificationType.DepositCounterOffered,
+                        _localizer["Notification.DepositCounterOffered"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositCounterOffered"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
+                    await _notificationService.AutoDismissAsync(rentalId, "Deposit", NotificationType.DepositDisputed);
                 }
 
                 return Json(new { success = true, message = "Counter-offer sent with evidence." });
@@ -443,6 +525,12 @@ namespace RentMate.Controllers.Mvc
                         status = "Escalated",
                         itemTitle = rental.Item?.Title
                     });
+
+                    await _notificationService.CreateAsync(
+                        recipientId, NotificationType.DepositEscalated,
+                        _localizer["Notification.DepositEscalated"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositEscalated"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
                 }
 
                 return Json(new { success = true, message = "Dispute escalated to administration." });
@@ -538,6 +626,18 @@ namespace RentMate.Controllers.Mvc
                         itemTitle = rental.Item?.Title,
                         adminNotes
                     });
+
+                    await _notificationService.CreateAsync(
+                        rental.OwnerId!, NotificationType.DepositResolved,
+                        _localizer["Notification.DepositResolved"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositResolved"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
+                    await _notificationService.CreateAsync(
+                        rental.RenterId!, NotificationType.DepositResolved,
+                        _localizer["Notification.DepositResolved"].Value,
+                        string.Format(_localizer["NotificationMsg.DepositResolved"].Value, rental.Item?.Title),
+                        rentalId, "Deposit", "/Dashboard");
+                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
                 }
 
                 return Json(new { success = true, message = amount == 0 ? "Deposit released to renter." : $"Charge finalized at \u20ac{amount:N2}." });

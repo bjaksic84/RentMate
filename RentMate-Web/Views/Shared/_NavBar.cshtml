@@ -286,6 +286,8 @@
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
+                        @await Html.PartialAsync("_NotificationBell")
+
                         <!-- User Menu -->
                         <div class="relative">
                             <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 p-1.5 pr-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-all duration-200">
@@ -355,7 +357,7 @@
 <script>
     function toggleMobileMenu() {
         var menu = document.getElementById('mobileMenu');
-        var badge = document.getElementById('burgerBadge');
+        var badge = document.getElementById('navBadgeBurger');
         menu.classList.toggle('hidden');
         if (badge) {
             var menuOpen = !menu.classList.contains('hidden');

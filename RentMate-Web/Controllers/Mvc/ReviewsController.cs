@@ -36,23 +36,26 @@ namespace RentMate.Controllers.Mvc
         private readonly IStringLocalizer<ReviewsController> _localizer;
         private readonly IReviewAggregationService _reviewAggregation;
         private readonly IScoringService _scoringService;
+        private readonly INotificationService _notificationService;
 
         #endregion
 
         #region Constructor
 
         public ReviewsController(
-            RentMateContext context, 
+            RentMateContext context,
             UserManager<ApplicationUser> userManager,
             IStringLocalizer<ReviewsController> localizer,
             IReviewAggregationService reviewAggregation,
-            IScoringService scoringService)
+            IScoringService scoringService,
+            INotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
             _localizer = localizer;
             _reviewAggregation = reviewAggregation;
             _scoringService = scoringService;
+            _notificationService = notificationService;
         }
 
         #endregion
@@ -148,6 +151,21 @@ namespace RentMate.Controllers.Mvc
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
             await _reviewAggregation.UpdateItemAggregatesAsync(review.ItemId);
+
+            // Notify the item owner about the new review
+            var notifItem = await _context.Items.FindAsync(request.ItemId);
+            if (notifItem != null)
+            {
+                var reviewer = await _context.Users.FindAsync(userId);
+                await _notificationService.CreateAsync(
+                    notifItem.UserId!, NotificationType.ReviewReceived,
+                    _localizer["Notification.ReviewReceived"].Value,
+                    string.Format(_localizer["NotificationMsg.ReviewReceived"].Value,
+                        reviewer?.FirstName ?? reviewer?.UserName ?? "",
+                        request.Rating, notifItem.Title),
+                    review.Id, "Review",
+                    $"/Items/Details/{notifItem.Id}#reviews");
+            }
 
             // Event-driven: recompute item score after new review
             _ = Task.Run(() => _scoringService.ComputeAndSaveItemScoreAsync(review.ItemId));
