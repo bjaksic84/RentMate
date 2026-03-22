@@ -1,1 +1,158 @@
-@* Placeholder — will be implemented in a later task *@
+@model RentMate.Models.ViewModels.ItemDetailsViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var allImages = Model.Images?.OrderBy(i => i.DisplayOrder).ToList() ?? new List<RentMate.Models.ViewModels.ItemImageViewModel>();
+    var hasMultipleImages = allImages.Count > 1;
+    var hasImages = allImages.Count > 0;
+}
+
+<div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+    @if (hasImages)
+    {
+        @* ──── Main Image Container ──── *@
+        <div class="relative">
+            @{
+                var primaryImage = allImages.First();
+                var primaryUrl = primaryImage.ImageUrl;
+                if (primaryUrl.Contains("cloudinary"))
+                {
+                    primaryUrl = primaryUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/");
+                }
+            }
+            <img id="mainImage"
+                 src="@primaryUrl"
+                 class="w-full h-[400px] md:h-[500px] object-cover transition-opacity duration-300 cursor-zoom-in"
+                 alt="@Model.Title"
+                 onclick="openLightbox()" />
+
+            @if (hasMultipleImages)
+            {
+                @* ──── Navigation Arrows ──── *@
+                <button type="button"
+                        onclick="prevImage()"
+                        aria-label="@Localizer["Previous image"]"
+                        class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <i class="bi bi-chevron-left text-xl text-slate-700 dark:text-slate-200"></i>
+                </button>
+                <button type="button"
+                        onclick="nextImage()"
+                        aria-label="@Localizer["Next image"]"
+                        class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 dark:bg-slate-800/90 hover:bg-white dark:hover:bg-slate-700 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <i class="bi bi-chevron-right text-xl text-slate-700 dark:text-slate-200"></i>
+                </button>
+
+                @* ──── Image Counter Badge ──── *@
+                <div id="imageCounter"
+                     class="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1 bg-black/60 text-white text-sm font-medium rounded-full select-none">
+                    1 / @allImages.Count
+                </div>
+            }
+
+            @* ──── Favorite Button ──── *@
+            <div class="absolute top-4 right-4" style="z-index: var(--z-base, 1);">
+                @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel
+                {
+                    ItemId = Model.ItemId,
+                    IsFavorited = Model.IsFavorited,
+                    Size = "md"
+                })
+            </div>
+        </div>
+
+        @if (hasMultipleImages)
+        {
+            @* ──── Thumbnail Strip ──── *@
+            <div class="flex gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
+                @for (int i = 0; i < allImages.Count; i++)
+                {
+                    var img = allImages[i];
+                    var thumbUrl = img.ImageUrl;
+                    var fullUrl = img.ImageUrl;
+
+                    if (thumbUrl.Contains("cloudinary"))
+                    {
+                        thumbUrl = thumbUrl.Replace("/upload/", "/upload/c_thumb,w_100,h_100,q_auto/");
+                    }
+                    if (fullUrl.Contains("cloudinary"))
+                    {
+                        fullUrl = fullUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/");
+                    }
+
+                    <button type="button"
+                            onclick="showImage(@i, '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(fullUrl))')"
+                            class="shrink-0 w-[80px] h-[80px] rounded-lg overflow-hidden border-2 transition-all thumbnail-btn @(i == 0 ? "ring-2 ring-blue-500 border-blue-500" : "border-transparent hover:border-slate-300 dark:hover:border-slate-500")"
+                            aria-label="@Localizer["Image"] @(i + 1)">
+                        <img src="@thumbUrl"
+                             class="w-full h-full object-cover"
+                             alt="@Model.Title - @Localizer["Image"] @(i + 1)"
+                             loading="lazy" />
+                    </button>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        @* ──── No Images Fallback ──── *@
+        <div class="w-full h-[400px] bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+            <div class="text-center text-slate-400 dark:text-slate-500">
+                <i class="bi bi-image text-6xl"></i>
+                <p class="mt-2 text-sm">@Localizer["No image"]</p>
+            </div>
+        </div>
+
+        @* Favorite button even when no images *@
+        <div class="absolute top-4 right-4" style="z-index: var(--z-base, 1);">
+            @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel
+            {
+                ItemId = Model.ItemId,
+                IsFavorited = Model.IsFavorited,
+                Size = "md"
+            })
+        </div>
+    }
+</div>
+
+@* ──── Lightbox Overlay ──── *@
+<div class="lightbox-overlay fixed inset-0 hidden items-center justify-center bg-black/90 backdrop-blur-sm"
+     style="z-index: var(--z-modal, 1200);"
+     onclick="if(event.target === this) closeLightbox()">
+
+    @* Close button *@
+    <button type="button"
+            onclick="closeLightbox()"
+            aria-label="@Localizer["Close"]"
+            class="absolute top-4 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50"
+            style="z-index: var(--z-modal, 1200);">
+        <i class="bi bi-x-lg text-white text-2xl"></i>
+    </button>
+
+    @* Lightbox Main Image *@
+    <img class="lightbox-image max-w-[90vw] max-h-[85vh] object-contain rounded-lg select-none"
+         src="@(hasImages ? (allImages.First().ImageUrl.Contains("cloudinary") ? allImages.First().ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/") : allImages.First().ImageUrl) : "")"
+         alt="@Model.Title" />
+
+    @if (hasMultipleImages)
+    {
+        @* Lightbox navigation arrows *@
+        <button type="button"
+                onclick="prevImage()"
+                aria-label="@Localizer["Previous image"]"
+                class="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-white/50">
+            <i class="bi bi-chevron-left text-2xl text-white"></i>
+        </button>
+        <button type="button"
+                onclick="nextImage()"
+                aria-label="@Localizer["Next image"]"
+                class="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all focus:outline-none focus:ring-2 focus:ring-white/50">
+            <i class="bi bi-chevron-right text-2xl text-white"></i>
+        </button>
+
+        @* Lightbox image counter *@
+        <div class="absolute bottom-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-black/60 text-white text-sm font-medium rounded-full select-none lightbox-counter">
+            1 / @allImages.Count
+        </div>
+    }
+</div>
