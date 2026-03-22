@@ -1,700 +1,87 @@
+@model RentMate.Models.ViewModels.ItemDetailsViewModel
 @using Microsoft.AspNetCore.Mvc.Localization
-@using System.Text.Json
-@using RentMate.Shared.Contracts.Responses
-@model RentMate.Models.Domain.Item
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous"/>
-
 @{
     ViewData["Title"] = Model.Title;
-    var avgRating = Model.AverageRating ?? 0;
-    
-    var blockedDates = Model.Rentals?
-        .Where(r => r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending)
-        .Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })
-        .ToList();
-    string jsonBlocked = blockedDates != null ? JsonSerializer.Serialize(blockedDates) : "[]";
 }
 
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-6">
     <!-- Breadcrumb -->
-    <nav class="flex items-center gap-2 text-sm text-slate-500 mb-6">
-        <a asp-controller="Rentals" asp-action="Index" class="hover:text-blue-600 transition-colors">@Localizer["Marketplace"]</a>
+    <nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-6">
+        <a asp-controller="Home" asp-action="Marketplace" class="hover:text-blue-600 transition-colors">@Localizer["Marketplace"]</a>
         <i class="bi bi-chevron-right text-xs"></i>
-        <a asp-controller="Rentals" asp-action="Index" asp-route-category="@Model.Category" class="hover:text-blue-600 transition-colors">@Localizer[Model.Category ?? "Uncategorized"]</a>
+        <a asp-controller="Home" asp-action="Marketplace" asp-route-category="@Model.Category" class="hover:text-blue-600 transition-colors">@Localizer[Model.Category ?? ""]</a>
         <i class="bi bi-chevron-right text-xs"></i>
-        <span class="text-slate-900 font-medium truncate max-w-[200px]">@Model.Title</span>
+        <span class="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[200px]">@Model.Title</span>
     </nav>
 
-    <!-- Title & Meta -->
-    <div class="mb-6">
-        <h1 class="font-heading text-3xl md:text-4xl font-bold text-slate-900 mb-3">@Model.Title</h1>
-        <div class="flex flex-wrap items-center gap-4 text-slate-600">
-            <div class="flex items-center gap-1">
-                <i class="bi bi-star-fill text-amber-400"></i>
-                <span class="font-semibold text-slate-900">@avgRating.ToString("0.0")</span>
-                <span class="text-slate-500">(@Model.ReviewCount @Localizer["reviews"])</span>
-            </div>
-            <span class="text-slate-300">·</span>
-            <div class="flex items-center gap-1">
-                <i class="bi bi-geo-alt" aria-hidden="true"></i>
-                <span>@(Model.User?.City ?? Localizer["Location not specified"].Value)</span>
-            </div>
-            <span class="text-slate-300">·</span>
-            <div class="flex items-center gap-1">
-                <i class="bi bi-tag"></i>
-                <span>@Localizer[Model.Category ?? "Uncategorized"]</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="grid lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Main Content -->
         <div class="lg:col-span-2 space-y-8">
-            <!-- Image Gallery -->
-            @{
-                var allImages = Model.Images?.OrderBy(i => i.DisplayOrder).ToList() ?? new List<RentMate.Models.Domain.ItemImage>();
-                var hasMultipleImages = allImages.Count > 1;
-            }
+            <partial name="Partials/_ItemHero" model="Model" />
+            <partial name="Partials/_ItemGallery" model="Model" />
+            <partial name="Partials/_ItemOwnerCard" model="Model" />
 
-            <div class="relative rounded-2xl overflow-hidden shadow-lg">
-                @if (allImages.Any())
-                {
-                    <!-- Main Image Display -->
-                    <div id="mainImageContainer" class="relative">
-                        @{
-                            var primaryImage = allImages.FirstOrDefault();
-                            var primaryUrl = primaryImage?.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/") ?? "";
-                        }
-                        <img id="mainImage" src="@primaryUrl" class="w-full h-[400px] md:h-[500px] object-cover transition-opacity duration-300" alt="@Model.Title">
-
-                        @if (hasMultipleImages)
-                        {
-                            <!-- Navigation Arrows -->
-                            <button type="button" onclick="prevImage()" class="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105">
-                                <i class="bi bi-chevron-left text-xl text-slate-700"></i>
-                            </button>
-                            <button type="button" onclick="nextImage()" class="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/90 hover:bg-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105">
-                                <i class="bi bi-chevron-right text-xl text-slate-700"></i>
-                            </button>
-
-                            <!-- Image Counter -->
-                            <div class="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/60 text-white text-sm font-medium rounded-full">
-                                <span id="imageCounter">1</span> / @allImages.Count
-                            </div>
-                        }
-                    </div>
-
-                    @if (hasMultipleImages)
-                    {
-                        <!-- Thumbnail Strip -->
-                        <div class="flex gap-2 p-3 bg-slate-50 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300">
-                            @for (int i = 0; i < allImages.Count; i++)
-                            {
-                                var img = allImages[i];
-                                var thumbUrl = img.ImageUrl.Replace("/upload/", "/upload/c_thumb,w_100,h_100,q_auto/");
-                                var fullUrl = img.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/");
-                                <button type="button"
-                                        onclick="showImage(@i, '@fullUrl')"
-                                        class="shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all thumbnail-btn @(i == 0 ? "border-blue-500 ring-2 ring-blue-200" : "border-transparent hover:border-slate-300")">
-                                    <img src="@thumbUrl" class="w-full h-full object-cover" alt="@Model.Title - @Localizer["Image"] @(i + 1)">
-                                </button>
-                            }
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="w-full h-[400px] bg-slate-100 flex items-center justify-center">
-                        <div class="text-center text-slate-400">
-                            <i class="bi bi-image text-6xl"></i>
-                            <p class="mt-2">@Localizer["No image"]</p>
-                        </div>
-                    </div>
-                }
-
-                <!-- Favorite button -->
-                <div class="absolute top-4 right-4" style="z-index: var(--z-base, 1);">
-                    @await Html.PartialAsync("_FavoriteButton", new RentMate.Models.ViewModels.FavoriteButtonViewModel {
-                        ItemId = Model.Id,
-                        IsFavorited = Model.FavoritedBy?.Any(f => f.AccountId == ViewBag.CurrentUserId) ?? false,
-                        Size = "lg"
-                    })
-                </div>
-            </div>
-
-            <!-- Owner Info -->
-            <div class="flex items-center justify-between p-6 bg-white rounded-2xl border border-slate-200">
-                <div class="flex items-center gap-4">
-                    <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="shrink-0">
-                        @if(!string.IsNullOrEmpty(Model.User?.ProfilePictureUrl))
-                        {
-                            <img src="@Model.User.ProfilePictureUrl" 
-                                 class="w-14 h-14 rounded-full object-cover ring-2 ring-slate-100">
-                        }
-                        else
-                        {
-                            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center ring-2 ring-slate-100">
-                                <i class="bi bi-person-fill text-white text-xl"></i>
-                            </div>
-                        }
-                    </a>
-                    <div>
-                        <p class="text-sm text-slate-500">@Localizer["Hosted by"]</p>
-                        <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" class="font-semibold text-slate-900 hover:text-blue-600 transition-colors focus-ring">
-                            @(!string.IsNullOrEmpty(Model.User?.FirstName) ? $"{Model.User.FirstName} {Model.User.LastName}" : (Model.User?.UserName ?? Localizer["DeletedUser"].Value))
-                        </a>
-                    </div>
-                </div>
-                <a asp-controller="Profile" asp-action="Details" asp-route-id="@Model.UserId" 
-                   class="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                    @Localizer["View Profile"]
-                </a>
-            </div>
-
-            <!-- Description -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 class="font-heading text-xl font-bold text-slate-900 mb-4">@Localizer["About this item"]</h2>
-                <p class="text-slate-600 leading-relaxed whitespace-pre-line">@Model.Description</p>
-            </div>
-
-            <!-- Available Accessories -->
-            @if (Model.Accessories?.Any(a => a.IsAvailable) == true)
+            @if (!string.IsNullOrEmpty(Model.Description))
             {
-                <div class="bg-white rounded-2xl border border-slate-200 p-6">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i class="bi bi-puzzle text-blue-500 text-lg"></i>
-                        <h2 class="font-heading text-xl font-bold text-slate-900">@Localizer["Available Accessories"]</h2>
-                    </div>
-                    <div class="space-y-3">
-                        @foreach (var acc in Model.Accessories.Where(a => a.IsAvailable))
-                        {
-                            <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-slate-900">@acc.Name</p>
-                                    @if (!string.IsNullOrEmpty(acc.Description))
-                                    {
-                                        <p class="text-xs text-slate-400 mt-0.5">@acc.Description</p>
-                                    }
-                                </div>
-                                <span class="text-sm font-semibold text-slate-900 whitespace-nowrap">
-                                    +@CurrencyService.Format(acc.DailyPrice)<span class="text-xs font-normal text-slate-400">/@Localizer["day"]</span>
-                                </span>
-                            </div>
-                        }
-                    </div>
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                    <h2 class="font-heading text-xl font-bold text-slate-900 dark:text-white mb-4">@Localizer["About this item"]</h2>
+                    <p class="text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed">@Model.Description</p>
                 </div>
             }
 
-            <!-- Reviews Section -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6">
-                <div class="flex items-center gap-3 mb-6">
-                    <i class="bi bi-star-fill text-amber-400 text-xl"></i>
-                    <h2 class="font-heading text-xl font-bold text-slate-900">
-                        @avgRating.ToString("0.0") · @Model.ReviewCount @Localizer["reviews"]
-                    </h2>
-                </div>
-                
-                @{
-                    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                }
-                
-                @if(Model.Reviews?.Any() == true) {
-                    <div class="grid md:grid-cols-2 gap-6">
-                        @foreach(var review in Model.Reviews.Where(r => !r.IsDeleted).OrderByDescending(r => r.CreatedAt).Take(4))
-                        {
-                            var isOwnReview = review.ReviewerId == currentUserId;
-                            var reviewerName = review.IsAnonymous 
-                                ? Localizer["Anonymous"].Value 
-                                : (!string.IsNullOrEmpty(review.Reviewer?.FirstName) 
-                                    ? $"{review.Reviewer.FirstName} {review.Reviewer.LastName}".Trim()
-                                    : (review.Reviewer?.UserName ?? Localizer["DeletedUser"].Value));
-                            var hasReviewerPic = !review.IsAnonymous && !string.IsNullOrEmpty(review.Reviewer?.ProfilePictureUrl);
-                            
-                            <div class="p-4 bg-slate-50 rounded-xl relative">
-                                <div class="absolute top-3 right-3 flex items-center gap-1">
-                                    @if(isOwnReview)
-                                    {
-                                        <button type="button"
-                                                class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                data-action="openEditReviewModal"
-                                                data-review-id="@review.Id"
-                                                data-item-id="@review.ItemId"
-                                                data-rating="@review.Rating"
-                                                data-title="@(review.Title ?? "")"
-                                                data-body="@(review.Body ?? "")"
-                                                data-anonymous="@(review.IsAnonymous ? "true" : "false")"
-                                                title="@Localizer["Edit Review"]">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                    }
-                                    @if(isOwnReview || User.IsInRole("Admin"))
-                                    {
-                                        <button type="button"
-                                                class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                                onclick="deleteReview(@review.Id)"
-                                                title="@Localizer["Delete Review"]">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    }
-                                </div>
-                                <div class="flex items-center gap-3 mb-3">
-                                    @if(review.IsAnonymous)
-                                    {
-                                        <div class="w-10 h-10 rounded-full bg-slate-400 flex items-center justify-center">
-                                            <i class="bi bi-person-fill text-white text-sm"></i>
-                                        </div>
-                                    }
-                                    else if(hasReviewerPic)
-                                    {
-                                        <img src="@review.Reviewer!.ProfilePictureUrl" 
-                                             class="w-10 h-10 rounded-full object-cover"
-                                             alt="@reviewerName">
-                                    }
-                                    else
-                                    {
-                                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center">
-                                            <i class="bi bi-person-fill text-white text-sm"></i>
-                                        </div>
-                                    }
-                                    <div>
-                                        <p class="font-semibold text-slate-900">@reviewerName</p>
-                                        <p class="text-xs text-slate-500">@review.CreatedAt.ToString("MMMM yyyy")</p>
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-0.5 mb-2">
-                                    @for(int i = 0; i < 5; i++) {
-                                        <i class="bi bi-star-fill text-sm @(i < review.Rating ? "text-amber-400" : "text-slate-200")"></i>
-                                    }
-                                </div>
-                                <p class="text-slate-600 text-sm line-clamp-3">@review.Body</p>
-                            </div>
-                        }
-                    </div>
-                    @if(Model.ReviewCount > 4) {
-                        <button class="mt-6 px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors">
-                            @Localizer["Show all {0} reviews", Model.ReviewCount]
-                        </button>
-                    }
-                } else {
-                    <div class="text-center py-8 text-slate-500">
-                        <i class="bi bi-chat-square-text text-4xl mb-2"></i>
-                        <p>@Localizer["No reviews yet"]</p>
-                    </div>
-                }
-            </div>
-
-            <!-- Location Section -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 class="font-heading text-xl font-bold text-slate-900 mb-4">@Localizer["Pickup Location"]</h2>
-                <div class="flex items-center gap-2 text-slate-600 mb-4">
-                    <i class="bi bi-geo-alt-fill text-red-500"></i>
-                    <span>@ViewBag.MapCityName</span>
-                    <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full">@Localizer["Approximate location"]</span>
-                </div>
-                
-                <div id="map" class="h-[300px] rounded-xl overflow-hidden shadow-inner border border-blue-200"></div>
-                
-                <div class="flex items-start gap-3 mt-4 p-4 bg-blue-50 rounded-xl">
-                    <i class="bi bi-shield-check text-blue-600 text-xl"></i>
-                    <p class="text-sm text-blue-800">
-                        @Localizer["For safety and privacy, we only show the approximate area where the item is located. You will receive the exact pickup address after booking confirmation."]
-                    </p>
-                </div>
-            </div>
+            <partial name="Partials/_ItemAccessories" model="Model" />
+            <partial name="Partials/_ItemPolicies" model="Model" />
+            <partial name="Partials/_ItemAvailability" model="Model" />
+            <partial name="Partials/_ItemReviews" model="Model" />
+            <partial name="Partials/_ItemLocation" model="Model" />
+            <partial name="Partials/_ItemFaq" model="Model" />
+            <partial name="Partials/_ItemSimilar" model="Model" />
         </div>
 
-        <!-- Sidebar - Booking Card -->
-        <div class="lg:col-span-1">
-            <div class="sticky top-24">
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-md p-6">
-                    <!-- Price -->
-                    <div class="flex items-end justify-between mb-6">
-                        <div>
-                            <span class="text-3xl font-bold text-slate-900">@CurrencyService.Format(Model.Price)</span>
-                            <span class="text-slate-500"> / @Localizer["day"]</span>
-                        </div>
-                        <div class="flex items-center gap-1 text-sm">
-                            <i class="bi bi-star-fill text-amber-400"></i>
-                            <span class="font-semibold">@avgRating.ToString("0.0")</span>
-                        </div>
-                    </div>
-
-                    @if(Model.DepositAmount.HasValue && Model.DepositAmount.Value > 0)
-                    {
-                        <div class="flex items-center gap-2 text-sm text-slate-500 mb-6">
-                            <i class="bi bi-shield-check"></i>
-                            <span>+ @CurrencyService.Format(Model.DepositAmount.Value) @Localizer["Deposit"] (@Localizer["refundable"])</span>
-                        </div>
-                    }
-
-                    <!-- Rent Button -->
-                    <button type="button"
-                            class="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-bold rounded-xl shadow-sm  transition-all duration-300"
-                            onclick="document.getElementById('rentModal-@Model.Id').classList.remove('hidden')">
-                        @Localizer["Rent Now"]
-                    </button>
-                    
-                    <p class="text-center text-sm text-slate-500 mt-4">
-                        <i class="bi bi-shield-lock me-1"></i>
-                        @Localizer["Secure payment and rental"]
-                    </p>
-                    
-                    <!-- Quick Stats -->
-                    <div class="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-slate-200">
-                        <div class="text-center">
-                            <p class="text-2xl font-bold text-slate-900">@Model.ReviewCount</p>
-                            <p class="text-sm text-slate-500">@Localizer["Reviews"]</p>
-                        </div>
-                        <div class="text-center">
-                            <p class="text-2xl font-bold text-slate-900">@(Model.Rentals?.Count ?? 0)</p>
-                            <p class="text-sm text-slate-500">@Localizer["Rentals"]</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Safety Tips -->
-                <div class="mt-6 p-4 bg-slate-50 rounded-xl">
-                    <h3 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                        <i class="bi bi-lightbulb text-amber-500"></i>
-                        @Localizer["Safety Tips"]
-                    </h3>
-                    <ul class="space-y-2 text-sm text-slate-600">
-                        <li class="flex items-start gap-2">
-                            <i class="bi bi-check-circle text-green-500 mt-0.5"></i>
-                            <span>@Localizer["Always meet in a public place"]</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i class="bi bi-check-circle text-green-500 mt-0.5"></i>
-                            <span>@Localizer["Inspect the item before renting"]</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <i class="bi bi-check-circle text-green-500 mt-0.5"></i>
-                            <span>@Localizer["Use in-app payments only"]</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
+        <!-- Sidebar -->
+        <div class="hidden lg:block">
+            <partial name="Partials/_ItemBookingCard" model="Model" />
         </div>
     </div>
 </div>
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+<!-- Mobile booking bar -->
+<partial name="Partials/_ItemMobileBookingBar" model="Model" />
 
-    <script>
-        // Image Gallery
-        var imageUrls = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(allImages.Select(i => i.ImageUrl.Replace("/upload/", "/upload/c_fill,w_1200,h_800,q_auto,f_auto/")).ToList()));
-        var currentImageIndex = 0;
-        var totalImages = imageUrls.length;
-
-        function showImage(index, url) {
-            if (index < 0 || index >= totalImages) return;
-            currentImageIndex = index;
-
-            var mainImage = document.getElementById('mainImage');
-            mainImage.style.opacity = '0';
-            setTimeout(function() {
-                mainImage.src = url || imageUrls[index];
-                mainImage.style.opacity = '1';
-            }, 150);
-
-            // Update counter
-            var counter = document.getElementById('imageCounter');
-            if (counter) counter.textContent = (index + 1);
-
-            // Update thumbnail highlight
-            document.querySelectorAll('.thumbnail-btn').forEach(function(btn, i) {
-                if (i === index) {
-                    btn.classList.add('border-blue-500', 'ring-2', 'ring-blue-200');
-                    btn.classList.remove('border-transparent');
-                } else {
-                    btn.classList.remove('border-blue-500', 'ring-2', 'ring-blue-200');
-                    btn.classList.add('border-transparent');
-                }
-            });
-        }
-
-        function nextImage() {
-            var nextIndex = (currentImageIndex + 1) % totalImages;
-            showImage(nextIndex, null);
-        }
-
-        function prevImage() {
-            var prevIndex = (currentImageIndex - 1 + totalImages) % totalImages;
-            showImage(prevIndex, null);
-        }
-
-        // Keyboard navigation
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'ArrowLeft') prevImage();
-            if (e.key === 'ArrowRight') nextImage();
-        });
-
-        // Swipe support for mobile
-        var touchStartX = 0;
-        var mainImageContainer = document.getElementById('mainImageContainer');
-        if (mainImageContainer) {
-            mainImageContainer.addEventListener('touchstart', function(e) {
-                touchStartX = e.changedTouches[0].screenX;
-            }, { passive: true });
-
-            mainImageContainer.addEventListener('touchend', function(e) {
-                var touchEndX = e.changedTouches[0].screenX;
-                var diff = touchStartX - touchEndX;
-                if (Math.abs(diff) > 50) {
-                    if (diff > 0) nextImage();
-                    else prevImage();
-                }
-            }, { passive: true });
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            var lat = @(((double)ViewBag.MapLat).ToString(System.Globalization.CultureInfo.InvariantCulture));
-            var lng = @(((double)ViewBag.MapLng).ToString(System.Globalization.CultureInfo.InvariantCulture));
-            var cityName = "@ViewBag.MapCityName";
-            var mapDiv = document.getElementById('map');
-            console.log('MapLat:', lat, 'MapLng:', lng, 'City:', cityName);
-            try {
-                // Check for valid coordinates
-                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
-                    if (mapDiv) {
-                        mapDiv.innerHTML = '<div class="flex items-center justify-center h-full text-slate-500">Map unavailable for this location.</div>';
-                    }
-                    console.error('Invalid coordinates for map:', lat, lng);
-                    return;
-                }
-
-                var map = L.map('map', { scrollWheelZoom: false }).setView([lat, lng], 11);
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(map);
-
-                var circle = L.circle([lat, lng], {
-                    color: '#2563eb',
-                    fillColor: '#2563eb',
-                    fillOpacity: 0.15,
-                    radius: 1200
-                }).addTo(map);
-
-                circle.bindPopup(`<b>${cityName}</b><br>@Localizer["Approximate pickup location."]`);
-            } catch (e) {
-                if (mapDiv) {
-                    mapDiv.innerHTML = '<div class="flex items-center justify-center h-full text-red-500">Map failed to load. Check console for details.</div>';
-                }
-                console.error('Map initialization error:', e);
-            }
-        });
-        
-        // Delete Review
-        async function deleteReview(reviewId) {
-            if (!confirm('@Localizer["Are you sure you want to delete your review?"]')) return;
-            try {
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-                const response = await fetch('/api/Reviews/' + reviewId, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': token }
-                });
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    const error = await response.text();
-                    alert(error || '@Localizer["Failed to delete review."]');
-                }
-            } catch (error) {
-                console.error('Error deleting review:', error);
-                alert('@Localizer["An error occurred. Please try again."]');
-            }
-        }
-
-        // Edit Review Modal Functions
-        function openEditReviewModal(reviewId, itemId, rating, title, body, isAnonymous) {
-            const modal = document.getElementById('editReviewModal');
-            document.getElementById('editReviewId').value = reviewId;
-            document.getElementById('editReviewItemId').value = itemId;
-            document.getElementById('editReviewTitle').value = title || '';
-            document.getElementById('editReviewBody').value = body || '';
-            document.getElementById('editIsAnonymous').checked = isAnonymous;
-            document.getElementById('editRatingValue').value = rating;
-            
-            // Update star display
-            document.querySelectorAll('#editStarRating .star-btn').forEach((star, index) => {
-                if (index < rating) {
-                    star.classList.remove('text-slate-300');
-                    star.classList.add('text-amber-400');
-                } else {
-                    star.classList.remove('text-amber-400');
-                    star.classList.add('text-slate-300');
-                }
-            });
-            
-            modal.classList.remove('hidden');
-        }
-        
-        function closeEditReviewModal() {
-            document.getElementById('editReviewModal').classList.add('hidden');
-        }
-
-        // Delegated handler for edit review buttons (XSS-safe: reads from data-* attributes)
-        document.addEventListener('click', function(e) {
-            var btn = e.target.closest('[data-action="openEditReviewModal"]');
-            if (!btn) return;
-            openEditReviewModal(
-                parseInt(btn.dataset.reviewId, 10),
-                parseInt(btn.dataset.itemId, 10),
-                parseInt(btn.dataset.rating, 10),
-                btn.dataset.title || '',
-                btn.dataset.body || '',
-                btn.dataset.anonymous === 'true'
-            );
-        });
-
-        // Star rating functionality for edit modal
-        document.querySelectorAll('#editStarRating .star-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const rating = parseInt(this.dataset.rating);
-                document.getElementById('editRatingValue').value = rating;
-                
-                document.querySelectorAll('#editStarRating .star-btn').forEach((star, index) => {
-                    if (index < rating) {
-                        star.classList.remove('text-slate-300');
-                        star.classList.add('text-amber-400');
-                    } else {
-                        star.classList.remove('text-amber-400');
-                        star.classList.add('text-slate-300');
-                    }
-                });
-            });
-        });
-        
-        // Edit review form submission
-        document.getElementById('editReviewForm')?.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const rating = parseInt(document.getElementById('editRatingValue').value);
-            if (rating < 1) {
-                alert('@Localizer["Please select a rating"]');
-                return;
-            }
-
-            const reviewId = document.getElementById('editReviewId').value;
-            const itemId = document.getElementById('editReviewItemId').value;
-            const body = document.getElementById('editReviewBody').value;
-            const title = document.getElementById('editReviewTitle').value;
-            const isAnonymous = document.getElementById('editIsAnonymous').checked;
-
-            try {
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-                const response = await fetch(`/api/Reviews/${reviewId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': token
-                    },
-                    body: JSON.stringify({
-                        id: parseInt(reviewId),
-                        itemId: parseInt(itemId),
-                        rating: rating,
-                        title: title || null,
-                        body: body,
-                        isAnonymous: isAnonymous
-                    })
-                });
-
-                if (response.ok) {
-                    closeEditReviewModal();
-                    location.reload();
-                } else {
-                    const error = await response.text();
-                    alert(error || '@Localizer["Failed to update review"]');
-                }
-            } catch (error) {
-                console.error('Error updating review:', error);
-                alert('@Localizer["An error occurred. Please try again."]');
-            }
-        });
-    </script>
-
-    <partial name="_RentModal" model="Model" />
-    
-    <!-- Edit Review Modal -->
-    @if(User.Identity?.IsAuthenticated == true)
-    {
-        @Html.AntiForgeryToken()
-        <div id="editReviewModal" class="fixed inset-0 hidden" style="z-index: var(--z-modal, 1200);">
-            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" style="z-index: var(--z-modal-backdrop, 1100);" onclick="closeEditReviewModal()"></div>
-            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md" style="z-index: var(--z-modal, 1200);">
-                <div class="bg-white rounded-2xl shadow-2xl m-4 overflow-hidden">
-                    <!-- Header -->
-                    <div class="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-white font-heading text-lg font-bold">@Localizer["Edit Review"]</h3>
-                            <button type="button" onclick="closeEditReviewModal()" class="text-white/80 hover:text-white">
-                                <i class="bi bi-x-lg"></i>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <form id="editReviewForm" class="p-6">
-                        <input type="hidden" id="editReviewId" name="reviewId" value="" />
-                        <input type="hidden" id="editReviewItemId" name="itemId" value="" />
-
-                        <!-- Rating -->
-                        <div class="mb-5">
-                            <label class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Rating"]</label>
-                            <div class="flex gap-2" id="editStarRating">
-                                @for (int i = 1; i <= 5; i++)
-                                {
-                                    <button type="button" class="star-btn text-3xl text-slate-300 hover:text-amber-400 transition-colors" data-rating="@i">
-                                        <i class="bi bi-star-fill"></i>
-                                    </button>
-                                }
-                            </div>
-                            <input type="hidden" id="editRatingValue" name="rating" value="0" />
-                        </div>
-
-                        <!-- Title -->
-                        <div class="mb-5">
-                            <label for="editReviewTitle" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Title"] (@Localizer["optional"])</label>
-                            <input type="text" id="editReviewTitle" name="title" maxlength="100"
-                                   class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                   placeholder="@Localizer["Summarize your experience"]">
-                        </div>
-
-                        <!-- Body -->
-                        <div class="mb-5">
-                            <label for="editReviewBody" class="block text-sm font-medium text-slate-700 mb-2">@Localizer["Your Review"]</label>
-                            <textarea id="editReviewBody" name="body" rows="4" required
-                                      class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-                                      placeholder="@Localizer["Share your experience with this item..."]"></textarea>
-                        </div>
-
-                        <!-- Anonymous Option -->
-                        <div class="mb-5">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" id="editIsAnonymous" name="isAnonymous" class="w-4 h-4 text-blue-500 border-slate-300 rounded focus:ring-blue-500">
-                                <span class="text-sm text-slate-600">@Localizer["Post anonymously"]</span>
-                            </label>
-                        </div>
-
-                        <div class="flex gap-3">
-                            <button type="button" onclick="closeEditReviewModal()" 
-                                    class="flex-1 px-4 py-3 border border-slate-200 text-slate-600 font-medium rounded-xl hover:bg-slate-50 transition-colors">
-                                @Localizer["Cancel"]
-                            </button>
-                            <button type="submit" 
-                                    class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-semibold rounded-xl hover:shadow-md transition-all">
-                                <i class="bi bi-check-lg me-1"></i>
-                                @Localizer["Update Review"]
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    }
+<!-- Modals -->
+@if (!Model.IsOwner)
+{
+    <partial name="_RentModal" model="Model.Item" />
 }
+<partial name="Partials/_ItemReviewEditModal" model="Model" />
 
+@section Scripts {
+    <script>
+        window.ItemDetailsConfig = {
+            itemId: @Model.ItemId,
+            images: @Html.Raw(Json.Serialize(Model.Images.Select(i => new { url = i.ImageUrl, order = i.DisplayOrder }))),
+            map: {
+                lat: @(Model.MapLat ?? 0),
+                lng: @(Model.MapLng ?? 0),
+                city: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.MapCityName ?? ""))'
+            },
+            urls: {
+                deleteReview: '/api/Reviews/',
+                updateReview: '/api/Reviews/',
+                loadReviews: '/api/Reviews/item/@Model.ItemId'
+            },
+            strings: {
+                linkCopied: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Localizer["Link copied!"].Value))',
+                confirmDelete: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Localizer["Are you sure you want to delete your review?"].Value))',
+                anonymous: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Localizer["Anonymous"].Value))',
+                user: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Localizer["User"].Value))'
+            },
+            currentUserId: '@Model.CurrentUserId',
+            isOwner: @Json.Serialize(Model.IsOwner)
+        };
+    </script>
+    <script src="~/js/item-details.js"></script>
+}
