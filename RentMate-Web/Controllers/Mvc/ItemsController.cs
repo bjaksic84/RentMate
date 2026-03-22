@@ -65,7 +65,6 @@ namespace RentMate.Controllers.Mvc
 
             var currentUserId = _userManager.GetUserId(User);
 
-            // TODO: Move this query to a repository later
             var item = await _db.Items
                 .Include(i => i.User)
                 .Include(i => i.Images.OrderBy(img => img.DisplayOrder).Take(MaxImagesPerItem))
@@ -84,20 +83,177 @@ namespace RentMate.Controllers.Mvc
             await _scoringService.RecordItemViewAsync(item.Id);
 
             // Track category interaction for personalization
-            var currentUserId2 = _userManager.GetUserId(User);
-            if (currentUserId2 != null && !string.IsNullOrEmpty(item.Category))
+            if (currentUserId != null && !string.IsNullOrEmpty(item.Category))
             {
-                await _scoringService.RecordCategoryInteractionAsync(currentUserId2, item.Category);
+                await _scoringService.RecordCategoryInteractionAsync(currentUserId, item.Category);
             }
+
+            // Owner aggregate stats
+            var ownerCompletedRentals = await _db.Rentals
+                .Where(r => r.OwnerId == item.UserId && r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Completed)
+                .CountAsync();
+
+            var ownerAverageRating = await _db.Reviews
+                .Where(r => r.Item != null && r.Item.UserId == item.UserId && !r.IsDeleted)
+                .Select(r => (double?)r.Rating)
+                .AverageAsync() ?? 0;
+
+            // Star distribution (in memory from already-loaded reviews)
+            var starCounts = new int[5];
+            foreach (var group in item.Reviews.GroupBy(r => r.Rating))
+            {
+                var index = group.Key - 1; // Rating 1 → index 0, Rating 5 → index 4
+                if (index >= 0 && index < 5)
+                    starCounts[index] = group.Count();
+            }
+
+            // Can the current user leave a review?
+            var isSignedIn = currentUserId != null;
+            var isOwner = currentUserId != null && item.UserId == currentUserId;
+            var canReview = false;
+
+            if (isSignedIn && !isOwner)
+            {
+                var hasCompletedRental = await _db.Rentals.AnyAsync(r =>
+                    r.ItemId == item.Id
+                    && r.RenterId == currentUserId
+                    && r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Completed);
+
+                var hasExistingReview = await _db.Reviews.AnyAsync(r =>
+                    r.ItemId == item.Id
+                    && r.ReviewerId == currentUserId
+                    && !r.IsDeleted);
+
+                canReview = hasCompletedRental && !hasExistingReview;
+            }
+
+            // Similar items
+            var similarItems = await GetSimilarItemsAsync(item.Id, item.Category, item.User?.City, item.Price ?? 0);
 
             // Map setup
             var cityCoordinates = CityData.GetCoordinates(item.User?.City);
-            ViewBag.MapLat = cityCoordinates.Lat;
-            ViewBag.MapLng = cityCoordinates.Lng;
-            ViewBag.MapCityName = cityCoordinates.Name;
-            ViewBag.CurrentUserId = currentUserId;
 
-            return View(item);
+            var ownerName = item.User != null
+                ? $"{item.User.FirstName} {item.User.LastName}".Trim()
+                : string.Empty;
+
+            var viewModel = new ItemDetailsViewModel
+            {
+                // Core item data
+                ItemId = item.Id,
+                Title = item.Title ?? string.Empty,
+                Description = item.Description,
+                Price = item.Price ?? 0,
+                Category = item.Category,
+                DepositAmount = item.DepositAmount,
+                MaxRentalDays = item.MaxRentalDays,
+                AutoApproveExtensions = item.AutoApproveExtensions,
+                IsListed = item.IsListed,
+
+                // Images
+                Images = item.Images.Select(img => new ItemImageViewModel
+                {
+                    Id = img.Id,
+                    ImageUrl = img.ImageUrl,
+                    DisplayOrder = img.DisplayOrder
+                }).ToList(),
+                PrimaryImageUrl = item.PrimaryImageUrl,
+
+                // Owner profile
+                OwnerId = item.UserId ?? string.Empty,
+                OwnerName = string.IsNullOrWhiteSpace(ownerName) ? (item.User?.UserName ?? string.Empty) : ownerName,
+                OwnerCity = item.User?.City,
+                OwnerProfilePictureUrl = item.User?.ProfilePictureUrl,
+                OwnerMemberSince = item.User?.CreatedAt ?? DateTime.UtcNow,
+                OwnerIsPhoneVerified = item.User?.IsPhoneVerified ?? false,
+                OwnerIsGovernmentIdVerified = item.User?.IsGovernmentIdVerified ?? false,
+                OwnerResponseRate = item.User?.ResponseRate ?? 0,
+                OwnerAvgResponseTimeHours = item.User?.AvgResponseTimeHours ?? 0,
+                OwnerCompletedRentals = ownerCompletedRentals,
+                OwnerAverageRating = ownerAverageRating,
+                OwnerTrustScore = item.User?.ProfileTrustScore ?? 0,
+
+                // Reviews
+                AverageRating = item.AverageRating,
+                ReviewCount = item.ReviewCount,
+                StarCounts = starCounts,
+                Reviews = item.Reviews.OrderByDescending(r => r.CreatedAt).Select(r => new ReviewViewModel
+                {
+                    Id = r.Id,
+                    Rating = r.Rating,
+                    Title = r.Title,
+                    Body = r.Body,
+                    IsAnonymous = r.IsAnonymous,
+                    ReviewerId = r.ReviewerId,
+                    ReviewerName = r.IsAnonymous ? null : (r.Reviewer != null
+                        ? $"{r.Reviewer.FirstName} {r.Reviewer.LastName}".Trim()
+                        : null),
+                    ReviewerProfilePictureUrl = r.IsAnonymous ? null : r.Reviewer?.ProfilePictureUrl,
+                    CreatedAt = r.CreatedAt
+                }).ToList(),
+                CanReview = canReview,
+                IsSignedIn = isSignedIn,
+
+                // Accessories
+                Accessories = item.Accessories.Select(a => new AccessoryViewModel
+                {
+                    Id = a.Id,
+                    Name = a.Name,
+                    Description = a.Description,
+                    DailyPrice = a.DailyPrice
+                }).ToList(),
+
+                // Blocked date ranges
+                BlockedDateRanges = item.Rentals.Select(r => new RentalDateRange
+                {
+                    StartDate = r.StartDate,
+                    EndDate = r.EndDate
+                }).ToList(),
+
+                // Similar items
+                SimilarItems = similarItems,
+
+                // Map
+                MapLat = cityCoordinates.Lat,
+                MapLng = cityCoordinates.Lng,
+                MapCityName = cityCoordinates.Name,
+
+                // User context
+                CurrentUserId = currentUserId,
+                IsFavorited = item.FavoritedBy.Any(),
+                IsOwner = isOwner,
+
+                // Modal support (raw entity)
+                Item = item
+            };
+
+            return View(viewModel);
+        }
+
+        /// <summary>
+        /// Finds up to 4 similar items in the same category, prioritizing same city and closest price.
+        /// </summary>
+        private async Task<List<SimilarItemViewModel>> GetSimilarItemsAsync(int itemId, string? category, string? city, decimal price)
+        {
+            if (string.IsNullOrEmpty(category)) return new();
+
+            return await _db.Items
+                .Where(i => i.IsListed && !i.IsAdminHidden && i.Id != itemId && i.Category == category)
+                .OrderBy(i => i.User != null && i.User.City == city ? 0 : 1)
+                .ThenBy(i => Math.Abs((i.Price ?? 0) - price))
+                .Take(4)
+                .Select(i => new SimilarItemViewModel
+                {
+                    Id = i.Id,
+                    Title = i.Title ?? string.Empty,
+                    Price = i.Price ?? 0,
+                    PrimaryImageUrl = i.Images.OrderBy(img => img.DisplayOrder).Select(img => img.ImageUrl).FirstOrDefault() ?? i.ImageUrl,
+                    AverageRating = i.AverageRating,
+                    ReviewCount = i.ReviewCount,
+                    City = i.User != null ? i.User.City : null,
+                    Category = i.Category
+                })
+                .ToListAsync();
         }
 
         [Authorize]
