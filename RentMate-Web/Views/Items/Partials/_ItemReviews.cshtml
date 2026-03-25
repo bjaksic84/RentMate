@@ -9,47 +9,57 @@
 }
 
 <div id="reviews-section">
-    <!-- Rating Summary -->
-    <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4 mb-6">
-        <div class="flex items-center gap-4">
-            <div class="text-4xl font-bold text-slate-900 dark:text-white">
-                @(reviewCount > 0 ? avgRating.ToString("0.0") : "—")
-            </div>
-            <div>
-                <div class="flex items-center gap-0.5 text-amber-400">
+    <!-- Rating Summary + Breakdown (integrated card) -->
+    <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-5 mb-6">
+        <div class="flex flex-col sm:flex-row gap-5">
+            <!-- Left: Score + Stars -->
+            <div class="flex flex-col items-center sm:items-start sm:min-w-[120px]">
+                <div class="text-5xl font-bold text-slate-900 dark:text-white leading-none">
+                    @(reviewCount > 0 ? avgRating.ToString("0.0") : "—")
+                </div>
+                <div class="flex items-center gap-0.5 text-amber-400 mt-2">
                     @for (int i = 1; i <= 5; i++)
                     {
-                        <i class="bi bi-star@(i <= Math.Round(avgRating) ? "-fill" : "")"></i>
+                        <i class="bi bi-star@(i <= Math.Round(avgRating) ? "-fill" : "") text-sm"></i>
                     }
                 </div>
                 <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">
                     @reviewCount @(reviewCount == 1 ? Localizer["review"] : Localizer["reviews"])
                 </div>
+                @if (reviewCount > 0)
+                {
+                    var descriptor = avgRating >= 4.5 ? Localizer["Excellent"].Value
+                        : avgRating >= 3.5 ? Localizer["Very Good"].Value
+                        : avgRating >= 2.5 ? Localizer["Good"].Value
+                        : avgRating >= 1.5 ? Localizer["Average"].Value
+                        : Localizer["Poor"].Value;
+                    <span class="mt-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">@descriptor</span>
+                }
             </div>
-        </div>
-    </div>
 
-    <!-- Breakdown Bars -->
-    @if (reviewCount > 0)
-    {
-        <div class="space-y-2 mb-6">
-            @for (int star = 5; star >= 1; star--)
+            <!-- Right: Breakdown Bars -->
+            @if (reviewCount > 0)
             {
-                var count = starCounts[star - 1];
-                var pct = reviewCount > 0 ? (double)count / reviewCount * 100 : 0;
-                <div class="flex items-center gap-3">
-                    <div class="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400 w-8 shrink-0 justify-end">
-                        <span>@star</span>
-                        <i class="bi bi-star-fill text-amber-400 text-xs"></i>
-                    </div>
-                    <div class="rating-bar-track flex-1">
-                        <div class="rating-bar-fill" style="width: @(pct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></div>
-                    </div>
-                    <span class="text-sm text-slate-500 dark:text-slate-400 w-8 shrink-0">@count</span>
+                <div class="flex-1 flex flex-col justify-center space-y-1.5">
+                    @for (int star = 5; star >= 1; star--)
+                    {
+                        var count = starCounts[star - 1];
+                        var pct = reviewCount > 0 ? (double)count / reviewCount * 100 : 0;
+                        <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-0.5 text-xs text-slate-500 dark:text-slate-400 w-6 shrink-0 justify-end">
+                                <span>@star</span>
+                                <i class="bi bi-star-fill text-amber-400" style="font-size: 0.6rem;"></i>
+                            </div>
+                            <div class="rating-bar-track flex-1">
+                                <div class="rating-bar-fill" style="width: @(pct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                            </div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 w-5 shrink-0 text-right tabular-nums">@count</span>
+                        </div>
+                    }
                 </div>
             }
         </div>
-    }
+    </div>
 
     <!-- Write a Review CTA -->
     @if (!Model.IsSignedIn)
@@ -158,7 +168,7 @@
                                 }
                                 else
                                 {
-                                    var initial = !string.IsNullOrEmpty(review.ReviewerName)
+                                    var initial = !string.IsNullOrWhiteSpace(review.ReviewerName)
                                         ? review.ReviewerName[0].ToString().ToUpper()
                                         : "U";
                                     <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shrink-0">
@@ -167,7 +177,7 @@
                                 }
                                 <div>
                                     <div class="font-semibold text-slate-900 dark:text-white text-sm">
-                                        @(review.ReviewerName ?? Localizer["User"].Value)
+                                        @(string.IsNullOrWhiteSpace(review.ReviewerName) ? Localizer["User"].Value : review.ReviewerName)
                                     </div>
                                     <div class="text-xs text-slate-400 dark:text-slate-500">@review.CreatedAt.ToString("MMMM yyyy")</div>
                                 </div>

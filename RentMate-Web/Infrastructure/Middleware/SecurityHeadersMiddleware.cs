@@ -48,8 +48,8 @@ public class SecurityHeadersMiddleware
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://js.stripe.com; " +
         "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
         "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com; " +
-        "img-src 'self' data: blob: https://res.cloudinary.com; " +
-        "connect-src 'self' https://js.stripe.com https://hooks.stripe.com wss://localhost:*; " +
+        "img-src 'self' data: blob: https://res.cloudinary.com https://*.tile.openstreetmap.org; " +
+        "connect-src 'self' https://js.stripe.com https://hooks.stripe.com wss://localhost:* https://*.tile.openstreetmap.org; " +
         "frame-src 'self' https://js.stripe.com https://hooks.stripe.com; " +
         "frame-ancestors 'none';";
 

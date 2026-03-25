@@ -43,6 +43,7 @@ public class ItemDetailsViewModel
     #region Reviews
     public double? AverageRating { get; set; }
     public int ReviewCount { get; set; }
+    public int ItemRentalCount { get; set; }
     public int[] StarCounts { get; set; } = new int[5]; // Index 0 = 1-star, Index 4 = 5-star
     public List<ReviewViewModel> Reviews { get; set; } = new();
     public bool CanReview { get; set; }

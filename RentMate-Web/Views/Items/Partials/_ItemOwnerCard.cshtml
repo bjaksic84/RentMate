@@ -8,9 +8,9 @@
 
     string FormatResponseTime(double hours)
     {
-        if (hours < 1) return "< 1h";
-        if (hours < 24) return $"< {(int)Math.Ceiling(hours)}h";
-        return $"{(int)Math.Ceiling(hours / 24)} days";
+        if (hours < 1) return Localizer["Less than 1 hour"].Value;
+        if (hours < 24) return Localizer["Less than {0} hours", (int)Math.Ceiling(hours)].Value;
+        return Localizer["{0} days", (int)Math.Ceiling(hours / 24)].Value;
     }
 }
 
@@ -45,7 +45,14 @@
                 @Model.OwnerName
             </a>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                @Localizer["Member since"] @Model.OwnerMemberSince.Year
+                @if (Model.OwnerMemberSince.Year >= 2000)
+                {
+                    @Localizer["Member since"] @Model.OwnerMemberSince.ToString("MMMM yyyy")
+                }
+                else
+                {
+                    @Localizer["Member since"] @DateTime.UtcNow.Year
+                }
             </p>
 
             @* Owner rating *@
@@ -68,7 +75,7 @@
                         }
                         else
                         {
-                            <i class="bi bi-star text-amber-300 dark:text-amber-600" style="font-size: 0.75rem;"></i>
+                            <i class="bi bi-star text-slate-300 dark:text-slate-500" style="font-size: 0.75rem;"></i>
                         }
                     }
                     <span class="text-xs font-medium text-slate-600 dark:text-slate-400 ml-0.5">
@@ -80,21 +87,27 @@
     </div>
 
     @* --- Stats Row --- *@
-    <div class="flex items-center divide-x divide-slate-200 dark:divide-slate-700 mb-5">
-        <div class="flex-1 flex flex-col items-center px-3 first:pl-0 last:pr-0 gap-0.5">
-            <div class="flex items-center gap-1 text-slate-700 dark:text-slate-300">
-                <i class="bi bi-chat-dots text-blue-500" style="font-size: 0.85rem;"></i>
-                <span class="font-semibold text-sm">@Model.OwnerResponseRate%</span>
+    @{
+        var hasResponseData = Model.OwnerCompletedRentals > 0 && (Model.OwnerResponseRate > 0 || Model.OwnerAvgResponseTimeHours > 0);
+    }
+    <div class="flex items-center divide-x divide-slate-200 dark:divide-slate-700 mb-5 @(!hasResponseData ? "justify-center" : "")">
+        @if (hasResponseData)
+        {
+            <div class="flex-1 flex flex-col items-center px-3 first:pl-0 last:pr-0 gap-0.5">
+                <div class="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                    <i class="bi bi-chat-dots text-blue-500" style="font-size: 0.85rem;"></i>
+                    <span class="font-semibold text-sm">@Model.OwnerResponseRate%</span>
+                </div>
+                <span class="text-xs text-slate-500 dark:text-slate-400 text-center leading-tight">@Localizer["Response Rate"]</span>
             </div>
-            <span class="text-xs text-slate-500 dark:text-slate-400 text-center leading-tight">@Localizer["Response Rate"]</span>
-        </div>
-        <div class="flex-1 flex flex-col items-center px-3 gap-0.5">
-            <div class="flex items-center gap-1 text-slate-700 dark:text-slate-300">
-                <i class="bi bi-clock text-blue-500" style="font-size: 0.85rem;"></i>
-                <span class="font-semibold text-sm">@FormatResponseTime(Model.OwnerAvgResponseTimeHours)</span>
+            <div class="flex-1 flex flex-col items-center px-3 gap-0.5">
+                <div class="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                    <i class="bi bi-clock text-blue-500" style="font-size: 0.85rem;"></i>
+                    <span class="font-semibold text-sm">@FormatResponseTime(Model.OwnerAvgResponseTimeHours)</span>
+                </div>
+                <span class="text-xs text-slate-500 dark:text-slate-400 text-center leading-tight">@Localizer["Response Time"]</span>
             </div>
-            <span class="text-xs text-slate-500 dark:text-slate-400 text-center leading-tight">@Localizer["Response Time"]</span>
-        </div>
+        }
         <div class="flex-1 flex flex-col items-center px-3 first:pl-0 last:pr-0 gap-0.5">
             <div class="flex items-center gap-1 text-slate-700 dark:text-slate-300">
                 <i class="bi bi-box-seam text-blue-500" style="font-size: 0.85rem;"></i>

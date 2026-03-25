@@ -7,6 +7,8 @@
     ViewData["Title"] = Model.Title;
 }
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
+
 <div class="max-w-7xl mx-auto px-4 py-6 pb-24 lg:pb-6">
     <!-- Breadcrumb -->
     <nav class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-6">
@@ -64,8 +66,8 @@
             itemId: @Model.ItemId,
             images: @Html.Raw(Json.Serialize(Model.Images.Select(i => new { url = i.ImageUrl, order = i.DisplayOrder }))),
             map: {
-                lat: @(Model.MapLat ?? 0),
-                lng: @(Model.MapLng ?? 0),
+                lat: @((Model.MapLat ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                lng: @((Model.MapLng ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 city: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Model.MapCityName ?? ""))'
             },
             urls: {
@@ -80,8 +82,10 @@
                 user: '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Localizer["User"].Value))'
             },
             currentUserId: '@Model.CurrentUserId',
-            isOwner: @Json.Serialize(Model.IsOwner)
+            isOwner: @Json.Serialize(Model.IsOwner),
+            blockedRanges: @Html.Raw(Json.Serialize(Model.BlockedDateRanges.Select(r => new { from = r.StartDate.ToString("yyyy-MM-dd"), to = r.EndDate.ToString("yyyy-MM-dd") })))
         };
     </script>
-    <script src="~/js/item-details.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <script src="~/js/item-details.js?v=2"></script>
 }

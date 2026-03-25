@@ -1,1 +1,59 @@
-@* Placeholder — will be implemented in a later task *@
+@model RentMate.Models.ViewModels.ItemDetailsViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+<div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+    <!-- Section Heading -->
+    <h3 class="font-heading text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+        <i class="bi bi-question-circle text-blue-500"></i>
+        @Localizer["FAQ"]
+    </h3>
+
+    <!-- FAQ Accordion -->
+    <div class="space-y-3">
+        <!-- Question 1 -->
+        <details class="faq-details group rounded-xl bg-slate-50 dark:bg-slate-700/50 overflow-hidden">
+            <summary class="flex items-center justify-between gap-3 p-4 cursor-pointer select-none">
+                <span class="text-sm font-semibold text-slate-900 dark:text-white">
+                    @Localizer["How does renting work?"]
+                </span>
+                <i class="bi bi-chevron-down text-slate-400 dark:text-slate-500 faq-chevron transition-transform duration-200 shrink-0"></i>
+            </summary>
+            <div class="px-4 pb-4">
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    @Localizer["FaqAnswer1"]
+                </p>
+            </div>
+        </details>
+
+        <!-- Question 2 -->
+        <details class="faq-details group rounded-xl bg-slate-50 dark:bg-slate-700/50 overflow-hidden">
+            <summary class="flex items-center justify-between gap-3 p-4 cursor-pointer select-none">
+                <span class="text-sm font-semibold text-slate-900 dark:text-white">
+                    @Localizer["What if the item is damaged?"]
+                </span>
+                <i class="bi bi-chevron-down text-slate-400 dark:text-slate-500 faq-chevron transition-transform duration-200 shrink-0"></i>
+            </summary>
+            <div class="px-4 pb-4">
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    @Localizer["FaqAnswer2"]
+                </p>
+            </div>
+        </details>
+
+        <!-- Question 3 -->
+        <details class="faq-details group rounded-xl bg-slate-50 dark:bg-slate-700/50 overflow-hidden">
+            <summary class="flex items-center justify-between gap-3 p-4 cursor-pointer select-none">
+                <span class="text-sm font-semibold text-slate-900 dark:text-white">
+                    @Localizer["Is my payment secure?"]
+                </span>
+                <i class="bi bi-chevron-down text-slate-400 dark:text-slate-500 faq-chevron transition-transform duration-200 shrink-0"></i>
+            </summary>
+            <div class="px-4 pb-4">
+                <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    @Localizer["FaqAnswer3"]
+                </p>
+            </div>
+        </details>
+    </div>
+</div>

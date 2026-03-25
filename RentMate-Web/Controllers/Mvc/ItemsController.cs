@@ -176,6 +176,7 @@ namespace RentMate.Controllers.Mvc
                 // Reviews
                 AverageRating = item.AverageRating,
                 ReviewCount = item.ReviewCount,
+                ItemRentalCount = item.Rentals.Count,
                 StarCounts = starCounts,
                 Reviews = item.Reviews.OrderByDescending(r => r.CreatedAt).Select(r => new ReviewViewModel
                 {
@@ -186,7 +187,9 @@ namespace RentMate.Controllers.Mvc
                     IsAnonymous = r.IsAnonymous,
                     ReviewerId = r.ReviewerId,
                     ReviewerName = r.IsAnonymous ? null : (r.Reviewer != null
-                        ? $"{r.Reviewer.FirstName} {r.Reviewer.LastName}".Trim()
+                        ? (string.IsNullOrWhiteSpace($"{r.Reviewer.FirstName} {r.Reviewer.LastName}".Trim())
+                            ? r.Reviewer.UserName
+                            : $"{r.Reviewer.FirstName} {r.Reviewer.LastName}".Trim())
                         : null),
                     ReviewerProfilePictureUrl = r.IsAnonymous ? null : r.Reviewer?.ProfilePictureUrl,
                     CreatedAt = r.CreatedAt
