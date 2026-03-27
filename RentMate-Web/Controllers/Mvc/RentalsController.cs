@@ -349,6 +349,16 @@ namespace RentMate.Controllers.Mvc
                 return HandleError(_localizer["Item is already booked during this period."].Value);
             }
 
+            // Enforce MaxRentalDays limit
+            if (item.MaxRentalDays.HasValue)
+            {
+                var rentalDays = (endDate.Date - startDate.Date).Days + 1;
+                if (rentalDays > item.MaxRentalDays.Value)
+                {
+                    return HandleError(_localizer["Rental duration exceeds the maximum of {0} days.", item.MaxRentalDays.Value].Value);
+                }
+            }
+
             var rental = CreateRentalRequest(item, currentUser.Id, startDate, endDate);
             _context.Rentals.Add(rental);
             await _context.SaveChangesAsync();

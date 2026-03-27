@@ -516,10 +516,7 @@
             var lastDay = new Date(year, month + 1, 0);
             var startDow = (firstDay.getDay() + 6) % 7; // Monday = 0
 
-            var monthName = firstDay.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-
-            var html = '<div class="text-center font-semibold text-slate-700 dark:text-slate-300 text-sm mb-3">' + escHtml(monthName) + '</div>';
-            html += '<div class="grid grid-cols-7 gap-0.5 mb-1">';
+            var html = '<div class="grid grid-cols-7 gap-0.5 mb-1">';
             for (var d = 0; d < 7; d++) {
                 html += '<div class="text-center text-xs font-medium text-slate-400 dark:text-slate-500 py-1">' + dayNames[d] + '</div>';
             }
@@ -559,19 +556,16 @@
         }
 
         function render() {
-            var nextMonth = currentMonth + 1;
-            var nextYear = currentYear;
-            if (nextMonth > 11) { nextMonth = 0; nextYear++; }
+            var monthLabel = new Date(currentYear, currentMonth, 1)
+                .toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 
             var html = '<div class="flex items-center justify-between mb-4">';
             html += '<button type="button" onclick="window._availCalPrev()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors" aria-label="Previous month"><i class="bi bi-chevron-left"></i></button>';
+            html += '<div class="text-sm font-semibold text-slate-700 dark:text-slate-300">' + escHtml(monthLabel) + '</div>';
             html += '<button type="button" onclick="window._availCalNext()" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors" aria-label="Next month"><i class="bi bi-chevron-right"></i></button>';
             html += '</div>';
 
-            html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-6">';
-            html += '<div>' + renderMonth(currentYear, currentMonth) + '</div>';
-            html += '<div>' + renderMonth(nextYear, nextMonth) + '</div>';
-            html += '</div>';
+            html += renderMonth(currentYear, currentMonth);
 
             container.innerHTML = html;
         }

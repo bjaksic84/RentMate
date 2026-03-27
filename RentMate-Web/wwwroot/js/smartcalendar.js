@@ -225,6 +225,15 @@
                 }
             }
 
+            // Disable dates beyond maxRangeDays when start is selected but range not complete
+            const { maxRangeDays } = this.instance.config;
+            if (maxRangeDays && this.instance.selectedStart && !this.instance.selectedEnd) {
+                const maxEnd = new Date(this.instance.selectedStart);
+                maxEnd.setDate(maxEnd.getDate() + maxRangeDays - 1);
+                maxEnd.setHours(23, 59, 59, 999);
+                if (d > maxEnd) return true;
+            }
+
             return false;
         }
 
@@ -354,6 +363,14 @@
                     } else {
                         instance.selectedEnd = date;
                     }
+                    // Clamp end date to maxRangeDays
+                    if (instance.config.maxRangeDays) {
+                        const maxEnd = new Date(instance.selectedStart);
+                        maxEnd.setDate(maxEnd.getDate() + instance.config.maxRangeDays - 1);
+                        if (instance.selectedEnd > maxEnd) {
+                            instance.selectedEnd = maxEnd;
+                        }
+                    }
                     callbacks.updateDisplay();
                     callbacks.dispatchChange();
                 }
@@ -415,6 +432,7 @@
             initialStart: container.dataset.initialStart ? new Date(container.dataset.initialStart) : null,
             initialEnd: container.dataset.initialEnd ? new Date(container.dataset.initialEnd) : null,
             highlights: [],
+            maxRangeDays: container.dataset.maxRangeDays ? parseInt(container.dataset.maxRangeDays, 10) : null,
         };
     }
 
@@ -570,8 +588,15 @@
             if (instance.config.mode === 'range') {
                 cell.onmouseenter = () => {
                     if (instance.selectedStart && !instance.selectedEnd) {
-                        if (instance.hoverDate && instance.hoverDate.getTime() === date.getTime()) return;
-                        instance.hoverDate = date;
+                        let hoverTarget = date;
+                        // Clamp hover to maxRangeDays
+                        if (instance.config.maxRangeDays) {
+                            const maxEnd = new Date(instance.selectedStart);
+                            maxEnd.setDate(maxEnd.getDate() + instance.config.maxRangeDays - 1);
+                            if (hoverTarget > maxEnd) hoverTarget = maxEnd;
+                        }
+                        if (instance.hoverDate && instance.hoverDate.getTime() === hoverTarget.getTime()) return;
+                        instance.hoverDate = hoverTarget;
                         renderCalendar(id);
                     }
                 };

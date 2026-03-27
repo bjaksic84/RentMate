@@ -32,7 +32,10 @@ namespace RentMate.Models.ViewModels
         
         /// <summary>Maximum selectable date (optional)</summary>
         public DateOnly? MaxDate { get; set; }
-        
+
+        /// <summary>Maximum number of days allowed in a range selection (null = no limit)</summary>
+        public int? MaxRangeDays { get; set; }
+
         /// <summary>Placeholder text for the input field</summary>
         public string? Placeholder { get; set; }
         

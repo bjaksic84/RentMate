@@ -44,9 +44,18 @@
                         EndDateField = "endDate",
                         MinDate = DateOnly.FromDateTime(DateTime.Today),
                         Placeholder = Localizer["Click to select dates..."].Value,
-                        DisabledRanges = blockedRanges
+                        DisabledRanges = blockedRanges,
+                        MaxRangeDays = Model.MaxRentalDays
                     })
                 </div>
+
+                @if (Model.MaxRentalDays.HasValue)
+                {
+                    <div class="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg mb-5">
+                        <i class="bi bi-info-circle"></i>
+                        <span>@Localizer["Maximum rental duration: {0} days", Model.MaxRentalDays.Value]</span>
+                    </div>
+                }
 
                 @if (Model.Accessories?.Any(a => a.IsAvailable) == true)
                 {

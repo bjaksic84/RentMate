@@ -3,79 +3,85 @@
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
 
+@{
+    var noLimit = !Model.MaxRentalDays.HasValue;
+    var autoApprove = Model.AutoApproveExtensions;
+    var noDeposit = !Model.DepositAmount.HasValue || Model.DepositAmount.Value <= 0;
+}
+
 <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
-        <!-- Section Heading -->
-        <h3 class="font-heading text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-            <i class="bi bi-clipboard-check text-blue-500"></i>
-            @Localizer["Rental Policies"]
-        </h3>
+    <!-- Section Heading -->
+    <h3 class="font-heading text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+        <i class="bi bi-clipboard-check text-blue-500"></i>
+        @Localizer["Rental Policies"]
+    </h3>
 
-        <!-- Policy Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <!-- Max Rental Duration -->
-            <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="bi bi-calendar-range text-blue-500 dark:text-blue-400"></i>
-                    <span class="text-sm font-medium text-slate-500 dark:text-slate-400">@Localizer["Max Rental Duration"]</span>
-                </div>
-                <div class="text-sm font-semibold text-slate-900 dark:text-white">
-                    @if (Model.MaxRentalDays.HasValue)
-                    {
-                        @($"{Model.MaxRentalDays.Value} {Localizer["days"].Value}")
-                    }
-                    else
-                    {
-                        @Localizer["No limit"]
-                    }
-                </div>
+    <!-- Policy Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Max Rental Duration -->
+        <div class="p-4 @(noLimit ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-slate-50 dark:bg-slate-700/50") rounded-xl">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="bi bi-calendar-range @(noLimit ? "text-emerald-500 dark:text-emerald-400" : "text-blue-500 dark:text-blue-400")"></i>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">@Localizer["Max Rental Duration"]</span>
             </div>
-
-            <!-- Extension Policy -->
-            <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="bi bi-arrow-repeat text-blue-500 dark:text-blue-400"></i>
-                    <span class="text-sm font-medium text-slate-500 dark:text-slate-400">@Localizer["Extension Policy"]</span>
-                </div>
-                <div class="text-sm font-semibold text-slate-900 dark:text-white">
-                    @if (Model.AutoApproveExtensions)
-                    {
-                        @Localizer["Auto-approved"]
-                    }
-                    else
-                    {
-                        @Localizer["Requires owner approval"]
-                    }
-                </div>
-            </div>
-
-            <!-- Deposit -->
-            <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="bi bi-shield-check text-blue-500 dark:text-blue-400"></i>
-                    <span class="text-sm font-medium text-slate-500 dark:text-slate-400">@Localizer["Deposit"]</span>
-                </div>
-                <div class="text-sm font-semibold text-slate-900 dark:text-white">
-                    @if (Model.DepositAmount.HasValue && Model.DepositAmount.Value > 0)
-                    {
-                        @CurrencyService.Format(Model.DepositAmount.Value)
-                    }
-                    else
-                    {
-                        @Localizer["No deposit required"]
-                    }
-                </div>
-            </div>
-
-            <!-- Cancellation Policy -->
-            <div class="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
-                <div class="flex items-center gap-2 mb-2">
-                    <i class="bi bi-x-circle text-blue-500 dark:text-blue-400"></i>
-                    <span class="text-sm font-medium text-slate-500 dark:text-slate-400">@Localizer["Cancellation Policy"]</span>
-                </div>
-                <div class="text-sm font-semibold text-slate-900 dark:text-white">
-                    @Localizer["Free cancellation before rental start date"]
-                </div>
-                <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">@Localizer["Platform policy"]</div>
+            <div class="text-sm font-semibold @(noLimit ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")">
+                @if (Model.MaxRentalDays.HasValue)
+                {
+                    @($"{Model.MaxRentalDays.Value} {Localizer["days"].Value}")
+                }
+                else
+                {
+                    @Localizer["No limit"]
+                }
             </div>
         </div>
+
+        <!-- Extension Policy -->
+        <div class="p-4 @(autoApprove ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-slate-50 dark:bg-slate-700/50") rounded-xl">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="bi bi-arrow-repeat @(autoApprove ? "text-emerald-500 dark:text-emerald-400" : "text-blue-500 dark:text-blue-400")"></i>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">@Localizer["Extension Policy"]</span>
+            </div>
+            <div class="text-sm font-semibold @(autoApprove ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")">
+                @if (Model.AutoApproveExtensions)
+                {
+                    @Localizer["Auto-approved"]
+                }
+                else
+                {
+                    @Localizer["Requires owner approval"]
+                }
+            </div>
+        </div>
+
+        <!-- Deposit -->
+        <div class="p-4 @(noDeposit ? "bg-emerald-50 dark:bg-emerald-900/20" : "bg-slate-50 dark:bg-slate-700/50") rounded-xl">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="bi bi-shield-check @(noDeposit ? "text-emerald-500 dark:text-emerald-400" : "text-blue-500 dark:text-blue-400")"></i>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">@Localizer["Deposit"]</span>
+            </div>
+            <div class="text-sm font-semibold @(noDeposit ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")">
+                @if (Model.DepositAmount.HasValue && Model.DepositAmount.Value > 0)
+                {
+                    @CurrencyService.Format(Model.DepositAmount.Value)
+                }
+                else
+                {
+                    @Localizer["No deposit required"]
+                }
+            </div>
+        </div>
+
+        <!-- Cancellation Policy (always positive) -->
+        <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="bi bi-x-circle text-emerald-500 dark:text-emerald-400"></i>
+                <span class="text-sm font-medium text-slate-500 dark:text-slate-400">@Localizer["Cancellation Policy"]</span>
+            </div>
+            <div class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                @Localizer["Free cancellation before rental start date"]
+            </div>
+            <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">@Localizer["Platform policy"]</div>
+        </div>
     </div>
+</div>

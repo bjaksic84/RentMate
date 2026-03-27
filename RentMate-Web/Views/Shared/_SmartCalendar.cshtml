@@ -6,6 +6,7 @@
     var mode = Model.Mode == RentMate.Models.ViewModels.CalendarMode.Range ? "range" : "single";
     var minDate = Model.MinDate?.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd");
     var maxDate = Model.MaxDate?.ToString("yyyy-MM-dd") ?? "";
+    var maxRangeDays = Model.MaxRangeDays?.ToString() ?? "";
     var initialStart = Model.InitialStart?.ToString("yyyy-MM-dd") ?? "";
     var initialEnd = Model.InitialEnd?.ToString("yyyy-MM-dd") ?? "";
     var disabledItems = new List<object>();
@@ -32,7 +33,8 @@
      data-max-date="@maxDate"
      data-initial-start="@initialStart"
      data-initial-end="@initialEnd"
-     data-disabled="@disabledJson">
+     data-disabled="@disabledJson"
+     data-max-range-days="@maxRangeDays">
     
     <div class="smart-calendar-input flex items-center gap-3 px-4 py-3 rounded-xl md:rounded-full
                 bg-white/60 hover:bg-white/90
