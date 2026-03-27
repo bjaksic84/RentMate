@@ -71,6 +71,14 @@
             </a>
         </div>
     }
+    else if (Model.IsSignedIn && Model.IsOwner && !Model.CanReview)
+    {
+        <div class="mb-8 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-center">
+            <p class="text-slate-700 dark:text-slate-300 text-sm">
+                @Localizer["You are the owner of this item. Only renters can leave reviews."]
+            </p>
+        </div>
+    }
     else if (Model.IsSignedIn && !Model.CanReview && !Model.IsOwner)
     {
         <div class="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50 text-center">
