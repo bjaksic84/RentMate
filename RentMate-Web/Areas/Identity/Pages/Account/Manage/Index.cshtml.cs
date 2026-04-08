@@ -28,6 +28,8 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         #region Dependencies
 
         private readonly IFileUploadService _fileUploadService;
+        private readonly INotificationService _notificationService;
+        private readonly IProfileCompletionService _profileCompletionService;
 
         #endregion
 
@@ -36,10 +38,14 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         public IndexModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            IFileUploadService fileUploadService)
+            IFileUploadService fileUploadService,
+            INotificationService notificationService,
+            IProfileCompletionService profileCompletionService)
             : base(userManager, signInManager)
         {
             _fileUploadService = fileUploadService;
+            _notificationService = notificationService;
+            _profileCompletionService = profileCompletionService;
         }
 
         #endregion
@@ -152,6 +158,9 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
             await UserManager.UpdateAsync(user!);
             await RefreshSignInAsync(user!);
+
+            // Auto-dismiss profile suggestion notifications for newly completed items
+            await DismissCompletedProfileSuggestionsAsync(user!.Id);
 
             SetSuccessMessage("Vaš profil je bil posodobljen.");
             return RedirectToPage();
@@ -379,6 +388,30 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
             user.ProfilePictureUrl = await _fileUploadService.UploadFileAsync(
                 Input.NewProfilePicture,
                 ProfileImagesFolder);
+        }
+
+        /// <summary>
+        /// Checks which profile items are now complete and auto-dismisses their
+        /// corresponding ProfileSuggestion notifications.
+        /// </summary>
+        private async Task DismissCompletedProfileSuggestionsAsync(string userId)
+        {
+            var status = await _profileCompletionService.GetCompletionStatusAsync(userId);
+
+            var completed = new List<int>();
+            if (status.HasName) completed.Add(ProfileSuggestionIds.Name);
+            if (status.HasLocation) completed.Add(ProfileSuggestionIds.Location);
+            if (status.HasProfilePicture) completed.Add(ProfileSuggestionIds.Photo);
+            if (status.IsPhoneVerified) completed.Add(ProfileSuggestionIds.Phone);
+            if (status.IsGovernmentIdVerified) completed.Add(ProfileSuggestionIds.GovId);
+            if (status.HasPaymentMethod) completed.Add(ProfileSuggestionIds.Payment);
+            if (status.HasBio) completed.Add(ProfileSuggestionIds.Bio);
+
+            foreach (var refId in completed)
+            {
+                await _notificationService.AutoDismissAsync(
+                    refId, ProfileSuggestionIds.ReferenceType, NotificationType.ProfileSuggestion);
+            }
         }
 
         /// <summary>

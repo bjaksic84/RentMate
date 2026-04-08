@@ -99,6 +99,11 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<ApplicationUser>()
             .Property(u => u.DeactivatedBy)
             .HasConversion<string>();
+
+        // Store UserIntent as string for readability
+        modelBuilder.Entity<ApplicationUser>()
+            .Property(u => u.UserIntent)
+            .HasConversion<string>();
     }
 
     private static void ConfigureItemRelationships(ModelBuilder modelBuilder)

@@ -12,16 +12,19 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
     public class PaymentMethodsModel : BaseIdentityPageModel
     {
         private readonly IPaymentService _paymentService;
+        private readonly INotificationService _notificationService;
         private readonly IConfiguration _configuration;
 
         public PaymentMethodsModel(
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IPaymentService paymentService,
+            INotificationService notificationService,
             IConfiguration configuration)
             : base(userManager, signInManager)
         {
             _paymentService = paymentService;
+            _notificationService = notificationService;
             _configuration = configuration;
         }
 
@@ -82,6 +85,9 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
             user!.HasPaymentMethodAdded = true;
             await UserManager.UpdateAsync(user);
+
+            await _notificationService.AutoDismissAsync(
+                ProfileSuggestionIds.Payment, ProfileSuggestionIds.ReferenceType, NotificationType.ProfileSuggestion);
 
             SetSuccessMessage("Payment method added successfully.");
             return RedirectToPage();

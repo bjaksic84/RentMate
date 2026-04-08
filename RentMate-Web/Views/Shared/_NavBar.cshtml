@@ -99,12 +99,12 @@
                     <a asp-controller="Home" asp-action="Index" class="hidden lg:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
                         @Localizer["Home"]
                     </a>
-                    <a asp-controller="Rentals" asp-action="Index" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                    <a asp-controller="Rentals" asp-action="Index" data-spotlight="search" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
                         @Localizer["Marketplace"]
                     </a>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <a asp-controller="Dashboard" asp-action="UserDashboard" class="hidden md:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 relative">
+                        <a asp-controller="Dashboard" asp-action="UserDashboard" data-spotlight="dashboard" class="hidden md:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200 relative">
                             @Localizer["Dashboard"]
                             <span id="navBadgeDesktop" class="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center @(dashboardAttentionCount > 0 ? "" : "hidden")">@dashboardAttentionCount</span>
                         </a>
@@ -286,10 +286,10 @@
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        @await Html.PartialAsync("_NotificationBell")
+                        <span data-spotlight="notifications">@await Html.PartialAsync("_NotificationBell")</span>
 
                         <!-- User Menu -->
-                        <div class="relative">
+                        <div class="relative" data-spotlight="profile">
                             <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 p-1.5 pr-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-all duration-200">
                                 @if (!string.IsNullOrEmpty(userProfilePic))
                                 {

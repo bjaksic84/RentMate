@@ -1,0 +1,116 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <script>
+        (function() {
+            var t = localStorage.getItem('theme') || 'system';
+            var dark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            if (dark) document.documentElement.classList.add('dark');
+        })();
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - RentMate</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'heading': ['Outfit', 'sans-serif'],
+                        'body': ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        'trust-blue': {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" crossorigin="anonymous">
+
+    <!-- Theme + Onboarding CSS -->
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/onboarding.css" asp-append-version="true" />
+
+    <script>
+        window.CurrentCurrency = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(CurrencyService.GetCurrentCurrency()));
+    </script>
+</head>
+<body class="onboarding-bg font-body antialiased dark:text-slate-100">
+    <!-- Minimal top bar: logo + logout -->
+    <header class="fixed top-0 left-0 right-0 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between" style="z-index: var(--z-navbar, 900);">
+        <div class="flex items-center gap-2">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center shadow-sm">
+                <i class="bi bi-house-heart text-white text-base"></i>
+            </div>
+            <span class="font-heading font-bold text-lg text-slate-900 dark:text-white">Rent<span class="bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent">Mate</span></span>
+        </div>
+        <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
+            <button type="submit" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+                @Localizer["Log out"]
+            </button>
+        </form>
+    </header>
+
+    <!-- Centered content area -->
+    <main class="min-h-screen flex items-center justify-center px-4 sm:px-6 pt-20 pb-8">
+        <div class="w-full max-w-xl">
+            @{
+                var onboardingStep = (int)(ViewData["OnboardingStep"] ?? 1);
+                var onboardingTotalSteps = 4;
+            }
+            <div class="flex items-center justify-center gap-2 mb-@(onboardingStep == 4 ? "6" : "8")" role="progressbar" aria-label="@Localizer["Step {0} of {1}", onboardingStep, onboardingTotalSteps]">
+                @for (var i = 1; i <= onboardingTotalSteps; i++)
+                {
+                    var css = i < onboardingStep ? "progress-dot completed"
+                        : i == onboardingStep ? "progress-dot active pulse"
+                        : "progress-dot";
+                    <div class="@css"></div>
+                }
+            </div>
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/translations.js" asp-append-version="true"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            requestAnimationFrame(function() {
+                document.querySelectorAll('.step-enter').forEach(function(el) {
+                    el.classList.add('step-enter-active');
+                });
+            });
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -447,6 +447,15 @@
                 @Localizer["Browse marketplace"]
             </a>
         </div>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <form method="post" asp-controller="Onboarding" asp-action="RestartTour" class="mt-4 text-center">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="text-sm text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    <i class="bi bi-arrow-repeat me-1"></i> @Localizer["Restart onboarding tour"]
+                </button>
+            </form>
+        }
     </div>
 </section>
 

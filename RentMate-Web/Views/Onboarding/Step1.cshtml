@@ -1,92 +1,119 @@
-@model OnboardingStep1ViewModel
+@model RentMate.Models.ViewModels.OnboardingStep1ViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = "Welcome to RentMate";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = Localizer["Welcome"].Value;
+    Layout = "~/Views/Shared/_OnboardingLayout.cshtml";
 }
 
-<div class="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-lg w-full">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-8">
+@{ ViewData["OnboardingStep"] = 1; }
 
-            <!-- Progress indicator -->
-            <div class="flex items-center justify-center gap-3 mb-8">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">1</div>
-                    <span class="text-sm font-medium text-blue-600">Your Info</span>
-                </div>
-                <div class="w-12 h-0.5 bg-slate-200 dark:bg-slate-600"></div>
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-600 text-slate-400 flex items-center justify-center text-sm font-bold">2</div>
-                    <span class="text-sm text-slate-400">Photo</span>
-                </div>
-            </div>
-
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center mx-auto mb-4">
-                    <i class="bi bi-person-heart text-white text-2xl"></i>
-                </div>
-                <h2 class="font-heading text-2xl font-bold text-slate-900 dark:text-white">Welcome to RentMate!</h2>
-                <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Let's set up your profile so others can trust you.</p>
-            </div>
-
-            <form asp-action="Step1" method="post" class="space-y-5">
-                @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm"></div>
-
-                <!-- Name fields -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label asp-for="FirstName" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">First Name</label>
-                        <input asp-for="FirstName"
-                               class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                               placeholder="John" />
-                        <span asp-validation-for="FirstName" class="text-sm text-red-600"></span>
-                    </div>
-                    <div>
-                        <label asp-for="LastName" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Last Name</label>
-                        <input asp-for="LastName"
-                               class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                               placeholder="Doe" />
-                        <span asp-validation-for="LastName" class="text-sm text-red-600"></span>
-                    </div>
-                </div>
-
-                <!-- Location -->
-                <div>
-                    <label asp-for="City" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        <i class="bi bi-geo-alt text-blue-500 mr-1"></i> Location
-                    </label>
-                    <select asp-for="City" asp-items="@((List<SelectListItem>)ViewBag.CityOptions)"
-                            class="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-colors">
-                        <option value="">-- Select your city --</option>
-                    </select>
-                    <span asp-validation-for="City" class="text-sm text-red-600"></span>
-                    <p class="text-xs text-slate-400 mt-1">Your location helps show nearby items and builds trust with renters.</p>
-                </div>
-
-                <!-- Info box -->
-                <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-                    <div class="flex items-start gap-3">
-                        <i class="bi bi-info-circle text-blue-500 mt-0.5"></i>
-                        <div class="text-sm text-blue-700 dark:text-blue-300">
-                            <p class="font-medium">Why do we need this?</p>
-                            <p class="mt-1 text-blue-600 dark:text-blue-400">Your name and location are shown on your profile and help build trust with other users in the community.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Submit -->
-                <button type="submit"
-                        class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
-                    Continue
-                    <i class="bi bi-arrow-right"></i>
-                </button>
-            </form>
-        </div>
+<div class="onboarding-step text-center">
+    <!-- Hero illustration placeholder -->
+    <div class="step-enter step-enter-delay-0 mx-auto mb-6 w-48 h-36 sm:w-56 sm:h-40 rounded-2xl bg-gradient-to-br from-blue-100 to-sky-50 dark:from-blue-950/30 dark:to-sky-950/20 flex items-center justify-center">
+        <i class="bi bi-people text-4xl text-blue-400 dark:text-blue-500"></i>
     </div>
+
+    <!-- Heading -->
+    <h1 class="step-enter step-enter-delay-0 font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2">
+        @Localizer["Welcome to RentMate"]
+    </h1>
+
+    <!-- Value proposition -->
+    <p class="step-enter step-enter-delay-1 text-slate-500 dark:text-slate-400 mb-8 max-w-md mx-auto">
+        @Localizer["Rent anything from people around you, or earn by sharing what you own."]
+    </p>
+
+    <!-- Intent question -->
+    <h2 class="step-enter step-enter-delay-1 font-heading text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+        @Localizer["What brings you here?"]
+    </h2>
+
+    <!-- Intent Cards -->
+    <form method="post" asp-action="Step1" id="intentForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="SelectedIntent" id="selectedIntent" />
+
+        <div class="step-enter step-enter-delay-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <!-- Rent card -->
+            <div class="intent-card relative p-4 sm:p-5 rounded-2xl border bg-blue-50/70 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/40 text-left sm:text-center"
+                 data-intent="Renter"
+                 onclick="selectIntent(this, 'Renter')">
+                <div class="flex sm:flex-col items-center sm:items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
+                        <i class="bi bi-search text-blue-600 dark:text-blue-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-900 dark:text-white text-sm">@Localizer["I want to rent"]</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Find and rent items from people near you"]</p>
+                    </div>
+                </div>
+                <div class="intent-check absolute top-2 right-2">
+                    <div class="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+                        <i class="bi bi-check text-white text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List card -->
+            <div class="intent-card relative p-4 sm:p-5 rounded-2xl border bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/40 text-left sm:text-center"
+                 data-intent="Lister"
+                 onclick="selectIntent(this, 'Lister')">
+                <div class="flex sm:flex-col items-center sm:items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0">
+                        <i class="bi bi-box-seam text-emerald-600 dark:text-emerald-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-900 dark:text-white text-sm">@Localizer["I want to list"]</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Earn money by sharing your stuff"]</p>
+                    </div>
+                </div>
+                <div class="intent-check absolute top-2 right-2">
+                    <div class="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+                        <i class="bi bi-check text-white text-xs"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Both card -->
+            <div class="intent-card relative p-4 sm:p-5 rounded-2xl border bg-amber-50/70 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/40 text-left sm:text-center"
+                 data-intent="Both"
+                 onclick="selectIntent(this, 'Both')">
+                <div class="flex sm:flex-col items-center sm:items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0">
+                        <i class="bi bi-arrow-left-right text-amber-600 dark:text-amber-400 text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-900 dark:text-white text-sm">@Localizer["Both"]</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Rent and list, best of both worlds"]</p>
+                    </div>
+                </div>
+                <div class="intent-check absolute top-2 right-2">
+                    <div class="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center">
+                        <i class="bi bi-check text-white text-xs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
+<script>
+    function selectIntent(card, intent) {
+        // Remove previous selection
+        document.querySelectorAll('.intent-card').forEach(function(c) {
+            c.classList.remove('selected');
+        });
+
+        // Mark selected
+        card.classList.add('selected');
+        document.getElementById('selectedIntent').value = intent;
+
+        // Auto-advance after 400ms
+        setTimeout(function() {
+            document.getElementById('intentForm').submit();
+        }, 400);
+    }
+</script>
 }

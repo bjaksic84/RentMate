@@ -54,6 +54,17 @@ public class ApplicationUser : IdentityUser
     /// </summary>
     public bool OnboardingCompleted { get; set; }
 
+    /// <summary>
+    /// User's primary intent: rent, list, or both. Set during onboarding Step 1.
+    /// Null for legacy users who completed the old onboarding.
+    /// </summary>
+    public UserIntent? UserIntent { get; set; }
+
+    /// <summary>
+    /// Whether the user has completed (or dismissed) the post-onboarding spotlight tour.
+    /// </summary>
+    public bool SpotlightTourCompleted { get; set; }
+
     // ── Preferences ───────────────────────────────────────────────────
     /// <summary>Preferred UI language ("sl" or "en"). Defaults to Slovenian.</summary>
     public string PreferredLanguage { get; set; } = "sl";

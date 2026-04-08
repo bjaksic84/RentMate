@@ -69,9 +69,6 @@
         @RenderBody()
     </main>
 
-    <!-- Incomplete-profile floating banner -->
-    <partial name="_ProfileBanner" />
-
     <partial name="_Footer" />
 
     <partial name="_CookieConsent" />
@@ -122,6 +119,48 @@
 
     <script src="~/js/layout.js" asp-append-version="true"></script>
     <script src="~/js/cookie-consent.js" asp-append-version="true"></script>
+
+    @if (TempData["ShowSpotlightTour"] != null)
+    {
+        <link rel="stylesheet" href="~/css/onboarding.css" asp-append-version="true" />
+        <script src="~/js/onboarding.js" asp-append-version="true"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var intent = '@TempData["SpotlightIntent"]';
+                var stops;
+                if (intent === 'Renter') {
+                    stops = [
+                        { target: 'search', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Search for anything"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightSearchDesc"].Value)) },
+                        { target: 'dashboard', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Your dashboard"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightDashboardRenterDesc"].Value)) },
+                        { target: 'notifications', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Stay updated"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightNotificationsRenterDesc"].Value)) },
+                        { target: 'profile', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Your account"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightProfileDesc"].Value)) }
+                    ];
+                } else if (intent === 'Lister') {
+                    stops = [
+                        { target: 'dashboard', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Your dashboard"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightDashboardListerDesc"].Value)) },
+                        { target: 'profile', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Your account"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightProfileDesc"].Value)) },
+                        { target: 'notifications', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Stay updated"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightNotificationsListerDesc"].Value)) }
+                    ];
+                } else {
+                    stops = [
+                        { target: 'search', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Search for anything"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightSearchDesc"].Value)) },
+                        { target: 'profile', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Your account"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightProfileDesc"].Value)) },
+                        { target: 'dashboard', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Your dashboard"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightDashboardBothDesc"].Value)) },
+                        { target: 'notifications', title: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Stay updated"].Value)), description: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["SpotlightNotificationsBothDesc"].Value)) }
+                    ];
+                }
+                window.initSpotlightTour({
+                    stops: stops,
+                    strings: {
+                        stepXofY: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Step {0} of {1}"].Value)),
+                        skipTour: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Skip tour"].Value)),
+                        next: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Next"].Value)),
+                        finish: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Finish"].Value))
+                    }
+                });
+            });
+        </script>
+    }
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
