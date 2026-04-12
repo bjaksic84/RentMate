@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Identity
 @using RentMate.Shared.Contracts.Responses
 @using RentMate.Models.Domain
+@using RentMate.Models.Domain.Extensions
 @model RentMate.Models.ViewModels.DashboardViewModel
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
@@ -15,21 +16,15 @@
     var displayName = atIndex > 0 ? rawName![..atIndex] : (rawName ?? string.Empty);
 
     // Badge counts for tabs
-    var overdueRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < DateTime.UtcNow.Date).ToList() ?? new();
+    var overdueRentals = Model.MyRentals?.Where(r => r.IsOverdue()).ToList() ?? new();
     var acceptedRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Accepted).ToList() ?? new();
     var pendingRequests = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Pending).ToList() ?? new();
-    var renterDepositAttention = Model.MyRentals?.Where(r => r.Deposit != null
-        && (r.Deposit.Status == DepositStatus.Charged
-            || r.Deposit.Status == DepositStatus.PartiallyCharged
-            || r.Deposit.Status == DepositStatus.CounterOffered)).ToList() ?? new();
+    var renterDepositAttention = Model.MyRentals?.Where(r => r.Deposit != null && r.Deposit.NeedsRenterAction()).ToList() ?? new();
     var rentalsWithExtPayment = Model.MyRentals?.Where(r =>
         r.Extensions != null && r.Extensions.Any(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved)).ToList() ?? new();
-    var ownerDisputedDeposits = Model.OwnerRentals?.Where(r => r.Deposit != null
-        && r.Deposit.Status == DepositStatus.Disputed).ToList() ?? new();
-    var renterCompletedReady = Model.MyRentals?.Where(r => r.Status == RentalStatus.Completed && r.ArchivedAt == null
-        && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed && r.Deposit.Status != DepositStatus.CounterOffered && r.Deposit.Status != DepositStatus.Escalated))).ToList() ?? new();
-    var ownerCompletedReady = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed && r.ArchivedAt == null
-        && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed && r.Deposit.Status != DepositStatus.CounterOffered && r.Deposit.Status != DepositStatus.Escalated))).ToList() ?? new();
+    var ownerDisputedDeposits = Model.OwnerRentals?.Where(r => r.Deposit != null && r.Deposit.NeedsOwnerAction()).ToList() ?? new();
+    var renterCompletedReady = Model.MyRentals?.Where(r => r.IsArchivable() && r.HasNoActiveDispute()).ToList() ?? new();
+    var ownerCompletedReady = Model.OwnerRentals?.Where(r => r.IsArchivable() && r.HasNoActiveDispute()).ToList() ?? new();
     var rentingAttentionCount = overdueRentals.Count + acceptedRentals.Count
         + renterDepositAttention.Count + rentalsWithExtPayment.Count + renterCompletedReady.Count;
     var lendingAttentionCount = pendingRequests.Count + (Model.PendingExtensionCount)

@@ -8,7 +8,6 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Localization;
 using RentMate.Models.Domain;
@@ -18,7 +17,7 @@ namespace RentMate.Areas.Identity.Pages.Account
     /// <summary>
     /// Page model for the forgot password flow.
     /// </summary>
-    public class ForgotPasswordModel : PageModel
+    public class ForgotPasswordModel : BaseIdentityPageModel
     {
         #region Constants
 
@@ -29,7 +28,6 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         #region Dependencies
 
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _emailSender;
         private readonly IStringLocalizer<ForgotPasswordModel> _localizer;
 
@@ -38,11 +36,12 @@ namespace RentMate.Areas.Identity.Pages.Account
         #region Constructor
 
         public ForgotPasswordModel(
-            UserManager<ApplicationUser> userManager, 
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             IEmailSender emailSender,
             IStringLocalizer<ForgotPasswordModel> localizer)
+            : base(userManager, signInManager)
         {
-            _userManager = userManager;
             _emailSender = emailSender;
             _localizer = localizer;
         }
@@ -74,7 +73,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         {
             if (!ModelState.IsValid) return Page();
 
-            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var user = await UserManager.FindByEmailAsync(Input.Email);
             if (!await IsValidUserForPasswordResetAsync(user))
             {
                 // Don't reveal that the user does not exist or is not confirmed
@@ -94,7 +93,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task<bool> IsValidUserForPasswordResetAsync(ApplicationUser user)
         {
-            return user != null && await _userManager.IsEmailConfirmedAsync(user);
+            return user != null && await UserManager.IsEmailConfirmedAsync(user);
         }
 
         /// <summary>
@@ -102,7 +101,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task SendPasswordResetEmailAsync(ApplicationUser user)
         {
-            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var code = await UserManager.GeneratePasswordResetTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
             
             var callbackUrl = Url.Page(

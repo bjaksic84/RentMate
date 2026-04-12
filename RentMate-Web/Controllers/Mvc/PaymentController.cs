@@ -8,26 +8,22 @@ using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
 using RentMate.Models.ViewModels;
 using RentMate.Shared.Contracts.Responses;
-using NotificationType = RentMate.Models.Domain.NotificationType;
 using RentMate.Services.Interfaces;
-using Microsoft.AspNetCore.SignalR;
-using RentMate.Hubs;
+using RentMate.Controllers.Base;
 
 namespace RentMate.Controllers.Mvc
 {
     [Authorize]
-    public class PaymentController : Controller
+    public class PaymentController : BaseAppController
     {
         private readonly RentMateContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IStringLocalizer<PaymentController> _localizer;
         private readonly ILogger<PaymentController> _logger;
         private readonly IPaymentService _paymentService;
         private readonly IConfiguration _configuration;
         private readonly IRentalExtensionService _extensionService;
         private readonly IDepositService _depositService;
-        private readonly IHubContext<RentMateHub> _hubContext;
-        private readonly INotificationService _notificationService;
+        private readonly INotificationDispatcher _dispatcher;
 
         public PaymentController(
             RentMateContext context,
@@ -38,25 +34,23 @@ namespace RentMate.Controllers.Mvc
             IConfiguration configuration,
             IRentalExtensionService extensionService,
             IDepositService depositService,
-            IHubContext<RentMateHub> hubContext,
-            INotificationService notificationService)
+            INotificationDispatcher dispatcher)
+            : base(userManager)
         {
             _context = context;
-            _userManager = userManager;
             _localizer = localizer;
             _logger = logger;
             _paymentService = paymentService;
             _configuration = configuration;
             _extensionService = extensionService;
             _depositService = depositService;
-            _hubContext = hubContext;
-            _notificationService = notificationService;
+            _dispatcher = dispatcher;
         }
 
         [HttpGet]
         public async Task<IActionResult> Checkout(int rentalId)
         {
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -124,7 +118,7 @@ namespace RentMate.Controllers.Mvc
         [HttpGet]
         public async Task<IActionResult> Success(int rentalId, string payment_intent, string payment_intent_client_secret, string redirect_status)
         {
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -198,7 +192,7 @@ namespace RentMate.Controllers.Mvc
         [HttpGet]
         public async Task<IActionResult> ExtensionCheckout(int extensionId)
         {
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -255,7 +249,7 @@ namespace RentMate.Controllers.Mvc
         [HttpGet]
         public async Task<IActionResult> ExtensionSuccess(int extensionId, string payment_intent, string payment_intent_client_secret, string redirect_status)
         {
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
@@ -303,23 +297,8 @@ namespace RentMate.Controllers.Mvc
 
                     // Notify the owner
                     if (extension.Rental?.OwnerId != null)
-                    {
-                        await _hubContext.Clients.User(extension.Rental.OwnerId).SendAsync(
-                            RentMateHub.ExtensionStatusChangedEvent, new
-                            {
-                                extensionId,
-                                status = "Paid",
-                                itemTitle = extension.Rental.Item?.Title,
-                                newEndDate = extension.NewEndDate.ToString("yyyy-MM-dd")
-                            });
-
-                        await _notificationService.CreateAsync(
-                            extension.Rental.OwnerId, NotificationType.ExtensionPaid,
-                            _localizer["Notification.ExtensionPaid"].Value,
-                            string.Format(_localizer["NotificationMsg.ExtensionPaid"].Value, extension.Rental.Item?.Title ?? ""),
-                            extension.Id, "Extension", "/Dashboard?tab=lending");
-                        await _notificationService.AutoDismissAsync(extension.Id, "Extension", NotificationType.ExtensionApproved);
-                    }
+                        await _dispatcher.ExtensionPaidAsync(extensionId, extension.Rental.OwnerId,
+                            extension.Rental.Item?.Title, extension.NewEndDate);
                 }
 
                 return View("Success", extension.Rental);

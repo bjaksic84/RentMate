@@ -93,7 +93,7 @@
             <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
                 @foreach (var rental in activeNonOverdue.Concat(depositIssueRentals))
                 {
-                    @await Html.PartialAsync("_RenterRentalRow", new { Rental = rental, CurrentUserId = currentUserId, CurrencyService = CurrencyService })
+                    @await Html.PartialAsync("_RenterRentalRow", new RentMate.Models.ViewModels.RentalRowViewModel { Rental = rental, CurrentUserId = currentUserId ?? "", CurrencyService = CurrencyService })
                 }
             </div>
         </div>
@@ -110,7 +110,7 @@
             <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700">
                 @foreach (var rental in pendingRentals)
                 {
-                    @await Html.PartialAsync("_RenterRentalRow", new { Rental = rental, CurrentUserId = currentUserId, CurrencyService = CurrencyService })
+                    @await Html.PartialAsync("_RenterRentalRow", new RentMate.Models.ViewModels.RentalRowViewModel { Rental = rental, CurrentUserId = currentUserId ?? "", CurrencyService = CurrencyService })
                 }
             </div>
         </div>

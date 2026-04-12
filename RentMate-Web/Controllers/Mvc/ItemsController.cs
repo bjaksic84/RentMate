@@ -12,17 +12,17 @@ using RentMate.Hubs;
 using RentMate.Services.Interfaces;
 using RentMate.Services.Extensions;
 using RentMate.Services.Implementations;
+using RentMate.Controllers.Base;
 using RentMate.Helpers;
 
 namespace RentMate.Controllers.Mvc
 {
-    public class ItemsController : Controller
+    public class ItemsController : BaseAppController
     {
         private const int MaxImagesPerItem = 10;
         private const string AdminRole = "Admin";
 
         private readonly RentMateContext _db;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHubContext<RentMateHub> _hubContext;
         private readonly IFileUploadService _fileUploadService;
         private readonly IStringLocalizer<ItemsController> _localizer;
@@ -39,9 +39,9 @@ namespace RentMate.Controllers.Mvc
             IAccessoryService accessoryService,
             IScoringService scoringService,
             ILogger<ItemsController> logger)
+            : base(userManager)
         {
             _db = context;
-            _userManager = userManager;
             _hubContext = hubContext;
             _fileUploadService = fileUploadService;
             _localizer = localizer;
@@ -63,7 +63,7 @@ namespace RentMate.Controllers.Mvc
         {
             if (id == null) return NotFound();
 
-            var currentUserId = _userManager.GetUserId(User);
+            var currentUserId = GetCurrentUserId();
 
             var item = await _db.Items
                 .Include(i => i.User)
@@ -130,107 +130,16 @@ namespace RentMate.Controllers.Mvc
             // Similar items
             var similarItems = await GetSimilarItemsAsync(item.Id, item.Category, item.User?.City, item.Price ?? 0);
 
-            // Map setup
             var cityCoordinates = CityData.GetCoordinates(item.User?.City);
 
-            var ownerName = item.User != null
-                ? $"{item.User.FirstName} {item.User.LastName}".Trim()
-                : string.Empty;
-
-            var viewModel = new ItemDetailsViewModel
-            {
-                // Core item data
-                ItemId = item.Id,
-                Title = item.Title ?? string.Empty,
-                Description = item.Description,
-                Price = item.Price ?? 0,
-                Category = item.Category,
-                DepositAmount = item.DepositAmount,
-                MaxRentalDays = item.MaxRentalDays,
-                AutoApproveExtensions = item.AutoApproveExtensions,
-                IsListed = item.IsListed,
-
-                // Images
-                Images = item.Images.Select(img => new ItemImageViewModel
-                {
-                    Id = img.Id,
-                    ImageUrl = img.ImageUrl,
-                    DisplayOrder = img.DisplayOrder
-                }).ToList(),
-                PrimaryImageUrl = item.PrimaryImageUrl,
-
-                // Owner profile
-                OwnerId = item.UserId ?? string.Empty,
-                OwnerName = string.IsNullOrWhiteSpace(ownerName) ? (item.User?.UserName ?? string.Empty) : ownerName,
-                OwnerCity = item.User?.City,
-                OwnerProfilePictureUrl = item.User?.ProfilePictureUrl,
-                OwnerMemberSince = item.User?.CreatedAt ?? DateTime.UtcNow,
-                OwnerIsPhoneVerified = item.User?.IsPhoneVerified ?? false,
-                OwnerIsGovernmentIdVerified = item.User?.IsGovernmentIdVerified ?? false,
-                OwnerResponseRate = item.User?.ResponseRate ?? 0,
-                OwnerAvgResponseTimeHours = item.User?.AvgResponseTimeHours ?? 0,
-                OwnerCompletedRentals = ownerCompletedRentals,
-                OwnerAverageRating = ownerAverageRating,
-                OwnerTrustScore = item.User?.ProfileTrustScore ?? 0,
-
-                // Reviews
-                AverageRating = item.AverageRating,
-                ReviewCount = item.ReviewCount,
-                ItemRentalCount = item.Rentals.Count,
-                StarCounts = starCounts,
-                Reviews = item.Reviews.OrderByDescending(r => r.CreatedAt).Select(r => new ReviewViewModel
-                {
-                    Id = r.Id,
-                    Rating = r.Rating,
-                    Title = r.Title,
-                    Body = r.Body,
-                    IsAnonymous = r.IsAnonymous,
-                    ReviewerId = r.ReviewerId,
-                    ReviewerName = r.IsAnonymous ? null : (r.Reviewer != null
-                        ? (string.IsNullOrWhiteSpace($"{r.Reviewer.FirstName} {r.Reviewer.LastName}".Trim())
-                            ? r.Reviewer.UserName
-                            : $"{r.Reviewer.FirstName} {r.Reviewer.LastName}".Trim())
-                        : null),
-                    ReviewerProfilePictureUrl = r.IsAnonymous ? null : r.Reviewer?.ProfilePictureUrl,
-                    CreatedAt = r.CreatedAt
-                }).ToList(),
-                CanReview = canReview,
-                IsSignedIn = isSignedIn,
-
-                // Accessories
-                Accessories = item.Accessories.Select(a => new AccessoryViewModel
-                {
-                    Id = a.Id,
-                    Name = a.Name,
-                    Description = a.Description,
-                    DailyPrice = a.DailyPrice
-                }).ToList(),
-
-                // Blocked date ranges
-                BlockedDateRanges = item.Rentals.Select(r => new RentalDateRange
-                {
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate
-                }).ToList(),
-
-                // Similar items
-                SimilarItems = similarItems,
-
-                // Map
-                MapLat = cityCoordinates.Lat,
-                MapLng = cityCoordinates.Lng,
-                MapCityName = cityCoordinates.Name,
-
-                // User context
-                CurrentUserId = currentUserId,
-                IsFavorited = item.FavoritedBy.Any(),
-                IsOwner = isOwner,
-
-                // Modal support (raw entity)
-                Item = item
-            };
-
-            return View(viewModel);
+            return View(item.ToDetailsViewModel(
+                currentUserId,
+                ownerCompletedRentals,
+                ownerAverageRating,
+                starCounts,
+                canReview,
+                similarItems,
+                cityCoordinates));
         }
 
         /// <summary>
@@ -263,7 +172,7 @@ namespace RentMate.Controllers.Mvc
         public async Task<IActionResult> Create()
         {
             // Government ID gate: must verify ID before listing items
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user != null && !user.IsGovernmentIdVerified)
             {
                 TempData["ErrorMessage"] = "You must verify your government ID before listing items for rent. Please go to your profile settings to complete verification.";
@@ -278,7 +187,7 @@ namespace RentMate.Controllers.Mvc
         [Authorize]
         public async Task<IActionResult> Create([Bind("Title,Description,Price,Category,Location,DepositAmount,AutoApproveExtensions,MaxRentalDays")] Item item, List<IFormFile>? images)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             if (ModelState.IsValid)
@@ -347,7 +256,7 @@ namespace RentMate.Controllers.Mvc
             if (item == null) return NotFound();
 
             // Check if user owns the item
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if(item.UserId != userId) return Forbid();
 
                         return View(item);
@@ -364,7 +273,7 @@ namespace RentMate.Controllers.Mvc
                 .FirstOrDefaultAsync(i => i.Id == id);
             if (item == null) return NotFound();
 
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null || item.UserId != user.Id)
             {
                 return Forbid();
@@ -435,7 +344,7 @@ namespace RentMate.Controllers.Mvc
 
             if (item == null) return NotFound();
 
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null || item.UserId != user.Id) return Forbid();
 
             // Check for active rentals
@@ -454,7 +363,7 @@ namespace RentMate.Controllers.Mvc
             var item = await _db.Items
                 .Include(i => i.Images)
                 .FirstOrDefaultAsync(i => i.Id == id);
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
 
             if (item != null && user != null && item.UserId == user.Id)
             {
@@ -487,7 +396,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleListing(int id)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             var item = await _db.Items.FindAsync(id);
 
             if (item == null || user == null || item.UserId != user.Id)
@@ -568,7 +477,7 @@ namespace RentMate.Controllers.Mvc
             var item = await _db.Items.FindAsync(itemId);
             if (item == null) return NotFound();
 
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (item.UserId != userId) return Forbid();
 
             var accessories = await _accessoryService.GetAccessoriesForItemAsync(itemId);
@@ -590,7 +499,7 @@ namespace RentMate.Controllers.Mvc
             var item = await _db.Items.FindAsync(itemId);
             if (item == null) return NotFound();
 
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (item.UserId != userId) return Forbid();
 
             var accessory = await _accessoryService.AddAccessoryAsync(itemId, name, dailyPrice, description);
@@ -602,7 +511,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateAccessory(int accessoryId, string name, decimal dailyPrice, bool isAvailable, string? description)
         {
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             try
@@ -625,7 +534,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteAccessory(int accessoryId)
         {
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
             try
@@ -666,7 +575,7 @@ namespace RentMate.Controllers.Mvc
             var item = await _db.Items.FindAsync(itemId);
             if (item == null) return NotFound();
 
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (item.UserId != userId) return Forbid();
 
             var images = await _db.ItemImages
@@ -689,10 +598,10 @@ namespace RentMate.Controllers.Mvc
 
             if (image == null) return NotFound();
 
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (image.Item?.UserId != userId) return Forbid();
 
-            // Delete from Cloudinary first — proceed even if it fails (log warning)
+            // Delete from Cloudinary first; proceed even if it fails (log warning)
             var cloudDeleted = await _fileUploadService.DeleteFileAsync(image.ImageUrl);
             if (!cloudDeleted)
             {
@@ -731,7 +640,7 @@ namespace RentMate.Controllers.Mvc
 
             if (image == null) return NotFound();
 
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (image.Item?.UserId != userId) return Forbid();
 
             // Get all images for this item and re-normalize order
@@ -762,7 +671,7 @@ namespace RentMate.Controllers.Mvc
             var item = await _db.Items.FindAsync(itemId);
             if (item == null) return NotFound();
 
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (item.UserId != userId) return Forbid();
 
             var images = await _db.ItemImages
@@ -803,7 +712,7 @@ namespace RentMate.Controllers.Mvc
 
             if (item == null) return NotFound();
 
-            var userId = _userManager.GetUserId(User);
+            var userId = GetCurrentUserId();
             if (item.UserId != userId) return Forbid();
 
             if (images == null || images.Count == 0)

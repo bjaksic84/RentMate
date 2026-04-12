@@ -10,15 +10,8 @@
     var URLs = Config.urls || {};
 
     // ── Helpers ──────────────────────────────────────────────
-    function getToken() {
-        return document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-    }
-
-    function escHtml(s) {
-        var d = document.createElement('div');
-        d.textContent = s || '';
-        return d.innerHTML;
-    }
+    var getToken = window.getToken;
+    var escHtml = window.escapeHtml;
 
     // =========================================================
     // Image Gallery

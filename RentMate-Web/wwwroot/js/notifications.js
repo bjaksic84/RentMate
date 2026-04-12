@@ -4,11 +4,6 @@
     var notifSound = null;
     var soundEnabled = localStorage.getItem('notifSound') !== 'false';
 
-    function getAntiForgeryToken() {
-        var el = document.querySelector('input[name="__RequestVerificationToken"]');
-        return el ? el.value : '';
-    }
-
     function playNotifSound() {
         if (!soundEnabled) return;
         if (!notifSound) {
@@ -18,12 +13,7 @@
         notifSound.play().catch(function() {});
     }
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(str));
-        return div.innerHTML;
-    }
+    var escapeHtml = window.escapeHtml;
 
     function getNotifIcon(type) {
         if (type === 'ProfileSuggestion') return { icon: 'bi-person-check', color: 'text-blue-500' };
@@ -108,7 +98,7 @@
                 ids.forEach(function(nid) {
                     fetch('/Notification/MarkAsRead', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getAntiForgeryToken() },
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': window.getToken() },
                         body: JSON.stringify({ id: nid })
                     }).catch(function() {});
                 });
@@ -123,7 +113,7 @@
             var promises = ids.map(function(nid) {
                 return fetch('/Notification/Dismiss', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getAntiForgeryToken() },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': window.getToken() },
                     body: JSON.stringify({ id: nid })
                 });
             });
@@ -219,7 +209,7 @@
         markAllAsRead: function() {
             fetch('/Notification/MarkAllAsRead', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getAntiForgeryToken() }
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': window.getToken() }
             }).then(function() {
                 var badge = document.getElementById('notificationBadge');
                 if (badge) {

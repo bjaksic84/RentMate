@@ -1,12 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Localization;
-using RentMate.Hubs;
 using RentMate.Infrastructure.Data;
+using RentMate.Infrastructure.Queries;
 using RentMate.Models.Domain;
+using RentMate.Controllers.Base;
 using RentMate.Services.Interfaces;
 
 namespace RentMate.Controllers.Mvc
@@ -16,7 +15,7 @@ namespace RentMate.Controllers.Mvc
     /// Handles deposit release/charge, dispute filing, counter-offers, escalation, and admin resolution.
     /// </summary>
     [Authorize]
-    public class DisputeController : Controller
+    public class DisputeController : BaseAppController
     {
         #region Constants
 
@@ -26,13 +25,10 @@ namespace RentMate.Controllers.Mvc
 
         #region Dependencies
 
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly RentMateContext _context;
         private readonly IDepositService _depositService;
-        private readonly IHubContext<RentMateHub> _hubContext;
+        private readonly INotificationDispatcher _dispatcher;
         private readonly ILogger<DisputeController> _logger;
-        private readonly INotificationService _notificationService;
-        private readonly IStringLocalizer<DisputeController> _localizer;
 
         #endregion
 
@@ -42,18 +38,14 @@ namespace RentMate.Controllers.Mvc
             UserManager<ApplicationUser> userManager,
             RentMateContext context,
             IDepositService depositService,
-            IHubContext<RentMateHub> hubContext,
-            ILogger<DisputeController> logger,
-            INotificationService notificationService,
-            IStringLocalizer<DisputeController> localizer)
+            INotificationDispatcher dispatcher,
+            ILogger<DisputeController> logger)
+            : base(userManager)
         {
-            _userManager = userManager;
             _context = context;
             _depositService = depositService;
-            _hubContext = hubContext;
+            _dispatcher = dispatcher;
             _logger = logger;
-            _notificationService = notificationService;
-            _localizer = localizer;
         }
 
         #endregion
@@ -83,7 +75,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReleaseDeposit(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -92,19 +84,7 @@ namespace RentMate.Controllers.Mvc
 
                 var relRental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (relRental != null)
-                {
-                    await _hubContext.Clients.User(relRental.RenterId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "Released", itemTitle = relRental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        relRental.RenterId!, NotificationType.DepositReleased,
-                        _localizer["Notification.DepositReleased"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositReleased"].Value, relRental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
-                }
+                    await _dispatcher.DepositReleasedAsync(rentalId, relRental.RenterId!, relRental.Item?.Title);
 
                 return Json(new { success = true, message = "Deposit released." });
             }
@@ -122,7 +102,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChargeDeposit(int rentalId, decimal amount, string reason, IFormFile? evidence)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             if (evidence == null || evidence.Length == 0)
@@ -139,18 +119,7 @@ namespace RentMate.Controllers.Mvc
 
                 var chgRental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (chgRental != null)
-                {
-                    await _hubContext.Clients.User(chgRental.RenterId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "Charged", amount, reason, itemTitle = chgRental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        chgRental.RenterId!, NotificationType.DepositCharged,
-                        _localizer["Notification.DepositCharged"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositCharged"].Value, chgRental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                }
+                    await _dispatcher.DepositChargedAsync(rentalId, chgRental.RenterId!, chgRental.Item?.Title, amount, reason);
 
                 return Json(new { success = true, message = "Deposit charged with evidence." });
             }
@@ -168,7 +137,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ReleaseDisputedDeposit(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -177,19 +146,7 @@ namespace RentMate.Controllers.Mvc
 
                 var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental != null)
-                {
-                    await _hubContext.Clients.User(rental.RenterId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "Released", itemTitle = rental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        rental.RenterId!, NotificationType.DepositReleased,
-                        _localizer["Notification.DepositReleased"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositReleased"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
-                }
+                    await _dispatcher.DepositReleasedAsync(rentalId, rental.RenterId!, rental.Item?.Title);
 
                 return Json(new { success = true, message = "Disputed deposit released." });
             }
@@ -207,7 +164,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CompleteWithDeposit(int rentalId, string action, decimal? amount, string? reason, IFormFile? evidence)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             if ((action == "charge" || action == "charge-full") && (evidence == null || evidence.Length == 0))
@@ -251,28 +208,10 @@ namespace RentMate.Controllers.Mvc
 
                 if (rental != null)
                 {
-                    await _hubContext.Clients.User(rental.RenterId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = action == "release" ? "Released" : "Charged", amount, reason, itemTitle = rental.Item?.Title
-                    });
-
                     if (action == "release")
-                    {
-                        await _notificationService.CreateAsync(
-                            rental.RenterId!, NotificationType.DepositReleased,
-                            _localizer["Notification.DepositReleased"].Value,
-                            string.Format(_localizer["NotificationMsg.DepositReleased"].Value, rental.Item?.Title),
-                            rentalId, "Deposit", "/Dashboard");
-                        await _notificationService.AutoDismissAsync(rentalId, "Deposit");
-                    }
+                        await _dispatcher.DepositReleasedAsync(rentalId, rental.RenterId!, rental.Item?.Title);
                     else
-                    {
-                        await _notificationService.CreateAsync(
-                            rental.RenterId!, NotificationType.DepositCharged,
-                            _localizer["Notification.DepositCharged"].Value,
-                            string.Format(_localizer["NotificationMsg.DepositCharged"].Value, rental.Item?.Title),
-                            rentalId, "Deposit", "/Dashboard");
-                    }
+                        await _dispatcher.DepositChargedAsync(rentalId, rental.RenterId!, rental.Item?.Title, amount, reason);
                 }
 
                 return Json(new { success = true, message = $"Rental completed and deposit {action}d." });
@@ -295,7 +234,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DisputeDeposit(int rentalId, string reason)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -304,19 +243,7 @@ namespace RentMate.Controllers.Mvc
 
                 var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental != null)
-                {
-                    await _hubContext.Clients.User(rental.OwnerId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "Disputed", reason, itemTitle = rental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        rental.OwnerId!, NotificationType.DepositDisputed,
-                        _localizer["Notification.DepositDisputed"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositDisputed"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                    await _notificationService.AutoDismissAsync(rentalId, "Deposit", NotificationType.DepositCharged);
-                }
+                    await _dispatcher.DepositDisputedAsync(rentalId, rental.OwnerId!, rental.Item?.Title);
 
                 return Json(new { success = true, message = "Deposit disputed." });
             }
@@ -334,7 +261,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AcceptCharge(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -343,19 +270,7 @@ namespace RentMate.Controllers.Mvc
 
                 var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental != null)
-                {
-                    await _hubContext.Clients.User(rental.OwnerId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "ChargeAccepted", itemTitle = rental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        rental.OwnerId!, NotificationType.DepositResolved,
-                        _localizer["Notification.DepositResolved"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositResolved"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
-                }
+                    await _dispatcher.DepositResolvedAsync(rentalId, rental.OwnerId!, rental.Item?.Title);
 
                 return Json(new { success = true, message = "Charge accepted." });
             }
@@ -373,7 +288,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AcceptCounterOffer(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -382,19 +297,7 @@ namespace RentMate.Controllers.Mvc
 
                 var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental != null)
-                {
-                    await _hubContext.Clients.User(rental.OwnerId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "CounterAccepted", itemTitle = rental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        rental.OwnerId!, NotificationType.DepositResolved,
-                        _localizer["Notification.DepositResolved"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositResolved"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
-                }
+                    await _dispatcher.DepositResolvedAsync(rentalId, rental.OwnerId!, rental.Item?.Title, "CounterAccepted");
 
                 return Json(new { success = true, message = "Counter-offer accepted." });
             }
@@ -412,7 +315,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RejectCounterOffer(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -421,21 +324,8 @@ namespace RentMate.Controllers.Mvc
 
                 var rental = await _context.Rentals.Include(r => r.Item).Include(r => r.Deposit).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental != null)
-                {
-                    await _hubContext.Clients.User(rental.OwnerId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "CounterRejected", itemTitle = rental.Item?.Title
-                    });
-
-                    var rejectType = rental.Deposit?.Status == DepositStatus.Escalated
-                        ? NotificationType.DepositEscalated
-                        : NotificationType.DepositDisputed;
-                    await _notificationService.CreateAsync(
-                        rental.OwnerId!, rejectType,
-                        _localizer["Notification.DepositCounterRejected"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositCounterRejected"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                }
+                    await _dispatcher.DepositCounterRejectedAsync(rentalId, rental.OwnerId!, rental.Item?.Title,
+                        escalated: rental.Deposit?.Status == DepositStatus.Escalated);
 
                 return Json(new { success = true, message = "Counter-offer rejected. Original charge stands." });
             }
@@ -453,7 +343,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CounterOfferDeposit(int rentalId, decimal amount, string response, IFormFile? evidence)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -468,19 +358,7 @@ namespace RentMate.Controllers.Mvc
 
                 var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental != null)
-                {
-                    await _hubContext.Clients.User(rental.RenterId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId, status = "CounterOffered", amount, response, itemTitle = rental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        rental.RenterId!, NotificationType.DepositCounterOffered,
-                        _localizer["Notification.DepositCounterOffered"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositCounterOffered"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                    await _notificationService.AutoDismissAsync(rentalId, "Deposit", NotificationType.DepositDisputed);
-                }
+                    await _dispatcher.DepositCounterOfferedAsync(rentalId, rental.RenterId!, rental.Item?.Title);
 
                 return Json(new { success = true, message = "Counter-offer sent with evidence." });
             }
@@ -498,7 +376,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EscalateDispute(int rentalId, string? response = null, IFormFile? evidence = null)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -518,20 +396,7 @@ namespace RentMate.Controllers.Mvc
                 string? recipientId = (user.Id == rental.OwnerId) ? rental.RenterId : rental.OwnerId;
 
                 if (!string.IsNullOrEmpty(recipientId))
-                {
-                    await _hubContext.Clients.User(recipientId).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId,
-                        status = "Escalated",
-                        itemTitle = rental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        recipientId, NotificationType.DepositEscalated,
-                        _localizer["Notification.DepositEscalated"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositEscalated"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                }
+                    await _dispatcher.DepositEscalatedAsync(rentalId, recipientId, rental.Item?.Title);
 
                 return Json(new { success = true, message = "Dispute escalated to administration." });
             }
@@ -543,7 +408,7 @@ namespace RentMate.Controllers.Mvc
         }
 
         /// <summary>
-        /// Owner maintains charge — alias for EscalateDispute.
+        /// Owner maintains charge (alias for EscalateDispute).
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -563,7 +428,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UploadDisputeEvidence(int rentalId, IFormFile file, string? notes)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             if (file == null || file.Length == 0)
@@ -600,7 +465,7 @@ namespace RentMate.Controllers.Mvc
         [Authorize(Roles = AdminRole)]
         public async Task<IActionResult> AdminResolveDispute(int rentalId, decimal amount, string? adminNotes)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -609,36 +474,7 @@ namespace RentMate.Controllers.Mvc
 
                 var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == rentalId);
                 if (rental != null)
-                {
-                    var status = amount == 0 ? "Released" : "ChargeUpheld";
-                    // Notify both parties
-                    await _hubContext.Clients.User(rental.OwnerId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId,
-                        status,
-                        itemTitle = rental.Item?.Title,
-                        adminNotes
-                    });
-                    await _hubContext.Clients.User(rental.RenterId!).SendAsync(RentMateHub.DepositStatusChangedEvent, new
-                    {
-                        rentalId,
-                        status,
-                        itemTitle = rental.Item?.Title,
-                        adminNotes
-                    });
-
-                    await _notificationService.CreateAsync(
-                        rental.OwnerId!, NotificationType.DepositResolved,
-                        _localizer["Notification.DepositResolved"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositResolved"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                    await _notificationService.CreateAsync(
-                        rental.RenterId!, NotificationType.DepositResolved,
-                        _localizer["Notification.DepositResolved"].Value,
-                        string.Format(_localizer["NotificationMsg.DepositResolved"].Value, rental.Item?.Title),
-                        rentalId, "Deposit", "/Dashboard");
-                    await _notificationService.AutoDismissAsync(rentalId, "Deposit");
-                }
+                    await _dispatcher.DepositAdminResolvedAsync(rentalId, rental.OwnerId!, rental.RenterId!, rental.Item?.Title, amount, adminNotes);
 
                 return Json(new { success = true, message = amount == 0 ? "Deposit released to renter." : $"Charge finalized at \u20ac{amount:N2}." });
             }
@@ -660,10 +496,7 @@ namespace RentMate.Controllers.Mvc
         public async Task<IActionResult> AdminReviewDispute(int id)
         {
             var rental = await _context.Rentals
-                .Include(r => r.Item)
-                .Include(r => r.Renter)
-                .Include(r => r.Owner)
-                .Include(r => r.Deposit).ThenInclude(d => d.Evidence).ThenInclude(e => e.SubmittedBy)
+                .WithDisputeDetails()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (rental == null || rental.Deposit == null || rental.Deposit.Status != DepositStatus.Escalated)
@@ -694,10 +527,7 @@ namespace RentMate.Controllers.Mvc
             var isAdmin = User.IsInRole(AdminRole);
 
             var rental = await _context.Rentals
-                .Include(r => r.Item)
-                .Include(r => r.Renter)
-                .Include(r => r.Owner)
-                .Include(r => r.Deposit).ThenInclude(d => d!.Evidence).ThenInclude(e => e.SubmittedBy)
+                .WithDisputeDetails()
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (rental == null || rental.Deposit == null)

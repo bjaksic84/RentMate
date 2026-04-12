@@ -3,7 +3,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Localization;
 using RentMate.Models.Domain;
@@ -14,7 +13,7 @@ namespace RentMate.Areas.Identity.Pages.Account
     /// Handles both initial email confirmation and email change confirmation.
     /// When <c>email</c> query parameter is present, this is an email change; otherwise initial confirmation.
     /// </summary>
-    public class ConfirmEmailModel : PageModel
+    public class ConfirmEmailModel : BaseIdentityPageModel
     {
         #region Constants
 
@@ -28,8 +27,6 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         #region Dependencies
 
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IStringLocalizer<ConfirmEmailModel> _localizer;
 
         #endregion
@@ -40,18 +37,14 @@ namespace RentMate.Areas.Identity.Pages.Account
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IStringLocalizer<ConfirmEmailModel> localizer)
+            : base(userManager, signInManager)
         {
-            _userManager = userManager;
-            _signInManager = signInManager;
             _localizer = localizer;
         }
 
         #endregion
 
         #region Properties
-
-        [TempData]
-        public string? StatusMessage { get; set; }
 
         /// <summary>Whether this was an email change confirmation (vs initial email confirm).</summary>
         public bool IsEmailChange { get; set; }
@@ -65,7 +58,7 @@ namespace RentMate.Areas.Identity.Pages.Account
             if (userId == null || code == null)
                 return RedirectToPage("/Index");
 
-            var user = await _userManager.FindByIdAsync(userId);
+            var user = await UserManager.FindByIdAsync(userId);
             if (user == null)
                 return NotFound(string.Format(_localizer[UserNotFoundKey], userId));
 
@@ -88,7 +81,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task ConfirmUserEmailAsync(ApplicationUser user, string decodedCode)
         {
-            var result = await _userManager.ConfirmEmailAsync(user, decodedCode);
+            var result = await UserManager.ConfirmEmailAsync(user, decodedCode);
 
             StatusMessage = result.Succeeded
                 ? _localizer[EmailConfirmedKey]
@@ -102,7 +95,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         private async Task ConfirmEmailChangeAsync(ApplicationUser user, string email, string decodedCode)
         {
             IsEmailChange = true;
-            var result = await _userManager.ChangeEmailAsync(user, email, decodedCode);
+            var result = await UserManager.ChangeEmailAsync(user, email, decodedCode);
 
             if (!result.Succeeded)
             {
@@ -110,7 +103,7 @@ namespace RentMate.Areas.Identity.Pages.Account
                 return;
             }
 
-            await _signInManager.RefreshSignInAsync(user);
+            await SignInManager.RefreshSignInAsync(user);
             StatusMessage = _localizer[EmailChangeSuccessKey];
         }
 

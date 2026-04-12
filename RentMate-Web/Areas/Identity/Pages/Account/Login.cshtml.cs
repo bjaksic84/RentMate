@@ -6,7 +6,6 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Localization;
 using RentMate.Models.Domain;
@@ -16,7 +15,7 @@ namespace RentMate.Areas.Identity.Pages.Account
     /// <summary>
     /// Page model for user login.
     /// </summary>
-    public class LoginModel : PageModel
+    public class LoginModel : BaseIdentityPageModel
     {
         #region Constants
 
@@ -26,8 +25,6 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         #region Dependencies
 
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginModel> _logger;
         private readonly IStringLocalizer<LoginModel> _localizer;
 
@@ -40,9 +37,8 @@ namespace RentMate.Areas.Identity.Pages.Account
             UserManager<ApplicationUser> userManager,
             ILogger<LoginModel> logger,
             IStringLocalizer<LoginModel> localizer)
+            : base(userManager, signInManager)
         {
-            _signInManager = signInManager;
-            _userManager = userManager;
             _logger = logger;
             _localizer = localizer;
         }
@@ -99,7 +95,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
             ReturnUrl = returnUrl ?? Url.Content("~/");
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            ExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToList();
 
             if (!ModelState.IsValid) return Page();
 
@@ -116,7 +112,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         private async Task ClearExternalCookieAndLoadProvidersAsync()
         {
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-            ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+            ExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToList();
         }
 
         /// <summary>
@@ -124,14 +120,14 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task<IActionResult> AttemptSignInAsync()
         {
-            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var user = await UserManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
                 ModelState.AddModelError(string.Empty, _localizer[InvalidLoginKey]);
                 return Page();
             }
 
-            var result = await _signInManager.PasswordSignInAsync(
+            var result = await SignInManager.PasswordSignInAsync(
                 user, Input.Password, Input.RememberMe, lockoutOnFailure: true);
 
             if (result.Succeeded)

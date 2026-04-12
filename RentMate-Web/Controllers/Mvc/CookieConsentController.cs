@@ -4,6 +4,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using RentMate.Controllers.Base;
 using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
 
@@ -15,15 +16,14 @@ namespace RentMate.Controllers.Mvc;
 /// </summary>
 [Route("api/cookie-consent")]
 [EnableRateLimiting("ApiPolicy")]
-public class CookieConsentController : Controller
+public class CookieConsentController : BaseAppController
 {
     private readonly RentMateContext _context;
-    private readonly UserManager<ApplicationUser> _userManager;
 
     public CookieConsentController(RentMateContext context, UserManager<ApplicationUser> userManager)
+        : base(userManager)
     {
         _context = context;
-        _userManager = userManager;
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public class CookieConsentController : Controller
 
         var consent = new CookieConsent
         {
-            UserId = User.Identity?.IsAuthenticated == true ? _userManager.GetUserId(User) : null,
+            UserId = User.Identity?.IsAuthenticated == true ? GetCurrentUserId() : null,
             NecessaryCookies = true,
             AnalyticsCookies = analytics,
             MarketingCookies = marketing,

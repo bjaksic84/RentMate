@@ -370,4 +370,8 @@ FodyWeavers.xsd
 # Sensitive configuration files (secrets stored in User Secrets, not in files)
 **/appsettings.Production.json
 **/appsettings.Local.json
+
+# graphify knowledge-graph output (local-only tool, not shared)
+graphify-out/
+.graphify_*
 **/secrets.json

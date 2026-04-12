@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using RentMate.Controllers.Base;
 using RentMate.Models.Domain;
 using RentMate.Services.Interfaces;
 
 namespace RentMate.Controllers.Mvc
 {
-    public class AccountController : Controller
+    public class AccountController : BaseAppController
     {
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IAccountLifecycleService _accountLifecycle;
 
@@ -16,8 +16,8 @@ namespace RentMate.Controllers.Mvc
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
             IAccountLifecycleService accountLifecycle)
+            : base(userManager)
         {
-            _userManager = userManager;
             _signInManager = signInManager;
             _accountLifecycle = accountLifecycle;
         }
@@ -36,7 +36,7 @@ namespace RentMate.Controllers.Mvc
         [Authorize]
         public async Task<IActionResult> Deactivated()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return NotFound();
 
             // Not actually deactivated — send home
@@ -54,7 +54,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reactivate()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return NotFound();
 
             if (!user.IsDeactivated)

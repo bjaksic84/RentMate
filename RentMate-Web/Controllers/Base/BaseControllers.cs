@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using RentMate.Infrastructure.Identity;
 using RentMate.Models.Domain;
 
 namespace RentMate.Controllers.Base
@@ -32,7 +33,7 @@ namespace RentMate.Controllers.Base
         /// </summary>
         protected Task<ApplicationUser?> GetCurrentUserAsync()
         {
-            return UserManager.GetUserAsync(User);
+            return UserManager.GetCurrentUserAsync(User);
         }
 
         /// <summary>
@@ -40,7 +41,7 @@ namespace RentMate.Controllers.Base
         /// </summary>
         protected string? GetCurrentUserId()
         {
-            return UserManager.GetUserId(User);
+            return UserManager.GetCurrentUserId(User);
         }
 
         /// <summary>

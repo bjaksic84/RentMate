@@ -9,6 +9,7 @@ using RentMate.Shared.Contracts.Responses;
 // Use alias for RentalStatus to distinguish from Model's which doesn't exist anymore
 using RentalStatus = RentMate.Shared.Contracts.Responses.RentalStatus;
 
+using RentMate.Infrastructure.Queries;
 using RentMate.Services.Interfaces;
 
 namespace RentMate.Services.Implementations;
@@ -256,9 +257,6 @@ public class DashboardService : IDashboardService
     {
         return await _context.Rentals
             .AsNoTracking()
-            .Include(r => r.Item)
-            .Include(r => r.Renter)
-            .Include(r => r.Owner)
             .OrderByDescending(r => r.CreatedAt)
             .Take(count)
             .Select(r => new RentalSummary(
@@ -301,9 +299,6 @@ public class DashboardService : IDashboardService
     {
         return await _context.Rentals
             .AsNoTracking()
-            .Include(r => r.Item)
-            .Include(r => r.Renter)
-            .Include(r => r.Owner)
             .Where(predicate)
             .OrderByDescending(r => r.StartDate)
             .Select(r => new RentalSummary(

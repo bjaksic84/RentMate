@@ -190,20 +190,6 @@ function formatCurrency(amount) {
     return new Intl.NumberFormat(lang, { style: 'currency', currency: currency }).format(amount);
 }
 
-function getToken() {
-    return document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-}
-
-function showToast(message, type) {
-    var container = document.getElementById('toastContainer');
-    var toast = document.createElement('div');
-    var bgClass = type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-rose-600' : 'bg-trust-blue-600';
-    toast.className = bgClass + ' text-white px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-fade-in';
-    toast.textContent = message;
-    container.appendChild(toast);
-    setTimeout(function () { toast.remove(); }, 4000);
-}
-
 // === Toggle Listing ===
 async function toggleListing(itemId, btn) {
     try {

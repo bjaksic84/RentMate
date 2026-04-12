@@ -6,7 +6,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Localization;
 using RentMate.Models.Domain;
@@ -16,7 +15,7 @@ namespace RentMate.Areas.Identity.Pages.Account
     /// <summary>
     /// Page model for resetting user password.
     /// </summary>
-    public class ResetPasswordModel : PageModel
+    public class ResetPasswordModel : BaseIdentityPageModel
     {
         #region Constants
 
@@ -28,7 +27,6 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         #region Dependencies
 
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IStringLocalizer<ResetPasswordModel> _localizer;
 
         #endregion
@@ -37,9 +35,10 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         public ResetPasswordModel(
             UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             IStringLocalizer<ResetPasswordModel> localizer)
+            : base(userManager, signInManager)
         {
-            _userManager = userManager;
             _localizer = localizer;
         }
 
@@ -98,7 +97,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         {
             if (!ModelState.IsValid) return Page();
 
-            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var user = await UserManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
                 // Don't reveal that the user does not exist
@@ -125,8 +124,8 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task<IActionResult> ResetUserPasswordAsync(ApplicationUser user)
         {
-            var result = await _userManager.ResetPasswordAsync(user, Input.Code, Input.Password);
-            
+            var result = await UserManager.ResetPasswordAsync(user, Input.Code, Input.Password);
+
             if (result.Succeeded)
             {
                 return RedirectToPage("./Confirmation", new { type = "password-reset" });
@@ -134,17 +133,6 @@ namespace RentMate.Areas.Identity.Pages.Account
 
             AddIdentityErrors(result);
             return Page();
-        }
-
-        /// <summary>
-        /// Adds identity errors to model state.
-        /// </summary>
-        private void AddIdentityErrors(IdentityResult result)
-        {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
         }
 
         #endregion

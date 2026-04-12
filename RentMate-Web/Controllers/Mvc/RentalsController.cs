@@ -2,18 +2,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Localization;
 using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
 using RentMate.Models.ViewModels;
-using RentMate.Hubs;
 using RentMate.Services.Interfaces;
 using RentMate.Services.Extensions;
 using RentMate.Services.Implementations;
+using RentMate.Controllers.Base;
 using RentMate.Helpers;
 using RentMate.Shared.Contracts.Responses;
-using NotificationType = RentMate.Models.Domain.NotificationType;
 
 namespace RentMate.Controllers.Mvc
 {
@@ -21,70 +19,42 @@ namespace RentMate.Controllers.Mvc
     /// Controller for browsing items and managing rental requests.
     /// </summary>
     [Authorize]
-    public class RentalsController : Controller
+    public class RentalsController : BaseAppController
     {
         private readonly RentMateContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IHubContext<RentMateHub> _hubContext;
         private readonly IStringLocalizer<RentalsController> _localizer;
         private readonly ICurrencyService _currencyService;
         private readonly IAccessoryService _accessoryService;
         private readonly IDepositService _depositService;
         private readonly ILogger<RentalsController> _logger;
         private readonly IScoringService _scoringService;
-        private readonly INotificationService _notificationService;
+        private readonly INotificationDispatcher _dispatcher;
 
         private const int DefaultPageSize = 12;
-        private const string DashboardAction = "UserDashboard";
-        private const string DashboardController = "Dashboard";
 
         public RentalsController(
             RentMateContext context,
             UserManager<ApplicationUser> userManager,
-            IHubContext<RentMateHub> hubContext,
             IStringLocalizer<RentalsController> localizer,
             ICurrencyService currencyService,
             IAccessoryService accessoryService,
             IDepositService depositService,
             ILogger<RentalsController> logger,
             IScoringService scoringService,
-            INotificationService notificationService)
+            INotificationDispatcher dispatcher)
+            : base(userManager)
         {
             _context = context;
-            _userManager = userManager;
-            _hubContext = hubContext;
             _localizer = localizer;
             _currencyService = currencyService;
             _accessoryService = accessoryService;
             _depositService = depositService;
             _logger = logger;
             _scoringService = scoringService;
-            _notificationService = notificationService;
+            _dispatcher = dispatcher;
         }
 
         #region Helper Methods
-
-        private bool IsAjaxRequest() => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
-
-        private IActionResult HandleError(string message)
-        {
-            if (IsAjaxRequest())
-            {
-                return BadRequest(message);
-            }
-            TempData["ErrorMessage"] = message;
-            return RedirectToAction(DashboardAction, DashboardController);
-        }
-
-        private IActionResult HandleSuccess(string message, object? jsonData = null)
-        {
-            if (IsAjaxRequest())
-            {
-                return Json(jsonData ?? new { success = true, message });
-            }
-            TempData["SuccessMessage"] = message;
-            return RedirectToAction(DashboardAction, DashboardController);
-        }
 
         private bool HasDateConflict(ICollection<Rental>? rentals, DateTime startDate, DateTime endDate)
         {
@@ -105,35 +75,8 @@ namespace RentMate.Controllers.Mvc
             return user != null && (rental.OwnerId == user.Id || rental.RenterId == user.Id);
         }
 
-        private async Task NotifyRentalStatusChangeAsync(Rental rental, string message)
-        {
-            await _hubContext.Clients.User(rental.RenterId!).SendAsync("RentalStatusChanged", new
-            {
-                rentalId = rental.Id,
-                newStatus = rental.Status.ToString(),
-                itemTitle = rental.Item?.Title,
-                message
-            });
-
-            var notifType = rental.Status switch
-            {
-                RentalStatus.Accepted => NotificationType.RentalAccepted,
-                RentalStatus.Completed => NotificationType.RentalCompleted,
-                RentalStatus.Cancelled => NotificationType.RentalCancelled,
-                _ => NotificationType.RentalApproved
-            };
-            var titleKey = "Notification." + notifType.ToString();
-            var msgKey = "NotificationMsg." + notifType.ToString();
-            await _notificationService.CreateAsync(
-                rental.RenterId!, notifType,
-                _localizer[titleKey].Value,
-                string.Format(_localizer[msgKey].Value, rental.Item?.Title ?? ""),
-                rental.Id, "Rental", "/Dashboard?tab=renting");
-
-            // Auto-dismiss the original request notification for the owner
-            if (rental.Status != RentalStatus.Pending)
-                await _notificationService.AutoDismissAsync(rental.Id, "Rental", NotificationType.RentalRequested);
-        }
+        private Task NotifyRentalStatusChangeAsync(Rental rental, string message)
+            => _dispatcher.RentalStatusChangedAsync(rental.Id, rental.RenterId!, rental.Item?.Title, rental.Status, message);
 
         #endregion
 
@@ -153,7 +96,7 @@ namespace RentMate.Controllers.Mvc
             int? minRating,
             int page = 1)
         {
-            var currentUserId = _userManager.GetUserId(User);
+            var currentUserId = GetCurrentUserId();
             var query = BuildBaseItemQuery(currentUserId);
 
             query = ApplySearchFilters(query, search, category, minPrice, maxPrice, city, minRating);
@@ -311,7 +254,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RequestRental(int itemId, DateTime startDate, DateTime endDate, List<int>? accessoryIds)
         {
-            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUser = await GetCurrentUserAsync();
             if (currentUser == null)
             {
                 return Unauthorized();
@@ -393,26 +336,9 @@ namespace RentMate.Controllers.Mvc
             };
         }
 
-        private async Task NotifyOwnerOfRentalRequestAsync(Item item, Rental rental, ApplicationUser renter)
-        {
-            await _hubContext.Clients.User(item.UserId!).SendAsync("RentalRequested", new
-            {
-                rentalId = rental.Id,
-                itemTitle = item.Title,
-                renterEmail = renter.Email,
-                startDate = rental.StartDate.ToShortDateString(),
-                endDate = rental.EndDate.ToShortDateString(),
-                status = rental.Status.ToString()
-            });
-
-            await _notificationService.CreateAsync(
-                item.UserId!,
-                NotificationType.RentalRequested,
-                _localizer["Notification.RentalRequested"].Value,
-                string.Format(_localizer["NotificationMsg.RentalRequested"].Value,
-                    renter.FirstName ?? renter.UserName, item.Title),
-                rental.Id, "Rental", "/Dashboard?tab=lending");
-        }
+        private Task NotifyOwnerOfRentalRequestAsync(Item item, Rental rental, ApplicationUser renter)
+            => _dispatcher.RentalRequestedAsync(rental.Id, item.UserId!, item.Title,
+                renter.Email, renter.FirstName ?? renter.UserName, rental.StartDate, rental.EndDate);
 
         /// <summary>
         /// Approves a pending rental request. Owner only.
@@ -422,7 +348,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveRental(int rentalId)
         {
-            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUser = await GetCurrentUserAsync();
             if (currentUser == null)
             {
                 return Unauthorized();
@@ -449,8 +375,7 @@ namespace RentMate.Controllers.Mvc
             var message = string.Format(_localizer["Your rental request for '{0}' was approved!"], rental.Item.Title);
             await NotifyRentalStatusChangeAsync(rental, message);
 
-            TempData["SuccessMessage"] = string.Format(_localizer["You approved rental for '{0}'."], rental.Item.Title);
-            return RedirectToAction(DashboardAction, DashboardController);
+            return RedirectToDashboardWithSuccess(string.Format(_localizer["You approved rental for '{0}'."], rental.Item.Title));
         }
 
         /// <summary>
@@ -461,7 +386,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CompleteRental(int rentalId)
         {
-            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUser = await GetCurrentUserAsync();
             if (currentUser == null)
             {
                 return Unauthorized();
@@ -506,8 +431,7 @@ namespace RentMate.Controllers.Mvc
             var message = string.Format(_localizer["Rental for '{0}' was marked as completed."], rental.Item.Title);
             await NotifyRentalStatusChangeAsync(rental, message);
 
-            TempData["SuccessMessage"] = string.Format(_localizer["Rental for '{0}' completed successfully."], rental.Item.Title);
-            return RedirectToAction(DashboardAction, DashboardController);
+            return RedirectToDashboardWithSuccess(string.Format(_localizer["Rental for '{0}' completed successfully."], rental.Item.Title));
         }
 
         /// <summary>
@@ -518,7 +442,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelRental(int rentalId)
         {
-            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUser = await GetCurrentUserAsync();
             if (currentUser == null)
             {
                 return Unauthorized();
@@ -563,8 +487,7 @@ namespace RentMate.Controllers.Mvc
             var message = string.Format(_localizer["Rental for '{0}' was cancelled."], rental.Item.Title);
             await NotifyRentalStatusChangeAsync(rental, message);
 
-            TempData["SuccessMessage"] = _localizer["Rental cancelled successfully."].Value;
-            return RedirectToAction(DashboardAction, DashboardController);
+            return RedirectToDashboardWithSuccess(_localizer["Rental cancelled successfully."].Value);
         }
 
         private async Task<Rental?> LoadRentalWithItemAsync(int rentalId)
@@ -579,7 +502,7 @@ namespace RentMate.Controllers.Mvc
         /// </summary>
         public async Task<IActionResult> MyRentals()
         {
-            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUser = await GetCurrentUserAsync();
             if (currentUser == null)
             {
                 return Unauthorized();
@@ -599,7 +522,7 @@ namespace RentMate.Controllers.Mvc
         /// </summary>
         public async Task<IActionResult> OwnerRentals()
         {
-            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUser = await GetCurrentUserAsync();
             if (currentUser == null)
             {
                 return Unauthorized();

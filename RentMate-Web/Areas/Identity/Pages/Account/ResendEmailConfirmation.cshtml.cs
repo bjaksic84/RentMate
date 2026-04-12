@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Localization;
 using RentMate.Models.Domain;
@@ -20,7 +19,7 @@ namespace RentMate.Areas.Identity.Pages.Account
     /// Page model for resending email confirmation.
     /// </summary>
     [AllowAnonymous]
-    public class ResendEmailConfirmationModel : PageModel
+    public class ResendEmailConfirmationModel : BaseIdentityPageModel
     {
         #region Constants
 
@@ -33,7 +32,6 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         #region Dependencies
 
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _emailSender;
         private readonly IStringLocalizer<ResendEmailConfirmationModel> _localizer;
 
@@ -42,11 +40,12 @@ namespace RentMate.Areas.Identity.Pages.Account
         #region Constructor
 
         public ResendEmailConfirmationModel(
-            UserManager<ApplicationUser> userManager, 
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
             IEmailSender emailSender,
             IStringLocalizer<ResendEmailConfirmationModel> localizer)
+            : base(userManager, signInManager)
         {
-            _userManager = userManager;
             _emailSender = emailSender;
             _localizer = localizer;
         }
@@ -82,7 +81,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         {
             if (!ModelState.IsValid) return Page();
 
-            var user = await _userManager.FindByEmailAsync(Input.Email);
+            var user = await UserManager.FindByEmailAsync(Input.Email);
             if (user == null)
             {
                 // Don't reveal that the user does not exist
@@ -104,8 +103,8 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task SendConfirmationEmailAsync(ApplicationUser user)
         {
-            var userId = await _userManager.GetUserIdAsync(user);
-            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var userId = await UserManager.GetUserIdAsync(user);
+            var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
             
             var callbackUrl = Url.Page(

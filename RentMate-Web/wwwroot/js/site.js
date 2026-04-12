@@ -126,6 +126,10 @@
 	function init() {
 		enableLazyImages();
 		window.showToast = showToast;
+		window.escapeHtml = escapeHtml;
+		window.getToken = function () {
+			return document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+		};
 	}
 
 	// Load translations immediately

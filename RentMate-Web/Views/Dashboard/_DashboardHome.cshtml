@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using RentMate.Shared.Contracts.Responses
 @using RentMate.Models.Domain
+@using RentMate.Models.Domain.Extensions
 @model RentMate.Models.ViewModels.DashboardViewModel
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
@@ -8,26 +9,20 @@
 @{
     var activeMyRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
     var activeOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
-    var overdueRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < DateTime.UtcNow.Date).ToList() ?? new();
+    var overdueRentals = Model.MyRentals?.Where(r => r.IsOverdue()).ToList() ?? new();
     var acceptedRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Accepted).ToList() ?? new();
     var pendingOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Pending).ToList() ?? new();
-    var renterDepositAttention = Model.MyRentals?.Where(r => r.Deposit != null
-        && (r.Deposit.Status == DepositStatus.Charged
-            || r.Deposit.Status == DepositStatus.PartiallyCharged
-            || r.Deposit.Status == DepositStatus.CounterOffered)).ToList() ?? new();
+    var renterDepositAttention = Model.MyRentals?.Where(r => r.Deposit != null && r.Deposit.NeedsRenterAction()).ToList() ?? new();
     var rentalsWithExtPayment = Model.MyRentals?.Where(r =>
         r.Extensions != null && r.Extensions.Any(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved)).ToList() ?? new();
-    var ownerDisputedDeposits = Model.OwnerRentals?.Where(r => r.Deposit != null
-        && r.Deposit.Status == DepositStatus.Disputed).ToList() ?? new();
+    var ownerDisputedDeposits = Model.OwnerRentals?.Where(r => r.Deposit != null && r.Deposit.NeedsOwnerAction()).ToList() ?? new();
     var monthlyEarnings = Model.OwnerRentals?
         .Where(r => r.Status == RentalStatus.Completed && r.EndDate.Month == DateTime.UtcNow.Month && r.EndDate.Year == DateTime.UtcNow.Year)
         .Sum(r => r.TotalPrice) ?? 0;
     var trustScore = (int?)ViewBag.ProfileTrustScore ?? 0;
 
-    var completedReadyToArchive = (Model.MyRentals?.Where(r => r.Status == RentalStatus.Completed && r.ArchivedAt == null
-        && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed && r.Deposit.Status != DepositStatus.CounterOffered && r.Deposit.Status != DepositStatus.Escalated))).ToList() ?? new())
-        .Concat(Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Completed && r.ArchivedAt == null
-            && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed && r.Deposit.Status != DepositStatus.CounterOffered && r.Deposit.Status != DepositStatus.Escalated))).ToList() ?? new())
+    var completedReadyToArchive = (Model.MyRentals?.Where(r => r.IsArchivable() && r.HasNoActiveDispute()).ToList() ?? new())
+        .Concat(Model.OwnerRentals?.Where(r => r.IsArchivable() && r.HasNoActiveDispute()).ToList() ?? new())
         .ToList();
     var hasAttentionItems = overdueRentals.Any() || acceptedRentals.Any() || pendingOwnerRentals.Any()
         || (Model.PendingExtensions?.Any() ?? false)
@@ -173,7 +168,7 @@
                         }
                     }
                     @* Deposit charged — renter action required *@
-                    @foreach (var rental in renterDepositAttention.Where(r => r.Deposit!.Status == DepositStatus.Charged || r.Deposit!.Status == DepositStatus.PartiallyCharged))
+                    @foreach (var rental in renterDepositAttention.Where(r => r.Deposit!.IsCharged()))
                     {
                         <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-rose-500">
                             <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">

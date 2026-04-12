@@ -1,20 +1,20 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using RentMate.Shared.Contracts.Responses
 @using RentMate.Models.Domain
+@using RentMate.Models.Domain.Extensions
+@model RentMate.Models.ViewModels.RentalRowViewModel
 @inject IViewLocalizer Localizer
 
 @{
-    var modelType = Model?.GetType();
-    var rental = (Rental)modelType?.GetProperty("Rental")?.GetValue(Model)!;
-    var currentUserId = (string)modelType?.GetProperty("CurrentUserId")?.GetValue(Model)!;
-    var cs = (RentMate.Services.Interfaces.ICurrencyService)modelType?.GetProperty("CurrencyService")?.GetValue(Model)!;
+    var rental = Model.Rental;
+    var currentUserId = Model.CurrentUserId;
+    var cs = Model.CurrencyService;
 
     var daysRemaining = (rental.EndDate.Date - DateTime.UtcNow.Date).Days;
-    var isOverdue = rental.Status == RentalStatus.Active && daysRemaining < 0;
+    var isOverdue = rental.IsOverdue();
     var urgency = daysRemaining < 0 ? "overdue" : daysRemaining <= 1 ? "urgent" : daysRemaining <= 3 ? "warning" : "normal";
-    var hasActiveDispute = rental.Deposit != null && (rental.Deposit.Status == DepositStatus.Disputed
-        || rental.Deposit.Status == DepositStatus.CounterOffered || rental.Deposit.Status == DepositStatus.Escalated);
-    var isCompletedReady = rental.Status == RentalStatus.Completed && rental.ArchivedAt == null && !hasActiveDispute;
+    var hasActiveDispute = rental.Deposit != null && rental.Deposit.IsInDispute();
+    var isCompletedReady = rental.IsArchivable() && !hasActiveDispute;
     var needsAttention = hasActiveDispute || isCompletedReady;
     var ownerAcceptedExt = rental.Extensions?.FirstOrDefault(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved);
 
@@ -62,15 +62,13 @@
         <div class="hidden sm:block">
             @{
                 var badgeType = isOverdue ? "overdue"
-                    : (rental.Status == RentalStatus.Completed && rental.Deposit != null
-                        && (rental.Deposit.Status == DepositStatus.Disputed || rental.Deposit.Status == DepositStatus.CounterOffered || rental.Deposit.Status == DepositStatus.Escalated))
+                    : (rental.Status == RentalStatus.Completed && rental.Deposit != null && rental.Deposit.IsInDispute())
                         ? rental.Deposit.Status == DepositStatus.Disputed ? "disputed"
                         : rental.Deposit.Status == DepositStatus.CounterOffered ? "counter-offered"
                         : "escalated"
                     : rental.Status.ToString().ToLower();
                 var badgeText = isOverdue ? "Overdue"
-                    : (rental.Status == RentalStatus.Completed && rental.Deposit != null
-                        && (rental.Deposit.Status == DepositStatus.Disputed || rental.Deposit.Status == DepositStatus.CounterOffered || rental.Deposit.Status == DepositStatus.Escalated))
+                    : (rental.Status == RentalStatus.Completed && rental.Deposit != null && rental.Deposit.IsInDispute())
                         ? rental.Deposit.Status == DepositStatus.Disputed ? "Disputed"
                         : rental.Deposit.Status == DepositStatus.CounterOffered ? "Counter-Offered"
                         : "Escalated"
@@ -80,7 +78,7 @@
         </div>
 
         <!-- Deposit indicator -->
-        @if (rental.Deposit != null && (rental.Deposit.Status == DepositStatus.Disputed || rental.Deposit.Status == DepositStatus.CounterOffered || rental.Deposit.Status == DepositStatus.Escalated))
+        @if (rental.Deposit != null && rental.Deposit.IsInDispute())
         {
             <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" title="@Localizer["Deposit issue"]"></span>
         }
@@ -192,44 +190,14 @@
                                         </button>
                                     </div>
 
-                                    @if (dep.Evidence != null && dep.Evidence.Any())
+                                    @await Html.PartialAsync("_EvidenceGrid", new RentMate.Models.ViewModels.EvidenceGridViewModel
                                     {
-                                        var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
-                                        var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
-
-                                        @if (otherEv.Any())
-                                        {
-                                            <div class="mt-4 pt-3 border-t border-rose-100 dark:border-rose-900/50">
-                                                <p class="text-[10px] uppercase font-bold text-rose-500 dark:text-rose-400 mb-2 tracking-wider">@Localizer["Renter's Evidence"]</p>
-                                                <div class="flex flex-wrap gap-2">
-                                                    @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
-                                                    {
-                                                        <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-rose-200 dark:border-rose-800 hover:scale-105 transition-transform" title="@ev.Notes">
-                                                            <img src="@ev.Url" class="w-full h-full object-cover" />
-                                                        </a>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-
-                                        @if (yourEv.Any())
-                                        {
-                                            <div class="mt-4 pt-3 border-t border-rose-100 dark:border-rose-900/50">
-                                                <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
-                                                <div class="flex flex-wrap gap-2">
-                                                    @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
-                                                    {
-                                                        <a href="@ev.Url" target="_blank" class="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
-                                                            <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
-                                                        </a>
-                                                    }
-                                                    <button onclick="openAddEvidenceModal(@rental.Id)" class="w-10 h-10 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
-                                                        <i class="bi bi-plus-lg"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        }
-                                    }
+                                        Evidence = dep.Evidence ?? new List<DisputeEvidence>(),
+                                        CurrentUserId = currentUserId,
+                                        OtherPartyLabel = Localizer["Renter's Evidence"].Value,
+                                        ColorToken = "rose",
+                                        RentalId = rental.Id
+                                    })
                                 </div>
                             </div>
                         </div>
@@ -245,44 +213,15 @@
                                     <p class="text-xs text-amber-600 dark:text-amber-400 mt-0.5">@Localizer["Waiting for renter to accept or escalate..."]</p>
                                     <p class="text-[11px] font-semibold mt-1">@Localizer["Amount"]: @cs.Format(dep.CounterOfferAmount ?? 0)</p>
 
-                                    @if (dep.Evidence != null && dep.Evidence.Any())
+                                    @await Html.PartialAsync("_EvidenceGrid", new RentMate.Models.ViewModels.EvidenceGridViewModel
                                     {
-                                        var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
-                                        var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
-
-                                        @if (otherEv.Any())
-                                        {
-                                            <div class="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/50">
-                                                <p class="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-500 mb-2 tracking-wider">@Localizer["Renter's Evidence"]</p>
-                                                <div class="flex flex-wrap gap-2">
-                                                    @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
-                                                    {
-                                                        <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-amber-200 dark:border-amber-800 hover:scale-105 transition-transform" title="@ev.Notes">
-                                                            <img src="@ev.Url" class="w-full h-full object-cover" />
-                                                        </a>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-
-                                        @if (yourEv.Any())
-                                        {
-                                            <div class="mt-4 pt-3 border-t border-amber-200/50 dark:border-amber-800/50">
-                                                <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
-                                                <div class="flex flex-wrap gap-2">
-                                                    @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
-                                                    {
-                                                        <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
-                                                            <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
-                                                        </a>
-                                                    }
-                                                    <button onclick="openAddEvidenceModal(@rental.Id)" class="w-8 h-8 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
-                                                        <i class="bi bi-plus"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        }
-                                    }
+                                        Evidence = dep.Evidence ?? new List<DisputeEvidence>(),
+                                        CurrentUserId = currentUserId,
+                                        OtherPartyLabel = Localizer["Renter's Evidence"].Value,
+                                        ColorToken = "amber",
+                                        ThumbnailSize = "w-8 h-8",
+                                        RentalId = rental.Id
+                                    })
                                 </div>
                             </div>
                         </div>
@@ -297,44 +236,15 @@
                                     <p class="text-xs font-medium text-blue-700 dark:text-blue-300">@Localizer["Dispute Escalated"]</p>
                                     <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">@Localizer["Admin review in progress. No further action needed."]</p>
 
-                                    @if (dep.Evidence != null && dep.Evidence.Any())
+                                    @await Html.PartialAsync("_EvidenceGrid", new RentMate.Models.ViewModels.EvidenceGridViewModel
                                     {
-                                        var yourEv = dep.Evidence.Where(e => e.SubmittedByUserId == currentUserId);
-                                        var otherEv = dep.Evidence.Where(e => e.SubmittedByUserId != currentUserId);
-
-                                        @if (otherEv.Any())
-                                        {
-                                            <div class="mt-4 pt-3 border-t border-blue-200/50 dark:border-blue-800/50">
-                                                <p class="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-500 mb-2 tracking-wider">@Localizer["Renter's Evidence"]</p>
-                                                <div class="flex flex-wrap gap-2">
-                                                    @foreach (var ev in otherEv.OrderByDescending(e => e.CreatedAt))
-                                                    {
-                                                        <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-blue-200 dark:border-blue-800 hover:scale-105 transition-transform" title="@ev.Notes">
-                                                            <img src="@ev.Url" class="w-full h-full object-cover" />
-                                                        </a>
-                                                    }
-                                                </div>
-                                            </div>
-                                        }
-
-                                        @if (yourEv.Any())
-                                        {
-                                            <div class="mt-4 pt-3 border-t border-blue-200/50 dark:border-blue-800/50">
-                                                <p class="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 mb-2 tracking-wider">@Localizer["Your Evidence"]</p>
-                                                <div class="flex flex-wrap gap-2">
-                                                    @foreach (var ev in yourEv.OrderByDescending(e => e.CreatedAt))
-                                                    {
-                                                        <a href="@ev.Url" target="_blank" class="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:scale-105 transition-transform" title="@ev.Notes">
-                                                            <img src="@ev.Url" class="w-full h-full object-cover opacity-80" />
-                                                        </a>
-                                                    }
-                                                    <button onclick="openAddEvidenceModal(@rental.Id)" class="w-8 h-8 rounded-lg flex items-center justify-center border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition">
-                                                        <i class="bi bi-plus"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        }
-                                    }
+                                        Evidence = dep.Evidence ?? new List<DisputeEvidence>(),
+                                        CurrentUserId = currentUserId,
+                                        OtherPartyLabel = Localizer["Renter's Evidence"].Value,
+                                        ColorToken = "blue",
+                                        ThumbnailSize = "w-8 h-8",
+                                        RentalId = rental.Id
+                                    })
                                 </div>
                             </div>
                         </div>

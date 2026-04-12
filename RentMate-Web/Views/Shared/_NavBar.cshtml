@@ -1,14 +1,11 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.Localization
-@using Microsoft.EntityFrameworkCore
-@using RentMate.Models
 @using RentMate.Models.Domain
-@using RentMate.Shared.Contracts.Responses
 @inject IViewLocalizer Localizer
 @inject UserManager<ApplicationUser> UserManager
 @inject RentMate.Services.Interfaces.ICurrencyService NavCurrencyService
-@inject RentMate.Infrastructure.Data.RentMateContext NavDbContext
+@inject RentMate.Services.Interfaces.IAttentionCountService NavAttentionCountService
 @{
     var currentUser = User.Identity?.IsAuthenticated == true ? await UserManager.GetUserAsync(User) : null;
     var userProfilePic = currentUser?.ProfilePictureUrl;
@@ -19,66 +16,12 @@
     var currentCulture = requestCulture?.RequestCulture.Culture.TwoLetterISOLanguageName ?? "en";
     var navCurrentCurrency = NavCurrencyService.GetCurrentCurrency();
 
-    // Compute dashboard attention count for authenticated users
-    var dashboardAttentionCount = 0;
-    if (currentUser != null)
-    {
-        var userId = currentUser.Id;
-        var today = DateTime.UtcNow.Date;
+    var navCounts = currentUser != null
+        ? await NavAttentionCountService.GetForUserAsync(currentUser.Id, User.IsInRole("Admin"))
+        : RentMate.Models.Dto.AttentionCounts.Empty;
 
-        // Overdue rentals (as renter): active rentals past end date
-        var overdueCount = await NavDbContext.Rentals.AsNoTracking()
-            .CountAsync(r => r.RenterId == userId && r.Status == RentalStatus.Active && r.EndDate.Date < today);
-
-        // Accepted rentals awaiting payment (as renter)
-        var acceptedCount = await NavDbContext.Rentals.AsNoTracking()
-            .CountAsync(r => r.RenterId == userId && r.Status == RentalStatus.Accepted);
-
-        // Pending requests (as owner): rentals awaiting approval
-        var pendingRequestCount = await NavDbContext.Rentals.AsNoTracking()
-            .CountAsync(r => r.OwnerId == userId && r.Status == RentalStatus.Pending);
-
-        // Pending extension requests (as owner)
-        var pendingExtensionCount = await NavDbContext.RentalExtensions.AsNoTracking()
-            .CountAsync(e => e.Status == ExtensionStatus.Pending && e.Rental!.OwnerId == userId);
-
-        // Deposits needing renter action: Charged, PartiallyCharged, or CounterOffered
-        var renterDepositCount = await NavDbContext.Rentals.AsNoTracking()
-            .CountAsync(r => r.RenterId == userId && r.Deposit != null
-                && (r.Deposit.Status == DepositStatus.Charged
-                    || r.Deposit.Status == DepositStatus.PartiallyCharged
-                    || r.Deposit.Status == DepositStatus.CounterOffered));
-
-        // Deposits needing owner response: Disputed
-        var ownerDisputedCount = await NavDbContext.Rentals.AsNoTracking()
-            .CountAsync(r => r.OwnerId == userId && r.Deposit != null
-                && r.Deposit.Status == DepositStatus.Disputed);
-
-        // Extensions awaiting renter payment: Accepted or AutoApproved
-        var extensionPaymentCount = await NavDbContext.RentalExtensions.AsNoTracking()
-            .CountAsync(e => (e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved)
-                && e.Rental!.RenterId == userId);
-
-        // Completed rentals ready to archive (not yet archived, no active disputes)
-        var completedReadyCount = await NavDbContext.Rentals.AsNoTracking()
-            .Include(r => r.Deposit)
-            .CountAsync(r => (r.RenterId == userId || r.OwnerId == userId)
-                && r.Status == RentalStatus.Completed && r.ArchivedAt == null
-                && (r.Deposit == null || (r.Deposit.Status != DepositStatus.Disputed
-                    && r.Deposit.Status != DepositStatus.CounterOffered
-                    && r.Deposit.Status != DepositStatus.Escalated)));
-
-        dashboardAttentionCount = overdueCount + acceptedCount + pendingRequestCount + pendingExtensionCount
-            + renterDepositCount + ownerDisputedCount + extensionPaymentCount + completedReadyCount;
-    }
-
-    // Admin attention: escalated disputes awaiting resolution
-    var adminAttentionCount = 0;
-    if (User.IsInRole("Admin"))
-    {
-        adminAttentionCount = await NavDbContext.RentalDeposits.AsNoTracking()
-            .CountAsync(d => d.Status == DepositStatus.Escalated);
-    }
+    var dashboardAttentionCount = navCounts.Total;
+    var adminAttentionCount = navCounts.AdminEscalated;
 }
 
 <!-- Sticky Glassmorphic Navbar -->

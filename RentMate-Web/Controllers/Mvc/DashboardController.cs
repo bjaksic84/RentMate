@@ -4,16 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RentMate.Infrastructure.Data;
 using RentMate.Models.Domain;
+using RentMate.Models.Domain.Extensions;
 using RentMate.Models.ViewModels;
 using RentMate.Services.Interfaces;
 using RentMate.Services.Extensions;
-using RentMate.Services.Implementations;
 using RentMate.Shared.Contracts.Responses;
-using NotificationType = RentMate.Models.Domain.NotificationType;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Localization;
-using Microsoft.AspNetCore.SignalR;
-using RentMate.Hubs;
+using RentMate.Controllers.Base;
 
 namespace RentMate.Controllers.Mvc
 {
@@ -22,7 +18,7 @@ namespace RentMate.Controllers.Mvc
     /// Uses IDashboardService for business logic, with legacy mapping for views.
     /// </summary>
     [Authorize]
-    public class DashboardController : Controller
+    public class DashboardController : BaseAppController
     {
         #region Constants
 
@@ -35,15 +31,12 @@ namespace RentMate.Controllers.Mvc
 
         #region Dependencies
 
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly RentMateContext _context;
         private readonly IDashboardService _dashboardService;
         private readonly IDepositService _depositService;
         private readonly IRentalExtensionService _extensionService;
-        private readonly IHubContext<RentMateHub> _hubContext;
+        private readonly INotificationDispatcher _dispatcher;
         private readonly ILogger<DashboardController> _logger;
-        private readonly INotificationService _notificationService;
-        private readonly IStringLocalizer<DashboardController> _localizer;
         private readonly IScoringService _scoringService;
 
         #endregion
@@ -56,21 +49,17 @@ namespace RentMate.Controllers.Mvc
             IDashboardService dashboardService,
             IDepositService depositService,
             IRentalExtensionService extensionService,
-            IHubContext<RentMateHub> hubContext,
+            INotificationDispatcher dispatcher,
             ILogger<DashboardController> logger,
-            INotificationService notificationService,
-            IStringLocalizer<DashboardController> localizer,
             IScoringService scoringService)
+            : base(userManager)
         {
-            _userManager = userManager;
             _context = context;
             _dashboardService = dashboardService;
             _depositService = depositService;
             _extensionService = extensionService;
-            _hubContext = hubContext;
+            _dispatcher = dispatcher;
             _logger = logger;
-            _notificationService = notificationService;
-            _localizer = localizer;
             _scoringService = scoringService;
         }
 
@@ -83,9 +72,9 @@ namespace RentMate.Controllers.Mvc
         /// </summary>
         public async Task<IActionResult> Index()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             
-            if (user != null && await _userManager.IsInRoleAsync(user, AdminRole))
+            if (user != null && await UserManager.IsInRoleAsync(user, AdminRole))
             {
                 return RedirectToAction(nameof(AdminDashboard));
             }
@@ -121,7 +110,7 @@ namespace RentMate.Controllers.Mvc
         [Authorize]
         public async Task<IActionResult> UserDashboard()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null)
             {
                 return RedirectToAction("Index", "Home");
@@ -155,7 +144,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RequestExtension(int RentalId, DateTime NewEndDate)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -166,23 +155,8 @@ namespace RentMate.Controllers.Mvc
                 // Notify the owner about the extension request
                 var rental = await _context.Rentals.Include(r => r.Item).FirstOrDefaultAsync(r => r.Id == RentalId);
                 if (rental != null)
-                {
-                    await _hubContext.Clients.User(rental.OwnerId!).SendAsync(RentMateHub.ExtensionRequestedEvent, new
-                    {
-                        extensionId = extension.Id,
-                        rentalId = RentalId,
-                        itemTitle = rental.Item?.Title,
-                        newEndDate = extension.NewEndDate.ToString("yyyy-MM-dd"),
-                        autoApproved = isAutoApproved
-                    });
-
-                    await _notificationService.CreateAsync(
-                        rental.OwnerId!, NotificationType.ExtensionRequested,
-                        _localizer["Notification.ExtensionRequested"].Value,
-                        string.Format(_localizer["NotificationMsg.ExtensionRequested"].Value,
-                            rental.Item?.Title ?? "", extension.NewEndDate.ToString("dd MMM")),
-                        extension.Id, "Extension", "/Dashboard?tab=lending");
-                }
+                    await _dispatcher.ExtensionRequestedAsync(extension.Id, RentalId, rental.OwnerId!,
+                        rental.Item?.Title, extension.NewEndDate, isAutoApproved);
 
                 return Json(new
                 {
@@ -205,7 +179,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveExtension(int extensionId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -214,22 +188,10 @@ namespace RentMate.Controllers.Mvc
 
                 var ext = await _context.RentalExtensions.Include(e => e.Rental).ThenInclude(r => r!.Item).FirstOrDefaultAsync(e => e.Id == extensionId);
                 if (ext?.Rental != null)
-                {
-                    await _hubContext.Clients.User(ext.RequestedByUserId!).SendAsync(RentMateHub.ExtensionStatusChangedEvent, new
-                    {
-                        extensionId, status = "Accepted", itemTitle = ext.Rental.Item?.Title, newEndDate = ext.NewEndDate.ToString("yyyy-MM-dd"),
-                        additionalCost = ext.AdditionalCost
-                    });
+                    await _dispatcher.ExtensionApprovedAsync(extensionId, ext.RequestedByUserId!,
+                        ext.Rental.Item?.Title, ext.NewEndDate, ext.AdditionalCost);
 
-                    await _notificationService.CreateAsync(
-                        ext.RequestedByUserId!, NotificationType.ExtensionApproved,
-                        _localizer["Notification.ExtensionApproved"].Value,
-                        string.Format(_localizer["NotificationMsg.ExtensionApproved"].Value, ext.Rental.Item?.Title ?? ""),
-                        ext.Id, "Extension", "/Dashboard?tab=renting");
-                    await _notificationService.AutoDismissAsync(ext.Id, "Extension", NotificationType.ExtensionRequested);
-                }
-
-                return Json(new { success = true, message = "Extension accepted — awaiting renter payment." });
+                return Json(new { success = true, message = "Extension accepted, awaiting renter payment." });
             }
             catch (Exception ex)
             {
@@ -245,7 +207,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeclineExtension(int extensionId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -254,19 +216,7 @@ namespace RentMate.Controllers.Mvc
 
                 var decExt = await _context.RentalExtensions.Include(e => e.Rental).ThenInclude(r => r!.Item).FirstOrDefaultAsync(e => e.Id == extensionId);
                 if (decExt?.Rental != null)
-                {
-                    await _hubContext.Clients.User(decExt.RequestedByUserId!).SendAsync(RentMateHub.ExtensionStatusChangedEvent, new
-                    {
-                        extensionId, status = "Declined", itemTitle = decExt.Rental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        decExt.RequestedByUserId!, NotificationType.ExtensionDeclined,
-                        _localizer["Notification.ExtensionDeclined"].Value,
-                        string.Format(_localizer["NotificationMsg.ExtensionDeclined"].Value, decExt.Rental.Item?.Title ?? ""),
-                        decExt.Id, "Extension", "/Dashboard?tab=renting");
-                    await _notificationService.AutoDismissAsync(decExt.Id, "Extension", NotificationType.ExtensionRequested);
-                }
+                    await _dispatcher.ExtensionDeclinedAsync(extensionId, decExt.RequestedByUserId!, decExt.Rental.Item?.Title);
 
                 return Json(new { success = true, message = "Extension declined." });
             }
@@ -284,7 +234,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelExtension(int extensionId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -293,19 +243,7 @@ namespace RentMate.Controllers.Mvc
 
                 var cancelExt = await _context.RentalExtensions.Include(e => e.Rental).ThenInclude(r => r!.Item).FirstOrDefaultAsync(e => e.Id == extensionId);
                 if (cancelExt?.Rental != null)
-                {
-                    await _hubContext.Clients.User(cancelExt.Rental.OwnerId!).SendAsync(RentMateHub.ExtensionStatusChangedEvent, new
-                    {
-                        extensionId, status = "CancelledByRenter", itemTitle = cancelExt.Rental.Item?.Title
-                    });
-
-                    await _notificationService.CreateAsync(
-                        cancelExt.Rental.OwnerId!, NotificationType.ExtensionCancelled,
-                        _localizer["Notification.ExtensionCancelled"].Value,
-                        string.Format(_localizer["NotificationMsg.ExtensionCancelled"].Value, cancelExt.Rental.Item?.Title ?? ""),
-                        cancelExt.Id, "Extension", "/Dashboard?tab=lending");
-                    await _notificationService.AutoDismissAsync(cancelExt.Id, "Extension", NotificationType.ExtensionRequested);
-                }
+                    await _dispatcher.ExtensionCancelledAsync(extensionId, cancelExt.Rental.OwnerId!, cancelExt.Rental.Item?.Title);
 
                 return Json(new { success = true, message = "Extension cancelled." });
             }
@@ -323,7 +261,7 @@ namespace RentMate.Controllers.Mvc
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ArchiveRental(int rentalId)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = await GetCurrentUserAsync();
             if (user == null) return Unauthorized();
 
             try
@@ -343,9 +281,7 @@ namespace RentMate.Controllers.Mvc
                     return Json(new { success = false, message = "Only completed or cancelled rentals can be archived." });
 
                 // Don't allow archiving if there's an active deposit dispute
-                if (rental.Deposit != null && (rental.Deposit.Status == DepositStatus.Disputed
-                    || rental.Deposit.Status == DepositStatus.CounterOffered
-                    || rental.Deposit.Status == DepositStatus.Escalated))
+                if (rental.Deposit != null && rental.Deposit.IsInDispute())
                     return Json(new { success = false, message = "Cannot archive while deposit dispute is active." });
 
                 rental.ArchivedAt = DateTime.UtcNow;
@@ -369,7 +305,7 @@ namespace RentMate.Controllers.Mvc
         /// </summary>
         private async Task PopulateAdminDashboardEntitiesAsync(DashboardViewModel viewModel)
         {
-            viewModel.Users = await _userManager.Users
+            viewModel.Users = await UserManager.Users
                 .AsNoTracking()
                 .Take(DashboardListLimit)
                 .ToListAsync();

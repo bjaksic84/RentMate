@@ -9,6 +9,7 @@ using RentMate.Services.Interfaces;
 using RentMate.Services.Extensions;
 using RentMate.Services.Implementations;
 using Microsoft.Extensions.Localization;
+using RentMate.Controllers.Base;
 
 namespace RentMate.Controllers.Mvc
 {
@@ -20,7 +21,7 @@ namespace RentMate.Controllers.Mvc
     [Route("api/[controller]")]
     [ApiController]
     [AutoValidateAntiforgeryToken]
-    public class ReviewsController : ControllerBase
+    public class ReviewsController : BaseApiController
     {
         #region Constants
 
@@ -32,7 +33,6 @@ namespace RentMate.Controllers.Mvc
         #region Dependencies
 
         private readonly RentMateContext _context;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IStringLocalizer<ReviewsController> _localizer;
         private readonly IReviewAggregationService _reviewAggregation;
         private readonly IScoringService _scoringService;
@@ -48,10 +48,11 @@ namespace RentMate.Controllers.Mvc
             IStringLocalizer<ReviewsController> localizer,
             IReviewAggregationService reviewAggregation,
             IScoringService scoringService,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            ILogger<ReviewsController> logger)
+            : base(userManager, logger)
         {
             _context = context;
-            _userManager = userManager;
             _localizer = localizer;
             _reviewAggregation = reviewAggregation;
             _scoringService = scoringService;
@@ -242,11 +243,6 @@ namespace RentMate.Controllers.Mvc
         #endregion
 
         #region Private Helpers
-
-        /// <summary>
-        /// Gets the current user's ID.
-        /// </summary>
-        private string? GetCurrentUserId() => _userManager.GetUserId(User);
 
         /// <summary>
         /// Builds query for item reviews ordered by date.

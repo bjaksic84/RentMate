@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using RentMate.Infrastructure.Identity;
 using RentMate.Models.Domain;
 
 namespace RentMate.Areas.Identity.Pages
@@ -15,6 +16,7 @@ namespace RentMate.Areas.Identity.Pages
 
         protected readonly UserManager<ApplicationUser> UserManager;
         protected readonly SignInManager<ApplicationUser> SignInManager;
+        protected readonly IUserStore<ApplicationUser>? UserStore;
 
         #endregion
 
@@ -22,10 +24,12 @@ namespace RentMate.Areas.Identity.Pages
 
         protected BaseIdentityPageModel(
             UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager)
+            SignInManager<ApplicationUser> signInManager,
+            IUserStore<ApplicationUser>? userStore = null)
         {
             UserManager = userManager;
             SignInManager = signInManager;
+            UserStore = userStore;
         }
 
         #endregion
@@ -37,7 +41,7 @@ namespace RentMate.Areas.Identity.Pages
         /// </summary>
         protected Task<ApplicationUser?> GetCurrentUserAsync()
         {
-            return UserManager.GetUserAsync(User);
+            return UserManager.GetCurrentUserAsync(User);
         }
 
         /// <summary>
@@ -45,7 +49,7 @@ namespace RentMate.Areas.Identity.Pages
         /// </summary>
         protected string? GetCurrentUserId()
         {
-            return UserManager.GetUserId(User);
+            return UserManager.GetCurrentUserId(User);
         }
 
         /// <summary>
@@ -141,7 +145,7 @@ namespace RentMate.Areas.Identity.Pages
         }
 
         /// <summary>
-        /// Gets the email store from the user store.
+        /// Gets the email store from the supplied user store.
         /// </summary>
         protected IUserEmailStore<ApplicationUser> GetEmailStore(IUserStore<ApplicationUser> userStore)
         {
@@ -150,6 +154,20 @@ namespace RentMate.Areas.Identity.Pages
                 throw new NotSupportedException("The default UI requires a user store with email support.");
             }
             return (IUserEmailStore<ApplicationUser>)userStore;
+        }
+
+        /// <summary>
+        /// Gets the email store from the base-injected user store.
+        /// Requires the page to have passed an <see cref="IUserStore{ApplicationUser}"/> to the base ctor.
+        /// </summary>
+        protected IUserEmailStore<ApplicationUser> GetEmailStore()
+        {
+            if (UserStore is null)
+            {
+                throw new InvalidOperationException(
+                    "UserStore was not provided to BaseIdentityPageModel. Pass it via the base constructor.");
+            }
+            return GetEmailStore(UserStore);
         }
 
         #endregion

@@ -310,6 +310,10 @@ builder.Services.AddScoped<IAccountLifecycleService, AccountLifecycleService>();
 
 // --- Notifications ---
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+
+// --- Attention counts (navbar badge) ---
+builder.Services.AddScoped<IAttentionCountService, AttentionCountService>();
 
 // ==========================================
 // 2. BUILD APP

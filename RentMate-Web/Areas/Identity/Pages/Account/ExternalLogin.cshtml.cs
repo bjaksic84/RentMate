@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Localization;
@@ -22,7 +21,7 @@ namespace RentMate.Areas.Identity.Pages.Account
     /// Page model for handling external login (OAuth) flows.
     /// </summary>
     [AllowAnonymous]
-    public class ExternalLoginModel : PageModel
+    public class ExternalLoginModel : BaseIdentityPageModel
     {
         #region Constants
 
@@ -31,17 +30,11 @@ namespace RentMate.Areas.Identity.Pages.Account
         private const string LoadExternalConfirmErrorKey = "Error loading external login information during confirmation.";
         private const string ConfirmEmailKey = "Confirm your email";
         private const string ConfirmEmailLinkKey = "Please confirm your account by <a href='{0}'>clicking here</a>.";
-        private const string CreateUserErrorKey = "Can't create an instance of '{0}'.";
-        private const string CreateUserHintKey = "Ensure that '{0}' is not an abstract class and has a parameterless constructor, or alternatively override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml";
-        private const string EmailNotSupportedKey = "The default UI requires a user store with email support.";
 
         #endregion
 
         #region Dependencies
 
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IUserStore<ApplicationUser> _userStore;
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly IEmailSender _emailSender;
         private readonly ILogger<ExternalLoginModel> _logger;
@@ -58,10 +51,8 @@ namespace RentMate.Areas.Identity.Pages.Account
             ILogger<ExternalLoginModel> logger,
             IEmailSender emailSender,
             IStringLocalizer<ExternalLoginModel> localizer)
+            : base(userManager, signInManager, userStore)
         {
-            _signInManager = signInManager;
-            _userManager = userManager;
-            _userStore = userStore;
             _emailStore = GetEmailStore();
             _logger = logger;
             _emailSender = emailSender;
@@ -102,7 +93,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         public IActionResult OnPost(string provider, string returnUrl = null)
         {
             var redirectUrl = Url.Page("./ExternalLogin", pageHandler: "Callback", values: new { returnUrl });
-            var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
+            var properties = SignInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
             return new ChallengeResult(provider, properties);
         }
 
@@ -116,7 +107,7 @@ namespace RentMate.Areas.Identity.Pages.Account
                 return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
             }
 
-            var info = await _signInManager.GetExternalLoginInfoAsync();
+            var info = await SignInManager.GetExternalLoginInfoAsync();
             if (info == null)
             {
                 ErrorMessage = _localizer[LoadExternalInfoErrorKey];
@@ -129,8 +120,8 @@ namespace RentMate.Areas.Identity.Pages.Account
         public async Task<IActionResult> OnPostConfirmationAsync(string returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
-            
-            var info = await _signInManager.GetExternalLoginInfoAsync();
+
+            var info = await SignInManager.GetExternalLoginInfoAsync();
             if (info == null)
             {
                 ErrorMessage = _localizer[LoadExternalConfirmErrorKey];
@@ -156,12 +147,12 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task<IActionResult> HandleExternalSignInAsync(ExternalLoginInfo info, string returnUrl)
         {
-            var result = await _signInManager.ExternalLoginSignInAsync(
+            var result = await SignInManager.ExternalLoginSignInAsync(
                 info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
 
             if (result.Succeeded)
             {
-                _logger.LogInformation("{Name} logged in with {LoginProvider} provider.", 
+                _logger.LogInformation("{Name} logged in with {LoginProvider} provider.",
                     info.Principal.Identity.Name, info.LoginProvider);
                 return LocalRedirect(returnUrl);
             }
@@ -174,12 +165,12 @@ namespace RentMate.Areas.Identity.Pages.Account
             // User doesn't have an account - show email confirmation form
             ReturnUrl = returnUrl;
             ProviderDisplayName = info.ProviderDisplayName;
-            
+
             if (info.Principal.HasClaim(c => c.Type == ClaimTypes.Email))
             {
                 Input = new InputModel { Email = info.Principal.FindFirstValue(ClaimTypes.Email) };
             }
-            
+
             return Page();
         }
 
@@ -188,12 +179,12 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task<IActionResult> CreateExternalUserAsync(ExternalLoginInfo info, string returnUrl)
         {
-            var user = CreateUser();
+            var user = CreateUserInstance();
 
-            await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+            await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
             await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
 
-            var result = await _userManager.CreateAsync(user);
+            var result = await UserManager.CreateAsync(user);
             if (!result.Succeeded)
             {
                 AddIdentityErrors(result);
@@ -202,7 +193,7 @@ namespace RentMate.Areas.Identity.Pages.Account
                 return Page();
             }
 
-            result = await _userManager.AddLoginAsync(user, info);
+            result = await UserManager.AddLoginAsync(user, info);
             if (!result.Succeeded)
             {
                 AddIdentityErrors(result);
@@ -214,12 +205,12 @@ namespace RentMate.Areas.Identity.Pages.Account
             _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
             await SendEmailConfirmationAsync(user);
 
-            if (_userManager.Options.SignIn.RequireConfirmedAccount)
+            if (UserManager.Options.SignIn.RequireConfirmedAccount)
             {
                 return RedirectToPage("./Confirmation", new { type = "register", email = Input.Email });
             }
 
-            await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+            await SignInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
             return LocalRedirect(returnUrl);
         }
 
@@ -228,10 +219,10 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task SendEmailConfirmationAsync(ApplicationUser user)
         {
-            var userId = await _userManager.GetUserIdAsync(user);
-            var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var userId = await UserManager.GetUserIdAsync(user);
+            var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            
+
             var callbackUrl = Url.Page(
                 "/Account/ConfirmEmail",
                 pageHandler: null,
@@ -240,40 +231,6 @@ namespace RentMate.Areas.Identity.Pages.Account
 
             var emailBody = string.Format(_localizer[ConfirmEmailLinkKey], HtmlEncoder.Default.Encode(callbackUrl));
             await _emailSender.SendEmailAsync(Input.Email, _localizer[ConfirmEmailKey], emailBody);
-        }
-
-        /// <summary>
-        /// Adds identity errors to model state.
-        /// </summary>
-        private void AddIdentityErrors(IdentityResult result)
-        {
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-        }
-
-        private ApplicationUser CreateUser()
-        {
-            try
-            {
-                return Activator.CreateInstance<ApplicationUser>();
-            }
-            catch
-            {
-                throw new InvalidOperationException(
-                    string.Format(_localizer[CreateUserErrorKey], nameof(ApplicationUser)) +
-                    string.Format(_localizer[CreateUserHintKey], nameof(ApplicationUser)));
-            }
-        }
-
-        private IUserEmailStore<ApplicationUser> GetEmailStore()
-        {
-            if (!_userManager.SupportsUserEmail)
-            {
-                throw new NotSupportedException(_localizer[EmailNotSupportedKey]);
-            }
-            return (IUserEmailStore<ApplicationUser>)_userStore;
         }
 
         #endregion

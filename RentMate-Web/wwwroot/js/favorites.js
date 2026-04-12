@@ -36,7 +36,7 @@
         pendingRequests.set(itemId, true);
 
         try {
-            const token = getAntiForgeryToken();
+            const token = window.getToken();
             const headers = {
                 'Content-Type': 'application/json'
             };
@@ -138,48 +138,6 @@
     }
 
     /**
-     * Get the anti-forgery token from the page
-     */
-    function getAntiForgeryToken() {
-        const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
-        return tokenElement ? tokenElement.value : '';
-    }
-
-    /**
-     * Show a toast notification (integrate with your existing toast system or use this simple one)
-     */
-    function showToast(message, type = 'info') {
-        // Check if there's an existing toast system
-        if (typeof window.showNotification === 'function') {
-            window.showNotification(message, type);
-            return;
-        }
-
-        // Simple toast fallback
-        const toast = document.createElement('div');
-        toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white text-sm transition-all duration-300 transform translate-y-0 opacity-100`;
-        toast.style.zIndex = 'var(--z-toast, 1500)';
-        
-        const bgColors = {
-            success: 'bg-green-500',
-            error: 'bg-red-500',
-            warning: 'bg-yellow-500',
-            info: 'bg-blue-500'
-        };
-        
-        toast.classList.add(bgColors[type] || bgColors.info);
-        toast.textContent = message;
-        
-        document.body.appendChild(toast);
-
-        // Animate out and remove
-        setTimeout(() => {
-            toast.classList.add('opacity-0', 'translate-y-2');
-            setTimeout(() => toast.remove(), 300);
-        }, 2500);
-    }
-
-    /**
      * Initialize favorite buttons
      */
     function initFavoriteButtons() {
@@ -202,7 +160,6 @@
 
     // Expose for external use if needed
     window.FavoritesManager = {
-        toggle: toggleFavorite,
-        showToast: showToast
+        toggle: toggleFavorite
     };
 })();
