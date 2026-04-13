@@ -1,6 +1,7 @@
 @using Microsoft.AspNetCore.Mvc.Localization
 @using RentMate.Shared.Contracts.Responses
 @using RentMate.Models.Domain
+@using System.Text.Json
 @model RentMate.Models.ViewModels.DashboardViewModel
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
@@ -23,12 +24,6 @@
     var monthlyEarned = Model.OwnerRentals?
         .Where(r => r.Status == RentalStatus.Completed && r.EndDate.Month == DateTime.UtcNow.Month && r.EndDate.Year == DateTime.UtcNow.Year)
         .Sum(r => r.TotalPrice) ?? 0;
-
-    string FormatDateRange(DateTime a, DateTime b) {
-        var first = a <= b ? a : b;
-        var second = a <= b ? b : a;
-        return $"{first.ToString("dd MMM")} → {second.ToString("dd MMM yyyy")}";
-    }
 }
 
 <!-- Summary Strip -->
@@ -50,48 +45,228 @@
     </div>
 </div>
 
-@* === Attention: Pending Rental Requests === *@
+@* === Pending Rental Requests — inline rich cards (Airbnb-style host inbox) === *@
 @if (pendingRequests.Any())
 {
-    <div class="mb-6 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 overflow-hidden">
+    <div class="mb-6 rounded-2xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/10 overflow-hidden">
         <div class="px-5 py-3 border-b border-amber-200 dark:border-amber-800 flex items-center gap-2">
             <i class="bi bi-clock text-amber-500"></i>
             <h3 class="text-sm font-semibold text-amber-700 dark:text-amber-300">@Localizer["PendingRequests"] (@pendingRequests.Count)</h3>
         </div>
-        <div class="divide-y divide-amber-200 dark:divide-amber-800">
+        <div class="p-3 space-y-3">
             @foreach (var rental in pendingRequests)
             {
-                <div class="px-5 py-3 flex items-center gap-3">
-                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
-                    <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden">
-                        @if (!string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl))
-                        {
-                            var thumbUrl = rental.Item.PrimaryImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/");
-                            <img src="@thumbUrl" class="w-full h-full object-cover" />
-                        }
-                        else
-                        {
-                            <div class="w-full h-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center"><i class="bi bi-image text-slate-300"></i></div>
-                        }
+                var detail = Model.PendingRequestDetails?.GetValueOrDefault(rental.Id);
+                var thumbUrl = !string.IsNullOrEmpty(rental.Item?.PrimaryImageUrl)
+                    ? rental.Item.PrimaryImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/")
+                    : "";
+                var avatarUrl = !string.IsNullOrEmpty(rental.Renter?.ProfilePictureUrl)
+                    ? rental.Renter.ProfilePictureUrl.Replace("/upload/", "/upload/c_thumb,w_128,h_128,q_auto/")
+                    : "";
+                var days = Math.Max(1, (rental.EndDate - rental.StartDate).Days);
+                var trustScore = rental.Renter?.ProfileTrustScore ?? 0;
+                var trustLabel = trustScore >= 80 ? Localizer["TrustHighlyTrusted"].Value
+                               : trustScore >= 60 ? Localizer["TrustTrusted"].Value
+                               : Localizer["TrustNewUser"].Value;
+                var trustColor = trustScore >= 80 ? "emerald" : trustScore >= 60 ? "amber" : "slate";
+                var renterDisplayName = rental.Renter?.FirstName != null
+                    ? $"{rental.Renter.FirstName} {rental.Renter.LastName}".Trim()
+                    : (rental.Renter?.UserName ?? Localizer["DeletedUser"].Value);
+
+                var verifications = new List<(string Label, string Icon)>();
+                if (rental.Renter?.EmailConfirmed == true) verifications.Add(("Email", "bi-envelope-check-fill"));
+                if (rental.Renter?.IsPhoneVerified == true) verifications.Add(("Phone", "bi-phone-fill"));
+                if (rental.Renter?.IsGovernmentIdVerified == true) verifications.Add(("ID", "bi-person-badge-fill"));
+                if (!string.IsNullOrEmpty(rental.Renter?.ProfilePictureUrl)) verifications.Add(("Photo", "bi-image-fill"));
+
+                var hasAccessories = (rental.Accessories?.Count ?? 0) > 0;
+                var basePriceFmt = CurrencyService.Format(detail?.BasePrice ?? (rental.Item?.Price ?? 0m) * days);
+                var pricePerDayFmt = CurrencyService.Format(rental.Item?.Price ?? 0m);
+                var accessoriesTotalFmt = CurrencyService.Format(detail?.AccessoriesTotal ?? 0m);
+                var totalPayoutFmt = CurrencyService.Format(detail?.NetPayout ?? (rental.Item?.Price ?? 0m) * days);
+                var depositAmount = detail?.DepositAmount ?? 0m;
+                var depositAmountFmt = CurrencyService.Format(depositAmount);
+                var hasConflict = detail?.HasConflict ?? false;
+
+                <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                    <!-- Header: item thumb + title -->
+                    <div class="flex items-center gap-3 px-5 py-3 border-b border-slate-200 dark:border-slate-700">
+                        <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700">
+                            @if (!string.IsNullOrEmpty(thumbUrl))
+                            {
+                                <img src="@thumbUrl" class="w-full h-full object-cover" alt="@rental.Item?.Title" />
+                            }
+                            else
+                            {
+                                <div class="w-full h-full flex items-center justify-center"><i class="bi bi-image text-slate-300"></i></div>
+                            }
+                        </div>
+                        <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId"
+                           class="flex-1 min-w-0 text-base font-semibold text-slate-900 dark:text-white truncate hover:text-trust-blue-600 dark:hover:text-trust-blue-400 transition-colors">
+                            @rental.Item?.Title
+                        </a>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-slate-900 dark:text-white truncate">@rental.Item?.Title</p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">
-                            @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.UserName ?? Localizer["DeletedUser"].Value) &mdash;
-                            @FormatDateRange(rental.StartDate, rental.EndDate)
-                        </p>
+
+                    <!-- Body: two-column on md+, booking-first on mobile -->
+                    <div class="p-5">
+                        <div class="flex flex-col-reverse md:flex-row gap-5">
+
+                            <!-- Renter panel (left on desktop, second on mobile) -->
+                            <div class="md:w-72 shrink-0 rounded-xl bg-blue-50/50 dark:bg-slate-900/40 border border-blue-100 dark:border-slate-700 p-4 flex flex-col gap-3">
+                                <div class="flex items-start gap-3">
+                                    <div class="w-12 h-12 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 shrink-0">
+                                        @if (!string.IsNullOrEmpty(avatarUrl))
+                                        {
+                                            <img src="@avatarUrl" class="w-full h-full object-cover" alt="@renterDisplayName" />
+                                        }
+                                        else
+                                        {
+                                            <div class="w-full h-full flex items-center justify-center text-xl text-slate-400"><i class="bi bi-person-circle"></i></div>
+                                        }
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="font-semibold text-slate-900 dark:text-white text-sm truncate">@renterDisplayName</p>
+                                        @if (!string.IsNullOrEmpty(rental.Renter?.City))
+                                        {
+                                            <p class="text-xs text-slate-500 dark:text-slate-400 truncate">@rental.Renter.City</p>
+                                        }
+                                        @if (!string.IsNullOrEmpty(rental.Renter?.Id))
+                                        {
+                                            <a asp-controller="Profile" asp-action="Details" asp-route-id="@rental.Renter.Id"
+                                               class="text-xs text-trust-blue-600 hover:text-trust-blue-700 dark:text-trust-blue-400 font-medium inline-flex items-center gap-1 mt-0.5">
+                                                @Localizer["ViewFullProfile"] <i class="bi bi-arrow-right"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <span class="text-sm font-semibold text-@(trustColor)-600 dark:text-@(trustColor)-400">@trustLabel</span>
+                                </div>
+
+                                @if (verifications.Any())
+                                {
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @foreach (var v in verifications)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                                                <i class="bi @v.Icon"></i>@v.Label
+                                            </span>
+                                        }
+                                    </div>
+                                }
+
+                                @{
+                                    var avgRating = detail?.RenterAvgRating ?? 0;
+                                    var reviewCount = detail?.RenterReviewCount ?? 0;
+                                    var completedRentals = detail?.RenterCompletedRentalsCount ?? 0;
+                                }
+                                @if (avgRating > 0 || completedRentals > 0)
+                                {
+                                    <div class="flex items-center gap-3 text-xs">
+                                        @if (avgRating > 0)
+                                        {
+                                            <span class="font-medium text-amber-500">★ @avgRating.ToString("0.0") (@reviewCount)</span>
+                                        }
+                                        @if (completedRentals > 0)
+                                        {
+                                            <span class="text-slate-500 dark:text-slate-400">@Localizer["RentalsCompletedCount", completedRentals]</span>
+                                        }
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(rental.Renter?.Bio))
+                                {
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 italic">"@rental.Renter.Bio"</p>
+                                }
+                            </div>
+
+                            <!-- Booking panel (right on desktop, first on mobile) -->
+                            <div class="flex-1 flex flex-col gap-4 min-w-0">
+
+                                <!-- Date strip -->
+                                <div class="rounded-xl bg-emerald-50/50 dark:bg-slate-900/40 border border-emerald-100 dark:border-slate-700 p-4">
+                                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2">@Localizer["BookingDetails"]</p>
+                                    <div class="flex items-center gap-3 flex-wrap">
+                                        <span class="text-base font-semibold text-slate-900 dark:text-white">@rental.StartDate.ToString("dd MMM")</span>
+                                        <i class="bi bi-arrow-right text-slate-400"></i>
+                                        <span class="text-base font-semibold text-slate-900 dark:text-white">@rental.EndDate.ToString("dd MMM yyyy")</span>
+                                        <span class="ml-auto text-sm font-medium text-emerald-600 dark:text-emerald-400">@days @Localizer["days"]</span>
+                                    </div>
+                                </div>
+
+                                @if (hasConflict)
+                                {
+                                    <div class="flex items-start gap-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                                        <i class="bi bi-exclamation-triangle-fill text-red-500 shrink-0 mt-0.5"></i>
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-medium text-red-700 dark:text-red-300">
+                                                @Localizer["CalendarConflictCount", detail!.ConflictingRentals.Count]
+                                            </p>
+                                            <ul class="mt-1 space-y-0.5 text-xs text-red-600 dark:text-red-400">
+                                                @foreach (var c in detail.ConflictingRentals)
+                                                {
+                                                    var cName = c.Renter?.FirstName ?? c.Renter?.UserName ?? "";
+                                                    <li>@c.StartDate.ToString("dd MMM") – @c.EndDate.ToString("dd MMM yyyy")@(string.IsNullOrEmpty(cName) ? "" : $" ({cName})")</li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Payout breakdown -->
+                                <div class="rounded-xl bg-emerald-50/50 dark:bg-slate-900/40 border border-emerald-100 dark:border-slate-700 p-4">
+                                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">@Localizer["Payout"]</p>
+                                    <div class="space-y-1.5 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-slate-500 dark:text-slate-400">@days @Localizer["days"] × @pricePerDayFmt</span>
+                                            <span class="font-medium text-slate-900 dark:text-white">@basePriceFmt</span>
+                                        </div>
+                                        @if (hasAccessories)
+                                        {
+                                            <div class="space-y-1">
+                                                @foreach (var a in rental.Accessories!)
+                                                {
+                                                    <div class="flex justify-between text-xs">
+                                                        <span class="text-slate-500 dark:text-slate-400">@a.Name</span>
+                                                        <span>@CurrencyService.Format(a.DailyPrice * days)</span>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="flex justify-between border-t border-slate-200 dark:border-slate-600 mt-1.5 pt-1.5">
+                                                <span class="text-slate-500 dark:text-slate-400">@Localizer["AccessoriesTotal"]</span>
+                                                <span class="font-medium text-slate-900 dark:text-white">@accessoriesTotalFmt</span>
+                                            </div>
+                                            <div class="flex justify-between border-t border-emerald-200 dark:border-emerald-800 pt-2 mt-1">
+                                                <span class="font-semibold text-slate-900 dark:text-white">@Localizer["TotalPayout"]</span>
+                                                <span class="font-bold text-emerald-600 dark:text-emerald-400 text-base">@totalPayoutFmt</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                @if (depositAmount > 0)
+                                {
+                                    <p class="text-xs text-slate-400 italic px-1">@string.Format(Localizer["DepositNote"].Value, depositAmountFmt)</p>
+                                }
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex gap-1.5 shrink-0">
-                        <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="inline">
+
+                    <!-- Footer: Reject + Approve -->
+                    <div class="flex items-center justify-end gap-2 px-5 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                        <form method="post" asp-controller="Rentals" asp-action="CancelRental" class="inline">
                             <input type="hidden" name="rentalId" value="@rental.Id" />
-                            <button class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
-                                @Localizer["Approve"]
+                            <button type="submit"
+                                    class="px-4 py-2 text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-all focus-ring">
+                                @Localizer["Reject"]
                             </button>
                         </form>
-                        <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
+                        <form method="post" asp-controller="Rentals" asp-action="ApproveRental" class="inline">
                             <input type="hidden" name="rentalId" value="@rental.Id" />
-                            <button class="px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-                                @Localizer["Reject"]
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1.5 px-5 py-2 text-sm font-semibold bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-lg shadow-sm transition-all focus-ring">
+                                <i class="bi bi-check-lg"></i>@Localizer["Approve"]
                             </button>
                         </form>
                     </div>
@@ -102,8 +277,43 @@
 }
 
 @* === Attention: Pending Extension Requests === *@
+@* JSON data blocks rendered here, outside any styled container *@
 @if (Model.PendingExtensions?.Any() ?? false)
 {
+    @foreach (var ext in Model.PendingExtensions!)
+    {
+        var extConflicts = Model.ExtensionConflicts?.GetValueOrDefault(ext.Id);
+        var extDays = Math.Max(1, (ext.NewEndDate - ext.OriginalEndDate).Days);
+        var totalRentalDays = Math.Max(1, (ext.Rental?.EndDate - ext.Rental?.StartDate)?.Days ?? 1);
+        var currentDay = Math.Max(1, (DateTime.UtcNow - (ext.Rental?.StartDate ?? DateTime.UtcNow)).Days + 1);
+
+        var extPayload = new {
+            extensionId = ext.Id,
+            rentalId = ext.RentalId,
+            item = new {
+                title = ext.Rental?.Item?.Title ?? "",
+                thumbUrl = !string.IsNullOrEmpty(ext.Rental?.Item?.PrimaryImageUrl)
+                    ? ext.Rental.Item.PrimaryImageUrl.Replace("/upload/", "/upload/c_thumb,w_80,h_80,q_auto/")
+                    : ""
+            },
+            renterFirstName = ext.RequestedBy?.FirstName ?? ext.RequestedBy?.UserName ?? "",
+            originalEndDate = ext.OriginalEndDate.ToString("dd MMM yyyy"),
+            newEndDate = ext.NewEndDate.ToString("dd MMM yyyy"),
+            extraDays = extDays,
+            additionalCost = ext.AdditionalCost,
+            additionalCostFmt = CurrencyService.Format(ext.AdditionalCost),
+            progress = $"Day {Math.Min(currentDay, totalRentalDays)} of {totalRentalDays}",
+            conflicts = extConflicts?.Select(c => new {
+                renterName = c.Renter?.FirstName ?? c.Renter?.UserName ?? "",
+                start = c.StartDate.ToString("dd MMM"),
+                end = c.EndDate.ToString("dd MMM yyyy")
+            }).ToList(),
+            hasConflict = extConflicts?.Any() ?? false
+        };
+
+        <script type="application/json" class="extension-request-data" data-extension-id="@ext.Id">@Html.Raw(JsonSerializer.Serialize(extPayload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }))</script>
+    }
+
     <div class="mb-6 rounded-2xl border border-sky-200 dark:border-sky-800 bg-sky-50 dark:bg-sky-900/20 overflow-hidden">
         <div class="px-5 py-3 border-b border-sky-200 dark:border-sky-800 flex items-center gap-2">
             <i class="bi bi-calendar-plus text-sky-500"></i>
@@ -112,8 +322,11 @@
         <div class="divide-y divide-sky-200 dark:divide-sky-800">
             @foreach (var ext in Model.PendingExtensions!)
             {
-                <div class="px-5 py-3 flex items-center gap-3">
-                    <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse shrink-0"></span>
+                <div class="px-5 py-3 flex items-center gap-3 cursor-pointer hover:bg-sky-100/50 dark:hover:bg-sky-900/30 transition-colors extension-request-row"
+                     data-extension-id="@ext.Id"
+                     role="button"
+                     tabindex="0"
+                     aria-label="@Localizer["ExtensionDetails"]: @ext.Rental?.Item?.Title">
                     <span class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
                         <i class="bi bi-calendar-plus text-sky-600 dark:text-sky-400 text-sm"></i>
                     </span>
@@ -125,16 +338,7 @@
                             (+@CurrencyService.Format(ext.AdditionalCost))
                         </p>
                     </div>
-                    <div class="flex gap-1.5 shrink-0">
-                        <button onclick="approveExtension(@ext.Id)"
-                                class="px-2.5 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
-                            @Localizer["Approve"]
-                        </button>
-                        <button onclick="declineExtension(@ext.Id)"
-                                class="px-2.5 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-                            @Localizer["Decline"]
-                        </button>
-                    </div>
+                    <i class="bi bi-chevron-right text-slate-400 shrink-0"></i>
                 </div>
             }
         </div>

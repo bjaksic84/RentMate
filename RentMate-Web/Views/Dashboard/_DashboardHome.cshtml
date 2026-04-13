@@ -119,19 +119,10 @@
                                     @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.UserName ?? Localizer["DeletedUser"].Value) &mdash; @FormatDateRange(rental.StartDate, rental.EndDate)
                                 </p>
                             </div>
-                            <div class="flex gap-1.5 shrink-0">
-                                <form asp-controller="Rentals" asp-action="ApproveRental" method="post" class="inline">
-                                    <input type="hidden" name="rentalId" value="@rental.Id" />
-                                    <button class="px-2.5 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
-                                        @Localizer["Approve"]
-                                    </button>
-                                </form>
-                                <form asp-controller="Rentals" asp-action="CancelRental" method="post" class="inline">
-                                    <input type="hidden" name="rentalId" value="@rental.Id" />
-                                    <button class="px-2.5 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-                                        @Localizer["Reject"]
-                                    </button>
-                                </form>
+                            <div class="shrink-0">
+                                <a href="#lending" onclick="event.preventDefault(); window.switchDashboardTab && window.switchDashboardTab('lending')" class="px-2.5 py-1.5 text-xs font-medium bg-amber-500 text-white rounded-lg hover:brightness-110 transition inline-flex items-center gap-1">
+                                    @Localizer["Review"] <i class="bi bi-arrow-right text-[10px]"></i>
+                                </a>
                             </div>
                         </div>
                     }
@@ -154,15 +145,10 @@
                                         (+@CurrencyService.Format(ext.AdditionalCost))
                                     </p>
                                 </div>
-                                <div class="flex gap-1.5 shrink-0">
-                                    <button onclick="approveExtension(@ext.Id)"
-                                            class="px-2.5 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition">
-                                        @Localizer["Approve"]
-                                    </button>
-                                    <button onclick="declineExtension(@ext.Id)"
-                                            class="px-2.5 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition">
-                                        @Localizer["Decline"]
-                                    </button>
+                                <div class="shrink-0">
+                                    <a href="#lending" onclick="event.preventDefault(); window.switchDashboardTab && window.switchDashboardTab('lending')" class="px-2.5 py-1.5 text-xs font-medium bg-sky-500 text-white rounded-lg hover:brightness-110 transition inline-flex items-center gap-1">
+                                        @Localizer["Review"] <i class="bi bi-arrow-right text-[10px]"></i>
+                                    </a>
                                 </div>
                             </div>
                         }
@@ -226,7 +212,7 @@
                                     }
                                 </p>
                             </div>
-                            <a href="#lending" class="px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                            <a href="#lending" onclick="event.preventDefault(); window.switchDashboardTab && window.switchDashboardTab('lending')" class="px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
                                 @Localizer["Respond"]
                             </a>
                         </div>
@@ -306,7 +292,7 @@
 <div class="mb-2">
     <h2 class="text-lg font-semibold font-outfit text-slate-900 dark:text-white mb-4">@Localizer["QuickLinks"]</h2>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <a href="#lending" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 text-center hover:border-trust-blue-300 dark:hover:border-trust-blue-700 hover:shadow-sm transition-all group">
+        <a href="#lending" onclick="event.preventDefault(); window.switchDashboardTab && window.switchDashboardTab('lending')" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 text-center hover:border-trust-blue-300 dark:hover:border-trust-blue-700 hover:shadow-sm transition-all group">
             <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                 <i class="bi bi-box-seam text-blue-600 dark:text-blue-400"></i>
             </div>

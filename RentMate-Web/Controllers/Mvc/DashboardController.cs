@@ -10,6 +10,7 @@ using RentMate.Services.Interfaces;
 using RentMate.Services.Extensions;
 using RentMate.Shared.Contracts.Responses;
 using RentMate.Controllers.Base;
+using System.Text.Json;
 
 namespace RentMate.Controllers.Mvc
 {
@@ -135,6 +136,31 @@ namespace RentMate.Controllers.Mvc
                 _logger.LogError(ex, "Error loading user dashboard for {UserId}", user.Id);
                 return HandleDashboardError();
             }
+        }
+
+        /// <summary>
+        /// Lazy-fetch endpoint for renter trust score breakdown, called when the
+        /// rental request modal opens. Only accessible to owners who have at least
+        /// one pending rental from the given renter (prevents fishing).
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> RenterTrustBreakdown(string userId)
+        {
+            var owner = await GetCurrentUserAsync();
+            if (owner == null) return Unauthorized();
+
+            // Verify owner has a pending rental from this renter
+            var hasPendingRental = await _context.Rentals
+                .AnyAsync(r => r.OwnerId == owner.Id
+                    && r.RenterId == userId
+                    && r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Pending);
+
+            if (!hasPendingRental)
+                return Forbid();
+
+            var breakdown = await _scoringService.GetProfileTrustBreakdownAsync(userId);
+
+            return Json(breakdown);
         }
 
         /// <summary>
@@ -348,6 +374,77 @@ namespace RentMate.Controllers.Mvc
 
             viewModel.DepositSummary = await _depositService
                 .GetDepositSummaryForOwnerAsync(userId);
+
+            // Build enriched details for each pending rental request
+            var pendingRentals = viewModel.OwnerRentals?
+                .Where(r => r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Pending)
+                .ToList() ?? new();
+
+            if (pendingRentals.Any())
+            {
+                viewModel.PendingRequestDetails = new Dictionary<int, RentalRequestDetailViewModel>();
+
+                foreach (var rental in pendingRentals)
+                {
+                    var renterId = rental.RenterId ?? "";
+
+                    // Renter avg rating + review count as renter
+                    var renterReviews = await _context.Reviews
+                        .AsNoTracking()
+                        .Where(rev => !rev.IsDeleted && rev.ReviewerId != renterId &&
+                            _context.Rentals.Any(r2 => r2.Id == rev.RentalId && r2.RenterId == renterId))
+                        .Select(rev => (double?)rev.Rating)
+                        .ToListAsync();
+
+                    var avgRating = renterReviews.Any() ? renterReviews.Average(r => r ?? 0) : 0.0;
+                    var reviewCount = renterReviews.Count;
+
+                    var completedCount = await _context.Rentals
+                        .AsNoTracking()
+                        .CountAsync(r => r.RenterId == renterId &&
+                            r.Status == RentMate.Shared.Contracts.Responses.RentalStatus.Completed);
+
+                    // Booking economics
+                    var days = (rental.EndDate - rental.StartDate).Days;
+                    if (days < 1) days = 1;
+                    var itemPrice = rental.Item?.Price ?? 0m;
+                    var basePrice = itemPrice * days;
+                    var accessoriesTotal = rental.Accessories?.Sum(a => a.DailyPrice * days) ?? 0m;
+                    var depositAmount = rental.Deposit?.Amount ?? 0m;
+
+                    // Calendar conflicts (Accepted or Active on same item, overlapping dates)
+                    var conflicts = await GetConflictingRentalsAsync(
+                        rental.ItemId, rental.StartDate, rental.EndDate, rental.Id);
+
+                    viewModel.PendingRequestDetails[rental.Id] = new RentalRequestDetailViewModel
+                    {
+                        RenterAvgRating = Math.Round(avgRating, 1),
+                        RenterReviewCount = reviewCount,
+                        RenterCompletedRentalsCount = completedCount,
+                        BasePrice = basePrice,
+                        AccessoriesTotal = accessoriesTotal,
+                        DepositAmount = depositAmount,
+                        NetPayout = basePrice + accessoriesTotal,
+                        ConflictingRentals = conflicts
+                    };
+                }
+            }
+
+            // Build conflict map for pending extensions
+            if (viewModel.PendingExtensions?.Any() ?? false)
+            {
+                viewModel.ExtensionConflicts = new Dictionary<int, List<Rental>>();
+
+                foreach (var ext in viewModel.PendingExtensions)
+                {
+                    if (ext.Rental?.ItemId is not { } itemId) continue;
+
+                    var conflicts = await GetConflictingRentalsAsync(
+                        itemId, ext.OriginalEndDate, ext.NewEndDate, ext.RentalId);
+
+                    viewModel.ExtensionConflicts[ext.Id] = conflicts;
+                }
+            }
         }
 
         /// <summary>
@@ -426,6 +523,31 @@ namespace RentMate.Controllers.Mvc
                     .ThenInclude(i => i.User)
                 .OrderByDescending(f => f.CreatedAt)
                 .Select(f => f.Item);
+        }
+
+        /// <summary>
+        /// Returns rentals on the same item (Accepted or Active) whose date range overlaps
+        /// the given window, excluding a specific rental id.
+        /// Used for conflict detection in both request and extension modals.
+        /// </summary>
+        private async Task<List<Rental>> GetConflictingRentalsAsync(
+            int itemId, DateTime start, DateTime end, int excludeRentalId)
+        {
+            var conflictStatuses = new[]
+            {
+                RentMate.Shared.Contracts.Responses.RentalStatus.Accepted,
+                RentMate.Shared.Contracts.Responses.RentalStatus.Active
+            };
+
+            return await _context.Rentals
+                .AsNoTracking()
+                .Include(r => r.Renter)
+                .Where(r => r.ItemId == itemId
+                    && r.Id != excludeRentalId
+                    && conflictStatuses.Contains(r.Status)
+                    && r.StartDate <= end
+                    && r.EndDate >= start)
+                .ToListAsync();
         }
 
         /// <summary>

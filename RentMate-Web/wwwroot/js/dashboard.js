@@ -10,7 +10,10 @@ var S = DC.strings || {};
 (function initTabs() {
     var tabButtons = document.querySelectorAll('.tab-btn[data-tab]');
     var tabPanels = document.querySelectorAll('[data-tab-panel]');
-    if (!tabButtons.length || !tabPanels.length) return;
+    if (!tabButtons.length || !tabPanels.length) {
+        console.error('[dashboard] initTabs: no tab buttons (' + tabButtons.length + ') or panels (' + tabPanels.length + ') found');
+        return;
+    }
 
     var activeClass = 'bg-gradient-to-r from-trust-blue-600 to-trust-blue-700 text-white shadow-sm';
     var inactiveClass = 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50';
@@ -57,13 +60,23 @@ var S = DC.strings || {};
         });
     });
 
-    // Back/forward navigation
+    // Back/forward navigation + hash links (e.g. href="#lending")
     window.addEventListener('hashchange', function () {
         var hash = window.location.hash.replace('#', '');
         if (validTabs.indexOf(hash) !== -1) {
+            sessionStorage.setItem('dashboardTab', hash);
             activateTab(hash);
         }
     });
+
+    // Expose for external callers (e.g. Review links in attention banner)
+    window.switchDashboardTab = function (tabName) {
+        if (validTabs.indexOf(tabName) !== -1) {
+            window.location.hash = tabName;
+            sessionStorage.setItem('dashboardTab', tabName);
+            activateTab(tabName);
+        }
+    };
 })();
 
 // === Expandable Rows ===

@@ -136,11 +136,13 @@
 @await Html.PartialAsync("_RentalModals", Model)
 @await Html.PartialAsync("_DepositModals", Model)
 @await Html.PartialAsync("_DisputeModals", Model)
+@await Html.PartialAsync("_ExtensionReviewModal", Model)
 
 @section Scripts {
     <script>
         window.DashboardConfig = {
             urls: {
+                userProfile: '/Profile/',
                 toggleListing: '/Items/ToggleListing/',
                 getBookedDates: '/Items/GetBookedDates',
                 requestExtension: '/Dashboard/RequestExtension',
@@ -214,11 +216,13 @@
                 acceptChargeConfirm: '@Localizer["Accept this charge and close the dispute?"]',
                 acceptCounterOfferConfirm: '@Localizer["Accept counter-offer and pay the settled amount?"]',
                 rejectCounterOfferConfirm: '@Localizer["Reject counter-offer? The original charge will stand and you can dispute again."]',
-                disputeSubmittedEvidenceFailed: '@Localizer["Dispute submitted, but evidence upload failed."]'
+                disputeSubmittedEvidenceFailed: '@Localizer["Dispute submitted, but evidence upload failed."]',
+                extensionConflict: '@Localizer["ExtensionConflict"]'
             }
         };
     </script>
     <script src="~/lib/signalr/signalr.min.js"></script>
-    <script src="~/js/dashboard.js"></script>
-    <script src="~/js/dashboard-disputes.js"></script>
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+    <script src="~/js/dashboard-disputes.js" asp-append-version="true"></script>
+    <script src="~/js/lending-requests.js" asp-append-version="true"></script>
 }

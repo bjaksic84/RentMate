@@ -13,7 +13,12 @@
         notifSound.play().catch(function() {});
     }
 
-    var escapeHtml = window.escapeHtml;
+    function escapeHtml(s) {
+        if (typeof window.escapeHtml === 'function') return window.escapeHtml(s);
+        var d = document.createElement('div');
+        d.textContent = String(s);
+        return d.innerHTML;
+    }
 
     function getNotifIcon(type) {
         if (type === 'ProfileSuggestion') return { icon: 'bi-person-check', color: 'text-blue-500' };
@@ -180,7 +185,9 @@
                     });
                 }
             })
-            .catch(function() {});
+            .catch(function(err) {
+                console.error('[notifications] fetchAndRender error:', err);
+            });
     }
 
     window.NotificationBell = {

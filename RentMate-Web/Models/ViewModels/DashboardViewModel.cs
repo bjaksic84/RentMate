@@ -79,4 +79,20 @@ public class DashboardViewModel
     public int PendingExtensionCount { get; set; }
 
     #endregion
+
+    #region Lending Request Details (modal data)
+
+    /// <summary>
+    /// Enriched details for each pending rental request, keyed by Rental.Id.
+    /// Used to populate the rental request review modal on the Lending tab.
+    /// </summary>
+    public Dictionary<int, RentalRequestDetailViewModel>? PendingRequestDetails { get; set; }
+
+    /// <summary>
+    /// Conflicting accepted/active rentals for each pending extension, keyed by RentalExtension.Id.
+    /// Empty list means no conflicts for that extension.
+    /// </summary>
+    public Dictionary<int, List<Rental>>? ExtensionConflicts { get; set; }
+
+    #endregion
 }
