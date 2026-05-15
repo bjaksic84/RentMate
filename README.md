@@ -23,15 +23,17 @@ prejšnjih vaj.
 | `Dodatek` | entiteta | `RentMate-Web/Models/Domain/ItemAccessory.cs`. Preslikava: `naziv` v `Name`, `cena` v `DailyPrice`. Operacija `pridobiDodatke` v statično `PridobiDodatkeAsync`. |
 | `Rezervacija` | entiteta | `RentMate-Web/Models/Domain/Rental.cs`. Operacija `ustvariRezervacijo` v statično `UstvariRezervacijoAsync`. Status se začne kot `RentalStatus.Pending` (čaka na potrditev). |
 
-## Postavljeni primerek
+## Postavljeni primeri - POMEMBNO
 
 https://rentmate-gdc6decvaqapckcx.polandcentral-01.azurewebsites.net
 
-Za testiranje priporočava, da naredite dva profila. Prvi bo najemnik in drugi najemodajalec. Ni potrebno, da emaila dejansko obstajata.
+Za testiranje, sta narejena dva profila. Prvi je najemnik in drugi najemodajalec. Emaila dejansko ne obstajata.
 
 V naprej sva naredila dva emaila: 
 renter@gmail.com -> Password-123
 owner@gmail.com -> Password-123
+
+KREDITNA KARTIA ZA NAKUPOVANJE: Stripe ima testno številko kartice 4242 4242 4242 4242, ostalo je lahko karkoli.
 
 Postavljeno na Azure App Service, samodejna postavitev iz veje `master` prek
 GitHub Actions (`.github/workflows/master_rentmate.yml`).
