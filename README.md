@@ -23,53 +23,25 @@ prejšnjih vaj.
 | `Dodatek` | entiteta | `RentMate-Web/Models/Domain/ItemAccessory.cs`. Preslikava: `naziv` v `Name`, `cena` v `DailyPrice`. Operacija `pridobiDodatke` v statično `PridobiDodatkeAsync`. |
 | `Rezervacija` | entiteta | `RentMate-Web/Models/Domain/Rental.cs`. Operacija `ustvariRezervacijo` v statično `UstvariRezervacijoAsync`. Status se začne kot `RentalStatus.Pending` (čaka na potrditev). |
 
-## Odstopanja od načrta
-
-- **Oddaja v enem koraku**. Prvotni sekvenčni diagrami so prikazovali večkoračni potek (oddaja datumov, prejem seznama dodatkov, izbira dodatkov, ponovna oddaja). Realizacija uporablja enostranski modalni obrazec, kjer se datumi in izbira dodatkov izvedejo skupaj, nato se odda enkrat. Sekvenčni diagrami v `docs/uml/` odražajo dejanski potek.
-- **`Razpoložljivost` ni shranjena kot tabela**. Razpoložljivost se izpelje iz obstoječih vrstic `Rental` prek `CalendarService.IsDateRangeAvailableAsync`. Razred `Razpoložljivost` obstaja s podpisom metode iz načrta, vendar delegira in ne hrani stanja.
-- **`najemnikId` je niz, ne celo število**. Načrt modelira id uporabnika kot `int`. ASP.NET Identity uporablja niz (GUID) kot primarni ključ, zato koda obdrži `string najemnikId`. To je podrobnost predstavitve; logična preslikava se ne spremeni.
-
-## Lokalni zagon
-
-Zahteve: .NET SDK za `net10.0`, PostgreSQL.
-
-Skrivnosti se upravljajo prek `dotnet user-secrets` (id projekta
-`dd670d54-9392-4ce5-84de-d962109329e0`):
-
-```bash
-cd RentMate-Web
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "<povezovalni niz za postgres>"
-dotnet user-secrets set "Jwt:Key" "<ključ za podpisovanje JWT>"
-dotnet user-secrets set "AdminUser:Password" "<geslo administratorja>"
-# Ključi Cloudinary so potrebni le za nalaganje slik, ne za potek rezervacije.
-```
-
-Uvedba migracij in zagon:
-
-```bash
-dotnet ef database update --project RentMate-Web/RentMate.csproj
-dotnet run --project RentMate-Web/RentMate.csproj
-```
-
-Aplikacija ob zagonu samodejno uvede morebitne čakajoče migracije, zato je korak
-`dotnet ef database update` neobvezen (zahteva globalno orodje `dotnet-ef`).
-
-Razvojni naslovi: `https://localhost:7280` / `http://localhost:5276`. Swagger na
-`/swagger` v okolju Development.
-
-Ob prvem zagonu `DataSeeder` ustvari tudi vzorčni objavljen predmet z dvema
-dodatkoma, da je primer uporabe izvedljiv. Registrirajte račun, odprite objavljen
-predmet, izberite datume in dodatke ter oddajte. Datumi, ki se prekrivajo z obstoječo
-rezervacijo, sprožijo alternativni tok s sporočilom `Predmet ni razpoložljiv`.
-Postavljeni primerek že vsebuje objavljene predmete, zato je potek mogoče preizkusiti
-tudi neposredno tam.
-
 ## Postavljeni primerek
 
 https://rentmate-gdc6decvaqapckcx.polandcentral-01.azurewebsites.net
 
+Za testiranje priporočava, da naredite dva profila. Prvi bo najemnik in drugi najemodajalec. Ni potrebno, da emaila dejansko obstajata.
+
+V naprej sva naredila dva emaila: 
+renter@gmail.com -> Password-123
+owner@gmail.com -> Password-123
+
 Postavljeno na Azure App Service, samodejna postavitev iz veje `master` prek
 GitHub Actions (`.github/workflows/master_rentmate.yml`).
+
+## Odstopanja od načrta
+
+- **Oddaja v enem koraku**. Prvotni sekvenčni diagrami so prikazovali večkoračni potek (oddaja datumov, prejem seznama dodatkov, izbira dodatkov, ponovna oddaja). Realizacija uporablja enostranski modalni obrazec, kjer se datumi in izbira dodatkov izvedejo skupaj, nato se odda enkrat.
+
+- **`Razpoložljivost` ni shranjena kot tabela**. Razpoložljivost se izpelje iz obstoječih vrstic `Rental` prek `CalendarService.IsDateRangeAvailableAsync`. Razred `Razpoložljivost` obstaja s podpisom metode iz načrta, vendar delegira in ne hrani stanja.
+- **`najemnikId` je niz, ne celo število**. Načrt modelira id uporabnika kot `int`. ASP.NET Identity uporablja niz (GUID) kot primarni ključ, zato koda obdrži `string najemnikId`. To je podrobnost predstavitve; logična preslikava se ne spremeni.
 
 ## Tehnološki sklad
 

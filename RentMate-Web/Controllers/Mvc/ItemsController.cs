@@ -310,17 +310,27 @@ namespace RentMate.Controllers.Mvc
                     return RedirectToAction(nameof(Delete), new { id });
                 }
 
-                // Delete all images from Cloudinary (including legacy single-image field)
-                var imageUrls = item.Images.Select(i => i.ImageUrl).ToList();
-                if (!string.IsNullOrEmpty(item.ImageUrl) && !imageUrls.Contains(item.ImageUrl))
-                    imageUrls.Add(item.ImageUrl);
-                await _fileUploadService.DeleteFilesAsync(imageUrls);
-
-                _db.Items.Remove(item);
-                await _db.SaveChangesAsync();
+                await DeleteItemCoreAsync(item);
             }
 
             return RedirectToAction("UserDashboard", "Dashboard");
+        }
+
+        /// <summary>
+        /// Permanently deletes an item: wipes its Cloudinary images (incl. the legacy
+        /// single-image field) then removes the row. EF cascade removes related rentals,
+        /// reviews, images, accessories and favorites. Caller owns authorization and any
+        /// business-rule guards. The item MUST be loaded with .Include(i => i.Images).
+        /// </summary>
+        private async Task DeleteItemCoreAsync(Item item)
+        {
+            var imageUrls = item.Images.Select(i => i.ImageUrl).ToList();
+            if (!string.IsNullOrEmpty(item.ImageUrl) && !imageUrls.Contains(item.ImageUrl))
+                imageUrls.Add(item.ImageUrl);
+            await _fileUploadService.DeleteFilesAsync(imageUrls);
+
+            _db.Items.Remove(item);
+            await _db.SaveChangesAsync();
         }
 
         [HttpPost]
@@ -485,6 +495,35 @@ namespace RentMate.Controllers.Mvc
             await _db.SaveChangesAsync();
 
             return Json(new { success = true, isAdminHidden = item.IsAdminHidden });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = AdminRole)]
+        public async Task<IActionResult> AdminDeleteItem(int id)
+        {
+            var item = await _db.Items
+                .Include(i => i.Images)
+                .FirstOrDefaultAsync(i => i.Id == id);
+            if (item == null) return NotFound();
+
+            try
+            {
+                // Admin force-delete: intentionally skips the active-rentals guard.
+                // EF cascade removes rentals, reviews, images, accessories, favorites.
+                await DeleteItemCoreAsync(item);
+
+                _logger.LogWarning(
+                    "ADMIN force-deleted item {ItemId} ('{Title}') owned by {OwnerId}. Admin: {AdminId}",
+                    id, item.Title, item.UserId, _userManager.GetUserId(User));
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to admin-delete item {ItemId}", id);
+                return Json(new { success = false, message = _localizer["Error deleting listing"].Value });
+            }
         }
 
         // Image Management Endpoints

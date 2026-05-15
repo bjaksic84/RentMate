@@ -274,7 +274,12 @@
                                         <i class="bi @(item.IsAdminHidden ? "bi-eye" : "bi-eye-slash")"></i>
                                         @(item.IsAdminHidden ? Localizer["Restore"] : Localizer["Hide"])
                                     </button>
-                                    <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" 
+                                    <button class="admin-delete-btn px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-red-600 hover:bg-red-700 text-white"
+                                            onclick="adminDeleteItem(@item.Id, this)">
+                                        <i class="bi bi-trash"></i>
+                                        @Localizer["Delete"]
+                                    </button>
+                                    <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id"
                                        class="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                                         <i class="bi bi-box-arrow-up-right"></i>
                                     </a>
@@ -322,6 +327,31 @@ async function adminToggleHide(itemId, button) {
         console.error(err);
         alert("@Localizer["Network error"]");
     }
+}
+
+async function adminDeleteItem(itemId, button) {
+    if (!confirm("@Localizer["Are you sure you want to permanently delete this listing? This will also remove all related rentals, reviews and images. This action cannot be undone."]")) return;
+
+    button.disabled = true;
+    try {
+        const res = await fetch(`/Items/AdminDeleteItem/${itemId}`, {
+            method: "POST",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
+            }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success) { button.closest("tr").remove(); return; }
+            alert(data.message || "@Localizer["Error deleting listing"]");
+        } else {
+            alert("@Localizer["Error deleting listing"]");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("@Localizer["Network error"]");
+    }
+    button.disabled = false;
 }
 </script>
 }
