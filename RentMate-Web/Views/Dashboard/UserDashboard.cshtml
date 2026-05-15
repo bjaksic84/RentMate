@@ -91,6 +91,7 @@
 @await Html.PartialAsync("_RentalModals", Model)
 @await Html.PartialAsync("_DepositModals", Model)
 @await Html.PartialAsync("_DisputeModals", Model)
+@await Html.PartialAsync("_ExtensionReviewModal", Model)
 
 @section Scripts {
     <script>
@@ -173,6 +174,7 @@
     <script src="~/lib/signalr/signalr.min.js"></script>
     <script src="~/js/dashboard.js"></script>
     <script src="~/js/dashboard-disputes.js"></script>
+    <script src="~/js/lending-requests.js"></script>
     <script>
         // Hash-driven dashboard tab switching. _StatCard links emit
         // href="#renting" / "#lending" etc., so hashchange is the single
@@ -204,15 +206,48 @@
             }
 
             function tabFromHash() {
-                return (window.location.hash || '#home').replace('#', '');
+                return (window.location.hash || '#home').split(':')[0].replace('#', '');
+            }
+
+            // Optional deep-link anchor after the tab: #<tab>:<anchor>
+            // Runs AFTER setActiveTab so the target panel is already un-hidden.
+            function focusAnchor() {
+                var anchor = (window.location.hash || '').slice(1).split(':')[1];
+                if (!anchor) return;
+                requestAnimationFrame(function () {
+                    // Extension request → open the existing review modal
+                    if (anchor.indexOf('ext-') === 0) {
+                        var row = document.querySelector('.extension-request-row[data-extension-id="' + anchor.slice(4) + '"]');
+                        if (!row) return;
+                        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        row.click();
+                        return;
+                    }
+                    var el = document.getElementById(anchor);
+                    if (!el) return; // graceful: tab still switched
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Reveal collapsed rental rows so the relevant panel shows
+                    if (el.classList.contains('expandable-row')) {
+                        var panel = el.querySelector('.expand-panel');
+                        if (panel) panel.classList.remove('hidden');
+                        var chevron = el.querySelector('.expand-chevron');
+                        if (chevron) chevron.classList.add('rotate-180');
+                    }
+                    el.classList.add('ring-2', 'ring-amber-400', 'ring-offset-2', 'transition');
+                    setTimeout(function () {
+                        el.classList.remove('ring-2', 'ring-amber-400', 'ring-offset-2');
+                    }, 2500);
+                });
             }
 
             window.addEventListener('hashchange', function () {
                 setActiveTab(tabFromHash());
+                focusAnchor();
             });
 
             document.addEventListener('DOMContentLoaded', function () {
                 setActiveTab(tabFromHash());
+                focusAnchor();
             });
         })();
     </script>

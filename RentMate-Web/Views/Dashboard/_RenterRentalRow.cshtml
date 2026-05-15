@@ -32,7 +32,7 @@
 }
 
 <!-- Compact Row (always visible) -->
-<div class="expandable-row cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors" data-rental-id="@rental.Id">
+<div id="rental-@rental.Id" class="expandable-row cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors" data-rental-id="@rental.Id">
     <div class="px-4 py-3 flex items-center gap-3">
         <!-- Thumbnail -->
         <a asp-controller="Items" asp-action="Details" asp-route-id="@rental.ItemId"
