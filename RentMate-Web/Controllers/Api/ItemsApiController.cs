@@ -146,13 +146,6 @@ namespace RentMate.Controllers.Api
                 return Unauthorized(_localizer["Error: Server cannot find your ID in the token. Dashboard will show 0."].Value);
             }
 
-            // Government ID gate: must verify before listing items
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user != null && !user.IsGovernmentIdVerified)
-            {
-                return BadRequest("You must verify your government ID before listing items for rent.");
-            }
-
             var newItem = new Item
             {
                 Title = request.Title,

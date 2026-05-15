@@ -99,16 +99,8 @@ namespace RentMate.Controllers.Mvc
             return View(item);
         }
 
-        public async Task<IActionResult> Create()
+        public IActionResult Create()
         {
-            // Government ID gate: must verify ID before listing items
-            var user = await _userManager.GetUserAsync(User);
-            if (user != null && !user.IsGovernmentIdVerified)
-            {
-                TempData["ErrorMessage"] = "You must verify your government ID before listing items for rent. Please go to your profile settings to complete verification.";
-                return RedirectToAction("UserDashboard", "Dashboard");
-            }
-
             ViewData["UserId"] = new SelectList(_db.Users, "Id", "Email");
             return View();
         }
@@ -344,13 +336,6 @@ namespace RentMate.Controllers.Mvc
             if (item == null || user == null || item.UserId != user.Id)
             {
                 return Unauthorized();
-            }
-
-            // Government ID gate: prevent listing without verified ID
-            if (!item.IsListed && !user.IsGovernmentIdVerified)
-            {
-                TempData["ErrorMessage"] = "You must verify your government ID before listing items for rent.";
-                return RedirectToAction("UserDashboard", "Dashboard");
             }
 
             item.IsListed = !item.IsListed;
