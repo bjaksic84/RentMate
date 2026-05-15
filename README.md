@@ -1,7 +1,7 @@
 # RentMate
 
 Tržnica za izposojo predmetov med uporabniki, izdelana v ASP.NET Core MVC.
-Razvito kot seminarska naloga pri predmetu RIS (UL FRI), 2. del.
+Razvito kot seminarska naloga za UL FRI, 2. letnik.
 
 ## Realiziran primer uporabe (RIS, 2. del)
 
