@@ -16,9 +16,9 @@ ItemsController, RentalsController, ReviewsController, Account/User kontrolerji,
 Pogledi:
 Razor pogledi za iskanje, predmete, najeme, profile in administracijo.
 
-2. PODATKOVNA BAZA (Entity Framework + MySQL Server)
+2. PODATKOVNA BAZA (Entity Framework + PostgreSQL)
 
-EF Core + MySQL Server z glavnimi relacijami:
+EF Core + PostgreSQL z glavnimi relacijami:
 Uporabnik–Predmeti (cascade), Uporabnik–Najemi (restrict), Predmet–Najemi (cascade), Predmet–Ocene (cascade), Uporabnik–Ocene (cascade).
 
 Podprta integriteta:
@@ -45,7 +45,7 @@ Iskanje in filtriranje, sistem najemov, sistem ocen, upravljanje predmetov, upor
 5. TEHNOLOGIJE
 
 Backend: ASP.NET Core MVC, C#, Identity, EF Core  
-Baza: MySQL Server, Azure SQL Databases  
+Baza: PostgreSQL (Neon/Azure)  
 Frontend: Razor, Bootstrap/Tailwind
 
 6. ZASLONSKE SLIKE PROJEKTA

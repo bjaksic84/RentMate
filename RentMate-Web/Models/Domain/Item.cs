@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+using RentMate.Infrastructure.Data;
 
 namespace RentMate.Models.Domain
 {
@@ -120,5 +122,16 @@ namespace RentMate.Models.Domain
         /// Gets the primary image URL (first image by DisplayOrder).
         /// </summary>
         public string? PrimaryImageUrl => Images?.OrderBy(i => i.DisplayOrder).FirstOrDefault()?.ImageUrl;
+
+        /// <summary>
+        /// Loads an item with its rentals by id.
+        /// Maps to VOPC Predmet.pridobiPodatke(int predmetId).
+        /// </summary>
+        public static async Task<Item?> PridobiPodatkeAsync(RentMateContext db, int predmetId)
+        {
+            return await db.Items
+                .Include(i => i.Rentals)
+                .FirstOrDefaultAsync(i => i.Id == predmetId);
+        }
     }
 }

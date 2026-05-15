@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using RentMate.Services.Interfaces;
 
 namespace RentMate.Models.Domain
 {
@@ -36,5 +37,14 @@ namespace RentMate.Models.Domain
         // Navigation properties
         public virtual Item? Item { get; set; }
         public virtual List<RentalAccessory> RentalAccessories { get; set; } = new();
+
+        /// <summary>
+        /// Loads all accessories defined for an item.
+        /// Maps to VOPC Dodatek.pridobiDodatke(int predmetId).
+        /// </summary>
+        public static async Task<List<ItemAccessory>> PridobiDodatkeAsync(IAccessoryService accessoryService, int predmetId)
+        {
+            return await accessoryService.GetAccessoriesForItemAsync(predmetId);
+        }
     }
 }

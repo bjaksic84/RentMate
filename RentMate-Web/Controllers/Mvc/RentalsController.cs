@@ -31,6 +31,7 @@ namespace RentMate.Controllers.Mvc
         private readonly IDepositService _depositService;
         private readonly ILogger<RentalsController> _logger;
         private readonly IScoringService _scoringService;
+        private readonly IRezervacijskiKontroler _rezervacijskiKontroler;
 
         private const int DefaultPageSize = 12;
         private const string DashboardAction = "UserDashboard";
@@ -45,7 +46,8 @@ namespace RentMate.Controllers.Mvc
             IAccessoryService accessoryService,
             IDepositService depositService,
             ILogger<RentalsController> logger,
-            IScoringService scoringService)
+            IScoringService scoringService,
+            IRezervacijskiKontroler rezervacijskiKontroler)
         {
             _context = context;
             _userManager = userManager;
@@ -56,6 +58,7 @@ namespace RentMate.Controllers.Mvc
             _depositService = depositService;
             _logger = logger;
             _scoringService = scoringService;
+            _rezervacijskiKontroler = rezervacijskiKontroler;
         }
 
         #region Helper Methods
@@ -80,20 +83,6 @@ namespace RentMate.Controllers.Mvc
             }
             TempData["SuccessMessage"] = message;
             return RedirectToAction(DashboardAction, DashboardController);
-        }
-
-        private bool HasDateConflict(ICollection<Rental>? rentals, DateTime startDate, DateTime endDate)
-        {
-            return rentals?.Any(r =>
-                (r.Status == RentalStatus.Active || r.Status == RentalStatus.Pending || r.Status == RentalStatus.Accepted) &&
-                r.StartDate <= endDate &&
-                r.EndDate >= startDate) ?? false;
-        }
-
-        private static decimal CalculateTotalPrice(decimal? pricePerDay, DateTime startDate, DateTime endDate)
-        {
-            var rentalDays = Math.Max((endDate.Date - startDate.Date).Days + 1, 1);
-            return (pricePerDay ?? 0) * rentalDays;
         }
 
         private bool IsUserAuthorizedForRental(ApplicationUser? user, Rental rental)
@@ -310,44 +299,25 @@ namespace RentMate.Controllers.Mvc
                 return HandleError(_localizer["You cannot rent your own item."].Value);
             }
 
-            // Check for date conflicts
-            if (HasDateConflict(item.Rentals, startDate, endDate))
+            // Delegate the reservation flow to the VOPC control class.
+            // This controller is a thin HTTP adapter; RezervacijskiKontroler owns the use case.
+            var rezultat = await _rezervacijskiKontroler.OddajZahtevoAsync(
+                itemId, startDate, endDate, accessoryIds, currentUser.Id);
+
+            if (!rezultat.Success)
             {
-                return HandleError(_localizer["Item is already booked during this period."].Value);
+                return HandleError(rezultat.Message);
             }
 
-            var rental = CreateRentalRequest(item, currentUser.Id, startDate, endDate);
-            _context.Rentals.Add(rental);
-            await _context.SaveChangesAsync();
-
-            // Attach selected accessories
-            if (accessoryIds?.Count > 0)
+            var rental = await _context.Rentals.FindAsync(rezultat.RezervacijaId);
+            if (rental != null)
             {
-                var rentalAccessories = await _accessoryService.AttachAccessoriesToRentalAsync(rental.Id, accessoryIds);
-                var accessoryTotal = rentalAccessories.Sum(ra => ra.DailyPrice * Math.Max((endDate.Date - startDate.Date).Days + 1, 1));
-                rental.TotalPrice += accessoryTotal;
-                await _context.SaveChangesAsync();
+                await NotifyOwnerOfRentalRequestAsync(item, rental, currentUser);
             }
-
-            await NotifyOwnerOfRentalRequestAsync(item, rental, currentUser);
 
             return HandleSuccess(
                 _localizer["Rental request submitted. Awaiting owner approval."].Value,
                 new { success = true, message = _localizer["Rental request submitted successfully."].Value });
-        }
-
-        private Rental CreateRentalRequest(Item item, string renterId, DateTime startDate, DateTime endDate)
-        {
-            return new Rental
-            {
-                ItemId = item.Id,
-                OwnerId = item.UserId ?? string.Empty,
-                RenterId = renterId,
-                StartDate = startDate,
-                EndDate = endDate,
-                Status = RentalStatus.Pending,
-                TotalPrice = CalculateTotalPrice(item.Price, startDate, endDate)
-            };
         }
 
         private async Task NotifyOwnerOfRentalRequestAsync(Item item, Rental rental, ApplicationUser renter)

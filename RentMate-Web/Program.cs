@@ -282,6 +282,7 @@ builder.Services.AddScoped<IPaymentService, StripePaymentService>();
 builder.Services.AddScoped<IDepositService, DepositService>();
 builder.Services.AddScoped<IRentalExtensionService, RentalExtensionService>();
 builder.Services.AddScoped<IAccessoryService, AccessoryService>();
+builder.Services.AddScoped<IRezervacijskiKontroler, RezervacijskiKontroler>();
 builder.Services.AddHostedService<OverdueRentalService>();
 
 // --- Marketplace Ranking System ---

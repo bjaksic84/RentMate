@@ -93,6 +93,17 @@ public class ApplicationUser : IdentityUser
     /// Use this to easily query: user.Favorites.Select(f => f.Item)
     /// </summary>
     public ICollection<AccountItemFavorite> Favorites { get; set; } = new List<AccountItemFavorite>();
+
+    /// <summary>
+    /// Loads a user by id. Maps to VOPC Uporabnik.pridobiUporabnika(int najemnikId).
+    /// The id is the ASP.NET Identity string key (the design's int is a logical id).
+    /// </summary>
+    public static async Task<ApplicationUser?> PridobiUporabnikaAsync(
+        UserManager<ApplicationUser> userManager,
+        string najemnikId)
+    {
+        return await userManager.FindByIdAsync(najemnikId);
+    }
 }
 
 

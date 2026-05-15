@@ -1,5 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+using RentMate.Infrastructure.Data;
+using RentMate.Shared.Contracts.Responses;
 
 namespace RentMate.Models.Domain
 {
@@ -55,5 +58,36 @@ namespace RentMate.Models.Domain
         public virtual ICollection<RentalAccessory> Accessories { get; set; } = new List<RentalAccessory>();
         public virtual RentalDeposit? Deposit { get; set; }
         public virtual ICollection<RentalExtension> Extensions { get; set; } = new List<RentalExtension>();
+
+        /// <summary>
+        /// Creates and persists a new reservation in the Pending state.
+        /// Maps to VOPC Rezervacija.ustvariRezervacijo(najemnikId, predmetId, datumOd, datumDo, dodatki, skupniZnesek).
+        /// Accessories are attached separately via IAccessoryService after creation.
+        /// </summary>
+        public static async Task<Rental> UstvariRezervacijoAsync(
+            RentMateContext db,
+            string najemnikId,
+            int predmetId,
+            DateTime datumOd,
+            DateTime datumDo,
+            decimal skupniZnesek)
+        {
+            var predmet = await db.Items.FindAsync(predmetId);
+
+            var rezervacija = new Rental
+            {
+                ItemId = predmetId,
+                OwnerId = predmet?.UserId ?? string.Empty,
+                RenterId = najemnikId,
+                StartDate = datumOd,
+                EndDate = datumDo,
+                Status = RentalStatus.Pending,
+                TotalPrice = skupniZnesek
+            };
+
+            db.Rentals.Add(rezervacija);
+            await db.SaveChangesAsync();
+            return rezervacija;
+        }
     }
 }
