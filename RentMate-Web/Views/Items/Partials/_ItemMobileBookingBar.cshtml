@@ -1,0 +1,18 @@
+@model RentMate.Models.ViewModels.ItemDetailsViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@if (!Model.IsOwner)
+{
+    <div class="mobile-booking-bar fixed bottom-0 inset-x-0 lg:hidden bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between" style="z-index: var(--z-fixed);">
+        <div>
+            <span class="text-xl font-bold text-slate-900 dark:text-white">@CurrencyService.Format(Model.Price)</span>
+            <span class="text-slate-500 dark:text-slate-400 text-sm">/@Localizer["day"]</span>
+        </div>
+        <button onclick="document.getElementById('rentModal-@Model.ItemId').classList.remove('hidden')"
+                class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl font-semibold transition-all">
+            @Localizer["Rent Now"]
+        </button>
+    </div>
+}

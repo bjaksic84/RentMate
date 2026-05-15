@@ -138,7 +138,10 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 builder.Services.AddSingleton<IStringLocalizerFactory, JsonStringLocalizerFactory>();
 
 // --- MVC, Controllers, and SignalR ---
-builder.Services.AddControllersWithViews()
+builder.Services.AddControllersWithViews(options =>
+    {
+        options.Filters.Add<RentMate.Infrastructure.Filters.DeactivatedAccountFilter>();
+    })
     .AddViewLocalization()
     .AddDataAnnotationsLocalization(options =>
     {
@@ -288,6 +291,17 @@ builder.Services.AddHostedService<ScoringBackgroundService>();
 // --- Onboarding & Profile Completion ---
 builder.Services.AddScoped<IProfileCompletionService, ProfileCompletionService>();
 
+// --- Notifications ---
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
+
+// --- Account Lifecycle & GDPR ---
+builder.Services.AddScoped<IAccountLifecycleService, AccountLifecycleService>();
+builder.Services.AddHostedService<DataRetentionService>();
+
+// --- Dashboard helpers ---
+builder.Services.AddScoped<IAttentionCountService, AttentionCountService>();
+
 // ==========================================
 // 2. BUILD APP
 // ==========================================
@@ -304,12 +318,22 @@ using (var scope = app.Services.CreateScope())
     try 
     {
         var context = services.GetRequiredService<RentMateContext>();
-        
-        if (context.Database.GetPendingMigrations().Any())
+
+        // Migration check — may fail in integration tests using SQLite/InMemory
+        try
         {
-            await context.Database.MigrateAsync();
+            if (context.Database.GetPendingMigrations().Any())
+            {
+                await context.Database.MigrateAsync();
+            }
         }
-        
+        catch (Exception ex) when (ex is InvalidOperationException
+            || ex.GetType().Name.Contains("Sqlite"))
+        {
+            // Non-Npgsql provider (integration tests) — ensure schema from model
+            context.Database.EnsureCreated();
+        }
+
         await DataSeeder.SeedRolesAndAdminAsync(services);
     }
     catch (Exception ex)
@@ -362,6 +386,9 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Redirect deactivated users away from protected pages
+app.UseDeactivatedAccountCheck();
 
 // Route mapping
 app.MapControllerRoute(

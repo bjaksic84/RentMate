@@ -37,7 +37,7 @@
                     </a>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <a asp-controller="Dashboard" asp-action="UserDashboard" class="hidden md:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
+                        <a asp-controller="Dashboard" asp-action="UserDashboard" data-spotlight="dashboard-link" class="hidden md:block px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-all duration-200">
                             @Localizer["Dashboard"]
                         </a>
                     }
@@ -214,8 +214,13 @@
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
+                        <!-- Notification Bell -->
+                        <span data-spotlight="notification-bell">
+                            <partial name="_NotificationBell" />
+                        </span>
+
                         <!-- User Menu -->
-                        <div class="relative">
+                        <div class="relative" data-spotlight="profile-menu">
                             <button onclick="this.nextElementSibling.classList.toggle('hidden')" class="flex items-center gap-2 p-1.5 pr-3 bg-slate-100 hover:bg-slate-200 rounded-full transition-all duration-200">
                                 @if (!string.IsNullOrEmpty(userProfilePic))
                                 {

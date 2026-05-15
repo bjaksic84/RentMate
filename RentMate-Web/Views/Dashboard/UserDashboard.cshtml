@@ -7,8 +7,14 @@
 
 @{
     ViewData["Title"] = Localizer["Dashboard"];
-    var activeMyRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
-    var activeOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
+
+    var tabs = new[]
+    {
+        new { Id = "home", Icon = "bi-grid-1x2", Label = Localizer["Overview"].Value },
+        new { Id = "renting", Icon = "bi-bag", Label = Localizer["Renting"].Value },
+        new { Id = "lending", Icon = "bi-graph-up-arrow", Label = Localizer["Lending"].Value },
+        new { Id = "history", Icon = "bi-clock-history", Label = Localizer["History"].Value }
+    };
 }
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -50,28 +56,34 @@
     <!-- Alerts -->
     @await Html.PartialAsync("_Alert")
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-bag", IconColor = "purple", Value = activeMyRentals.Count, Label = "Active Rentals", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-graph-up-arrow", IconColor = "green", Value = activeOwnerRentals.Count, Label = "Renting Out", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-calendar-plus", IconColor = "blue", Value = Model.PendingExtensionCount, Label = "Pending Extensions", Link = (string?)null, LinkText = (string?)null })
-        @await Html.PartialAsync("_StatCard", new { Icon = "bi-shield-check", IconColor = "amber", Value = CurrencyService.Format(Model.DepositSummary?.TotalHeld ?? 0), Label = "Deposits Held", Link = (string?)null, LinkText = (string?)null })
+    <!-- Tab Navigation -->
+    <div class="border-b border-slate-200 dark:border-slate-700 mb-8">
+        <nav id="dashboardTabs" class="flex flex-wrap -mb-px gap-1" aria-label="@Localizer["Dashboard"]">
+            @foreach (var tab in tabs)
+            {
+                <a href="#@tab.Id"
+                   data-tab="@tab.Id"
+                   role="tab"
+                   class="dash-tab inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent text-slate-500 dark:text-slate-400 font-medium hover:text-trust-blue-600 dark:hover:text-trust-blue-400 hover:border-trust-blue-300 transition-all">
+                    <i class="bi @tab.Icon"></i>
+                    <span>@tab.Label</span>
+                </a>
+            }
+        </nav>
     </div>
 
-    <!-- Attention Required Banner -->
-    @await Html.PartialAsync("_AttentionBanner", Model)
-
-    <!-- Two-Column Layout -->
-    <div class="flex flex-col lg:flex-row gap-8">
-        <!-- Left Column (Main Content) -->
-        <div class="flex-1 lg:w-2/3 space-y-8">
-            @await Html.PartialAsync("_MyRentals", Model)
-            @await Html.PartialAsync("_RentingOut", Model)
-            @await Html.PartialAsync("_RentalHistory", Model)
-        </div>
-
-        <!-- Right Column (Sidebar) -->
-        @await Html.PartialAsync("_DashboardSidebar", Model)
+    <!-- Tab Panels -->
+    <div id="home" class="dash-panel">
+        @await Html.PartialAsync("_DashboardHome", Model)
+    </div>
+    <div id="renting" class="dash-panel hidden">
+        @await Html.PartialAsync("_DashboardRenting", Model)
+    </div>
+    <div id="lending" class="dash-panel hidden">
+        @await Html.PartialAsync("_DashboardLending", Model)
+    </div>
+    <div id="history" class="dash-panel hidden">
+        @await Html.PartialAsync("_DashboardHistory", Model)
     </div>
 </div>
 
@@ -161,4 +173,47 @@
     <script src="~/lib/signalr/signalr.min.js"></script>
     <script src="~/js/dashboard.js"></script>
     <script src="~/js/dashboard-disputes.js"></script>
+    <script>
+        // Hash-driven dashboard tab switching. _StatCard links emit
+        // href="#renting" / "#lending" etc., so hashchange is the single
+        // source of truth for the active tab.
+        (function () {
+            var validTabs = ['home', 'renting', 'lending', 'history'];
+
+            function setActiveTab(id) {
+                if (validTabs.indexOf(id) === -1) id = 'home';
+
+                document.querySelectorAll('.dash-panel').forEach(function (panel) {
+                    panel.classList.toggle('hidden', panel.id !== id);
+                });
+
+                document.querySelectorAll('.dash-tab').forEach(function (tab) {
+                    var active = tab.getAttribute('data-tab') === id;
+                    tab.classList.toggle('text-trust-blue-600', active);
+                    tab.classList.toggle('dark:text-trust-blue-400', active);
+                    tab.classList.toggle('border-trust-blue-600', active);
+                    tab.classList.toggle('border-transparent', !active);
+                    tab.classList.toggle('text-slate-500', !active);
+                    tab.classList.toggle('dark:text-slate-400', !active);
+                    if (active) {
+                        tab.setAttribute('aria-selected', 'true');
+                    } else {
+                        tab.removeAttribute('aria-selected');
+                    }
+                });
+            }
+
+            function tabFromHash() {
+                return (window.location.hash || '#home').replace('#', '');
+            }
+
+            window.addEventListener('hashchange', function () {
+                setActiveTab(tabFromHash());
+            });
+
+            document.addEventListener('DOMContentLoaded', function () {
+                setActiveTab(tabFromHash());
+            });
+        })();
+    </script>
 }

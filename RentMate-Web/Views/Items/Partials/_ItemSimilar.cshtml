@@ -1,0 +1,64 @@
+@model RentMate.Models.ViewModels.ItemDetailsViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@if (Model.SimilarItems.Any())
+{
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+        <h2 class="font-heading text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+            <i class="bi bi-grid text-blue-500"></i>
+            @Localizer["You Might Also Like"]
+        </h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            @foreach (var item in Model.SimilarItems)
+            {
+                var imageUrl = item.PrimaryImageUrl ?? "";
+                if (!string.IsNullOrEmpty(imageUrl) && imageUrl.Contains("/upload/"))
+                {
+                    imageUrl = imageUrl.Replace("/upload/", "/upload/c_fill,w_400,h_300,q_auto,f_auto/");
+                }
+
+                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id"
+                   class="group block rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 hover:shadow-md transition-all">
+                    <!-- Image -->
+                    <div class="aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-700">
+                        @if (!string.IsNullOrEmpty(imageUrl))
+                        {
+                            <img src="@imageUrl" alt="@item.Title" loading="lazy"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                        }
+                        else
+                        {
+                            <div class="w-full h-full flex items-center justify-center">
+                                <i class="bi bi-image text-3xl text-slate-400"></i>
+                            </div>
+                        }
+                    </div>
+                    <!-- Info -->
+                    <div class="p-3">
+                        <h3 class="font-semibold text-slate-900 dark:text-white text-sm line-clamp-1">@item.Title</h3>
+                        <div class="flex items-center justify-between mt-1">
+                            <span class="text-blue-600 dark:text-blue-400 font-bold text-sm">@CurrencyService.Format(item.Price)<span class="text-slate-400 dark:text-slate-500 font-normal text-xs">/@Localizer["day"]</span></span>
+                        </div>
+                        @if (item.AverageRating.HasValue && item.AverageRating > 0)
+                        {
+                            <div class="flex items-center gap-1 mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                <i class="bi bi-star-fill text-amber-400"></i>
+                                <span>@item.AverageRating.Value.ToString("0.0")</span>
+                                <span>(@item.ReviewCount)</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(item.City))
+                        {
+                            <div class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                <i class="bi bi-geo-alt text-xs"></i> @item.City
+                            </div>
+                        }
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+}

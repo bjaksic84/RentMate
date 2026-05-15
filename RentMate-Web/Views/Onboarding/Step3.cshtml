@@ -1,0 +1,211 @@
+@model RentMate.Models.ViewModels.OnboardingStep3ViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@{
+    ViewData["Title"] = Localizer["Profile Photo"].Value;
+    Layout = "~/Views/Shared/_OnboardingLayout.cshtml";
+}
+
+@{ ViewData["OnboardingStep"] = 3; }
+
+<div class="onboarding-step">
+    <!-- Heading -->
+    <h1 id="photoHeading" class="step-enter step-enter-delay-0 font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2 text-center">
+        @Localizer["Add a profile photo"]
+    </h1>
+    <p class="step-enter step-enter-delay-1 text-slate-500 dark:text-slate-400 mb-6 text-center">
+        @Localizer["People are more likely to rent from someone they can see."]
+    </p>
+
+    <form method="post" asp-action="Step3" enctype="multipart/form-data" id="step3Form">
+        @Html.AntiForgeryToken()
+
+        <!-- Photo Upload Area -->
+        <div class="step-enter step-enter-delay-2 flex flex-col items-center mb-6">
+            <div id="photoUploadArea"
+                 class="photo-upload-area relative w-[140px] h-[140px] sm:w-[180px] sm:h-[180px] rounded-full border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center cursor-pointer overflow-hidden"
+                 onclick="document.getElementById('photoInput').click()">
+
+                <!-- Default state -->
+                <div id="uploadPrompt" class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500">
+                    <i class="bi bi-camera text-2xl"></i>
+                    <span class="text-xs font-medium hidden sm:block">@Localizer["Drag & drop"]</span>
+                    <span class="text-[10px] hidden sm:block text-slate-400 dark:text-slate-500">@Localizer["or click to browse"]</span>
+                    <span class="text-xs sm:hidden">@Localizer["Tap to upload"]</span>
+                </div>
+
+                <!-- Drag hover state text -->
+                <div id="dropHereText" class="hidden flex flex-col items-center gap-1 text-blue-600 dark:text-blue-400">
+                    <i class="bi bi-cloud-arrow-down text-2xl"></i>
+                    <span class="text-xs font-medium">@Localizer["Drop it here!"]</span>
+                </div>
+
+                <!-- Preview image (hidden until file selected) -->
+                <img id="photoPreview" src="@Model.ExistingProfilePictureUrl" alt=""
+                     class="@(string.IsNullOrEmpty(Model.ExistingProfilePictureUrl) ? "hidden" : "") absolute inset-0 w-full h-full object-cover" />
+
+                <!-- Uploaded checkmark overlay -->
+                <div id="uploadedOverlay" class="@(string.IsNullOrEmpty(Model.ExistingProfilePictureUrl) ? "hidden" : "") absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                        <i class="bi bi-check-lg text-white"></i>
+                    </div>
+                </div>
+            </div>
+
+            <input type="file"
+                   name="ProfilePicture"
+                   id="photoInput"
+                   accept=".jpg,.jpeg,.png,.webp"
+                   class="hidden"
+                   onchange="handlePhotoSelect(this)" />
+
+            <!-- Change photo link (shown after upload) -->
+            <button type="button" id="changePhotoBtn"
+                    class="@(string.IsNullOrEmpty(Model.ExistingProfilePictureUrl) ? "hidden" : "") mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    onclick="document.getElementById('photoInput').click()">
+                @Localizer["Change photo"]
+            </button>
+
+            <!-- Social proof -->
+            <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">
+                <i class="bi bi-star-fill text-amber-400 me-1"></i>
+                @Localizer["Profiles with photos get 3x more responses"]
+            </p>
+
+            <!-- File constraints -->
+            <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                JPG, PNG, WebP. @Localizer["Max {0}MB", 5]
+            </p>
+        </div>
+
+        <!-- Divider -->
+        <hr class="step-enter step-enter-delay-2 border-slate-200 dark:border-slate-700 mb-6" />
+
+        <!-- Bio Textarea -->
+        <div class="step-enter step-enter-delay-2 mb-6">
+            <div class="flex items-center justify-between mb-1.5">
+                <label for="bioInput" class="text-sm font-medium text-slate-700 dark:text-slate-300">@Localizer["About you"]</label>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">@Localizer["Optional"]</span>
+            </div>
+            <textarea name="Bio"
+                      id="bioInput"
+                      maxlength="500"
+                      rows="3"
+                      placeholder="@Localizer["Tell others a bit about yourself..."]"
+                      class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none transition-colors"
+                      oninput="updateCharCount()">@Model.Bio</textarea>
+            <div class="flex justify-end mt-1">
+                <span id="charCount" class="text-xs text-slate-400">0 / 500</span>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="step-enter step-enter-delay-3 flex items-center justify-between">
+            <a asp-action="Step2" class="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <i class="bi bi-arrow-left"></i> @Localizer["Back"]
+            </a>
+            <div class="flex items-center gap-3">
+                <a asp-action="Step4" class="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    @Localizer["Skip for now"]
+                </a>
+                <button type="submit"
+                        class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl font-medium transition-all">
+                    @Localizer["Continue"]
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCharCount();
+        initDragDrop();
+    });
+
+    function handlePhotoSelect(input) {
+        if (!input.files || !input.files[0]) return;
+        var file = input.files[0];
+
+        // 5MB validation
+        if (file.size > 5 * 1024 * 1024) {
+            if (typeof showToast === 'function') showToast(window.T?.FileTooLarge || 'File too large. Maximum 5MB.', 'error');
+            input.value = '';
+            return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var preview = document.getElementById('photoPreview');
+            var prompt = document.getElementById('uploadPrompt');
+            var overlay = document.getElementById('uploadedOverlay');
+            var changeBtn = document.getElementById('changePhotoBtn');
+            var heading = document.getElementById('photoHeading');
+
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
+            prompt.classList.add('hidden');
+            overlay.classList.remove('hidden');
+            changeBtn.classList.remove('hidden');
+
+            // Update heading
+            heading.textContent = window.T?.LookingGood || 'Looking good!';
+
+            // Update border style
+            var area = document.getElementById('photoUploadArea');
+            area.classList.remove('border-dashed', 'border-slate-300', 'dark:border-slate-600');
+            area.classList.add('border-solid', 'border-blue-500');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function updateCharCount() {
+        var textarea = document.getElementById('bioInput');
+        var counter = document.getElementById('charCount');
+        var len = textarea.value.length;
+        counter.textContent = len + ' / 500';
+        counter.classList.remove('text-amber-500', 'text-red-500', 'text-slate-400');
+        if (len >= 480) counter.classList.add('text-red-500');
+        else if (len >= 400) counter.classList.add('text-amber-500');
+        else counter.classList.add('text-slate-400');
+    }
+
+    function initDragDrop() {
+        var area = document.getElementById('photoUploadArea');
+        var prompt = document.getElementById('uploadPrompt');
+        var dropText = document.getElementById('dropHereText');
+
+        ['dragenter', 'dragover'].forEach(function(evt) {
+            area.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                area.classList.add('drag-over');
+                prompt.classList.add('hidden');
+                dropText.classList.remove('hidden');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(function(evt) {
+            area.addEventListener(evt, function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                area.classList.remove('drag-over');
+                dropText.classList.add('hidden');
+                if (document.getElementById('photoPreview').classList.contains('hidden')) {
+                    prompt.classList.remove('hidden');
+                }
+            });
+        });
+
+        area.addEventListener('drop', function(e) {
+            var files = e.dataTransfer.files;
+            if (files.length > 0) {
+                var input = document.getElementById('photoInput');
+                input.files = files;
+                handlePhotoSelect(input);
+            }
+        });
+    }
+</script>
+}

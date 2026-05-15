@@ -134,7 +134,10 @@ namespace RentMate.Areas.Identity.Pages.Account
         {
             var user = CreateUser();
 
-            await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+            // UserName is a public display handle and must never be the email.
+            // Derive it from the email local-part, uniquified if already taken.
+            var userName = await GenerateUniqueUserNameAsync(Input.Email);
+            await _userStore.SetUserNameAsync(user, userName, CancellationToken.None);
             await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
             var result = await _userManager.CreateAsync(user, Input.Password);
 
@@ -200,6 +203,35 @@ namespace RentMate.Areas.Identity.Pages.Account
             {
                 ModelState.AddModelError(string.Empty, error.Description);
             }
+        }
+
+        /// <summary>
+        /// Builds a unique display username from the email local-part.
+        /// Strips characters that are not letters/digits/._- and appends a
+        /// numeric suffix if the base handle is already in use.
+        /// </summary>
+        private async Task<string> GenerateUniqueUserNameAsync(string email)
+        {
+            var local = email.Split('@')[0];
+            var sb = new System.Text.StringBuilder();
+            foreach (var ch in local)
+            {
+                if (char.IsLetterOrDigit(ch) || ch is '.' or '_' or '-')
+                    sb.Append(ch);
+            }
+
+            var baseName = sb.Length > 0 ? sb.ToString() : "user";
+            if (baseName.Length > 20)
+                baseName = baseName.Substring(0, 20);
+
+            var candidate = baseName;
+            var suffix = 0;
+            while (await _userManager.FindByNameAsync(candidate) != null)
+            {
+                suffix++;
+                candidate = $"{baseName}{suffix}";
+            }
+            return candidate;
         }
 
         private ApplicationUser CreateUser()

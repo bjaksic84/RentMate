@@ -1,0 +1,114 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@* Antiforgery token read by cookie-consent.js *@
+@Html.AntiForgeryToken()
+
+@* ── Cookie Consent Banner ──────────────────────────────────────────── *@
+<div id="cookie-banner"
+     class="hidden fixed bottom-0 left-0 right-0 z-[9999] p-4 sm:p-6"
+     role="dialog" aria-modal="true" aria-label="@Localizer["Cookie Preferences"]">
+    <div class="max-w-4xl mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                <i class="bi bi-cookie mr-1.5 text-amber-500"></i>@Localizer["Cookie Preferences"]
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+                @Localizer["We use cookies to improve your experience and analyse site usage."]
+                <button onclick="openCookieModal()" class="underline hover:text-blue-500 transition-colors">@Localizer["Manage Cookie Preferences"]</button>
+            </p>
+        </div>
+        <div class="flex flex-wrap gap-2 shrink-0">
+            <button onclick="acceptCookies(false, false)"
+                    class="px-3 py-1.5 text-xs font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                @Localizer["Necessary Cookies Only"]
+            </button>
+            <button onclick="acceptCookies(true, true)"
+                    class="px-3 py-1.5 text-xs font-medium bg-trust-blue-600 hover:bg-trust-blue-700 text-white rounded-lg transition-colors">
+                @Localizer["Accept All"]
+            </button>
+        </div>
+    </div>
+</div>
+
+@* ── Cookie Preferences Modal ──────────────────────────────────────── *@
+<div id="cookie-modal"
+     class="hidden fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-label="@Localizer["Cookie Preferences"]">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeCookieModal()"></div>
+    <div class="relative w-full max-w-md bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+            <h2 class="font-semibold text-slate-900 dark:text-white">
+                <i class="bi bi-shield-check mr-2 text-trust-blue-600"></i>@Localizer["Cookie Preferences"]
+            </h2>
+            <button onclick="closeCookieModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors" aria-label="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-5 max-h-[60vh] overflow-y-auto">
+            @* Necessary — always on, not toggleable *@
+            <div class="flex items-start gap-4">
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">@Localizer["Necessary Cookies"]</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Necessary cookies enable core site functionality and cannot be disabled."]</p>
+                </div>
+                <div class="shrink-0 pt-0.5">
+                    <div class="w-10 h-6 bg-trust-blue-600 rounded-full flex items-center justify-end px-1 cursor-not-allowed opacity-60"
+                         title="Always active">
+                        <div class="w-4 h-4 bg-white rounded-full shadow"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 dark:border-slate-700"></div>
+
+            @* Analytics *@
+            <div class="flex items-start gap-4">
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">@Localizer["Analytics Cookies"]</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Analytics cookies help us understand how visitors interact with the website."]</p>
+                </div>
+                <div class="shrink-0 pt-0.5">
+                    <button id="toggle-analytics"
+                            onclick="toggleCookie('analytics')"
+                            role="switch" aria-checked="false"
+                            class="cookie-toggle w-10 h-6 bg-slate-200 dark:bg-slate-600 rounded-full flex items-center px-1 transition-colors duration-200"
+                            data-key="analytics">
+                        <div class="toggle-knob w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"></div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-100 dark:border-slate-700"></div>
+
+            @* Marketing *@
+            <div class="flex items-start gap-4">
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">@Localizer["Marketing Cookies"]</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Marketing cookies are used to display relevant advertisements and track campaign effectiveness."]</p>
+                </div>
+                <div class="shrink-0 pt-0.5">
+                    <button id="toggle-marketing"
+                            onclick="toggleCookie('marketing')"
+                            role="switch" aria-checked="false"
+                            class="cookie-toggle w-10 h-6 bg-slate-200 dark:bg-slate-600 rounded-full flex items-center px-1 transition-colors duration-200"
+                            data-key="marketing">
+                        <div class="toggle-knob w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-700 flex gap-3">
+            <button onclick="saveModalPreferences()"
+                    class="flex-1 py-2 text-sm font-semibold bg-trust-blue-600 hover:bg-trust-blue-700 text-white rounded-xl transition-colors">
+                @Localizer["Save Preferences"]
+            </button>
+            <button onclick="acceptCookies(true, true)"
+                    class="flex-1 py-2 text-sm font-semibold border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                @Localizer["Accept All"]
+            </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,582 @@
+/* ═══════════════════════════════════════════════════════════════
+   Onboarding CSS
+   Step transitions, floating labels, sonar ring,
+   carousel, spotlight tour
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Step Transition Choreography ─────────────────────────────── */
+
+.onboarding-step {
+    position: relative;
+}
+
+.step-enter {
+    opacity: 0;
+    transform: translateY(12px);
+}
+
+.step-enter.step-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.step-enter-delay-0 { transition-delay: 0ms; }
+.step-enter-delay-1 { transition-delay: 50ms; }
+.step-enter-delay-2 { transition-delay: 100ms; }
+.step-enter-delay-3 { transition-delay: 150ms; }
+
+.step-exit {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+.step-exit-active {
+    opacity: 0;
+    transform: translateX(-20px);
+}
+
+.step-exit-back.step-exit-active {
+    transform: translateX(20px);
+}
+
+.step-enter-back {
+    opacity: 0;
+    transform: translateY(12px);
+}
+
+.step-enter-back.step-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+/* ── Progress Dots ────────────────────────────────────────────── */
+
+.progress-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background-color: #cbd5e1;
+    transition: background-color 300ms ease, transform 300ms ease;
+}
+
+.dark .progress-dot {
+    background-color: #475569;
+}
+
+.progress-dot.active {
+    background-color: #2563eb;
+}
+
+.progress-dot.completed {
+    background-color: #2563eb;
+}
+
+@keyframes dotPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+}
+
+.progress-dot.pulse {
+    animation: dotPulse 300ms ease;
+}
+
+/* ── Floating Labels ──────────────────────────────────────────── */
+
+.floating-field {
+    position: relative;
+}
+
+.floating-field input {
+    padding-top: 1.25rem;
+}
+
+.floating-field label {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9em;
+    color: #6c757d;
+    pointer-events: none;
+    transition: all 150ms ease;
+    transform-origin: left center;
+}
+
+.dark .floating-field label {
+    color: #94a3b8;
+}
+
+.floating-field input:focus ~ label,
+.floating-field input:not(:placeholder-shown) ~ label {
+    top: 0.35rem;
+    transform: translateY(0);
+    font-size: 0.75em;
+    color: #2563eb;
+}
+
+.dark .floating-field input:focus ~ label,
+.dark .floating-field input:not(:placeholder-shown) ~ label {
+    color: #60a5fa;
+}
+
+.floating-field input {
+    transition: border-color 150ms ease;
+}
+
+.floating-field input:focus {
+    border-color: #2563eb;
+}
+
+/* ── Intent Cards ─────────────────────────────────────────────── */
+
+.intent-card {
+    cursor: pointer;
+    transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+    user-select: none;
+}
+
+.intent-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -2px rgba(0,0,0,.1);
+}
+
+@keyframes intentPress {
+    0% { transform: scale(1); }
+    30% { transform: scale(0.98); }
+    100% { transform: scale(1.02); }
+}
+
+.intent-card.selected {
+    animation: intentPress 300ms ease forwards;
+    border-color: #2563eb !important;
+}
+
+.intent-card .intent-check {
+    opacity: 0;
+    transform: scale(0);
+    transition: all 200ms ease;
+}
+
+.intent-card.selected .intent-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ── Validation Shake ─────────────────────────────────────────── */
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+.field-error {
+    animation: shake 200ms ease;
+    animation-iteration-count: 2;
+}
+
+/* ── Photo Upload ─────────────────────────────────────────────── */
+
+.photo-upload-area {
+    transition: transform 200ms ease, border-color 200ms ease, background-color 200ms ease;
+}
+
+.photo-upload-area.drag-over {
+    transform: scale(1.05);
+    border-color: #2563eb;
+    background-color: #eff6ff;
+}
+
+.dark .photo-upload-area.drag-over {
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
+/* ── Location Toggle Collapse ─────────────────────────────────── */
+
+.location-fields {
+    overflow: hidden;
+    transition: max-height 300ms ease, opacity 300ms ease;
+    max-height: 500px;
+    opacity: 1;
+}
+
+.location-fields.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+/* ── Carousel ─────────────────────────────────────────────────── */
+
+.carousel-track {
+    display: flex;
+    transition: transform 300ms ease;
+}
+
+.carousel-slide {
+    flex-shrink: 0;
+    overflow: hidden;
+    opacity: 0.4;
+    transition: opacity 300ms ease;
+}
+
+.carousel-slide.active {
+    opacity: 1;
+}
+
+/* Slide content staggered entry */
+.carousel-slide .slide-illustration,
+.carousel-slide h3,
+.carousel-slide > p {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.carousel-slide.active .slide-illustration {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0ms;
+}
+
+.carousel-slide.active h3 {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 80ms;
+}
+
+.carousel-slide.active > p {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 160ms;
+}
+
+/* Transition/final slide stagger (icon container, h3, p) */
+.carousel-slide.active > div:first-child {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: 0ms;
+}
+
+.carousel-slide > div:first-child {
+    transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background-color: #cbd5e1;
+    transition: all 300ms ease;
+    cursor: pointer;
+}
+
+.carousel-dot:hover {
+    background-color: #94a3b8;
+    transform: scale(1.3);
+}
+
+.carousel-dot.active:hover {
+    transform: scale(1);
+}
+
+.dark .carousel-dot {
+    background-color: #475569;
+}
+
+.carousel-dot.active {
+    width: 24px;
+    background-color: #2563eb;
+}
+
+.carousel-dot.completed {
+    background-color: #94a3b8;
+}
+
+.carousel-dot.transition-dot.active {
+    background-color: #f59e0b;
+}
+
+/* ── Illustration Patterns ───────────────────────────────────── */
+
+.slide-illustration .pattern-circle {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    opacity: 0.06;
+}
+
+.slide-illustration .pattern-dots {
+    position: absolute;
+    display: grid;
+    grid-template-columns: repeat(4, 6px);
+    gap: 8px;
+}
+
+.slide-illustration .pattern-dots span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.08;
+}
+
+.slide-illustration .icon-card {
+    position: relative;
+    z-index: 1;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dark .slide-illustration .icon-card {
+    background: #1e293b;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ── SVG Checkmark Draw ───────────────────────────────────────── */
+
+.checkmark-svg {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+}
+
+.checkmark-svg.animate {
+    animation: drawCheck 600ms ease forwards;
+}
+
+@keyframes drawCheck {
+    to { stroke-dashoffset: 0; }
+}
+
+/* ── Spotlight Tour ───────────────────────────────────────────── */
+
+.spotlight-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal-backdrop, 1100);
+    pointer-events: all;
+}
+
+.spotlight-overlay-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    transition: opacity 400ms ease;
+}
+
+.spotlight-hole {
+    position: fixed;
+    border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+    border: 2px solid #2563eb;
+    pointer-events: none;
+    transition: all 300ms ease;
+}
+
+.spotlight-hole::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
+    border: 2px solid #2563eb;
+    animation: sonarRing 2s ease-out infinite;
+}
+
+@keyframes sonarRing {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1.3);
+        opacity: 0;
+    }
+}
+
+.spotlight-tooltip {
+    position: fixed;
+    z-index: var(--z-modal, 1200);
+    background: white;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,.1), 0 8px 10px -6px rgba(0,0,0,.1);
+    max-width: 320px;
+    width: max-content;
+    opacity: 0;
+    transition: opacity 250ms ease-out, transform 250ms ease-out;
+}
+
+.dark .spotlight-tooltip {
+    background: #1e293b;
+    border: 1px solid #334155;
+}
+
+.spotlight-tooltip.visible {
+    opacity: 1;
+    transform: translate(0, 0);
+}
+
+.spotlight-tooltip::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: inherit;
+    transform: rotate(45deg);
+}
+
+.spotlight-tooltip.arrow-top::before { top: -6px; left: var(--arrow-offset, 1.5rem); }
+.spotlight-tooltip.arrow-bottom::before { bottom: -6px; left: var(--arrow-offset, 1.5rem); }
+.spotlight-tooltip.arrow-left::before { left: -6px; top: var(--arrow-offset, 1.5rem); }
+.spotlight-tooltip.arrow-right::before { right: -6px; top: var(--arrow-offset, 1.5rem); }
+
+.spotlight-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-modal, 1200);
+    background: white;
+    border-radius: 1.5rem 1.5rem 0 0;
+    padding: 1.5rem;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 25px rgba(0,0,0,.1);
+    transform: translateY(100%);
+    transition: transform 300ms ease-out;
+}
+
+.dark .spotlight-sheet {
+    background: #1e293b;
+    border-top: 1px solid #334155;
+}
+
+.spotlight-sheet.visible {
+    transform: translateY(0);
+}
+
+/* ── Onboarding Layout Background ─────────────────────────────── */
+
+.onboarding-bg {
+    background: var(--bg);
+    position: relative;
+}
+
+.onboarding-bg::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.04) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.dark .onboarding-bg::before {
+    background: radial-gradient(ellipse at center, rgba(30, 41, 59, 0.5) 0%, transparent 70%);
+}
+
+/* ── Carousel Placeholder Illustrations ───────────────────────── */
+
+.slide-illustration {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    border-radius: 1rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slide-illustration .watermark {
+    position: absolute;
+    font-family: 'Outfit', sans-serif;
+    font-size: 6em;
+    font-weight: 800;
+    opacity: 0.07;
+    user-select: none;
+}
+
+/* ── Reduced Motion ───────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .step-enter,
+    .step-enter.step-enter-active,
+    .step-exit,
+    .step-exit-active,
+    .step-enter-back,
+    .step-enter-back.step-enter-active {
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .progress-dot.pulse {
+        animation: none;
+    }
+
+    .intent-card {
+        transition: none;
+    }
+
+    .intent-card.selected {
+        animation: none;
+        transform: scale(1.02);
+    }
+
+    .carousel-track {
+        transition: none;
+    }
+
+    .carousel-slide {
+        opacity: 1;
+        transition: none;
+    }
+
+    .carousel-slide .slide-illustration,
+    .carousel-slide h3,
+    .carousel-slide > p,
+    .carousel-slide > div:first-child {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    .checkmark-svg.animate {
+        animation: none;
+        stroke-dashoffset: 0;
+    }
+
+    .spotlight-hole::before {
+        animation: none;
+        opacity: 0;
+    }
+
+    .spotlight-tooltip,
+    .spotlight-sheet {
+        transition: none;
+    }
+
+    .location-fields {
+        transition: none;
+    }
+
+    .photo-upload-area {
+        transition: none;
+    }
+
+    .floating-field label {
+        transition: none;
+    }
+
+    .field-error {
+        animation: none;
+    }
+}

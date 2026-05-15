@@ -54,6 +54,35 @@ public class ApplicationUser : IdentityUser
     /// </summary>
     public bool OnboardingCompleted { get; set; }
 
+    /// <summary>
+    /// User's primary intent: rent, list, or both. Set during onboarding Step 1.
+    /// Null for legacy users who completed the old onboarding.
+    /// </summary>
+    public UserIntent? UserIntent { get; set; }
+
+    /// <summary>
+    /// Whether the user has completed (or dismissed) the post-onboarding spotlight tour.
+    /// </summary>
+    public bool SpotlightTourCompleted { get; set; }
+
+    // ── Account deactivation ────────────────────────────────────────
+    public bool IsDeactivated { get; set; }
+    public DateTime? DeactivatedAt { get; set; }
+    public DeactivationSource? DeactivatedBy { get; set; }
+    [System.ComponentModel.DataAnnotations.StringLength(500)]
+    public string? DeactivationReason { get; set; }
+
+    // ── GDPR / Privacy ─────────────────────────────────────────────
+    public string? PrivacyPolicyVersion { get; set; }
+    public DateTime? PrivacyPolicyAcceptedAt { get; set; }
+
+    // ── User preferences ────────────────────────────────────────────
+    public string PreferredLanguage { get; set; } = string.Empty;
+    public bool NotifyOnMessage { get; set; }
+    public bool NotifyOnRentalRequest { get; set; }
+    public bool NotifyOnRentalStatusChange { get; set; }
+    public bool NotifyOnReview { get; set; }
+
     // Navigation properties
     public ICollection<Item>? Items { get; set; }
     public ICollection<Rental>? RentalsAsRenter { get; set; }

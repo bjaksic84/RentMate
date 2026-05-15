@@ -45,7 +45,7 @@ namespace RentMate.Services.Implementations
             }
         }
 
-        private async Task CheckOverdueRentalsAsync(CancellationToken ct)
+        internal async Task CheckOverdueRentalsAsync(CancellationToken ct)
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<RentMateContext>();
@@ -55,7 +55,7 @@ namespace RentMate.Services.Implementations
 
             var overdueRentals = await context.Rentals
                 .Include(r => r.Item)
-                .Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < now)
+                .Where(r => r.Status == RentalStatus.Active && r.EndDate.Date < now && r.ArchivedAt == null)
                 .ToListAsync(ct);
 
             if (overdueRentals.Count == 0) return;
@@ -89,7 +89,7 @@ namespace RentMate.Services.Implementations
             }
         }
 
-        private async Task CheckDisputeDeadlinesAsync(CancellationToken ct)
+        internal async Task CheckDisputeDeadlinesAsync(CancellationToken ct)
         {
             using var scope = _scopeFactory.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<RentMateContext>();

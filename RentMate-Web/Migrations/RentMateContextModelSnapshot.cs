@@ -203,6 +203,16 @@ namespace RentMate.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<DateTime?>("DeactivatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("DeactivatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeactivationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -217,6 +227,9 @@ namespace RentMate.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("HasReturnPolicy")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeactivated")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsGovernmentIdVerified")
@@ -251,6 +264,18 @@ namespace RentMate.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<bool>("NotifyOnMessage")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotifyOnRentalRequest")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotifyOnRentalStatusChange")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NotifyOnReview")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("OnboardingCompleted")
                         .HasColumnType("boolean");
 
@@ -262,6 +287,16 @@ namespace RentMate.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("PreferredLanguage")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PrivacyPolicyAcceptedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("PrivacyPolicyVersion")
+                        .HasColumnType("text");
 
                     b.Property<string>("ProfilePictureUrl")
                         .HasColumnType("text");
@@ -278,11 +313,17 @@ namespace RentMate.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 
+                    b.Property<bool>("SpotlightTourCompleted")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("TotalMessagesReceived")
                         .HasColumnType("integer");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("UserIntent")
+                        .HasColumnType("text");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
@@ -300,6 +341,42 @@ namespace RentMate.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("RentMate.Models.Domain.CookieConsent", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AnalyticsCookies")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("ConsentedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("IpAddressHash")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("MarketingCookies")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NecessaryCookies")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CookieConsents");
                 });
 
             modelBuilder.Entity("RentMate.Models.Domain.DisputeEvidence", b =>
@@ -519,6 +596,60 @@ namespace RentMate.Migrations
                     b.ToTable("ItemImages");
                 });
 
+            modelBuilder.Entity("RentMate.Models.Domain.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsDismissed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReferenceType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("RentMate.Models.Domain.Payment", b =>
                 {
                     b.Property<int>("Id")
@@ -562,6 +693,9 @@ namespace RentMate.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -663,6 +797,9 @@ namespace RentMate.Migrations
                     b.Property<DateTime?>("AuthorizedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<DateTime?>("ChargeAcceptedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<string>("ChargeReason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -688,6 +825,9 @@ namespace RentMate.Migrations
                     b.Property<string>("DisputeReason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("DisputeRoundCount")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("DisputedAt")
                         .HasColumnType("timestamp without time zone");
@@ -893,6 +1033,15 @@ namespace RentMate.Migrations
                     b.Navigation("Item");
                 });
 
+            modelBuilder.Entity("RentMate.Models.Domain.CookieConsent", b =>
+                {
+                    b.HasOne("RentMate.Models.Domain.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("RentMate.Models.Domain.DisputeEvidence", b =>
                 {
                     b.HasOne("RentMate.Models.Domain.RentalDeposit", "RentalDeposit")
@@ -942,6 +1091,17 @@ namespace RentMate.Migrations
                         .IsRequired();
 
                     b.Navigation("Item");
+                });
+
+            modelBuilder.Entity("RentMate.Models.Domain.Notification", b =>
+                {
+                    b.HasOne("RentMate.Models.Domain.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("RentMate.Models.Domain.Payment", b =>

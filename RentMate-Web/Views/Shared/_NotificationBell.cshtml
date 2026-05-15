@@ -1,0 +1,81 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+<div class="relative" id="notificationBellContainer">
+    @* Bell Button *@
+    <button onclick="window.NotificationBell.toggle()"
+            class="relative p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+            aria-label="@Localizer["Notifications"]"
+            aria-haspopup="true"
+            id="notificationBellBtn">
+        <i class="bi bi-bell text-lg"></i>
+        <span id="notificationBadge"
+              class="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 bg-rose-500 text-white text-xs font-bold rounded-full flex items-center justify-center hidden">
+            0
+        </span>
+    </button>
+
+    @* Desktop Dropdown (hidden on mobile) *@
+    <div id="notificationDropdown"
+         class="hidden absolute right-0 mt-2 w-96 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+         style="z-index: var(--z-dropdown, 100);">
+
+        @* Header *@
+        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">@Localizer["Notifications"]</h3>
+            <div class="flex items-center gap-2">
+                <button onclick="window.NotificationBell.toggleSound()"
+                        class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                        id="notifSoundToggle" title="Toggle sound">
+                    <i class="bi bi-volume-up text-sm"></i>
+                </button>
+                <button onclick="window.NotificationBell.markAllAsRead()"
+                        class="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                        id="markAllReadBtn">
+                    @Localizer["Mark all as read"]
+                </button>
+            </div>
+        </div>
+
+        @* Notification List *@
+        <div id="notificationList" class="max-h-96 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700">
+            @* Rendered by notifications.js *@
+        </div>
+
+        @* Empty State (shown/hidden by JS) *@
+        <div id="notificationEmpty" class="py-10 text-center hidden">
+            <i class="bi bi-bell-slash text-3xl text-slate-300 dark:text-slate-600"></i>
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Localizer["No notifications"]</p>
+        </div>
+    </div>
+</div>
+
+@* Mobile Slide-Up Panel (hidden on desktop) *@
+<div id="notificationMobilePanel"
+     class="fixed inset-0 hidden md:!hidden"
+     style="z-index: var(--z-modal, 1200);">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="window.NotificationBell.closeMobile()"></div>
+    <div class="absolute bottom-0 inset-x-0 bg-white dark:bg-slate-800 rounded-t-2xl shadow-2xl max-h-[80vh] flex flex-col transform transition-transform duration-300"
+         id="notificationMobileSheet">
+        @* Handle bar *@
+        <div class="flex justify-center py-2">
+            <div class="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></div>
+        </div>
+        @* Header *@
+        <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white">@Localizer["Notifications"]</h3>
+            <div class="flex items-center gap-3">
+                <button onclick="window.NotificationBell.markAllAsRead()"
+                        class="text-xs text-blue-600 font-medium">@Localizer["Mark all as read"]</button>
+                <button onclick="window.NotificationBell.closeMobile()"
+                        class="text-slate-400 hover:text-slate-600"><i class="bi bi-x-lg"></i></button>
+            </div>
+        </div>
+        @* Notification list for mobile *@
+        <div id="notificationMobileList" class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700"></div>
+        <div id="notificationMobileEmpty" class="py-10 text-center hidden">
+            <i class="bi bi-bell-slash text-3xl text-slate-300 dark:text-slate-600"></i>
+            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">@Localizer["No notifications"]</p>
+        </div>
+    </div>
+</div>

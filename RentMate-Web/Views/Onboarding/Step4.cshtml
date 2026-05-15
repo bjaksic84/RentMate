@@ -1,0 +1,341 @@
+@model RentMate.Models.ViewModels.OnboardingStep4ViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Models.Domain
+@inject IViewLocalizer Localizer
+@{
+    ViewData["Title"] = Localizer["App Tour"].Value;
+    Layout = "~/Views/Shared/_OnboardingLayout.cshtml";
+
+    var isRenter = Model.UserIntent == UserIntent.Renter;
+    var isLister = Model.UserIntent == UserIntent.Lister;
+    var isBoth = Model.UserIntent == UserIntent.Both;
+
+    // CTA text per intent
+    var ctaText = isRenter ? Localizer["Browse items near you"].Value
+        : isLister ? Localizer["List your first item"].Value
+        : Localizer["Explore RentMate"].Value;
+}
+
+@{ ViewData["OnboardingStep"] = 4; }
+
+<div class="onboarding-step">
+    <!-- Section label (Both intent only) -->
+    @if (isBoth)
+    {
+        <div id="sectionLabel" class="text-center mb-3">
+            <span class="text-xs font-bold tracking-wider px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
+                @Localizer["RENTING ITEMS"]
+            </span>
+        </div>
+    }
+
+    <!-- Carousel Container -->
+    <div class="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm" id="carouselContainer">
+        <div class="carousel-track" id="carouselTrack">
+            @* -- Renter Slides -- *@
+            @if (isRenter || isBoth)
+            {
+                <div class="carousel-slide p-6" data-section="renter">
+                    <div class="slide-illustration bg-gradient-to-br from-blue-100 to-sky-50 dark:from-blue-950/40 dark:to-sky-950/20 mb-4 text-blue-300 dark:text-blue-700">
+                        <span class="watermark">01</span>
+                        <div class="pattern-circle" style="width:120px;height:120px;top:-20px;right:-20px"></div>
+                        <div class="pattern-circle" style="width:80px;height:80px;bottom:10px;left:-15px"></div>
+                        <div class="pattern-dots" style="top:16px;left:16px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        <div class="icon-card"><i class="bi bi-search text-2xl text-blue-500 dark:text-blue-400"></i></div>
+                    </div>
+                    <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">@Localizer["Find what you need"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Search by category, location, or keyword. Filter by price, distance, and availability to find exactly what you're looking for."]</p>
+                </div>
+
+                <div class="carousel-slide p-6" data-section="renter">
+                    <div class="slide-illustration bg-gradient-to-br from-blue-100 to-sky-50 dark:from-blue-950/40 dark:to-sky-950/20 mb-4 text-blue-300 dark:text-blue-700">
+                        <span class="watermark">02</span>
+                        <div class="pattern-circle" style="width:100px;height:100px;top:10px;left:-25px"></div>
+                        <div class="pattern-circle" style="width:140px;height:140px;bottom:-30px;right:-30px"></div>
+                        <div class="pattern-dots" style="bottom:16px;right:16px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        <div class="icon-card"><i class="bi bi-calendar-check text-2xl text-blue-500 dark:text-blue-400"></i></div>
+                    </div>
+                    <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">@Localizer["Rent with confidence"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Pick your dates, review the price breakdown, and send a rental request. The owner confirms and you're all set."]</p>
+                </div>
+
+                <div class="carousel-slide p-6" data-section="renter">
+                    <div class="slide-illustration bg-gradient-to-br from-blue-100 to-sky-50 dark:from-blue-950/40 dark:to-sky-950/20 mb-4 text-blue-300 dark:text-blue-700">
+                        <span class="watermark">03</span>
+                        <div class="pattern-circle" style="width:90px;height:90px;top:-15px;left:30%"></div>
+                        <div class="pattern-circle" style="width:60px;height:60px;bottom:20px;right:10px"></div>
+                        <div class="pattern-dots" style="top:16px;right:16px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        <div class="icon-card"><i class="bi bi-shield-check text-2xl text-blue-500 dark:text-blue-400"></i></div>
+                    </div>
+                    <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">@Localizer["Secure deposits"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Deposits protect both sides. They're held safely and released automatically when the rental ends without issues."]</p>
+                </div>
+
+                <div class="carousel-slide p-6" data-section="renter">
+                    <div class="slide-illustration bg-gradient-to-br from-blue-100 to-sky-50 dark:from-blue-950/40 dark:to-sky-950/20 mb-4 text-blue-300 dark:text-blue-700">
+                        <span class="watermark">04</span>
+                        <div class="pattern-circle" style="width:110px;height:110px;bottom:-20px;left:-20px"></div>
+                        <div class="pattern-circle" style="width:70px;height:70px;top:15px;right:20px"></div>
+                        <div class="pattern-dots" style="bottom:16px;left:16px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        <div class="icon-card"><i class="bi bi-star text-2xl text-blue-500 dark:text-blue-400"></i></div>
+                    </div>
+                    <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">@Localizer["Reviews build trust"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["After each rental, both sides leave a review. Verified reviews help the community stay trustworthy."]</p>
+                </div>
+            }
+
+            @* -- Transition Slide (Both intent only) -- *@
+            @if (isBoth)
+            {
+                <div class="carousel-slide p-6 flex flex-col items-center justify-center text-center" data-section="transition">
+                    <div class="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-4">
+                        <i class="bi bi-check-circle-fill text-3xl text-emerald-500"></i>
+                    </div>
+                    <h3 class="font-heading text-xl font-bold text-slate-900 dark:text-white mb-2">@Localizer["That's how renting works!"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Now let's look at the other side: listing your items and earning money."]</p>
+                </div>
+            }
+
+            @* -- Lister Slides -- *@
+            @if (isLister || isBoth)
+            {
+                <div class="carousel-slide p-6" data-section="lister">
+                    <div class="slide-illustration bg-gradient-to-br from-emerald-100 to-green-50 dark:from-emerald-950/40 dark:to-green-950/20 mb-4 text-emerald-300 dark:text-emerald-700">
+                        <span class="watermark">01</span>
+                        <div class="pattern-circle" style="width:100px;height:100px;top:-10px;right:-15px"></div>
+                        <div class="pattern-circle" style="width:70px;height:70px;bottom:15px;left:-10px"></div>
+                        <div class="pattern-dots" style="bottom:16px;right:16px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        <div class="icon-card"><i class="bi bi-plus-circle text-2xl text-emerald-500 dark:text-emerald-400"></i></div>
+                    </div>
+                    <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">@Localizer["Create a listing"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Add photos, set your price, and describe your item. It only takes a few minutes to go live."]</p>
+                </div>
+
+                <div class="carousel-slide p-6" data-section="lister">
+                    <div class="slide-illustration bg-gradient-to-br from-emerald-100 to-green-50 dark:from-emerald-950/40 dark:to-green-950/20 mb-4 text-emerald-300 dark:text-emerald-700">
+                        <span class="watermark">02</span>
+                        <div class="pattern-circle" style="width:130px;height:130px;bottom:-25px;left:-25px"></div>
+                        <div class="pattern-circle" style="width:60px;height:60px;top:10px;right:25px"></div>
+                        <div class="pattern-dots" style="top:16px;left:16px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        <div class="icon-card"><i class="bi bi-inbox text-2xl text-emerald-500 dark:text-emerald-400"></i></div>
+                    </div>
+                    <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">@Localizer["Manage requests"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Review rental requests from your dashboard. Accept, decline, or suggest different dates."]</p>
+                </div>
+
+                <div class="carousel-slide p-6" data-section="lister">
+                    <div class="slide-illustration bg-gradient-to-br from-emerald-100 to-green-50 dark:from-emerald-950/40 dark:to-green-950/20 mb-4 text-emerald-300 dark:text-emerald-700">
+                        <span class="watermark">03</span>
+                        <div class="pattern-circle" style="width:80px;height:80px;top:-15px;left:-10px"></div>
+                        <div class="pattern-circle" style="width:110px;height:110px;bottom:-20px;right:-20px"></div>
+                        <div class="pattern-dots" style="top:16px;right:16px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        <div class="icon-card"><i class="bi bi-cash-stack text-2xl text-emerald-500 dark:text-emerald-400"></i></div>
+                    </div>
+                    <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">@Localizer["Earn money"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Get paid for each rental. Track your earnings and payouts from your dashboard."]</p>
+                </div>
+
+                <div class="carousel-slide p-6" data-section="lister">
+                    <div class="slide-illustration bg-gradient-to-br from-emerald-100 to-green-50 dark:from-emerald-950/40 dark:to-green-950/20 mb-4 text-emerald-300 dark:text-emerald-700">
+                        <span class="watermark">04</span>
+                        <div class="pattern-circle" style="width:90px;height:90px;top:5px;left:20%"></div>
+                        <div class="pattern-circle" style="width:120px;height:120px;bottom:-15px;left:-20px"></div>
+                        <div class="pattern-dots" style="bottom:16px;left:16px"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                        <div class="icon-card"><i class="bi bi-trophy text-2xl text-emerald-500 dark:text-emerald-400"></i></div>
+                    </div>
+                    <h3 class="font-heading text-lg font-bold text-slate-900 dark:text-white mb-2">@Localizer["Build your reputation"]</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">@Localizer["Great reviews attract more renters. Respond quickly and keep items in good shape to grow your trust score."]</p>
+                </div>
+            }
+
+            @* -- Final CTA Slide (all intents) -- *@
+            <div class="carousel-slide p-6 flex flex-col items-center justify-center text-center" data-section="final">
+                <div class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <i class="bi bi-check-circle-fill text-3xl text-blue-500"></i>
+                </div>
+                <h3 class="font-heading text-xl font-bold text-slate-900 dark:text-white mb-2">@Localizer["You're all set, {0}!", Model.FirstName]</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                    @if (Model.ShareLocation && !string.IsNullOrEmpty(Model.City))
+                    {
+                        @Localizer["Join {0} other members in {1}", Model.MemberCount, Model.City]
+                    }
+                    else
+                    {
+                        @Localizer["Join {0} other members on RentMate", Model.MemberCount]
+                    }
+                </p>
+                <form method="post" asp-action="CompleteOnboarding">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/25">
+                        @ctaText
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carousel Dots -->
+    <div class="flex items-center justify-center gap-1.5 mt-4" id="carouselDots" aria-label="@Localizer["Carousel navigation"]">
+    </div>
+
+    <!-- Navigation -->
+    <div class="flex items-center justify-between mt-4">
+        <button type="button" id="skipTourBtn" onclick="skipTour()"
+                class="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            @Localizer["Skip tour"]
+        </button>
+        <div class="flex items-center gap-2">
+            <button type="button" id="prevBtn" onclick="carouselPrev()"
+                    class="hidden px-4 py-2 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-sm font-medium transition-all">
+                <i class="bi bi-arrow-left me-1"></i> @Localizer["Back"]
+            </button>
+            <button type="button" id="nextBtn" onclick="carouselNext()"
+                    class="px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl text-sm font-medium transition-all">
+                @Localizer["Next"] <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+            <button type="button" id="showMeBtn" onclick="carouselNext()"
+                    class="hidden px-5 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-xl text-sm font-medium transition-all">
+                @Localizer["Show me"] <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    (function() {
+    'use strict';
+
+    var currentSlide = 0;
+    var carouselEl = document.getElementById('carouselContainer');
+    var track = document.getElementById('carouselTrack');
+    var slides = document.querySelectorAll('.carousel-slide');
+    var totalSlides = slides.length;
+    var dotsContainer = document.getElementById('carouselDots');
+    var nextBtn = document.getElementById('nextBtn');
+    var prevBtn = document.getElementById('prevBtn');
+    var showMeBtn = document.getElementById('showMeBtn');
+    var skipBtn = document.getElementById('skipTourBtn');
+    var isBoth = @(isBoth ? "true" : "false");
+    var cachedWidth = 0;
+
+    // Cached section label elements (Both intent only)
+    var sectionLabel = isBoth ? document.getElementById('sectionLabel') : null;
+    var sectionSpan = sectionLabel ? sectionLabel.querySelector('span') : null;
+
+    function sizeSlides() {
+        cachedWidth = carouselEl.offsetWidth;
+        for (var i = 0; i < slides.length; i++) {
+            slides[i].style.width = cachedWidth + 'px';
+            slides[i].style.minWidth = cachedWidth + 'px';
+        }
+    }
+
+    // Build dots (clickable)
+    for (var i = 0; i < totalSlides; i++) {
+        var dot = document.createElement('div');
+        dot.className = 'carousel-dot';
+        if (slides[i].dataset.section === 'transition') dot.classList.add('transition-dot');
+        dot.addEventListener('click', (function(idx) {
+            return function() {
+                currentSlide = idx;
+                updateCarousel();
+            };
+        })(i));
+        dotsContainer.appendChild(dot);
+    }
+    var dots = dotsContainer.querySelectorAll('.carousel-dot');
+
+    sizeSlides();
+    updateCarousel();
+
+    // Debounced resize
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            sizeSlides();
+            updateCarousel();
+        }, 100);
+    });
+
+    function updateCarousel() {
+        track.style.transform = 'translateX(-' + (currentSlide * cachedWidth) + 'px)';
+
+        slides.forEach(function(s, i) {
+            s.classList.toggle('active', i === currentSlide);
+        });
+
+        dots.forEach(function(dot, i) {
+            dot.classList.remove('active', 'completed');
+            if (i === currentSlide) dot.classList.add('active');
+            else if (i < currentSlide) dot.classList.add('completed');
+        });
+
+        if (sectionLabel && sectionSpan) {
+            var section = slides[currentSlide].dataset.section;
+            if (section === 'lister') {
+                sectionSpan.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["LISTING YOUR ITEMS"].Value));
+                sectionSpan.className = 'text-xs font-bold tracking-wider px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400';
+            } else if (section === 'transition' || section === 'final') {
+                sectionLabel.classList.add('hidden');
+            } else {
+                sectionSpan.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["RENTING ITEMS"].Value));
+                sectionSpan.className = 'text-xs font-bold tracking-wider px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400';
+                sectionLabel.classList.remove('hidden');
+            }
+        }
+
+        var isFinal = slides[currentSlide].dataset.section === 'final';
+        var isTransition = slides[currentSlide].dataset.section === 'transition';
+        nextBtn.classList.toggle('hidden', isFinal || isTransition);
+        showMeBtn.classList.toggle('hidden', !isTransition);
+        prevBtn.classList.toggle('hidden', currentSlide === 0 || isFinal);
+        skipBtn.classList.toggle('hidden', isFinal);
+    }
+
+    // Expose to onclick handlers
+    window.carouselNext = function() {
+        if (currentSlide < totalSlides - 1) {
+            currentSlide++;
+            updateCarousel();
+        }
+    };
+
+    window.carouselPrev = function() {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateCarousel();
+        }
+    };
+
+    window.skipTour = function() {
+        currentSlide = totalSlides - 1;
+        updateCarousel();
+    };
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight') window.carouselNext();
+        else if (e.key === 'ArrowLeft') window.carouselPrev();
+        else if (e.key === 'Enter' && slides[currentSlide].dataset.section === 'final') {
+            var form = slides[currentSlide].querySelector('form');
+            if (form) form.submit();
+        }
+    });
+
+    var touchStartX = 0;
+    carouselEl.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    carouselEl.addEventListener('touchend', function(e) {
+        var diff = touchStartX - e.changedTouches[0].screenX;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0) window.carouselNext();
+            else window.carouselPrev();
+        }
+    }, { passive: true });
+
+    })();
+</script>
+}

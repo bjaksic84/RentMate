@@ -1,12 +1,17 @@
 @using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Helpers
 @inject IViewLocalizer Localizer
 @inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @{
     ViewData["Title"] = Localizer["Home"];
     var popularItems = ViewBag.PopularItems as IEnumerable<RentMate.Models.Domain.Item> ?? Enumerable.Empty<RentMate.Models.Domain.Item>();
     var newItems = ViewBag.NewItems as IEnumerable<RentMate.Models.Domain.Item> ?? Enumerable.Empty<RentMate.Models.Domain.Item>();
     var cities = ViewBag.Cities as IEnumerable<string> ?? Enumerable.Empty<string>();
     var currency = CurrencyService.GetCurrentCurrency();
+
+    var showSpotlight = TempData[OnboardingConstants.ShowSpotlightTourKey] as string == "true";
+    var spotlightIntent = TempData[OnboardingConstants.SpotlightIntentKey] as string ?? "Both";
 }
 
 <!-- Hero Section - Full viewport height -->
@@ -52,10 +57,11 @@
             6. ring-offset-2 - Creates visual gap between focus ring and element
         -->
         <div class="max-w-4xl mx-auto overflow-visible">
-            <form asp-controller="Rentals" asp-action="Index" method="get" 
-                  role="search" 
+            <form asp-controller="Rentals" asp-action="Index" method="get"
+                  role="search"
                   aria-label="@Localizer["Search marketplace"]"
                   id="heroSearchForm"
+                  data-spotlight="search"
                   onsubmit="showSearchLoading()"
                   class="glass rounded-2xl md:rounded-full p-2 shadow-lg border border-white/30 relative overflow-visible" style="z-index: var(--z-dropdown, 100);">
                 <div class="flex flex-col md:flex-row items-stretch gap-2">
@@ -230,7 +236,8 @@
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             @foreach (var item in popularItems.Take(4))
             {
-                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" class="group">
+                @* data-spotlight on every card; spotlight tour highlights the first match *@
+                <a asp-controller="Items" asp-action="Details" asp-route-id="@item.Id" data-spotlight="item-card" class="group">
                     <div class="bg-white rounded-2xl overflow-hidden hover-lift border border-slate-100">
                         <!-- Image -->
                         <div class="aspect-[4/3] relative overflow-hidden">
@@ -430,7 +437,7 @@
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <a asp-controller="Items" asp-action="Create" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-full shadow-sm  transition-all duration-300">
+                <a asp-controller="Items" asp-action="Create" data-spotlight="list-item-button" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-full shadow-sm  transition-all duration-300">
                     <i class="bi bi-plus-circle"></i>
                     @Localizer["List your first item"]
                 </a>
@@ -541,5 +548,60 @@
             }
         });
     </script>
+
+    @if (showSpotlight)
+    {
+        // Build intent-adaptive stop list (4 stops, gracefully skip missing targets)
+        var renterStops = new[]
+        {
+            new { target = "search",            title = Localizer["Spotlight.Renter.Search.Title"].Value,            description = Localizer["Spotlight.Renter.Search.Description"].Value },
+            new { target = "item-card",         title = Localizer["Spotlight.Renter.ItemCard.Title"].Value,          description = Localizer["Spotlight.Renter.ItemCard.Description"].Value },
+            new { target = "dashboard-link",    title = Localizer["Spotlight.Renter.Dashboard.Title"].Value,         description = Localizer["Spotlight.Renter.Dashboard.Description"].Value },
+            new { target = "notification-bell", title = Localizer["Spotlight.Renter.Notifications.Title"].Value,     description = Localizer["Spotlight.Renter.Notifications.Description"].Value }
+        };
+        var listerStops = new[]
+        {
+            new { target = "list-item-button",  title = Localizer["Spotlight.Lister.ListItem.Title"].Value,          description = Localizer["Spotlight.Lister.ListItem.Description"].Value },
+            new { target = "dashboard-link",    title = Localizer["Spotlight.Lister.Dashboard.Title"].Value,         description = Localizer["Spotlight.Lister.Dashboard.Description"].Value },
+            new { target = "notification-bell", title = Localizer["Spotlight.Lister.Notifications.Title"].Value,     description = Localizer["Spotlight.Lister.Notifications.Description"].Value },
+            new { target = "profile-menu",      title = Localizer["Spotlight.Lister.Profile.Title"].Value,           description = Localizer["Spotlight.Lister.Profile.Description"].Value }
+        };
+        var bothStops = new[]
+        {
+            new { target = "search",            title = Localizer["Spotlight.Both.Search.Title"].Value,              description = Localizer["Spotlight.Both.Search.Description"].Value },
+            new { target = "list-item-button",  title = Localizer["Spotlight.Both.ListItem.Title"].Value,            description = Localizer["Spotlight.Both.ListItem.Description"].Value },
+            new { target = "dashboard-link",    title = Localizer["Spotlight.Both.Dashboard.Title"].Value,           description = Localizer["Spotlight.Both.Dashboard.Description"].Value },
+            new { target = "notification-bell", title = Localizer["Spotlight.Both.Notifications.Title"].Value,       description = Localizer["Spotlight.Both.Notifications.Description"].Value }
+        };
+        object stops = spotlightIntent switch
+        {
+            "Renter" => renterStops,
+            "Lister" => listerStops,
+            _        => bothStops
+        };
+        var spotlightConfig = new
+        {
+            stops = stops,
+            csrfToken = Antiforgery.GetAndStoreTokens(Context).RequestToken,
+            strings = new
+            {
+                stepXofY = Localizer["Spotlight.StepXofY"].Value,
+                next = Localizer["Spotlight.Next"].Value,
+                finish = Localizer["Spotlight.Finish"].Value,
+                skipTour = Localizer["Spotlight.SkipTour"].Value
+            }
+        };
+
+        <link rel="stylesheet" href="~/css/onboarding.css" asp-append-version="true" />
+        <script src="~/js/onboarding.js" asp-append-version="true"></script>
+        <script>
+            (function () {
+                var cfg = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(spotlightConfig));
+                if (typeof window.initSpotlightTour === 'function') {
+                    window.initSpotlightTour(cfg);
+                }
+            })();
+        </script>
+    }
 }
 

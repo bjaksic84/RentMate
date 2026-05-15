@@ -1,0 +1,324 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@using RentMate.Shared.Contracts.Responses
+@using RentMate.Models.Domain
+@using RentMate.Models.Domain.Extensions
+@model RentMate.Models.ViewModels.DashboardViewModel
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@{
+    var activeMyRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
+    var activeOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Active).ToList() ?? new();
+    var overdueRentals = Model.MyRentals?.Where(r => r.IsOverdue()).ToList() ?? new();
+    var acceptedRentals = Model.MyRentals?.Where(r => r.Status == RentalStatus.Accepted).ToList() ?? new();
+    var pendingOwnerRentals = Model.OwnerRentals?.Where(r => r.Status == RentalStatus.Pending).ToList() ?? new();
+    var renterDepositAttention = Model.MyRentals?.Where(r => r.Deposit != null && r.Deposit.NeedsRenterAction()).ToList() ?? new();
+    var rentalsWithExtPayment = Model.MyRentals?.Where(r =>
+        r.Extensions != null && r.Extensions.Any(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved)).ToList() ?? new();
+    var ownerDisputedDeposits = Model.OwnerRentals?.Where(r => r.Deposit != null && r.Deposit.NeedsOwnerAction()).ToList() ?? new();
+    var monthlyEarnings = Model.OwnerRentals?
+        .Where(r => r.Status == RentalStatus.Completed && r.EndDate.Month == DateTime.UtcNow.Month && r.EndDate.Year == DateTime.UtcNow.Year)
+        .Sum(r => r.TotalPrice) ?? 0;
+    var trustScore = (int?)ViewBag.ProfileTrustScore ?? 0;
+
+    var completedReadyToArchive = (Model.MyRentals?.Where(r => r.IsArchivable() && r.HasNoActiveDispute()).ToList() ?? new())
+        .Concat(Model.OwnerRentals?.Where(r => r.IsArchivable() && r.HasNoActiveDispute()).ToList() ?? new())
+        .ToList();
+    var hasAttentionItems = overdueRentals.Any() || acceptedRentals.Any() || pendingOwnerRentals.Any()
+        || (Model.PendingExtensions?.Any() ?? false)
+        || renterDepositAttention.Any() || rentalsWithExtPayment.Any() || ownerDisputedDeposits.Any()
+        || completedReadyToArchive.Any();
+
+    string FormatDateRange(DateTime a, DateTime b) {
+        var first = a <= b ? a : b;
+        var second = a <= b ? b : a;
+        return $"{first.ToString("dd MMM")} → {second.ToString("dd MMM yyyy")}";
+    }
+}
+
+<!-- Stats + Attention Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Left: Stats (2x2) -->
+    <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-bag", IconColor = "purple", Value = activeMyRentals.Count, Label = "Active Rentals", Link = "#renting", LinkText = "View" })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-graph-up-arrow", IconColor = "green", Value = activeOwnerRentals.Count, Label = "Renting Out", Link = "#lending", LinkText = "View" })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-cash-stack", IconColor = "blue", Value = CurrencyService.Format(monthlyEarnings), Label = "MonthlyEarnings", Link = (string?)null, LinkText = (string?)null })
+        @await Html.PartialAsync("_StatCard", new { Icon = "bi-shield-check", IconColor = "amber", Value = trustScore + "%", Label = "TrustScore", Link = "/Profile", LinkText = "View" })
+    </div>
+
+    <!-- Right: Attention Panel -->
+    <div>
+        @if (hasAttentionItems)
+        {
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden h-full">
+                <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-700">
+                    <h2 class="text-base font-semibold font-outfit text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="bi bi-exclamation-triangle text-amber-500"></i>
+                        @Localizer["NeedsAttention"]
+                        <span class="ml-auto px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-medium rounded-full">
+                            @(overdueRentals.Count + acceptedRentals.Count + pendingOwnerRentals.Count + (Model.PendingExtensions?.Count ?? 0) + renterDepositAttention.Count + rentalsWithExtPayment.Count + ownerDisputedDeposits.Count + completedReadyToArchive.Count)
+                        </span>
+                    </h2>
+                </div>
+                <div class="divide-y divide-slate-100 dark:divide-slate-700 max-h-80 overflow-y-auto">
+                    @* Overdue rentals *@
+                    @foreach (var rental in overdueRentals)
+                    {
+                        var overdueDays = (DateTime.UtcNow.Date - rental.EndDate.Date).Days;
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-rose-500">
+                            <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-exclamation-triangle text-rose-600 dark:text-rose-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["Overdue"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @overdueDays @Localizer["days overdue"]
+                                </p>
+                            </div>
+                            <button onclick="openExtensionModal(@rental.Id, '@rental.StartDate.ToString("yyyy-MM-dd")', '@rental.EndDate.ToString("yyyy-MM-dd")', @(rental.Item?.Price ?? 0), @(rental.ItemId), @(rental.Item?.AutoApproveExtensions.ToString().ToLower()))"
+                                    class="px-3 py-1.5 text-xs font-medium bg-trust-blue-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Extend"]
+                            </button>
+                        </div>
+                    }
+                    @* Accepted rentals awaiting payment *@
+                    @foreach (var rental in acceptedRentals)
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-emerald-500">
+                            <span class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-credit-card text-emerald-600 dark:text-emerald-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["Approved — pay to confirm"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @FormatDateRange(rental.StartDate, rental.EndDate) &mdash; @CurrencyService.Format(rental.TotalPrice)
+                                </p>
+                            </div>
+                            <a asp-controller="Payment" asp-action="Checkout" asp-route-rentalId="@rental.Id"
+                               class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Pay Now"]
+                            </a>
+                        </div>
+                    }
+                    @* Pending rental requests *@
+                    @foreach (var rental in pendingOwnerRentals)
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-amber-500">
+                            <span class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-clock text-amber-600 dark:text-amber-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["Rental request"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.UserName ?? Localizer["DeletedUser"].Value) &mdash; @FormatDateRange(rental.StartDate, rental.EndDate)
+                                </p>
+                            </div>
+                            <div class="shrink-0">
+                                <a href="#lending" onclick="event.preventDefault(); window.switchDashboardTab && window.switchDashboardTab('lending')" class="px-2.5 py-1.5 text-xs font-medium bg-amber-500 text-white rounded-lg hover:brightness-110 transition inline-flex items-center gap-1">
+                                    @Localizer["Review"] <i class="bi bi-arrow-right text-[10px]"></i>
+                                </a>
+                            </div>
+                        </div>
+                    }
+                    @* Pending extension requests *@
+                    @if (Model.PendingExtensions != null)
+                    {
+                        foreach (var ext in Model.PendingExtensions)
+                        {
+                            <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-sky-500">
+                                <span class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
+                                    <i class="bi bi-calendar-plus text-sky-600 dark:text-sky-400 text-sm"></i>
+                                </span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                        @Localizer["Extension request"]: @ext.Rental?.Item?.Title
+                                    </p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        @Localizer["From"] @(ext.RequestedBy?.FirstName ?? ext.RequestedBy?.UserName ?? Localizer["DeletedUser"].Value) &mdash;
+                                        @ext.OriginalEndDate.ToString("dd MMM") &rarr; @ext.NewEndDate.ToString("dd MMM yyyy")
+                                        (+@CurrencyService.Format(ext.AdditionalCost))
+                                    </p>
+                                </div>
+                                <div class="shrink-0">
+                                    <a href="#lending" onclick="event.preventDefault(); window.switchDashboardTab && window.switchDashboardTab('lending')" class="px-2.5 py-1.5 text-xs font-medium bg-sky-500 text-white rounded-lg hover:brightness-110 transition inline-flex items-center gap-1">
+                                        @Localizer["Review"] <i class="bi bi-arrow-right text-[10px]"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    }
+                    @* Deposit charged — renter action required *@
+                    @foreach (var rental in renterDepositAttention.Where(r => r.Deposit!.IsCharged()))
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-rose-500">
+                            <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-shield-x text-rose-600 dark:text-rose-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["DepositChargedAlert"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @CurrencyService.Format(rental.Deposit!.ChargedAmount ?? 0) @Localizer["charged from your deposit"]
+                                </p>
+                            </div>
+                            <a href="#renting" class="px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Review"]
+                            </a>
+                        </div>
+                    }
+                    @* Counter-offer received — renter action required *@
+                    @foreach (var rental in renterDepositAttention.Where(r => r.Deposit!.Status == DepositStatus.CounterOffered))
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-amber-500">
+                            <span class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-arrow-left-right text-amber-600 dark:text-amber-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["DepositCounterOfferAlert"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["Owner offered to settle for"] @CurrencyService.Format(rental.Deposit!.CounterOfferAmount ?? 0)
+                                </p>
+                            </div>
+                            <a href="#renting" class="px-3 py-1.5 text-xs font-medium bg-amber-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Review"]
+                            </a>
+                        </div>
+                    }
+                    @* Disputed deposit — owner action required *@
+                    @foreach (var rental in ownerDisputedDeposits)
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-rose-500">
+                            <span class="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-exclamation-triangle text-rose-600 dark:text-rose-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["DepositDisputedOwnerAlert"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["From"] @(rental.Renter?.FirstName ?? rental.Renter?.UserName ?? Localizer["DeletedUser"].Value)
+                                    @if (rental.Deposit?.DisputeDeadline.HasValue == true)
+                                    {
+                                        <span>&mdash; @Localizer["Your response deadline"]: @rental.Deposit.DisputeDeadline.Value.ToString("dd MMM HH:mm")</span>
+                                    }
+                                </p>
+                            </div>
+                            <a href="#lending" onclick="event.preventDefault(); window.switchDashboardTab && window.switchDashboardTab('lending')" class="px-3 py-1.5 text-xs font-medium bg-rose-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Respond"]
+                            </a>
+                        </div>
+                    }
+                    @* Extension approved — awaiting renter payment *@
+                    @foreach (var rental in rentalsWithExtPayment)
+                    {
+                        var ext = rental.Extensions!.First(e => e.Status == ExtensionStatus.Accepted || e.Status == ExtensionStatus.AutoApproved);
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-sky-500">
+                            <span class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-credit-card text-sky-600 dark:text-sky-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @Localizer["ExtensionAwaitingPaymentAlert"]: @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @ext.OriginalEndDate.ToString("dd MMM") &rarr; @ext.NewEndDate.ToString("dd MMM yyyy")
+                                    (+@CurrencyService.Format(ext.AdditionalCost))
+                                </p>
+                            </div>
+                            <a asp-controller="Payment" asp-action="ExtensionCheckout" asp-route-extensionId="@ext.Id"
+                               class="px-3 py-1.5 text-xs font-medium bg-sky-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                @Localizer["Pay Now"]
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        @* === Completed Rentals Ready to Archive === *@
+        @if (completedReadyToArchive.Any())
+        {
+            <div class="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 overflow-hidden">
+                <div class="px-5 py-3 border-b border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
+                    <i class="bi bi-archive text-emerald-500"></i>
+                    <h3 class="text-sm font-semibold text-emerald-700 dark:text-emerald-300">@Localizer["ReadyToArchive"] (@completedReadyToArchive.Count)</h3>
+                </div>
+                <div class="divide-y divide-emerald-200 dark:divide-emerald-800">
+                    @foreach (var rental in completedReadyToArchive)
+                    {
+                        <div class="px-5 py-3 flex items-center gap-3 border-l-4 border-emerald-500">
+                            <span class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                                <i class="bi bi-check-circle text-emerald-600 dark:text-emerald-400 text-sm"></i>
+                            </span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-slate-900 dark:text-white truncate">
+                                    @rental.Item?.Title
+                                </p>
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    @Localizer["CompletedReadyToArchive"]
+                                </p>
+                            </div>
+                            <button onclick="archiveRental(@rental.Id)"
+                                    class="px-3 py-1.5 text-xs font-medium bg-emerald-600 text-white rounded-lg hover:brightness-110 transition shrink-0">
+                                <i class="bi bi-archive mr-1"></i> @Localizer["MoveToHistory"]
+                            </button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        }
+        else
+        {
+            <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 h-full flex flex-col items-center justify-center text-center">
+                <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-3">
+                    <i class="bi bi-check-circle text-emerald-600 dark:text-emerald-400 text-xl"></i>
+                </div>
+                <p class="text-sm font-medium text-slate-900 dark:text-white">@Localizer["NothingNeedsAttention"]</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">@Localizer["DashboardSubtitle"]</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="mb-2">
+    <h2 class="text-lg font-semibold font-outfit text-slate-900 dark:text-white mb-4">@Localizer["QuickLinks"]</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <a href="#lending" onclick="event.preventDefault(); window.switchDashboardTab && window.switchDashboardTab('lending')" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 text-center hover:border-trust-blue-300 dark:hover:border-trust-blue-700 hover:shadow-sm transition-all group">
+            <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <i class="bi bi-box-seam text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-900 dark:text-white">@Localizer["My Items"]</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@(Model.ListingsOwned?.Count ?? 0) @Localizer["items"]</p>
+        </a>
+        <a href="#renting" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 text-center hover:border-trust-blue-300 dark:hover:border-trust-blue-700 hover:shadow-sm transition-all group">
+            <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <i class="bi bi-heart-fill text-red-500 dark:text-red-400"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-900 dark:text-white">@Localizer["Favorites"]</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@(Model.FavoriteItems?.Count ?? 0) @Localizer["saved"]</p>
+        </a>
+        <a asp-controller="Items" asp-action="Create" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 text-center hover:border-trust-blue-300 dark:hover:border-trust-blue-700 hover:shadow-sm transition-all group">
+            <div class="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <i class="bi bi-plus-lg text-emerald-600 dark:text-emerald-400"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-900 dark:text-white">@Localizer["ListNewItem"]</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["Start earning"]</p>
+        </a>
+        <a asp-controller="Profile" asp-action="Index" class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 text-center hover:border-trust-blue-300 dark:hover:border-trust-blue-700 hover:shadow-sm transition-all group">
+            <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                <i class="bi bi-person-circle text-purple-600 dark:text-purple-400"></i>
+            </div>
+            <p class="text-sm font-medium text-slate-900 dark:text-white">@Localizer["My Profile"]</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">@Localizer["View & edit"]</p>
+        </a>
+    </div>
+</div>

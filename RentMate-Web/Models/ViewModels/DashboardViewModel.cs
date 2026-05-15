@@ -78,5 +78,11 @@ public class DashboardViewModel
     /// <summary>Number of pending extension requests.</summary>
     public int PendingExtensionCount { get; set; }
 
+    /// <summary>Enriched details for each pending rental request (keyed by rental ID).</summary>
+    public Dictionary<int, RentalRequestDetailViewModel>? PendingRequestDetails { get; set; }
+
+    /// <summary>Calendar conflicts for pending extension requests (keyed by extension ID).</summary>
+    public Dictionary<int, List<Rental>>? ExtensionConflicts { get; set; }
+
     #endregion
 }

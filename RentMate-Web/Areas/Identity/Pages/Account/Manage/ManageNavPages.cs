@@ -23,6 +23,7 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
         public static string PersonalData => "PersonalData";
         public static string TwoFactorAuthentication => "TwoFactorAuthentication";
         public static string PaymentMethods => "PaymentMethods";
+        public static string Security => "Security";
 
         #endregion
 
@@ -54,6 +55,9 @@ namespace RentMate.Areas.Identity.Pages.Account.Manage
 
         /// <summary>Returns "active" CSS class if PaymentMethods page is currently displayed.</summary>
         public static string PaymentMethodsNavClass(ViewContext viewContext) => PageNavClass(viewContext, PaymentMethods);
+
+        /// <summary>Returns "active" CSS class if Security page is currently displayed.</summary>
+        public static string SecurityNavClass(ViewContext viewContext) => PageNavClass(viewContext, Security);
 
         #endregion
 

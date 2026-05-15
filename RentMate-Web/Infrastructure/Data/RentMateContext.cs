@@ -30,6 +30,8 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
     public DbSet<RentalExtension> RentalExtensions { get; set; }
     public DbSet<DisputeEvidence> DisputeEvidences { get; set; }
     public DbSet<ItemImage> ItemImages { get; set; }
+    public DbSet<CookieConsent> CookieConsents { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     #endregion
 
@@ -50,6 +52,8 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         ConfigureExtensionEntity(modelBuilder);
         ConfigureDisputeEvidenceEntity(modelBuilder);
         ConfigureItemImageEntity(modelBuilder);
+        ConfigureCookieConsentEntity(modelBuilder);
+        ConfigureNotificationEntity(modelBuilder);
         ConfigurePerformanceIndexes(modelBuilder);
     }
 
@@ -90,6 +94,21 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
         // User location index
         modelBuilder.Entity<ApplicationUser>()
             .HasIndex(u => u.City);
+
+        // Store UserIntent as string for readability
+        modelBuilder.Entity<ApplicationUser>()
+            .Property(u => u.UserIntent)
+            .HasConversion<string>();
+
+        // Store DeactivatedBy as string
+        modelBuilder.Entity<ApplicationUser>()
+            .Property(u => u.DeactivatedBy)
+            .HasConversion<string>();
+
+        // DeactivationReason max length
+        modelBuilder.Entity<ApplicationUser>()
+            .Property(u => u.DeactivationReason)
+            .HasMaxLength(500);
     }
 
     private static void ConfigureItemRelationships(ModelBuilder modelBuilder)
@@ -290,6 +309,33 @@ public class RentMateContext : IdentityDbContext<ApplicationUser>
 
             // Index for efficient queries by ItemId and ordering
             entity.HasIndex(img => new { img.ItemId, img.DisplayOrder });
+        });
+    }
+
+    private static void ConfigureCookieConsentEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CookieConsent>(entity =>
+        {
+            entity.HasOne(c => c.User)
+                  .WithMany()
+                  .HasForeignKey(c => c.UserId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(c => c.UserId);
+        });
+    }
+
+    private static void ConfigureNotificationEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasOne(n => n.User)
+                  .WithMany()
+                  .HasForeignKey(n => n.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(n => n.UserId);
+            entity.HasIndex(n => new { n.UserId, n.IsRead, n.IsDismissed });
         });
     }
 

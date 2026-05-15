@@ -1,111 +1,158 @@
-@model OnboardingStep2ViewModel
+@model RentMate.Models.ViewModels.OnboardingStep2ViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
 @{
-    ViewData["Title"] = "Profile Picture";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = Localizer["About You"].Value;
+    Layout = "~/Views/Shared/_OnboardingLayout.cshtml";
 }
 
-<div class="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-lg w-full">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg p-8">
+@{ ViewData["OnboardingStep"] = 2; }
 
-            <!-- Progress indicator -->
-            <div class="flex items-center justify-center gap-3 mb-8">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm">
-                        <i class="bi bi-check-lg"></i>
-                    </div>
-                    <span class="text-sm font-medium text-green-600">Your Info</span>
-                </div>
-                <div class="w-12 h-0.5 bg-green-400"></div>
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold">2</div>
-                    <span class="text-sm font-medium text-blue-600">Photo</span>
-                </div>
+<div class="onboarding-step">
+    <!-- Heading -->
+    <h1 class="step-enter step-enter-delay-0 font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2 text-center">
+        @Localizer["Tell us about yourself"]
+    </h1>
+    <p class="step-enter step-enter-delay-1 text-slate-500 dark:text-slate-400 mb-8 text-center">
+        @Localizer["This helps build trust with other members."]
+    </p>
+
+    <form method="post" asp-action="Step2" id="step2Form" novalidate>
+        @Html.AntiForgeryToken()
+
+        <!-- Name Fields -->
+        <div class="step-enter step-enter-delay-2 grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <!-- First Name -->
+            <div class="floating-field">
+                <input type="text"
+                       name="FirstName"
+                       id="firstName"
+                       value="@Model.FirstName"
+                       placeholder=" "
+                       required
+                       maxlength="50"
+                       class="w-full px-3 pt-5 pb-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0" />
+                <label for="firstName">@Localizer["First Name"]</label>
+                <span class="validation-error hidden text-red-500 text-xs mt-1" data-for="firstName">@Localizer["First name is required."]</span>
             </div>
 
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-400 flex items-center justify-center mx-auto mb-4">
-                    <i class="bi bi-camera text-white text-2xl"></i>
-                </div>
-                <h2 class="font-heading text-2xl font-bold text-slate-900 dark:text-white">Add a Profile Picture</h2>
-                <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">Profiles with photos get 3× more responses. You can always change it later.</p>
+            <!-- Last Name -->
+            <div class="floating-field">
+                <input type="text"
+                       name="LastName"
+                       id="lastName"
+                       value="@Model.LastName"
+                       placeholder=" "
+                       required
+                       maxlength="50"
+                       class="w-full px-3 pt-5 pb-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-0" />
+                <label for="lastName">@Localizer["Last Name"]</label>
+                <span class="validation-error hidden text-red-500 text-xs mt-1" data-for="lastName">@Localizer["Last name is required."]</span>
             </div>
-
-            <form asp-action="Step2" method="post" enctype="multipart/form-data" class="space-y-6">
-                @Html.AntiForgeryToken()
-
-                <!-- Photo upload area -->
-                <div class="flex flex-col items-center gap-4">
-                    <div class="relative group">
-                        <img id="profilePreview"
-                             src="@(string.IsNullOrEmpty(Model?.ExistingProfilePictureUrl) ? "https://via.placeholder.com/160?text=You" : Model.ExistingProfilePictureUrl)"
-                             class="w-40 h-40 rounded-2xl object-cover border-2 border-slate-200 dark:border-slate-600 shadow-sm transition-all group-hover:border-blue-400"
-                             alt="Profile picture preview" />
-                        <label for="fileUpload"
-                               class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl cursor-pointer">
-                            <i class="bi bi-camera-fill text-white text-2xl"></i>
-                            <span class="text-white text-xs mt-1 font-medium">Choose photo</span>
-                        </label>
-                        <input type="file" id="fileUpload" asp-for="ProfilePicture" class="hidden" accept="image/*" onchange="previewImage(this)" />
-                    </div>
-
-                    <label for="fileUpload"
-                           class="inline-flex items-center gap-2 px-5 py-2.5 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-blue-400 text-slate-600 dark:text-slate-300 text-sm font-medium rounded-xl cursor-pointer transition-colors">
-                        <i class="bi bi-upload"></i>
-                        Upload from your device
-                    </label>
-                    <p class="text-xs text-slate-400">JPG, PNG or WEBP. Max 5 MB.</p>
-                </div>
-
-                <!-- Tips -->
-                <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-4">
-                    <p class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Tips for a great photo:</p>
-                    <ul class="space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
-                        <li class="flex items-center gap-2"><i class="bi bi-check-circle text-green-500"></i> Use a clear, front-facing photo</li>
-                        <li class="flex items-center gap-2"><i class="bi bi-check-circle text-green-500"></i> Good lighting makes a big difference</li>
-                        <li class="flex items-center gap-2"><i class="bi bi-check-circle text-green-500"></i> Smile — people trust friendly faces</li>
-                    </ul>
-                </div>
-
-                <!-- Action buttons -->
-                <div class="flex flex-col gap-3">
-                    <button type="submit"
-                            class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl shadow-sm transition-all">
-                        <i class="bi bi-check-lg"></i>
-                        Complete Setup
-                    </button>
-                </div>
-            </form>
-
-            <!-- Skip button (separate form) -->
-            <form asp-action="SkipStep2" method="post" class="mt-3">
-                @Html.AntiForgeryToken()
-                <button type="submit"
-                        class="w-full text-center text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors py-2">
-                    Skip for now — I'll add a photo later
-                </button>
-            </form>
         </div>
-    </div>
+
+        <!-- Divider -->
+        <hr class="step-enter step-enter-delay-2 border-slate-200 dark:border-slate-700 mb-6" />
+
+        <!-- Location Section -->
+        <div class="step-enter step-enter-delay-2">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-heading font-semibold text-slate-900 dark:text-white">@Localizer["Location"]</h2>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">@Localizer["Optional"]</span>
+                </div>
+                <!-- Toggle (hidden input ensures false is posted when unchecked) -->
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="hidden" name="ShareLocation" value="false" />
+                    <input type="checkbox"
+                           name="ShareLocation"
+                           id="shareLocationToggle"
+                           value="true"
+                           @(Model.ShareLocation ? "checked" : "")
+                           class="sr-only peer"
+                           onchange="toggleLocation(this.checked)" />
+                    <div class="w-9 h-5 bg-slate-300 peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                    <span class="ms-2 text-sm text-slate-600 dark:text-slate-400">@Localizer["Share location"]</span>
+                </label>
+            </div>
+
+            <!-- Info box -->
+            <div class="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 rounded-xl p-3 mb-4 text-sm text-blue-700 dark:text-blue-300">
+                <i class="bi bi-info-circle me-1"></i>
+                @Localizer["Pick the area closest to you. This is used to recommend items nearby and show your approximate area to other users. Your exact address is never shared."]
+            </div>
+
+            <!-- Location fields (collapsible) -->
+            <div id="locationFields" class="location-fields @(Model.ShareLocation ? "" : "collapsed")">
+                <!-- City -->
+                <div class="mb-4">
+                    <label for="city" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">@Localizer["City"]</label>
+                    <select name="City" id="city"
+                            class="w-full px-3 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">@Localizer["-- Select a city --"]</option>
+                        @foreach (var opt in Model.CityOptions)
+                        {
+                            if (opt.Selected)
+                            {
+                                <option value="@opt.Value" selected>@opt.Text</option>
+                            }
+                            else
+                            {
+                                <option value="@opt.Value">@opt.Text</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Location declined message -->
+            <div id="locationDeclinedMsg" class="@(Model.ShareLocation ? "hidden" : "") text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 mb-4">
+                @Localizer["Without a location, you'll still be able to browse and use RentMate, but items won't be sorted by distance and your profile won't show an area. You can always add this later in settings."]
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="step-enter step-enter-delay-3 flex items-center justify-between mt-8">
+            <a asp-action="Step1" class="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <i class="bi bi-arrow-left"></i> @Localizer["Back"]
+            </a>
+            <button type="submit" id="continueBtn"
+                    class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled>
+                @Localizer["Continue"]
+            </button>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
-    <script>
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
-                // Validate file size (5MB max)
-                if (input.files[0].size > 5 * 1024 * 1024) {
-                    alert('File is too large. Maximum size is 5 MB.');
-                    input.value = '';
-                    return;
-                }
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('profilePreview').src = e.target.result;
-                }
-                reader.readAsDataURL(input.files[0]);
-            }
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enable/disable continue button based on name fields
+        var firstName = document.getElementById('firstName');
+        var lastName = document.getElementById('lastName');
+        var continueBtn = document.getElementById('continueBtn');
+
+        function checkNames() {
+            var valid = firstName.value.trim().length > 0 && lastName.value.trim().length > 0;
+            continueBtn.disabled = !valid;
         }
-    </script>
+
+        firstName.addEventListener('input', checkNames);
+        lastName.addEventListener('input', checkNames);
+        checkNames(); // Initial check
+    });
+
+    function toggleLocation(checked) {
+        var fields = document.getElementById('locationFields');
+        var msg = document.getElementById('locationDeclinedMsg');
+        if (checked) {
+            fields.classList.remove('collapsed');
+            msg.classList.add('hidden');
+        } else {
+            fields.classList.add('collapsed');
+            msg.classList.remove('hidden');
+        }
+    }
+</script>
 }

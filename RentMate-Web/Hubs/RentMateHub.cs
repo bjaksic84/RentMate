@@ -42,6 +42,16 @@ public class RentMateHub : Hub
     /// </summary>
     public const string RentalOverdueEvent = "RentalOverdue";
 
+    /// <summary>
+    /// Client method name for new notification events.
+    /// </summary>
+    public const string NewNotificationEvent = "NewNotification";
+
+    /// <summary>
+    /// Client method name for notification dismissed events.
+    /// </summary>
+    public const string NotificationDismissedEvent = "NotificationDismissed";
+
     #endregion
 
     #region Hub Methods

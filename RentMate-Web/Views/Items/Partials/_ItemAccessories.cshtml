@@ -1,0 +1,40 @@
+@model RentMate.Models.ViewModels.ItemDetailsViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@inject RentMate.Services.Interfaces.ICurrencyService CurrencyService
+
+@if (Model.Accessories.Any())
+{
+    <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+        <!-- Section Heading -->
+        <h3 class="font-heading text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+            <i class="bi bi-box-seam text-blue-500"></i>
+            @Localizer["Available Accessories"]
+        </h3>
+
+        <!-- Accessory List -->
+        <div class="space-y-3">
+            @foreach (var accessory in Model.Accessories)
+            {
+                <div class="flex items-center justify-between gap-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+                            <i class="bi bi-box-seam text-blue-500 dark:text-blue-400"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="font-semibold text-sm text-slate-900 dark:text-white">@accessory.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(accessory.Description))
+                            {
+                                <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">@accessory.Description</div>
+                            }
+                        </div>
+                    </div>
+                    <div class="text-sm font-semibold text-slate-900 dark:text-white whitespace-nowrap shrink-0">
+                        @CurrencyService.Format(accessory.DailyPrice)
+                        <span class="text-xs font-normal text-slate-500 dark:text-slate-400">/ @Localizer["per day"]</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}

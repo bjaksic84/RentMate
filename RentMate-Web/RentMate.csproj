@@ -32,4 +32,8 @@
     <ProjectReference Include="..\RentMate.Shared\RentMate.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="RentMate.Tests" />
+  </ItemGroup>
+
 </Project>

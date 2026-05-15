@@ -69,9 +69,6 @@
         @RenderBody()
     </main>
 
-    <!-- Incomplete-profile floating banner -->
-    <partial name="_ProfileBanner" />
-
     <partial name="_Footer" />
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
@@ -82,6 +79,7 @@
     <script src="~/lib/signalr/signalr.min.js"></script>
 
     <script src="~/js/layout.js" asp-append-version="true"></script>
+    <script src="~/js/notifications.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -1,0 +1,106 @@
+@using Microsoft.AspNetCore.Mvc.Localization
+@model RentMate.Models.ViewModels.DashboardViewModel
+@inject IViewLocalizer Localizer
+
+@*
+    Extension review modal — rendered OUTSIDE tab panels from UserDashboard.cshtml
+    so it remains in the DOM regardless of which tab is active.
+
+    Empty shell filled by lending-requests.js on row click.
+    Pending rental requests are no longer modal-driven; they render as inline
+    rich cards directly in _DashboardLending.cshtml.
+*@
+
+<div id="extension-review-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="extension-review-modal-title"
+     class="fixed inset-0 hidden"
+     style="z-index: var(--z-modal);">
+
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" data-action="close-extension-review"></div>
+
+    <!-- Panel -->
+    <div class="relative flex items-start justify-center min-h-full p-4 pt-16 pb-8">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+
+            <!-- Header -->
+            <div class="flex items-center gap-3 px-6 py-4 border-b border-slate-200 dark:border-slate-700 shrink-0">
+                <div class="w-10 h-10 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
+                    <i class="bi bi-calendar-plus text-sky-600 dark:text-sky-400"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h2 id="extension-review-modal-title" class="text-base font-semibold text-slate-900 dark:text-white truncate"></h2>
+                    <p id="erm-from-line" class="text-xs text-slate-500 dark:text-slate-400"></p>
+                </div>
+                <button type="button"
+                        data-action="close-extension-review"
+                        aria-label="@Localizer["Close"]"
+                        class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors focus-ring shrink-0">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-5">
+
+                <!-- Rental progress line -->
+                <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/40 rounded-xl px-4 py-2.5">
+                    <i class="bi bi-activity text-slate-400"></i>
+                    <span id="erm-progress"></span>
+                </div>
+
+                <!-- Date diff visual -->
+                <div class="rounded-xl bg-sky-50/50 dark:bg-slate-900/40 border border-sky-100 dark:border-slate-700 p-4">
+                    <div class="flex items-start gap-4">
+                        <div>
+                            <p class="text-xs text-slate-400 uppercase tracking-wide mb-0.5">@Localizer["OldEndDate"]</p>
+                            <p id="erm-old-end" class="font-semibold text-slate-700 dark:text-slate-300 text-sm"></p>
+                        </div>
+                        <i class="bi bi-arrow-right text-slate-400 mt-4"></i>
+                        <div>
+                            <p class="text-xs text-slate-400 uppercase tracking-wide mb-0.5">@Localizer["NewEndDate"]</p>
+                            <p id="erm-new-end" class="font-semibold text-sky-600 dark:text-sky-400 text-sm"></p>
+                        </div>
+                        <div class="ml-auto text-right">
+                            <p class="text-xs text-slate-400 mb-0.5">@Localizer["ExtraDays"]</p>
+                            <p id="erm-extra-days" class="font-bold text-sky-600 dark:text-sky-400"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional payout -->
+                <div class="flex items-center justify-between rounded-xl bg-emerald-50/50 dark:bg-slate-900/40 border border-emerald-100 dark:border-slate-700 px-4 py-3">
+                    <span class="text-sm text-slate-600 dark:text-slate-300">@Localizer["AdditionalPayout"]</span>
+                    <span id="erm-additional-cost" class="text-lg font-bold text-emerald-600 dark:text-emerald-400"></span>
+                </div>
+
+                <!-- Conflict warning -->
+                <div id="erm-conflict-warning" class="hidden">
+                    <div class="flex items-start gap-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3">
+                        <i class="bi bi-exclamation-triangle-fill text-red-500 shrink-0 mt-0.5"></i>
+                        <div>
+                            <p id="erm-conflict-text" class="text-sm font-medium text-red-700 dark:text-red-300"></p>
+                            <ul id="erm-conflict-list" class="mt-1 space-y-0.5 text-xs text-red-600 dark:text-red-400"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+                <button type="button"
+                        id="erm-decline-btn"
+                        class="px-4 py-2.5 text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all focus-ring">
+                    @Localizer["Decline"]
+                </button>
+                <button type="button"
+                        id="erm-approve-btn"
+                        class="flex-1 px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white rounded-xl shadow-sm transition-all focus-ring">
+                    <i class="bi bi-check-lg mr-1.5"></i>@Localizer["Approve"]
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

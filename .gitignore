@@ -370,3 +370,11 @@ FodyWeavers.xsd
 **/appsettings.Production.json
 **/appsettings.Local.json
 **/secrets.json
+
+# Project tooling / agent artifacts (not source)
+.superpowers/
+graphify-out/
+.graphify_incremental.json
+
+# VS design-time language-service cache (*.[Cc]ache misses .lscache)
+*.lscache

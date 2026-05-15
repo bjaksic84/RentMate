@@ -27,6 +27,7 @@ namespace RentMate.Areas.Identity.Pages.Account
         #region Dependencies
 
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<LoginModel> _logger;
         private readonly IStringLocalizer<LoginModel> _localizer;
 
@@ -35,11 +36,13 @@ namespace RentMate.Areas.Identity.Pages.Account
         #region Constructor
 
         public LoginModel(
-            SignInManager<ApplicationUser> signInManager, 
+            SignInManager<ApplicationUser> signInManager,
+            UserManager<ApplicationUser> userManager,
             ILogger<LoginModel> logger,
             IStringLocalizer<LoginModel> localizer)
         {
             _signInManager = signInManager;
+            _userManager = userManager;
             _logger = logger;
             _localizer = localizer;
         }
@@ -64,10 +67,9 @@ namespace RentMate.Areas.Identity.Pages.Account
 
         public class InputModel
         {
-            [Required(ErrorMessage = "The Email field is required.")]
-            [EmailAddress(ErrorMessage = "The Email field is not a valid e-mail address.")]
-            [Display(Name = "Email")]
-            public string Email { get; set; }
+            [Required(ErrorMessage = "Email or username is required.")]
+            [Display(Name = "Email or username")]
+            public string EmailOrUserName { get; set; }
 
             [Required(ErrorMessage = "The Password field is required.")]
             [DataType(DataType.Password)]
@@ -121,8 +123,21 @@ namespace RentMate.Areas.Identity.Pages.Account
         /// </summary>
         private async Task<IActionResult> AttemptSignInAsync()
         {
+            // Users sign in with EITHER their email or their username (a
+            // separate display handle, never the email). Resolve by email
+            // first, then username — both are unique — and sign in by the
+            // resolved user object, not by SignInManager's username lookup.
+            var id = Input.EmailOrUserName?.Trim() ?? string.Empty;
+            var user = await _userManager.FindByEmailAsync(id)
+                       ?? await _userManager.FindByNameAsync(id);
+            if (user == null)
+            {
+                ModelState.AddModelError(string.Empty, _localizer[InvalidLoginKey]);
+                return Page();
+            }
+
             var result = await _signInManager.PasswordSignInAsync(
-                Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                user, Input.Password, Input.RememberMe, lockoutOnFailure: false);
 
             if (result.Succeeded)
             {

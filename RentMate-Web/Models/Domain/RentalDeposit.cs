@@ -72,6 +72,12 @@ namespace RentMate.Models.Domain
         public string? AdminResolvedByUserId { get; set; }
         public DateTime? AdminResolvedAt { get; set; }
 
+        /// <summary>When the renter accepted the charged deposit amount.</summary>
+        public DateTime? ChargeAcceptedAt { get; set; }
+
+        /// <summary>Number of dispute rounds completed (prevents endless disputes).</summary>
+        public int DisputeRoundCount { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 

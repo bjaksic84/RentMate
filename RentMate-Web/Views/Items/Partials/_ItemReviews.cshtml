@@ -1,0 +1,272 @@
+@model RentMate.Models.ViewModels.ItemDetailsViewModel
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+
+@{
+    var reviewCount = Model.ReviewCount;
+    var avgRating = Model.AverageRating ?? 0;
+    var starCounts = Model.StarCounts; // Index 0 = 1-star, Index 4 = 5-star
+}
+
+<div id="reviews-section">
+    <!-- Rating Summary + Breakdown (integrated card) -->
+    <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl p-5 mb-6">
+        <div class="flex flex-col sm:flex-row gap-5">
+            <!-- Left: Score + Stars -->
+            <div class="flex flex-col items-center sm:items-start sm:min-w-[120px]">
+                <div class="text-5xl font-bold text-slate-900 dark:text-white leading-none">
+                    @(reviewCount > 0 ? avgRating.ToString("0.0") : "—")
+                </div>
+                <div class="flex items-center gap-0.5 text-amber-400 mt-2">
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <i class="bi bi-star@(i <= Math.Round(avgRating) ? "-fill" : "") text-sm"></i>
+                    }
+                </div>
+                <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    @reviewCount @(reviewCount == 1 ? Localizer["review"] : Localizer["reviews"])
+                </div>
+                @if (reviewCount > 0)
+                {
+                    var descriptor = avgRating >= 4.5 ? Localizer["Excellent"].Value
+                        : avgRating >= 3.5 ? Localizer["Very Good"].Value
+                        : avgRating >= 2.5 ? Localizer["Good"].Value
+                        : avgRating >= 1.5 ? Localizer["Average"].Value
+                        : Localizer["Poor"].Value;
+                    <span class="mt-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">@descriptor</span>
+                }
+            </div>
+
+            <!-- Right: Breakdown Bars -->
+            @if (reviewCount > 0)
+            {
+                <div class="flex-1 flex flex-col justify-center space-y-1.5">
+                    @for (int star = 5; star >= 1; star--)
+                    {
+                        var count = starCounts[star - 1];
+                        var pct = reviewCount > 0 ? (double)count / reviewCount * 100 : 0;
+                        <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-0.5 text-xs text-slate-500 dark:text-slate-400 w-6 shrink-0 justify-end">
+                                <span>@star</span>
+                                <i class="bi bi-star-fill text-amber-400" style="font-size: 0.6rem;"></i>
+                            </div>
+                            <div class="rating-bar-track flex-1">
+                                <div class="rating-bar-fill" style="width: @(pct.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture))%"></div>
+                            </div>
+                            <span class="text-xs text-slate-400 dark:text-slate-500 w-5 shrink-0 text-right tabular-nums">@count</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Write a Review CTA -->
+    @if (!Model.IsSignedIn)
+    {
+        <div class="mb-8 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl">
+            <a asp-area="Identity" asp-page="/Account/Login"
+               class="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                @Localizer["Sign in to write a review"]
+            </a>
+        </div>
+    }
+    else if (Model.IsSignedIn && Model.IsOwner && !Model.CanReview)
+    {
+        <div class="mb-8 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl text-center">
+            <p class="text-slate-700 dark:text-slate-300 text-sm">
+                @Localizer["You are the owner of this item. Only renters can leave reviews."]
+            </p>
+        </div>
+    }
+    else if (Model.IsSignedIn && !Model.CanReview && !Model.IsOwner)
+    {
+        <div class="mb-8 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50 text-center">
+            <i class="bi bi-chat-square-heart text-3xl text-blue-400 dark:text-blue-500 mb-2"></i>
+            <p class="text-slate-700 dark:text-slate-300 text-sm mb-4">
+                @Localizer["Rent this item to leave a review"]
+            </p>
+            <button type="button"
+                    class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl hover:shadow-md transition-all text-sm"
+                    onclick="document.getElementById('rentModal-@Model.ItemId').classList.remove('hidden')">
+                @Localizer["Rent Now"]
+            </button>
+        </div>
+    }
+    else if (Model.CanReview)
+    {
+        <div class="mb-8 p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl">
+            <h4 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-4">
+                @Localizer["Write a Review"]
+            </h4>
+
+            <form id="newReviewForm" class="space-y-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ItemId" value="@Model.ItemId" />
+
+                <!-- Star Picker -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        @Localizer["Your Rating:"]
+                    </label>
+                    <div id="newReviewStarPicker" class="flex gap-1 text-2xl cursor-pointer">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <i class="bi bi-star text-slate-300 dark:text-slate-500 transition-colors hover:text-amber-400"
+                               data-value="@i"></i>
+                        }
+                    </div>
+                    <input type="hidden" id="newRatingInput" name="Rating" value="0" />
+                </div>
+
+                <!-- Title -->
+                <div>
+                    <input type="text" name="Title" maxlength="200"
+                           placeholder="@Localizer["Title (optional)"]"
+                           class="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" />
+                </div>
+
+                <!-- Body -->
+                <div>
+                    <textarea name="Body" maxlength="2000"
+                              placeholder="@Localizer["Write your review..."]"
+                              rows="4"
+                              class="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"></textarea>
+                </div>
+
+                <!-- Anonymous Checkbox -->
+                <label class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 cursor-pointer">
+                    <input type="checkbox" name="IsAnonymous"
+                           class="w-5 h-5 text-blue-600 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500" />
+                    <span class="text-sm">@Localizer["Post anonymously"]</span>
+                </label>
+
+                <!-- Submit -->
+                <div>
+                    <button type="submit"
+                            class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white font-semibold rounded-xl hover:shadow-md transition-all">
+                        @Localizer["Submit Review"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    }
+
+    <!-- Review Cards -->
+    @if (Model.Reviews.Any())
+    {
+        <div id="reviewCardsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            @foreach (var review in Model.Reviews.Take(4))
+            {
+                <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4"
+                     id="review-card-@review.Id">
+                    <!-- Top Row: Avatar + Name + Date -->
+                    <div class="flex items-start justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-3">
+                            @if (review.IsAnonymous)
+                            {
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                                    A
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-slate-900 dark:text-white text-sm">@Localizer["Anonymous"]</div>
+                                    <div class="text-xs text-slate-400 dark:text-slate-500">@review.CreatedAt.ToString("MMMM yyyy")</div>
+                                </div>
+                            }
+                            else
+                            {
+                                @if (!string.IsNullOrEmpty(review.ReviewerProfilePictureUrl))
+                                {
+                                    <img src="@review.ReviewerProfilePictureUrl" alt=""
+                                         class="w-10 h-10 rounded-full object-cover shrink-0" />
+                                }
+                                else
+                                {
+                                    var initial = !string.IsNullOrWhiteSpace(review.ReviewerName)
+                                        ? review.ReviewerName[0].ToString().ToUpper()
+                                        : "U";
+                                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                                        @initial
+                                    </div>
+                                }
+                                <div>
+                                    <div class="font-semibold text-slate-900 dark:text-white text-sm">
+                                        @(string.IsNullOrWhiteSpace(review.ReviewerName) ? Localizer["User"].Value : review.ReviewerName)
+                                    </div>
+                                    <div class="text-xs text-slate-400 dark:text-slate-500">@review.CreatedAt.ToString("MMMM yyyy")</div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Edit / Delete Buttons (owner only) -->
+                        @if (review.ReviewerId == Model.CurrentUserId)
+                        {
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button type="button"
+                                        data-action="editReview"
+                                        data-review-id="@review.Id"
+                                        data-item-id="@Model.ItemId"
+                                        data-rating="@review.Rating"
+                                        data-title="@(review.Title ?? "")"
+                                        data-body="@(review.Body ?? "")"
+                                        data-is-anonymous="@review.IsAnonymous.ToString().ToLower()"
+                                        class="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                                        title="@Localizer["Edit Review"]">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button"
+                                        onclick="deleteReview(@review.Id)"
+                                        class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                                        title="@Localizer["Delete"]">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Star Rating -->
+                    <div class="flex items-center gap-0.5 text-amber-400 mb-2">
+                        @for (int i = 1; i <= 5; i++)
+                        {
+                            <i class="bi bi-star@(i <= review.Rating ? "-fill" : "") text-sm"></i>
+                        }
+                    </div>
+
+                    <!-- Title -->
+                    @if (!string.IsNullOrEmpty(review.Title))
+                    {
+                        <div class="font-bold text-slate-900 dark:text-white text-sm mb-1">@review.Title</div>
+                    }
+
+                    <!-- Body -->
+                    @if (!string.IsNullOrEmpty(review.Body))
+                    {
+                        <p class="text-slate-600 dark:text-slate-400 text-sm line-clamp-3">@review.Body</p>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Load More Button -->
+        @if (Model.ReviewCount > 4)
+        {
+            <div class="flex justify-center">
+                <button id="loadMoreReviewsBtn"
+                        class="px-6 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-colors">
+                    @Localizer["Show all {0} reviews", Model.ReviewCount]
+                </button>
+            </div>
+        }
+    }
+    else
+    {
+        <!-- Empty State -->
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+            <i class="bi bi-chat-square-text text-4xl text-slate-300 dark:text-slate-600 mb-3"></i>
+            <p class="text-slate-500 dark:text-slate-400">@Localizer["No reviews yet"]</p>
+        </div>
+    }
+</div>
+
+<!-- Edit Review Modal (separate partial) -->
+<partial name="Partials/_ItemReviewEditModal" model="Model" />

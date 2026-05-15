@@ -41,6 +41,12 @@ namespace RentMate.Models.Domain
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
+        /// <summary>
+        /// When the rental was archived (hidden from active dashboard tabs).
+        /// Null means still visible in active views.
+        /// </summary>
+        public DateTime? ArchivedAt { get; set; }
+
         // Navigation properties for Entity Framework
         public virtual ApplicationUser? Owner { get; set; }
         public virtual ApplicationUser? Renter { get; set; }
